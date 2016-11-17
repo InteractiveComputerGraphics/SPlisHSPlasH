@@ -1,0 +1,33 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.025	
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2.5,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [3.1, 5, 3.1],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-1.5, 0.0, -1.5],
+			"end": [-0.8, 0.75, -0.8]
+		}, 
+		{
+			"denseMode": 0,
+			"start": [0.8, 0.0, 0.8],
+			"end": [1.5, 0.75, 1.5]
+		}
+	]
+}
+
+
+

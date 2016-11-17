@@ -1,0 +1,50 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.025	
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2.5,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [6, 5, 3],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0,-0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0,0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false
+		}
+	],
+	"FluidModels": [
+		{
+			"particleFile": "../models/bunny.bgeo",
+			"translation": [-2.0, 0.05, 0.0],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 3.14159265359,
+			"scale": 1
+		}
+	]
+}
+
+
+

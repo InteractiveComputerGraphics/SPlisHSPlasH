@@ -1,0 +1,50 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.025	
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,3,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [6, 6, 3],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0,-0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0,0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.5, 0.0, -0.5],
+			"end": [0.5, 1.0, 0.5],
+			"translation": [-2.45, 0.0, 0.0],
+			"scale": [1, 2, 1]
+		}
+	]
+}
+
+
+

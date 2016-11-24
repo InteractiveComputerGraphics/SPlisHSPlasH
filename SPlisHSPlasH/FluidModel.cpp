@@ -220,7 +220,7 @@ void FluidModel::computeBoundaryPsi(const unsigned int body)
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numBoundaryParticles; i++)
 		{
 			Real delta = m_W_zero;

@@ -40,7 +40,7 @@ void TimeStepWCSPH::step()
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) m_model->numParticles(); i++)
 		{
 			Real &density = m_model->getDensity(i);
@@ -86,7 +86,7 @@ void TimeStepWCSPH::computePressureAccels()
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);

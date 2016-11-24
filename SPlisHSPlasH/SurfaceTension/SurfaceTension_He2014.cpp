@@ -26,7 +26,7 @@ void SurfaceTension_He2014::step()
 	// Compute color field
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);
@@ -55,7 +55,7 @@ void SurfaceTension_He2014::step()
 	// Compute gradient of color field
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);
@@ -83,7 +83,7 @@ void SurfaceTension_He2014::step()
 	// Compute surface tension force
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);

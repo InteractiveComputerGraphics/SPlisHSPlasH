@@ -37,7 +37,7 @@ ExternalProject_Add(
    ExternalProject_PositionBasedDynamics
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "1.5.1"
+   GIT_TAG "b81f1119763a01f0b201a68f398a4a1c9592ccb6"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1		
 ) 

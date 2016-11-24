@@ -73,7 +73,7 @@ void TimeStepDFSPH::step()
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			Vector3r &xi = m_model->getPosition(0, i);
@@ -291,13 +291,12 @@ void TimeStepDFSPH::pressureSolve()
 			//////////////////////////////////////////////////////////////////////////
 			// Update rho_adv and density error
 			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
+			#pragma omp for reduction(+:avg_density_err) schedule(static) 
 			for (int i = 0; i < numParticles; i++)
 			{
 				computeDensityAdv(i, numParticles, h, density0);
-	
+
 				const Real density_err = m_simulationData.getDensityAdv(i) - density0;
-				#pragma omp atomic
 				avg_density_err += density_err;
 			}
 		}
@@ -463,14 +462,11 @@ void TimeStepDFSPH::divergenceSolve()
 			//////////////////////////////////////////////////////////////////////////
 			// Update rho_adv and density error
 			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
+			#pragma omp for reduction(+:avg_density_err) schedule(static) 
 			for (int i = 0; i < (int)numParticles; i++)
 			{
 				computeDensityChange(i, h, density0);
-				const Real density_err = m_simulationData.getDensityAdv(i);
-  
-				#pragma omp atomic
-				avg_density_err += density_err;
+				avg_density_err += m_simulationData.getDensityAdv(i);
 			}
 		}	
 	

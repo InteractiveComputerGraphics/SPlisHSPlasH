@@ -41,7 +41,7 @@ void SimulationDataPCISPH::init(FluidModel *model)
 	#pragma omp parallel default(shared)
 	{
 		
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)model->numParticles(); i++)
 		{
 			unsigned int counter = 0;

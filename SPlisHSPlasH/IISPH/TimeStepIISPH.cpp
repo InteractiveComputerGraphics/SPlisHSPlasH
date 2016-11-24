@@ -69,7 +69,7 @@ void TimeStepIISPH::predictAdvection()
 	// Predict v_adv
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			Vector3r &vel = m_model->getVelocity(0, i);
@@ -103,7 +103,7 @@ void TimeStepIISPH::predictAdvection()
 	// Compute rho_adv
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Real &density = m_model->getDensity(i);
@@ -184,7 +184,7 @@ void TimeStepIISPH::pressureSolve()
 		// Compute dij_pj
 		#pragma omp parallel default(shared)
 		{
-			#pragma omp for schedule(static) nowait 
+			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int) numParticles; i++)
 			{
 				Vector3r &dij_pj = m_simulationData.getDij_pj(i);
@@ -207,7 +207,7 @@ void TimeStepIISPH::pressureSolve()
 		// Compute new pressure
 		#pragma omp parallel default(shared)
 		{
-			#pragma omp for schedule(static) nowait 
+			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int) numParticles; i++)
 			{
 				const Real &aii = m_simulationData.getAii(i);
@@ -289,7 +289,7 @@ void TimeStepIISPH::integration()
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) numParticles; i++)
 		{
 			Vector3r &pos = m_model->getPosition(0, i);
@@ -307,7 +307,7 @@ void TimeStepIISPH::computePressureAccels()
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);

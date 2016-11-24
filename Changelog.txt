@@ -1,3 +1,4 @@
+	- updated to Eigen 3.3
 
 1.0.0
 

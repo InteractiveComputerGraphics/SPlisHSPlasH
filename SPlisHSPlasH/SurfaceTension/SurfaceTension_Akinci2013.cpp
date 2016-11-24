@@ -23,7 +23,7 @@ void SurfaceTension_Akinci2013::computeNormals()
 	// Compute normals
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);
@@ -59,7 +59,7 @@ void SurfaceTension_Akinci2013::step()
 	// Compute forces
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);

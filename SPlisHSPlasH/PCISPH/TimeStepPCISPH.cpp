@@ -41,7 +41,7 @@ void TimeStepPCISPH::step()
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static) nowait 
+		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
 			const Vector3r accel = m_model->getAcceleration(i) + m_simulationData.getPressureAccel(i);
@@ -86,7 +86,7 @@ void TimeStepPCISPH::pressureSolve()
 
 		#pragma omp parallel default(shared)
 		{
-			#pragma omp for schedule(static) nowait 
+			#pragma omp for schedule(static)  
 			for (int i = 0; i < numParticles; i++)
 			{
 				const Vector3r accel = m_model->getAcceleration(i) + m_simulationData.getPressureAccel(i);
@@ -103,7 +103,7 @@ void TimeStepPCISPH::pressureSolve()
 		// Predict density 
 		#pragma omp parallel default(shared)
 		{
-			#pragma omp for schedule(static) nowait 
+			#pragma omp for schedule(static)  
 			for (int i = 0; i < numParticles; i++)
 			{
 				const Vector3r &xi = m_model->getPosition(0, i);
@@ -140,7 +140,7 @@ void TimeStepPCISPH::pressureSolve()
 		// Compute pressure forces
 		#pragma omp parallel default(shared)
 		{
-			#pragma omp for schedule(static) nowait 
+			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
 				const Vector3r &xi = m_simulationData.getLastPosition(i);

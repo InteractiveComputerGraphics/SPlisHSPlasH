@@ -16,7 +16,7 @@ Furthermore we use our own libraries:
 
 ## Build Instructions
 
-This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with the compiler of your choice. The code was tested with the following configurations:
+This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with a compiler of your choice that supports C++11. The code was tested with the following configurations:
 - Windows 10 64-bit, CMake 3.5.2, Visual Studio 2015
 - Ubuntu 16.10 64-bit, CMake 3.5.2, GCC 6.2.0.
 

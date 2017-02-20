@@ -116,3 +116,13 @@ void SurfaceTension_Akinci2013::reset()
 {
 }
 
+void SurfaceTension_Akinci2013::performNeighborhoodSearchSort()
+{
+	const unsigned int numPart = m_model->numParticles();
+	if (numPart == 0)
+		return;
+
+	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	d.sort_field(&m_normals[0]);
+}
+

@@ -55,8 +55,11 @@ void TimeStepPBF::step()
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) m_model->numParticles(); i++)
+			for (int i = 0; i < (int)m_model->numParticles(); i++)
+			{
 				TimeIntegration::velocityUpdateFirstOrder(h, m_model->getMass(i), m_model->getPosition(0, i), m_simulationData.getOldPosition(i), m_model->getVelocity(0, i));
+				m_model->getAcceleration(i).setZero();
+			}
 		}
 	}
 	else
@@ -65,14 +68,25 @@ void TimeStepPBF::step()
 		{
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)m_model->numParticles(); i++)
+			{
 				TimeIntegration::velocityUpdateSecondOrder(h, m_model->getMass(i), m_model->getPosition(0, i), m_simulationData.getOldPosition(i), m_simulationData.getLastPosition(i), m_model->getVelocity(0, i));
+				m_model->getAcceleration(i).setZero();
+			}
 		}
 	}
-
 
 	// Compute viscosity 
 	computeViscosity();
 	computeSurfaceTension();
+
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)m_model->numParticles(); i++)
+		{
+			m_model->getVelocity(0, i) += h * m_model->getAcceleration(i);
+		}
+	}
 
 	updateTimeStepSize();
 

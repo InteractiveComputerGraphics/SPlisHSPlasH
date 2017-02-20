@@ -26,7 +26,8 @@ void Viscosity_XSPH::step()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);
-			Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(0, i);
+			Vector3r &ai = m_model->getAcceleration(i);
 			const Real density_i = m_model->getDensity(i);
 			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
 			{
@@ -39,12 +40,12 @@ void Viscosity_XSPH::step()
 				{
 					// Viscosity
 					const Real density_j = m_model->getDensity(neighborIndex);
-					vi -= viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj) * m_model->W(xi - xj);
+					ai -= (1.0/h) * viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj) * m_model->W(xi - xj);
 
 				}
 // 				else 
 // 				{
-// 					vi -= viscosity * (model.getBoundaryPsi(particleId.point_set_id, neighborIndex) / density_i) * (vi)* m_model->W(xi - xj);
+// 					ai -= (1.0/h) * viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi)* m_model->W(xi - xj);
 // 				}
 			}
 		}

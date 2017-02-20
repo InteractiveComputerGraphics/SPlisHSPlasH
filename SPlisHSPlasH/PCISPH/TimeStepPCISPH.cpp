@@ -23,7 +23,8 @@ TimeStepPCISPH::~TimeStepPCISPH(void)
 void TimeStepPCISPH::step()
 {
 	const int numParticles = (int)m_model->numParticles();
-	const Real h = TimeManager::getCurrent()->getTimeStepSize();
+	TimeManager *tm = TimeManager::getCurrent();
+	const Real h = tm->getTimeStepSize();
 
 	performNeighborhoodSearch();
 
@@ -53,6 +54,9 @@ void TimeStepPCISPH::step()
 			x = lastX + h*v;
 		}
 	}
+
+	// Compute new time	
+	tm->setTime(tm->getTime() + h);
 }
 
 void TimeStepPCISPH::pressureSolve()

@@ -24,6 +24,7 @@ namespace SPH
 
 		void computeNormals();
 
+		virtual void performNeighborhoodSearchSort();
 
 		FORCE_INLINE Vector3r &getNormal(const unsigned int i)
 		{

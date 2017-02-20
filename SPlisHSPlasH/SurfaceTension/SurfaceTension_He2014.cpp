@@ -118,3 +118,14 @@ void SurfaceTension_He2014::reset()
 {
 }
 
+void SPH::SurfaceTension_He2014::performNeighborhoodSearchSort()
+{
+	const unsigned int numPart = m_model->numParticles();
+	if (numPart == 0)
+		return;
+
+	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	d.sort_field(&m_color[0]);
+	d.sort_field(&m_gradC2[0]);
+}
+

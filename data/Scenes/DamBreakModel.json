@@ -19,7 +19,7 @@
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
-		"velocityUpdateMethod": 1,
+		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true		
 	},
 	"RigidBodies": [

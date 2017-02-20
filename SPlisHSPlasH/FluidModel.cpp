@@ -15,6 +15,7 @@ FluidModel::FluidModel()
 	m_exponent = 7.0;
 	m_surfaceTension = 0.05;
 	m_enableDivergenceSolver = true;
+	m_velocityUpdateMethod = 0;
 
 	ParticleObject *fluidParticles = new ParticleObject();
 	m_particleObjects.push_back(fluidParticles);

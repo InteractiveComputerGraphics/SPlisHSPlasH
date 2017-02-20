@@ -23,6 +23,7 @@ namespace SPH
 		virtual void step();
 		virtual void reset();
 
+		virtual void performNeighborhoodSearchSort();
 
 		FORCE_INLINE const Real getColor(const unsigned int i) const
 		{

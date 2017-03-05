@@ -97,6 +97,7 @@ void TimeStepPF::initialGuessForPositions()
 		m_simulationData.setOldPosition(i, m_model->getPosition(0, i));
 		const auto newPos = m_model->getPosition(0, i) + h * m_model->getVelocity(0, i) + (h * h) * m_model->getAcceleration(i);
 		m_model->setPosition(0, i, newPos);
+		m_simulationData.setS(i, newPos);
 	}
 }
 
@@ -272,9 +273,8 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 {
 	const auto numParticles = m_model->numParticles();
 	const auto numVariables = 3u * numParticles;
-	const auto h = TimeManager::getCurrent()->getTimeStepSize();
-	const auto stiffness = m_model->getStiffness();
-	const auto& s = m_simulationData.getS();
+	const auto h            = TimeManager::getCurrent()->getTimeStepSize();
+	const auto stiffness    = m_model->getStiffness();
 
 	AtomicRealVec accumulator(numVariables);
 
@@ -289,19 +289,19 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			// TODO
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
 			// particle positions in current constraint, will be projected in local step
-			VectorXr p(numNeighbors + 1);
-			p.Vec3Block(0) = x.Vec3Block(i);
+			std::vector<Vector3r> p(numNeighbors + 1);
+			p[0] = x.Vec3Block(i);
 			for (auto j = 0u; j < numNeighbors; j++)
 			{
 				const auto id = m_model->getNeighbor(i, j);
-				p.Vec3Block(j + 1) = m_model->getPosition(id.point_set_id, id.point_id);
+				p[j + 1] = m_model->getPosition(id.point_set_id, id.point_id);
 			}
 			// helper functions
 			auto calculateC = [&]() -> Real
 			{
 				// Compute current density for particle i
 				Real density = m_model->getMass(i) * m_model->W_zero();
-				const Vector3r &xi = p.Vec3Block(0);
+				const Vector3r &xi = p[0];
 				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
 				{
 					const auto& id = m_model->getNeighbor(i, j);
@@ -324,7 +324,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			};
 			auto calculateNablaC = [&]() -> VectorXr
 			{
-				VectorXr nablaC(p.size());
+				VectorXr nablaC(3 * p.size());
 				nablaC.Vec3Block(0).setZero();
 				const Vector3r &xi = m_model->getPosition(0, i);
 				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
@@ -348,11 +348,11 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			// projection
 			const auto C_goal    = Real(1e-14);
 			const auto max_steps = 100u;
-			auto it              = 0u;
-			auto C				 = calculateC();
+			      auto it        = 0u;
+			      auto C	     = calculateC();
 			while ((std::abs(C) > C_goal))
 			{
-				const VectorXr g = calculateNablaC();
+				const auto g = calculateNablaC();
 				const auto dg = g.dot(g);
 				if (dg == 0) break;	// found a minimum
 				const Real cdg = -C / (dg + 1e-6); // add regularization factor
@@ -363,13 +363,25 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 					if (id.point_set_id == 0)
 					{
 						const auto nfn = m_simulationData.getNumFluidNeighbors(j);
-						p.Vec3Block(j) += (cdg * nfn) * g.Vec3Block(j);
+						p[j] += (cdg * nfn) * g.Vec3Block(j);
 					}
 				}
 				if (it + 1 < max_steps)
 				{
 					C = calculateC();
 				}
+			}
+			// update RHS
+			for (auto c = 0u; c < 3; c++)
+				addToAtomicReal(accumulator[3 * i + c]._a, stiffness * p[0][c]);
+			for (auto j = 0u; j < numNeighbors; j++)
+			{
+				const auto id = m_model->getNeighbor(i, j);
+				if (id.point_set_id != 0)
+					continue;
+				const Vector3r& xj = p[j + 1];
+				for (auto c = 0u; c < 3; c++)
+					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * xj[c]);
 			}
 		}
 	}
@@ -380,11 +392,12 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const auto m = m_model->getMass(i);
+			const auto  m = m_model->getMass(i);
+			const auto& s = m_simulationData.getS(i);
 			for (auto c = 0u; c < 3; c++)
 			{
 				const auto id = 3 * i + c;
-				result[id] = h * h * accumulator[id]._a + m * s[id];
+				result[id] = h * h * accumulator[id]._a + m * s[c];
 			}
 		}
 	}

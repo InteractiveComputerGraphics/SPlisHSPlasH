@@ -30,7 +30,7 @@ namespace SPH
 		std::vector<Real> m_x;
 
 		/** \brief positions predicted from momentum */
-		std::vector<Real> m_s;
+		std::vector<Vector3r> m_s;
 
 		/** \brief fluid stiffness */
 		Real m_stiffness;
@@ -94,14 +94,19 @@ namespace SPH
 			return m_x;
 		}
 
-		FORCE_INLINE const std::vector<Real>& getS() const
+		FORCE_INLINE const Vector3r& getS(const unsigned int i) const
 		{
-			return m_s;
+			return m_s[i];
 		}
 
-		FORCE_INLINE std::vector<Real>& getS()
+		FORCE_INLINE Vector3r& getS(const unsigned int i)
 		{
-			return m_s;
+			return m_s[i];
+		}
+
+		FORCE_INLINE void setS(const unsigned int i, const Vector3r & s)
+		{
+			m_s[i] = s;
 		}
 
 		FORCE_INLINE const Real getStiffness() const

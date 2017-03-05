@@ -19,15 +19,19 @@ void SimulationDataPF::init(FluidModel *model)
 {
 	m_model = model;
 
-	m_old_position.resize(model->numParticles(), Vector3r::Zero());
-	m_num_fluid_neighbors.resize(model->numParticles(), 0);
-	m_x.resize(3 * model->numParticles(), 0);
+	m_old_position       .resize(    model->numParticles(), Vector3r::Zero());
+	m_num_fluid_neighbors.resize(    model->numParticles(), 0);
+	m_x                  .resize(3 * model->numParticles(), 0);
+	m_s                  .resize(    model->numParticles(), Vector3r::Zero());
+	m_stiffness = 1000;
 }
 
 void SimulationDataPF::cleanup()
 {
-	m_old_position.clear();
+	m_old_position       .clear();
 	m_num_fluid_neighbors.clear();
+	m_x                  .clear();
+	m_s                  .clear();
 }
 
 void SimulationDataPF::reset()
@@ -36,11 +40,13 @@ void SimulationDataPF::reset()
 	{
 		m_old_position[i].setZero();
 		m_num_fluid_neighbors[i] = 0;
+		m_s[i].setZero();
 	}
 	for (unsigned int i = 0; i < m_x.size(); i++)
 	{
 		m_x[i] = 0;
 	}
+	m_stiffness = 1000;
 }
 
 void SimulationDataPF::performNeighborhoodSearchSort()
@@ -52,4 +58,6 @@ void SimulationDataPF::performNeighborhoodSearchSort()
 	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
 	d.sort_field(&m_old_position[0]);
 	d.sort_field(&m_num_fluid_neighbors[0]);
+	//d.sort_field(&m_x);
+	//d.sort_field(&m_s);
 }

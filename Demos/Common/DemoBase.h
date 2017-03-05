@@ -44,7 +44,7 @@ namespace SPH
 			MaxIterations, MaxError, MaxIterationsV, MaxErrorV
 		};
 
-		enum SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH };
+		enum SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, NUM_METHODS };
 
 		typedef void(*SimulationMethodChangedFct)();
 

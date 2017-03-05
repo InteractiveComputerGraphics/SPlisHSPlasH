@@ -50,6 +50,16 @@ set(DFSPH_SOURCE_FILES
 	DFSPH/TimeStepDFSPH.cpp
 	)	
 	
+set(PF_HEADER_FILES
+	PF/SimulationDataPF.h
+	PF/TimeStepPF.h
+	)
+	
+set(PF_SOURCE_FILES
+	PF/SimulationDataPF.cpp
+	PF/TimeStepPF.cpp
+	)
+	
 set(SURFACETENSION_HEADER_FILES
 	SurfaceTension/SurfaceTension_Becker2007.h
 	SurfaceTension/SurfaceTension_Akinci2013.h
@@ -124,6 +134,9 @@ add_library(SPlisHSPlasH
 	${DFSPH_HEADER_FILES}
 	${DFSPH_SOURCE_FILES}
 	
+	${PF_HEADER_FILES}
+	${PF_SOURCE_FILES}
+	
 	${VISCOSITY_HEADER_FILES}
 	${VISCOSITY_SOURCE_FILES}
 	
@@ -148,6 +161,8 @@ source_group("Header Files\\IISPH" FILES ${IISPH_HEADER_FILES})
 source_group("Source Files\\IISPH" FILES ${IISPH_SOURCE_FILES})
 source_group("Header Files\\DFSPH" FILES ${DFSPH_HEADER_FILES})
 source_group("Source Files\\DFSPH" FILES ${DFSPH_SOURCE_FILES})
+source_group("Header Files\\PF" FILES ${PF_HEADER_FILES})
+source_group("Source Files\\PF" FILES ${PF_SOURCE_FILES})
 source_group("Header Files\\Viscosity" FILES ${VISCOSITY_HEADER_FILES})
 source_group("Source Files\\Viscosity" FILES ${VISCOSITY_SOURCE_FILES})
 source_group("Header Files\\SurfaceTension" FILES ${SURFACETENSION_HEADER_FILES})

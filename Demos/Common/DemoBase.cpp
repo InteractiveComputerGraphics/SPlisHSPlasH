@@ -8,6 +8,7 @@
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
+#include "SPlisHSPlasH/PF/TimeStepPF.h"
 #include "Utilities/PartioReaderWriter.h"
 #include "Visualization/Selection.h"
 #include "GL/glut.h"
@@ -187,7 +188,7 @@ void DemoBase::initParameters()
 	m_parameters.push_back(Parameter(ParameterIDs::Gravitation, "Gravitation", TW_TYPE_DIR3R, " label='Gravitation' group=Simulation", this));
 
 	TwType enumType = TwDefineEnum("SimulationMethodType", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}, 5 {PF}' group=Simulation", this));
 
 	m_parameters.push_back(Parameter(ParameterIDs::MaxIterations, "MaxIterations", TW_TYPE_UINT32, " label='Max. iterations' group=Simulation ", this));
 	m_parameters.push_back(Parameter(ParameterIDs::MaxError, "MaxError", TW_TYPE_REAL, " label='Max.density error(%)'  min=0.00001 precision=4 group=Simulation ", this));
@@ -231,6 +232,14 @@ void DemoBase::initParameters()
 		m_parameters.push_back(Parameter(ParameterIDs::DFSPH_EnableDivergenceSolver, "DFSPH_EnableDivergenceSolver", TW_TYPE_BOOL32, " label='Enable divergence solver' group=DFSPH", this));
 		m_parameters.push_back(Parameter(ParameterIDs::MaxIterationsV, "MaxIterationsV", TW_TYPE_UINT32, " label='Max. iterations (divergence)' group=DFSPH ", this));
 		m_parameters.push_back(Parameter(ParameterIDs::MaxErrorV, "MaxErrorV", TW_TYPE_REAL, " label='Max. divergence error(%)'  min=0.00001 precision=4 group=DFSPH ", this));
+	}
+
+	if (m_simulationMethod.simulationMethod == SimulationMethods::PF)
+	{
+		m_parameters.push_back(Parameter(ParameterIDs::IterationCountV, "IterationCountV", TW_TYPE_UINT32, " label='Iterations (divergence)' readonly=true group=PF ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::DFSPH_EnableDivergenceSolver, "DFSPH_EnableDivergenceSolver", TW_TYPE_BOOL32, " label='Enable divergence solver' group=PF", this));
+		m_parameters.push_back(Parameter(ParameterIDs::MaxIterationsV, "MaxIterationsV", TW_TYPE_UINT32, " label='Max. iterations (divergence)' group=PF ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::MaxErrorV, "MaxErrorV", TW_TYPE_REAL, " label='Max. divergence error(%)'  min=0.00001 precision=4 group=PF ", this));
 	}
 
 
@@ -727,7 +736,7 @@ void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &en
 
 void DemoBase::setSimulationMethod(SimulationMethods method)
 {
-	if ((method < 0) || (method > 4))
+	if ((method < 0) || (method >= SimulationMethods::NUM_METHODS))
 		method = SimulationMethods::DFSPH;
 
 	if (method != m_simulationMethod.simulationMethod)
@@ -767,6 +776,13 @@ void DemoBase::setSimulationMethod(SimulationMethods method)
 		else if (method == SimulationMethods::DFSPH)
 		{
 			m_simulationMethod.simulation = new TimeStepDFSPH(&m_simulationMethod.model);
+			m_simulationMethod.model.setKernel(3);
+			m_simulationMethod.model.setGradKernel(3);
+			m_simulationMethod.model.updateBoundaryPsi();
+		}
+		else if (method == SimulationMethods::PF)
+		{
+			m_simulationMethod.simulation = new TimeStepPF(&m_simulationMethod.model);
 			m_simulationMethod.model.setKernel(3);
 			m_simulationMethod.model.setGradKernel(3);
 			m_simulationMethod.model.updateBoundaryPsi();

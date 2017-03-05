@@ -25,6 +25,9 @@ namespace SPH
 		/** \brief number of neighbors that are fluid particles */
 		std::vector<unsigned int> m_num_fluid_neighbors;
 
+		/** brief variables for optimization */
+		std::vector<Real> m_x;
+
 	public:
 
 		/** Initialize the arrays containing the particle data.
@@ -72,6 +75,16 @@ namespace SPH
 		FORCE_INLINE void setNumFluidNeighbors(const unsigned int i, const unsigned int n)
 		{
 			m_num_fluid_neighbors[i] = n;
+		}
+
+		FORCE_INLINE const std::vector<Real>& getX() const
+		{
+			return m_x;
+		}
+
+		FORCE_INLINE std::vector<Real>& getX()
+		{
+			return m_x;
 		}
 	};
 }

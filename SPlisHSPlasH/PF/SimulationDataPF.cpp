@@ -20,6 +20,7 @@ void SimulationDataPF::init(FluidModel *model)
 
 	m_old_position.resize(model->numParticles(), Vector3r::Zero());
 	m_num_fluid_neighbors.resize(model->numParticles(), 0);
+	m_x.resize(3 * model->numParticles(), 0);
 }
 
 void SimulationDataPF::cleanup()
@@ -34,6 +35,10 @@ void SimulationDataPF::reset()
 	{
 		m_old_position[i].setZero();
 		m_num_fluid_neighbors[i] = 0;
+	}
+	for (unsigned int i = 0; i < m_x.size(); i++)
+	{
+		m_x[i] = 0;
 	}
 }
 

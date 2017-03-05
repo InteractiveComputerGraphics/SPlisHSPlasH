@@ -14,13 +14,22 @@ namespace SPH
 	class TimeStepPF : public TimeStep
 	{
 	protected:
+		enum class CGSolveState { ALREADY_SOLVED, CONVERGED, MAX_ITER_REACHED };
+		using VectorXr = Eigen::Matrix<Real, -1, 1>;
+		using VectorXrMap = Eigen::Map<VectorXr>;
+
 		SimulationDataPF m_simulationData;
 		unsigned int m_counter;
 
 		void initialGuessForPositions();
-		void countFluidNeighbors();
+		void prepareSolve();
 		void solvePDConstraints();
-		void updateVelocity();
+		void updatePositionsAndVelocity();
+
+		CGSolveState cgSolve();
+		void calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs);
+		void matrixFreeLHS(const VectorXr & v, VectorXr & result);
+		void matrixFreeRHS(VectorXr & result);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/

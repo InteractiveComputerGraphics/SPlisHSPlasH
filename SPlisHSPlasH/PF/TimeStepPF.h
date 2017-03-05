@@ -1,9 +1,9 @@
 #ifndef __TimeStepPF_h__
 #define __TimeStepPF_h__
 
+#include "SimulationDataPF.h"
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/TimeStep.h"
-#include "SimulationDataPF.h"
 #include "SPlisHSPlasH/SPHKernels.h"
 
 namespace SPH
@@ -28,7 +28,7 @@ namespace SPH
 
 		CGSolveState cgSolve();
 		void calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs);
-		void matrixFreeLHS(const VectorXr & v, VectorXr & result);
+		void matrixFreeLHS(const VectorXr & x, VectorXr & result);
 		void matrixFreeRHS(VectorXr & result);
 
 		/** Perform the neighborhood search for all fluid particles.

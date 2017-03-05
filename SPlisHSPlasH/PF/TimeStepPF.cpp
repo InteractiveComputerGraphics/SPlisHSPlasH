@@ -1,12 +1,45 @@
 #include "TimeStepPF.h"
-#include "SPlisHSPlasH/TimeManager.h"
-#include "SPlisHSPlasH/SPHKernels.h"
+
 #include "SimulationDataPF.h"
-#include <iostream>
+#include "SPlisHSPlasH/SPHKernels.h"
+#include "SPlisHSPlasH/TimeManager.h"
 #include "SPlisHSPlasH/Utilities/Timing.h"
+
+#include <atomic>
+#include <iostream>
 
 using namespace SPH;
 using namespace std;
+
+#define Vec3Block(i) template block<3, 1> (3 * (i), 0)
+
+// helper functions
+namespace
+{
+	template <typename T>
+	struct atomic_wrapper
+	{
+		std::atomic<T> _a;
+
+		atomic_wrapper() : _a(0) {}
+		atomic_wrapper(const std::atomic<T> &a) :_a(a.load()) {}
+		atomic_wrapper(const atomic_wrapper &other) :_a(other._a.load()) {}
+		atomic_wrapper &operator=(const atomic_wrapper &other)
+		{
+			_a.store(other._a.load());
+			return *this;
+		}
+	};
+
+	inline void addToAtomicReal(std::atomic<Real> & a, const Real & r)
+	{
+		Real current = a;
+		while (!a.compare_exchange_weak(current, current + r))
+			;
+	}
+}
+
+using AtomicRealVec = std::vector < atomic_wrapper<Real> >;
 
 TimeStepPF::TimeStepPF(FluidModel *model) :
 	TimeStep(model)
@@ -81,7 +114,7 @@ void TimeStepPF::prepareSolve()
 			x[3 * i + 1] = m_model->getPosition(0, i)[1];
 			x[3 * i + 2] = m_model->getPosition(0, i)[2];
 
-			auto nfn = 0u;
+			auto nfn = 1u;
 			for (auto j = 0u; j < m_model->numberOfNeighbors(i); j++)
 				if (m_model->getNeighbor(i, j).point_set_id == 0u)
 					nfn++;
@@ -116,7 +149,6 @@ void TimeStepPF::updatePositionsAndVelocity()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			
 			m_model->setPosition(0, i,
 				{
 					x[3 * i + 0],
@@ -189,14 +221,173 @@ void SPH::TimeStepPF::calculateNegativeGradient(VectorXr & r, VectorXr & b, cons
 	r = b - r;
 }
 
-void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & v, VectorXr & result)
+void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 {
+	const auto numParticles = m_model->numParticles();
+	const auto numVariables = 3u * numParticles;
+	const auto h = TimeManager::getCurrent()->getTimeStepSize();
+	const auto stiffness = m_model->getStiffness();
+	
+	AtomicRealVec accumulator(numVariables);
 
+	// influence of pressure
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < numParticles; i++)
+		{
+			const auto numNeighbors = m_model->numberOfNeighbors(i);
+			const Vector3r& xi = x.Vec3Block(i);
+			for (auto c = 0u; c < 3; c++)
+				addToAtomicReal(accumulator[3 * i + c]._a, stiffness * xi[c]);
+			for (auto j = 0u; j < numNeighbors; j++)
+			{
+				const auto id = m_model->getNeighbor(i, j);
+				if (id.point_set_id != 0)
+					continue;
+				const Vector3r& xj = x.Vec3Block(id.point_id);
+				for (auto c = 0u; c < 3; c++)
+					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * xj[c]);
+			}
+		}
+	}
+
+	// influence of momentum
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			const auto m = m_model->getMass(i);
+			for (auto c = 0u; c < 3; c++)
+			{
+				const auto id = 3 * i + c;
+				result[id] = h * h * accumulator[id]._a + m * x[id];
+			}
+		}
+	}
 }
 
 void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 {
+	const auto numParticles = m_model->numParticles();
+	const auto numVariables = 3u * numParticles;
+	const auto h = TimeManager::getCurrent()->getTimeStepSize();
+	const auto stiffness = m_model->getStiffness();
+	const auto& s = m_simulationData.getS();
 
+	AtomicRealVec accumulator(numVariables);
+
+	// influence of pressure
+	#pragma omp parallel default(shared)
+	{
+		auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
+
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < numParticles; i++)
+		{
+			// TODO
+			const auto numNeighbors = m_model->numberOfNeighbors(i);
+			// particle positions in current constraint, will be projected in local step
+			VectorXr p(numNeighbors + 1);
+			p.Vec3Block(0) = x.Vec3Block(i);
+			for (auto j = 0u; j < numNeighbors; j++)
+			{
+				const auto id = m_model->getNeighbor(i, j);
+				p.Vec3Block(j + 1) = m_model->getPosition(id.point_set_id, id.point_id);
+			}
+			// helper functions
+			auto calculateC = [&]() -> Real
+			{
+				// Compute current density for particle i
+				Real density = m_model->getMass(i) * m_model->W_zero();
+				const Vector3r &xi = p.Vec3Block(0);
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+				{
+					const auto& id = m_model->getNeighbor(i, j);
+					const auto& xj = m_model->getPosition(id.point_set_id, id.point_id);
+
+					if (id.point_set_id == 0)		// Test if fluid particle
+					{
+						density += m_model->getMass(id.point_id) * m_model->W(xi - xj);
+					}
+					else
+					{
+						// Boundary: Akinci2012
+						density += m_model->getBoundaryPsi(id.point_set_id, id.point_id) * m_model->W(xi - xj);
+					}
+				}
+				// constraint value = density / density0 - 1
+				const auto C = density / m_model->getDensity0() - 1;
+				// pressure clamping
+				return (C < 0) ? 0 : C;
+			};
+			auto calculateNablaC = [&]() -> VectorXr
+			{
+				VectorXr nablaC(p.size());
+				nablaC.Vec3Block(0).setZero();
+				const Vector3r &xi = m_model->getPosition(0, i);
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+				{
+					const auto& id = m_model->getNeighbor(i, j);
+					const auto& xj = m_model->getPosition(id.point_set_id, id.point_id);
+
+					if (id.point_set_id == 0)		// Test if fluid particle
+					{
+						nablaC.Vec3Block(j + 1) = -m_model->getMass(id.point_id) * m_model->gradW(xi - xj);
+					}
+					else
+					{
+						// Boundary: Akinci2012
+						nablaC.Vec3Block(j + 1) = -m_model->getBoundaryPsi(id.point_set_id, id.point_id) * m_model->gradW(xi - xj);
+					}
+					nablaC.Vec3Block(0) -= nablaC.Vec3Block(j + 1);
+				}
+				return nablaC;
+			};
+			// projection
+			const auto C_goal    = Real(1e-14);
+			const auto max_steps = 100u;
+			auto it              = 0u;
+			auto C				 = calculateC();
+			while ((std::abs(C) > C_goal))
+			{
+				const VectorXr g = calculateNablaC();
+				const auto dg = g.dot(g);
+				if (dg == 0) break;	// found a minimum
+				const Real cdg = -C / (dg + 1e-6); // add regularization factor
+
+				for (auto j = 0u; j < (numNeighbors + 1); ++j)
+				{
+					const auto& id = m_model->getNeighbor(i, j);
+					if (id.point_set_id == 0)
+					{
+						const auto nfn = m_simulationData.getNumFluidNeighbors(j);
+						p.Vec3Block(j) += (cdg * nfn) * g.Vec3Block(j);
+					}
+				}
+				if (it + 1 < max_steps)
+				{
+					C = calculateC();
+				}
+			}
+		}
+	}
+
+	// influence of momentum
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			const auto m = m_model->getMass(i);
+			for (auto c = 0u; c < 3; c++)
+			{
+				const auto id = 3 * i + c;
+				result[id] = h * h * accumulator[id]._a + m * s[id];
+			}
+		}
+	}
 }
 
 void TimeStepPF::performNeighborhoodSearch()

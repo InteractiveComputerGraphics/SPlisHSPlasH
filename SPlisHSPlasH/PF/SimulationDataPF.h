@@ -2,8 +2,9 @@
 #define __SimulationDataPF_h__
 
 #include "SPlisHSPlasH/Common.h"
-#include <vector>
 #include "SPlisHSPlasH/FluidModel.h"
+
+#include <vector>
 
 namespace SPH 
 {	
@@ -25,8 +26,14 @@ namespace SPH
 		/** \brief number of neighbors that are fluid particles */
 		std::vector<unsigned int> m_num_fluid_neighbors;
 
-		/** brief variables for optimization */
+		/** \brief variables for optimization */
 		std::vector<Real> m_x;
+
+		/** \brief positions predicted from momentum */
+		std::vector<Real> m_s;
+
+		/** \brief fluid stiffness */
+		Real m_stiffness;
 
 	public:
 
@@ -85,6 +92,31 @@ namespace SPH
 		FORCE_INLINE std::vector<Real>& getX()
 		{
 			return m_x;
+		}
+
+		FORCE_INLINE const std::vector<Real>& getS() const
+		{
+			return m_s;
+		}
+
+		FORCE_INLINE std::vector<Real>& getS()
+		{
+			return m_s;
+		}
+
+		FORCE_INLINE const Real getStiffness() const
+		{
+			return m_stiffness;
+		}
+
+		FORCE_INLINE Real & getStiffness()
+		{
+			return m_stiffness;
+		}
+
+		FORCE_INLINE void setStiffness(const Real s)
+		{
+			m_stiffness = s;
 		}
 	};
 }

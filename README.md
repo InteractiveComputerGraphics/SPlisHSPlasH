@@ -31,6 +31,7 @@ The SPlisHSPlasH library implements the following pressure solvers:
 * Position based fluids (PBF)
 * Implicit incompressible SPH (IISPH)
 * Divergence-free smoothed particle hydrodynamics (DFSPH)
+* Projective Fluids (PF)
 
 ## Viscosity
 

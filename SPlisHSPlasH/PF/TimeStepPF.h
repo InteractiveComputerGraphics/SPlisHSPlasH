@@ -8,10 +8,8 @@
 
 namespace SPH
 {
-	class SimulationDataPF;
-
-	/** \brief This class implements the Divergence-free Smoothed Particle Hydrodynamics approach introduced
-	* by Bender and Koschier \cite Bender:2015, \cite Bender2016.
+	/** \brief This class implements the Projective Fluids approach introduced
+	* by Weiler, Koschier and Bender \cite Weiler:2016.
 	*/
 	class TimeStepPF : public TimeStep
 	{
@@ -19,11 +17,10 @@ namespace SPH
 		SimulationDataPF m_simulationData;
 		unsigned int m_counter;
 
-		void computeDFSPHFactor();
-		void pressureSolve();
-		void divergenceSolve();
-		void computeDensityAdv(const unsigned int index, const int numParticles, const Real h, const Real density0);
-		void computeDensityChange(const unsigned int index, const Real h, const Real density0);
+		void initialGuessForPositions();
+		void countFluidNeighbors();
+		void solvePDConstraints();
+		void updateVelocity();
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/

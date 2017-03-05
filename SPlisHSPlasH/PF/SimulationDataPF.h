@@ -7,105 +7,72 @@
 
 namespace SPH 
 {	
-	/** \brief Simulation data which is required by the method Divergence-free Smoothed Particle Hydrodynamics introduced
-	* by Bender and Koschier \cite Bender:2015, \cite Bender2016.
+	/** \brief Simulation data which is required by the method Projective Fluids introduced by Weiler, Koschier
+	* and Bender \cite Weiler:2016.
 	*/
 	class SimulationDataPF
 	{
-		public:
-			SimulationDataPF();
-			virtual ~SimulationDataPF();
+	public:
+		SimulationDataPF();
+		virtual ~SimulationDataPF();
 
-		protected:	
-			FluidModel *m_model;
+	protected:
+		FluidModel *m_model;
 
-			/** \brief factor \f$\alpha_i\f$ \cite Bender:2015 */
-			std::vector<Real> m_factor;
-			/** \brief stores \f$\kappa\f$ value of last time step for a warm start of the pressure solver */
-			std::vector<Real> m_kappa;
-			/** \brief stores \f$\kappa^v\f$ value of last time step for a warm start of the divergence solver */
-			std::vector<Real> m_kappaV;
-			/** \brief advected density */
-			std::vector<Real> m_density_adv;
+		/** \brief particle position from last timestep */
+		std::vector<Vector3r> m_old_position;
 
-		public:
+		/** \brief number of neighbors that are fluid particles */
+		std::vector<unsigned int> m_num_fluid_neighbors;
 
-			/** Initialize the arrays containing the particle data.
-			*/
-			virtual void init(FluidModel *model);
+	public:
 
-			/** Release the arrays containing the particle data.
-			*/
-			virtual void cleanup();
+		/** Initialize the arrays containing the particle data.
+		*/
+		virtual void init(FluidModel *model);
 
-			/** Reset the particle data.
-			*/
-			virtual void reset();
+		/** Release the arrays containing the particle data.
+		*/
+		virtual void cleanup();
 
-			/** Important: First call m_model->performNeighborhoodSearchSort() 
-			 * to call the z_sort of the neighborhood search.
-			 */
-			void performNeighborhoodSearchSort();
+		/** Reset the particle data.
+		*/
+		virtual void reset();
 
-			FORCE_INLINE const Real getFactor(const unsigned int i) const
-			{
-				return m_factor[i];
-			}
+		/** Important: First call m_model->performNeighborhoodSearchSort()
+		 * to call the z_sort of the neighborhood search.
+		 */
+		void performNeighborhoodSearchSort();
 
-			FORCE_INLINE Real& getFactor(const unsigned int i)
-			{
-				return m_factor[i];
-			}
+		FORCE_INLINE const Vector3r getOldPosition(const unsigned int i) const
+		{
+			return m_old_position[i];
+		}
 
-			FORCE_INLINE void setFactor(const unsigned int i, const Real p)
-			{
-				m_factor[i] = p;
-			}
+		FORCE_INLINE Vector3r& getOldPosition(const unsigned int i)
+		{
+			return m_old_position[i];
+		}
 
-			FORCE_INLINE const Real getKappa(const unsigned int i) const
-			{
-				return m_kappa[i];
-			}
+		FORCE_INLINE void setOldPosition(const unsigned int i, const Vector3r p)
+		{
+			m_old_position[i] = p;
+		}
 
-			FORCE_INLINE Real& getKappa(const unsigned int i)
-			{
-				return m_kappa[i];
-			}
+		FORCE_INLINE const unsigned int getNumFluidNeighbors(const unsigned int i) const
+		{
+			return m_num_fluid_neighbors[i];
+		}
 
-			FORCE_INLINE void setKappa(const unsigned int i, const Real p)
-			{
-				m_kappa[i] = p;
-			}
+		FORCE_INLINE unsigned int& getNumFluidNeighbors(const unsigned int i)
+		{
+			return m_num_fluid_neighbors[i];
+		}
 
-			FORCE_INLINE const Real getKappaV(const unsigned int i) const
-			{
-				return m_kappaV[i];
-			}
-
-			FORCE_INLINE Real& getKappaV(const unsigned int i)
-			{
-				return m_kappaV[i];
-			}
-
-			FORCE_INLINE void setKappaV(const unsigned int i, const Real p)
-			{
-				m_kappaV[i] = p;
-			}
-
-			FORCE_INLINE const Real getDensityAdv(const unsigned int i) const
-			{
-				return m_density_adv[i];
-			}
-
-			FORCE_INLINE Real& getDensityAdv(const unsigned int i)
-			{
-				return m_density_adv[i];
-			}
-
-			FORCE_INLINE void setDensityAdv(const unsigned int i, const Real d)
-			{
-				m_density_adv[i] = d;
-			}
+		FORCE_INLINE void setNumFluidNeighbors(const unsigned int i, const unsigned int n)
+		{
+			m_num_fluid_neighbors[i] = n;
+		}
 	};
 }
 

@@ -69,6 +69,7 @@ void TimeStepPF::step()
 	solvePDConstraints();
 	STOP_TIMING_AVG;
 
+	computeDensities();
 	computeSurfaceTension();
 	computeViscosity();
 
@@ -177,11 +178,13 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 	calculateNegativeGradient(r, b, true);
 	d = r;
 
-	auto delta_new = r.squaredNorm();
-	auto delta_0   = delta_new;
-	auto delta_old = std::numeric_limits<Real>::max();
+	const auto tol_abs = 1e-10;
+	const auto tol_rel = 1e-8;
+	      auto delta_new = r.squaredNorm();
+	const auto delta_0   = delta_new;
+	      auto delta_old = std::numeric_limits<Real>::max();
 
-	if ((delta_new < 1e-12) || (delta_new < 1e-10 * delta_0))
+	if ((delta_new < tol_abs) || (delta_new < tol_rel * delta_0))
 		return CGSolveState::ALREADY_SOLVED;
 
 	// CG iterations
@@ -189,17 +192,17 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 	{
 		matrixFreeLHS(d, q);
 		const auto alpha = delta_new / d.dot(q);
-		x = alpha * d;
+		x += alpha * d;
 		
 		if ((cg_it + 1) % restart_iterations == 0)
 			calculateNegativeGradient(r, b, false);
 		else
-			r = -alpha * q;
+			r -= alpha * q;
 
 		// test for convergence
 		delta_old = delta_new;
 		delta_new = r.squaredNorm();
-		if ((delta_new < 1e-12) || (delta_new < 1e-10 * delta_0))
+		if ((delta_new < tol_abs) || (delta_new < tol_rel * delta_0))
 		{
 			return CGSolveState::CONVERGED;
 		}
@@ -379,9 +382,8 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 				const auto id = m_model->getNeighbor(i, j);
 				if (id.point_set_id != 0)
 					continue;
-				const Vector3r& xj = p[j + 1];
 				for (auto c = 0u; c < 3; c++)
-					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * xj[c]);
+					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * p[j + 1][c]);
 			}
 		}
 	}

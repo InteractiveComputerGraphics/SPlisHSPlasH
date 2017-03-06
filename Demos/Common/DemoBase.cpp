@@ -178,7 +178,7 @@ void DemoBase::initParameters()
 
 	MiniGL::initTweakBarParameters();
 	TwAddVarRW(MiniGL::getTweakBar(), "Pause", TW_TYPE_BOOLCPP, &m_doPause, " label='Pause' group=Simulation key=SPACE ");
-	TwAddVarRW(MiniGL::getTweakBar(), "PauseAt", TW_TYPE_REAL, &m_pauseAt, " label='Pause simulation at' step=0.001 precision=3 group=Simulation ");
+	TwAddVarRW(MiniGL::getTweakBar(), "PauseAt", TW_TYPE_REAL, &m_pauseAt, " label='Pause simulation at' step=0.001 precision=4 group=Simulation ");
 	TwAddVarRW(MiniGL::getTweakBar(), "numberOfStepsPerRenderUpdate", TW_TYPE_UINT32, &m_numberOfStepsPerRenderUpdate, " label='# time steps / update' min=1 group=Simulation ");
 
 	m_parameters.push_back(Parameter(ParameterIDs::TimeStepSize, "TimeStepSize", TW_TYPE_REAL, " label='Time step size'  min=0.0 max = 0.1 step=0.001 precision=4 group=Simulation ", this));

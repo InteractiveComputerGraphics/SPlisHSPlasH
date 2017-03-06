@@ -96,7 +96,7 @@ void TimeStepPF::initialGuessForPositions()
 	for (int i = 0; i < numParticles; i++)
 	{
 		m_simulationData.setOldPosition(i, m_model->getPosition(0, i));
-		const auto newPos = m_model->getPosition(0, i) + h * m_model->getVelocity(0, i) + (h * h) * m_model->getAcceleration(i);
+		const auto newPos = (m_model->getPosition(0, i) + h * m_model->getVelocity(0, i) + (h * h) * m_model->getAcceleration(i)).eval();
 		m_model->setPosition(0, i, newPos);
 		m_simulationData.setS(i, newPos);
 	}
@@ -105,17 +105,14 @@ void TimeStepPF::initialGuessForPositions()
 void TimeStepPF::prepareSolve()
 {
 	const auto numParticles = m_model->numParticles();
-	auto&      x            = m_simulationData.getX();
+	auto&      x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			x[3 * i + 0] = m_model->getPosition(0, i)[0];
-			x[3 * i + 1] = m_model->getPosition(0, i)[1];
-			x[3 * i + 2] = m_model->getPosition(0, i)[2];
-
+			x.Vec3Block(i) = m_model->getPosition(0, i);
 			auto nfn = 1u;
 			for (auto j = 0u; j < m_model->numberOfNeighbors(i); j++)
 				if (m_model->getNeighbor(i, j).point_set_id == 0u)
@@ -144,22 +141,16 @@ void TimeStepPF::updatePositionsAndVelocity()
 {
 	const auto  numParticles = m_model->numParticles();
 	const auto  h            = TimeManager::getCurrent()->getTimeStepSize();
-	const auto& x            = m_simulationData.getX();
+	const auto& x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_model->setPosition(0, i,
-				{
-					x[3 * i + 0],
-					x[3 * i + 1],
-					x[3 * i + 2]
-				}
-			);
-			Vector3r &vel = m_model->getVelocity(0, i);
-			vel = (m_model->getPosition(0, i) - m_simulationData.getOldPosition(i)) /  h;
+			m_model->setPosition(0, i, x.Vec3Block(i));
+			auto vel = (m_model->getPosition(0, i) - m_simulationData.getOldPosition(i)) / h;
+			m_model->setVelocity(0, i, vel);
 		}
 	}
 }
@@ -178,8 +169,8 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 	calculateNegativeGradient(r, b, true);
 	d = r;
 
-	const auto tol_abs = 1e-10;
-	const auto tol_rel = 1e-8;
+	const auto tol_abs   = 1e-10;
+	const auto tol_rel   = 1e-8;
 	      auto delta_new = r.squaredNorm();
 	const auto delta_0   = delta_new;
 	      auto delta_old = std::numeric_limits<Real>::max();
@@ -214,23 +205,25 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 	return CGSolveState::MAX_ITER_REACHED;
 }
 
+/** \brief calculate the negative gradient for CG*/
 void SPH::TimeStepPF::calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs)
 {
 	const auto numVariables = 3u * m_model->numParticles();
 	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
-
+	// use r as temporary buffer for matrix-vector product
 	matrixFreeLHS(x, r);
 	if (updateRhs)
 		matrixFreeRHS(b);
+	// -grad_f = b - A*x
 	r = b - r;
 }
 
+/** \brief compute product of system matrix with x in a matrix-free way and store the result in result*/
 void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 {
 	const auto numParticles = m_model->numParticles();
 	const auto numVariables = 3u * numParticles;
 	const auto h = TimeManager::getCurrent()->getTimeStepSize();
-	const auto stiffness = m_model->getStiffness();
 	
 	AtomicRealVec accumulator(numVariables);
 
@@ -243,7 +236,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
 			const Vector3r& xi = x.Vec3Block(i);
 			for (auto c = 0u; c < 3; c++)
-				addToAtomicReal(accumulator[3 * i + c]._a, stiffness * xi[c]);
+				addToAtomicReal(accumulator[3 * i + c]._a, xi[c]);
 			for (auto j = 0u; j < numNeighbors; j++)
 			{
 				const auto id = m_model->getNeighbor(i, j);
@@ -251,7 +244,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 					continue;
 				const Vector3r& xj = x.Vec3Block(id.point_id);
 				for (auto c = 0u; c < 3; c++)
-					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * xj[c]);
+					addToAtomicReal(accumulator[3 * id.point_id + c]._a, xj[c]);
 			}
 		}
 	}
@@ -259,6 +252,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 	// influence of momentum
 	#pragma omp parallel default(shared)
 	{
+		const auto system_scale = h * h * m_model->getStiffness();
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
@@ -266,18 +260,18 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 			for (auto c = 0u; c < 3; c++)
 			{
 				const auto id = 3 * i + c;
-				result[id] = h * h * accumulator[id]._a + m * x[id];
+				result[id] = system_scale * accumulator[id]._a + m * x[id];
 			}
 		}
 	}
 }
 
+/** \brief compute the right hand side of the system in a matrix-free fashion and store the result in result*/
 void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 {
 	const auto numParticles = m_model->numParticles();
 	const auto numVariables = 3u * numParticles;
 	const auto h            = TimeManager::getCurrent()->getTimeStepSize();
-	const auto stiffness    = m_model->getStiffness();
 
 	AtomicRealVec accumulator(numVariables);
 
@@ -285,19 +279,23 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 	#pragma omp parallel default(shared)
 	{
 		auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
+		const auto density0_inv = 1 / m_model->getDensity0();
 
+		// local step for fluid constraints
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			// TODO
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
-			// particle positions in current constraint, will be projected in local step
+			// particle positions in current constraint, will be projected
 			std::vector<Vector3r> p(numNeighbors + 1);
 			p[0] = x.Vec3Block(i);
 			for (auto j = 0u; j < numNeighbors; j++)
 			{
 				const auto id = m_model->getNeighbor(i, j);
-				p[j + 1] = m_model->getPosition(id.point_set_id, id.point_id);
+				if (id.point_set_id == 0)
+					p[j + 1] = x.Vec3Block(id.point_id);
+				else
+					p[j + 1] = m_model->getPosition(id.point_set_id, id.point_id);
 			}
 			// helper functions
 			auto calculateC = [&]() -> Real
@@ -305,10 +303,10 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 				// Compute current density for particle i
 				Real density = m_model->getMass(i) * m_model->W_zero();
 				const Vector3r &xi = p[0];
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+				for (unsigned int j = 0; j < numNeighbors; j++)
 				{
 					const auto& id = m_model->getNeighbor(i, j);
-					const auto& xj = m_model->getPosition(id.point_set_id, id.point_id);
+					const auto& xj = p[j + 1];
 
 					if (id.point_set_id == 0)		// Test if fluid particle
 					{
@@ -321,7 +319,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 					}
 				}
 				// constraint value = density / density0 - 1
-				const auto C = density / m_model->getDensity0() - 1;
+				const auto C = density * density0_inv - 1;
 				// pressure clamping
 				return (C < 0) ? 0 : C;
 			};
@@ -329,22 +327,23 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			{
 				VectorXr nablaC(3 * p.size());
 				nablaC.Vec3Block(0).setZero();
-				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+				const Vector3r &xi = p[0];
+				for (unsigned int j = 0; j < numNeighbors; j++)
 				{
 					const auto& id = m_model->getNeighbor(i, j);
-					const auto& xj = m_model->getPosition(id.point_set_id, id.point_id);
+					const auto& xj = p[j + 1];
 
 					if (id.point_set_id == 0)		// Test if fluid particle
 					{
-						nablaC.Vec3Block(j + 1) = -m_model->getMass(id.point_id) * m_model->gradW(xi - xj);
+						nablaC.Vec3Block(j + 1) = (-density0_inv * m_model->getMass(id.point_id)) * m_model->gradW(xi - xj);
+						nablaC.Vec3Block(0) -= nablaC.Vec3Block(j + 1);
 					}
 					else
 					{
 						// Boundary: Akinci2012
-						nablaC.Vec3Block(j + 1) = -m_model->getBoundaryPsi(id.point_set_id, id.point_id) * m_model->gradW(xi - xj);
+						nablaC.Vec3Block(j + 1) = (-density0_inv * m_model->getBoundaryPsi(id.point_set_id, id.point_id)) * m_model->gradW(xi - xj);
+						nablaC.Vec3Block(0) -= nablaC.Vec3Block(j + 1);
 					}
-					nablaC.Vec3Block(0) -= nablaC.Vec3Block(j + 1);
 				}
 				return nablaC;
 			};
@@ -353,19 +352,19 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			const auto max_steps = 100u;
 			      auto it        = 0u;
 			      auto C	     = calculateC();
-			while ((std::abs(C) > C_goal))
+			while ((std::abs(C) > C_goal) && it++ < max_steps)
 			{
 				const auto g = calculateNablaC();
-				const auto dg = g.dot(g);
+				const auto dg = g.squaredNorm();
 				if (dg == 0) break;	// found a minimum
-				const Real cdg = -C / (dg + 1e-6); // add regularization factor
+				const auto cdg = -C / (dg + 1e-6f); // add regularization factor
 
 				// move fluid particles along constraint gradient
 				p[0] += (cdg * m_simulationData.getNumFluidNeighbors(i)) * g.Vec3Block(0);
 				for (auto j = 0u; j < numNeighbors; j++)
 				{
 					const auto& id = m_model->getNeighbor(i, j);
-					if (id.point_set_id == 0)
+					if (id.point_set_id == 0) // only fluid particles are projected
 					{
 						const auto nfn = m_simulationData.getNumFluidNeighbors(id.point_id);
 						p[j + 1] += (cdg * nfn) * g.Vec3Block(j + 1);
@@ -379,14 +378,14 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			}
 			// update RHS
 			for (auto c = 0u; c < 3; c++)
-				addToAtomicReal(accumulator[3 * i + c]._a, stiffness * p[0][c]);
+				addToAtomicReal(accumulator[3 * i + c]._a, p[0][c]);
 			for (auto j = 0u; j < numNeighbors; j++)
 			{
 				const auto id = m_model->getNeighbor(i, j);
 				if (id.point_set_id != 0)
 					continue;
 				for (auto c = 0u; c < 3; c++)
-					addToAtomicReal(accumulator[3 * id.point_id + c]._a, stiffness * p[j + 1][c]);
+					addToAtomicReal(accumulator[3 * id.point_id + c]._a, p[j + 1][c]);
 			}
 		}
 	}
@@ -394,6 +393,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 	// influence of momentum
 	#pragma omp parallel default(shared)
 	{
+		const auto system_scale = h * h * m_model->getStiffness();
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
@@ -402,7 +402,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			for (auto c = 0u; c < 3; c++)
 			{
 				const auto id = 3 * i + c;
-				result[id] = h * h * accumulator[id]._a + m * s[c];
+				result[id] = system_scale * accumulator[id]._a + m * s[c];
 			}
 		}
 	}

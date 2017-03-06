@@ -360,15 +360,18 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 				if (dg == 0) break;	// found a minimum
 				const Real cdg = -C / (dg + 1e-6); // add regularization factor
 
-				for (auto j = 0u; j < (numNeighbors + 1); ++j)
+				// move fluid particles along constraint gradient
+				p[0] += (cdg * m_simulationData.getNumFluidNeighbors(i)) * g.Vec3Block(0);
+				for (auto j = 0u; j < numNeighbors; j++)
 				{
 					const auto& id = m_model->getNeighbor(i, j);
 					if (id.point_set_id == 0)
 					{
-						const auto nfn = m_simulationData.getNumFluidNeighbors(j);
-						p[j] += (cdg * nfn) * g.Vec3Block(j);
+						const auto nfn = m_simulationData.getNumFluidNeighbors(id.point_id);
+						p[j + 1] += (cdg * nfn) * g.Vec3Block(j + 1);
 					}
 				}
+
 				if (it + 1 < max_steps)
 				{
 					C = calculateC();

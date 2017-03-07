@@ -72,6 +72,7 @@ void TimeStepPF::step()
 	computeDensities();
 	computeSurfaceTension();
 	computeViscosity();
+	addAccellerationToVelocity();
 
 	updateTimeStepSize();
 
@@ -151,6 +152,20 @@ void TimeStepPF::updatePositionsAndVelocity()
 			m_model->setPosition(0, i, x.Vec3Block(i));
 			auto vel = (m_model->getPosition(0, i) - m_simulationData.getOldPosition(i)) / h;
 			m_model->setVelocity(0, i, vel);
+		}
+	}
+}
+
+void SPH::TimeStepPF::addAccellerationToVelocity()
+{
+	#pragma omp parallel default(shared)
+	{
+		const auto  numParticles = m_model->numParticles();
+		const auto  h = TimeManager::getCurrent()->getTimeStepSize();
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			m_model->setVelocity(0, i, m_model->getVelocity(0, i) + h * m_model->getAcceleration(i));
 		}
 	}
 }

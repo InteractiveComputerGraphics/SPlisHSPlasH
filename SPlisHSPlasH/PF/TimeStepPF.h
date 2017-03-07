@@ -25,6 +25,7 @@ namespace SPH
 		void prepareSolve();
 		void solvePDConstraints();
 		void updatePositionsAndVelocity();
+		void addAccellerationToVelocity();
 
 		CGSolveState cgSolve();
 		void calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs);

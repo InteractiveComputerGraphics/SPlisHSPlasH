@@ -236,10 +236,7 @@ void DemoBase::initParameters()
 
 	if (m_simulationMethod.simulationMethod == SimulationMethods::PF)
 	{
-		m_parameters.push_back(Parameter(ParameterIDs::IterationCountV, "IterationCountV", TW_TYPE_UINT32, " label='Iterations (divergence)' readonly=true group=PF ", this));
-		m_parameters.push_back(Parameter(ParameterIDs::DFSPH_EnableDivergenceSolver, "DFSPH_EnableDivergenceSolver", TW_TYPE_BOOL32, " label='Enable divergence solver' group=PF", this));
-		m_parameters.push_back(Parameter(ParameterIDs::MaxIterationsV, "MaxIterationsV", TW_TYPE_UINT32, " label='Max. iterations (divergence)' group=PF ", this));
-		m_parameters.push_back(Parameter(ParameterIDs::MaxErrorV, "MaxErrorV", TW_TYPE_REAL, " label='Max. divergence error(%)'  min=0.00001 precision=4 group=PF ", this));
+		// no special parameters yet
 	}
 
 

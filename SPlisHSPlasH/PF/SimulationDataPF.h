@@ -32,9 +32,6 @@ namespace SPH
 		/** \brief positions predicted from momentum */
 		std::vector<Vector3r> m_s;
 
-		/** \brief fluid stiffness */
-		Real m_stiffness;
-
 	public:
 
 		/** Initialize the arrays containing the particle data.
@@ -107,21 +104,6 @@ namespace SPH
 		FORCE_INLINE void setS(const unsigned int i, const Vector3r & s)
 		{
 			m_s[i] = s;
-		}
-
-		FORCE_INLINE const Real getStiffness() const
-		{
-			return m_stiffness;
-		}
-
-		FORCE_INLINE Real & getStiffness()
-		{
-			return m_stiffness;
-		}
-
-		FORCE_INLINE void setStiffness(const Real s)
-		{
-			m_stiffness = s;
 		}
 	};
 }

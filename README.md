@@ -93,3 +93,5 @@ Divergence-Free SPH for Incompressible and Viscous Fluids:
 * Hagit Schechter and Robert Bridson. Ghost sph for animating water. ACM Trans. Graph., 31(4):61:1–61:8, July 2012. 
 
 * B. Solenthaler and R. Pajarola. Predictive-corrective incompressible SPH. ACM Trans. Graph., 28(3):40:1–40:6, July 2009. 
+
+* Marcel Weiler, Dan Koschier and Jan Bender. Projective Fluids. Proceedings of the 9th International Conference on Motion in Games, ACM, 2016, 79-84

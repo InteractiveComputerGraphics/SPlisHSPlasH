@@ -94,7 +94,7 @@ void TimeStepPF::initialGuessForPositions()
 	const auto h = TimeManager::getCurrent()->getTimeStepSize();
 
 #pragma omp parallel for
-	for (int i = 0; i < numParticles; i++)
+	for (int i = 0; i < (int)numParticles; i++)
 	{
 		m_simulationData.setOldPosition(i, m_model->getPosition(0, i));
 		const auto newPos = (m_model->getPosition(0, i) + h * m_model->getVelocity(0, i) + (h * h) * m_model->getAcceleration(i)).eval();
@@ -111,7 +111,7 @@ void TimeStepPF::prepareSolve()
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < numParticles; i++)
+		for (int i = 0; i < (int)numParticles; i++)
 		{
 			x.Vec3Block(i) = m_model->getPosition(0, i);
 			auto nfn = 1u;
@@ -129,7 +129,7 @@ void TimeStepPF::solvePDConstraints()
 
 	prepareSolve();
 
-	for (auto it = 0u; it < m_maxIterations; it++)
+	for (m_iterations = 0u; m_iterations < m_maxIterations; m_iterations++)
 	{
 		const auto s = cgSolve();
 		if (s == CGSolveState::ALREADY_SOLVED) break;
@@ -246,7 +246,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < numParticles; i++)
+		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
 			const Vector3r& xi = x.Vec3Block(i);
@@ -298,7 +298,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 
 		// local step for fluid constraints
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < numParticles; i++)
+		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
 			// particle positions in current constraint, will be projected

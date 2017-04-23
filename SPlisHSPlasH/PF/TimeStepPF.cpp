@@ -76,7 +76,7 @@ void TimeStepPF::step()
 
 	updateTimeStepSize();
 
-	// Compute new time	
+	// Compute new time
 	tm->setTime (tm->getTime () + h);
 }
 
@@ -106,11 +106,11 @@ void TimeStepPF::initialGuessForPositions()
 void TimeStepPF::prepareSolve()
 {
 	const auto numParticles = m_model->numParticles();
-	auto&      x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
+	auto       x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			x.Vec3Block(i) = m_model->getPosition(0, i);
@@ -146,7 +146,7 @@ void TimeStepPF::updatePositionsAndVelocity()
 
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			m_model->setPosition(0, i, x.Vec3Block(i));
@@ -162,7 +162,7 @@ void SPH::TimeStepPF::addAccellerationToVelocity()
 	{
 		const auto  numParticles = m_model->numParticles();
 		const auto  h = TimeManager::getCurrent()->getTimeStepSize();
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			m_model->setVelocity(0, i, m_model->getVelocity(0, i) + h * m_model->getAcceleration(i));
@@ -174,7 +174,7 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 {
 	const auto numVariables = 3u * m_model->numParticles();
 	const auto restart_iterations = 50u;
-	
+
 	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 	// initialization of CG
 	VectorXr d(numVariables);
@@ -199,7 +199,7 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 		matrixFreeLHS(d, q);
 		const auto alpha = delta_new / d.dot(q);
 		x += alpha * d;
-		
+
 		if ((cg_it + 1) % restart_iterations == 0)
 			calculateNegativeGradient(r, b, false);
 		else
@@ -239,13 +239,13 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 	const auto numParticles = m_model->numParticles();
 	const auto numVariables = 3u * numParticles;
 	const auto h = TimeManager::getCurrent()->getTimeStepSize();
-	
+
 	AtomicRealVec accumulator(numVariables);
 
 	// influence of pressure
 	#pragma omp parallel default(shared)
 	{
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
@@ -268,7 +268,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 	#pragma omp parallel default(shared)
 	{
 		const auto system_scale = h * h * m_model->getStiffness();
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto m = m_model->getMass(i);
@@ -297,7 +297,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 		const auto density0_inv = 1 / m_model->getDensity0();
 
 		// local step for fluid constraints
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto numNeighbors = m_model->numberOfNeighbors(i);
@@ -409,7 +409,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 	#pragma omp parallel default(shared)
 	{
 		const auto system_scale = h * h * m_model->getStiffness();
-		#pragma omp for schedule(static)  
+		#pragma omp for schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const auto  m = m_model->getMass(i);

@@ -8,6 +8,7 @@
 #include "SurfaceTension/SurfaceTension_He2014.h"
 #include "Viscosity/Viscosity_XSPH.h"
 #include "Viscosity/Viscosity_Standard.h"
+#include "Viscosity/Viscosity_Bender2017.h"
 
 
 using namespace SPH;
@@ -65,20 +66,28 @@ void TimeStep::computeDensities()
 			density = m_model->getMass(i) * m_model->W_zero();
 			const Vector3r &xi = m_model->getPosition(0, i);
 
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
-				const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+				density += m_model->getMass(neighborIndex) * m_model->W(xi - xj);
+			}
 
-				if (particleId.point_set_id == 0)		// Test if fluid particle
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid=1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 				{
-					density += m_model->getMass(neighborIndex) * m_model->W(xi - xj);
-				}
-				else 
-				{
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+					
 					// Boundary: Akinci2012
-					density += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->W(xi - xj);
+					density += m_model->getBoundaryPsi(pid, neighborIndex) * m_model->W(xi - xj);
 				}
 			}
 		}
@@ -172,6 +181,8 @@ void TimeStep::reset()
 	if (m_viscosity)
 		m_viscosity->reset();
 	m_iterations = 0;
+
+	TimeManager::getCurrent()->setTimeStepSize(0.001);
 }
 
 void TimeStep::setSurfaceTensionMethod(SurfaceTensionMethods val)
@@ -196,7 +207,7 @@ void TimeStep::setSurfaceTensionMethod(SurfaceTensionMethods val)
 
 void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 {
-	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::XSPH))
+	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::Bender2017))
 		val = ViscosityMethods::XSPH;
 
 	if (val == m_viscosityMethod)
@@ -211,5 +222,7 @@ void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 		m_viscosity = new Viscosity_Standard(m_model);	
 	else if (m_viscosityMethod == ViscosityMethods::XSPH)
 		m_viscosity = new Viscosity_XSPH(m_model);
+	else if (m_viscosityMethod == ViscosityMethods::Bender2017)
+		m_viscosity = new Viscosity_Bender2017(m_model);
 }
 

@@ -38,41 +38,29 @@ void SimulationDataPCISPH::init(FluidModel *model)
 	unsigned int index = 0;
 	unsigned int maxNeighbors = 0;
 
-	#pragma omp parallel default(shared)
+	for (int i = 0; i < (int)model->numParticles(); i++)
 	{
-		
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)model->numParticles(); i++)
+		if (m_model->numberOfNeighbors(0, i) > maxNeighbors)
 		{
-			unsigned int counter = 0;
-			for (unsigned int j = 0; j < model->numberOfNeighbors(i); j++)
-			{
-				const CompactNSearch::PointID &particleId = model->getNeighbor(i, j);
-				if (particleId.point_set_id == 0)
-					counter++;
-			}
-			if (counter > maxNeighbors)
-			{
-				maxNeighbors = counter;
-				index = i;
-			}
+			maxNeighbors = m_model->numberOfNeighbors(0, i);
+			index = i;
 		}
 	}
 
 	Vector3r sumGradW = Vector3r::Zero();
 	Real sumGradW2 = 0.0;
 	const Vector3r &xi = model->getPosition(0, index);
-	for (unsigned int j = 0; j < model->numberOfNeighbors(index); j++)
+
+	//////////////////////////////////////////////////////////////////////////
+	// Fluid
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, index); j++)
 	{
-		const CompactNSearch::PointID &particleId = model->getNeighbor(index, j);
-		if (particleId.point_set_id == 0)
-		{
-			const unsigned int &neighborIndex = particleId.point_id;
-			const Vector3r &xj = model->getPosition(particleId.point_set_id, neighborIndex);
-			const Vector3r gradW = m_model->gradW(xi - xj);
-			sumGradW += gradW;
-			sumGradW2 += gradW.squaredNorm();
-		}
+		const unsigned int neighborIndex = m_model->getNeighbor(0, index, j);
+		const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+		const Vector3r gradW = m_model->gradW(xi - xj);
+		sumGradW += gradW;
+		sumGradW2 += gradW.squaredNorm();
 	}
 
 	const Real beta = 2.0 * model->getMass(index)*model->getMass(index) / (density0*density0);	// h^2 is multiplied in each iteration

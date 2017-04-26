@@ -8,7 +8,7 @@
 namespace SPH 
 {	
 	/** \brief Simulation data which is required by the method Divergence-free Smoothed Particle Hydrodynamics introduced
-	* by Bender and Koschier \cite Bender:2015, \cite Bender2016.
+	* by Bender and Koschier \cite Bender:2015, \cite Bender2017.
 	*/
 	class SimulationDataDFSPH
 	{

@@ -13,7 +13,6 @@ TimeStepPBF::TimeStepPBF(FluidModel *model) :
 	TimeStep(model)
 {
 	m_simulationData.init(model);
-	model->updateBoundaryPsi();
 	m_counter = 0;
 }
 
@@ -33,13 +32,13 @@ void TimeStepPBF::step()
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) m_model->numParticles(); i++)
-		{
-			m_simulationData.getDeltaX(i).setZero();
+		{			
 			m_simulationData.getLastPosition(i) = m_simulationData.getOldPosition(i);
 			m_simulationData.getOldPosition(i) = m_model->getPosition(0, i);
 			TimeIntegration::semiImplicitEuler(h, m_model->getMass(i), m_model->getPosition(0, i), m_model->getVelocity(0, i), m_model->getAcceleration(i));
 		}
 	}
+
 
 	// Perform neighborhood search
 	performNeighborhoodSearch();
@@ -124,33 +123,41 @@ void TimeStepPBF::pressureSolve()
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) numParticles; i++)
+			for (int i = 0; i < (int)numParticles; i++)
 			{
-				Real &density = m_model->getDensity(i);				
+				Real &density = m_model->getDensity(i);
 
 				// Compute current density for particle i
 				density = m_model->getMass(i) * m_model->W_zero();
 				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
-				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-					if (particleId.point_set_id == 0)		// Test if fluid particle
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
+				{
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+					const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+					density += m_model->getMass(neighborIndex) * m_model->W(xi - xj);
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+				{
+					for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 					{
-						density += m_model->getMass(neighborIndex) * m_model->W(xi - xj);
-					}
-					else 
-					{
+						const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+						const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
 						// Boundary: Akinci2012
-						density += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->W(xi - xj);
+						density += m_model->getBoundaryPsi(pid, neighborIndex) * m_model->W(xi - xj);
 					}
 				}
 
 				const Real density_err = max(density, density0) - density0;
 				#pragma omp atomic
-				avg_density_err += density_err / numParticles;
+				avg_density_err += density_err;
 
 				// Evaluate constraint function
 				const Real C = std::max(density / density0 - 1.0, 0.0);			// clamp to prevent particle clumping at surface
@@ -161,22 +168,30 @@ void TimeStepPBF::pressureSolve()
 					Real sum_grad_C2 = 0.0;
 					Vector3r gradC_i(0.0, 0.0, 0.0);
 
-					for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+					//////////////////////////////////////////////////////////////////////////
+					// Fluid
+					//////////////////////////////////////////////////////////////////////////
+					for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 					{
-						const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-						const unsigned int &neighborIndex = particleId.point_id;
-						const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+						const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+						const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+						const Vector3r gradC_j = -m_model->getMass(neighborIndex) / density0 * m_model->gradW(xi - xj);
+						sum_grad_C2 += gradC_j.squaredNorm();
+						gradC_i -= gradC_j;
+					}
 
-						if (particleId.point_set_id == 0)		// Test if fluid particle
+					//////////////////////////////////////////////////////////////////////////
+					// Boundary
+					//////////////////////////////////////////////////////////////////////////
+					for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+					{
+						for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 						{
-							const Vector3r gradC_j = -m_model->getMass(neighborIndex) / density0 * m_model->gradW(xi - xj);
-							sum_grad_C2 += gradC_j.squaredNorm();
-							gradC_i -= gradC_j;
-						}
-						else
-						{
+							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+
 							// Boundary: Akinci2012
-							const Vector3r gradC_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density0 * m_model->gradW(xi - xj);
+							const Vector3r gradC_j = -m_model->getBoundaryPsi(pid, neighborIndex) / density0 * m_model->gradW(xi - xj);
 							sum_grad_C2 += gradC_j.squaredNorm();
 							gradC_i -= gradC_j;
 						}
@@ -191,39 +206,54 @@ void TimeStepPBF::pressureSolve()
 				else
 					m_simulationData.getLambda(i) = 0.0;
 			}
+		}
 
+		avg_density_err /= numParticles;
 
+		#pragma omp parallel default(shared)
+		{
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
 				Vector3r &corr = m_simulationData.getDeltaX(i);
-				
+
 				// Compute position correction
 				corr.setZero();
 				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
-				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
 
-					if (particleId.point_set_id == 0)		// Test if fluid particle
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
+				{
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+					const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+					const Vector3r gradC_j = -m_model->getMass(neighborIndex) / density0 * m_model->gradW(xi - xj);
+					corr -= (m_simulationData.getLambda(i) + m_simulationData.getLambda(neighborIndex)) * gradC_j;
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+				{
+					for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 					{
-						const Vector3r gradC_j = -m_model->getMass(neighborIndex) / density0 * m_model->gradW(xi - xj);
-						corr -= (m_simulationData.getLambda(i) + m_simulationData.getLambda(neighborIndex)) * gradC_j;
-					}
-					else 
-					{
+						const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+						const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
 						// Boundary: Akinci2012
-						const Vector3r gradC_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density0 * m_model->gradW(xi - xj);
+						const Vector3r gradC_j = -m_model->getBoundaryPsi(pid, neighborIndex) / density0 * m_model->gradW(xi - xj);
 						const Vector3r dx = 2.0 * m_simulationData.getLambda(i) * gradC_j;
 						corr -= dx;
 
-						m_model->getForce(particleId.point_set_id, neighborIndex) += m_model->getMass(i) * dx * invH2;
+						m_model->getForce(pid, neighborIndex) += m_model->getMass(i) * dx * invH2;
 					}
 				}
 			}
-
+		}
+		
+		#pragma omp parallel default(shared)
+		{
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
@@ -240,12 +270,16 @@ void TimeStepPBF::performNeighborhoodSearch()
 	const unsigned int numParticles = m_model->numParticles();
 	const Real supportRadius = m_model->getSupportRadius();
 
-	if (m_counter % 100 == 0)
-	{
-		m_model->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
-	}
-	m_counter++;
+// 	if (m_counter % 500 == 0)
+// 	{
+// 		m_model->performNeighborhoodSearchSort();
+// 		m_simulationData.performNeighborhoodSearchSort();
+// 		if (m_viscosity)
+// 			m_viscosity->performNeighborhoodSearchSort();
+// 		if (m_surfaceTension)
+// 			m_surfaceTension->performNeighborhoodSearchSort();
+// 	}
+// 	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
 }

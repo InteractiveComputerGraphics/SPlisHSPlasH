@@ -9,7 +9,7 @@
 namespace SPH
 {
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014 }; 
-	enum class ViscosityMethods { None = 0, Standard, XSPH }; 
+	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017 }; 
 
 	/** \brief Base class for the simulation methods. 
 	*/
@@ -82,6 +82,8 @@ namespace SPH
 		void setSurfaceTensionMethod(SurfaceTensionMethods val);
 		ViscosityMethods getViscosityMethod() const { return m_viscosityMethod; }
 		void setViscosityMethod(ViscosityMethods val);
+
+		ViscosityBase *getViscosityBase() { return m_viscosity; }
 	};
 }
 

@@ -37,7 +37,7 @@ ExternalProject_Add(
    ExternalProject_PositionBasedDynamics
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "b81f1119763a01f0b201a68f398a4a1c9592ccb6"
+   GIT_TAG "c642e2531e89e04d98b24200ae60bbff143999ff"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1		
 ) 
@@ -47,7 +47,7 @@ ExternalProject_Add(
    ExternalProject_CompactNSearch
    PREFIX "${CMAKE_SOURCE_DIR}/extern/CompactNSearch"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-   GIT_TAG "1.0.0"
+   GIT_TAG "1af0c1d13120d195f8c176ed418423aa17e6d87f"
    INSTALL_DIR ${ExternalInstallDir}/CompactNSearch
    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/CompactNSearch
 ) 

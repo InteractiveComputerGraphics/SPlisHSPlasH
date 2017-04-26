@@ -67,6 +67,8 @@ namespace SPH
 			Real maxErrorV;
 			unsigned int maxIterationsV;
 			Real viscosity;
+			unsigned int viscoMaxIter;
+			Real viscoMaxError;
 			Real surfaceTension;
 			Real density0;
 			unsigned int velocityUpdateMethod;

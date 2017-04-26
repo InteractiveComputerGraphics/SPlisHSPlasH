@@ -20,6 +20,8 @@ namespace SPH
 		virtual void step() = 0;
 		virtual void reset() {};
 
+		virtual void performNeighborhoodSearchSort() {};
+
 		FluidModel *getModel() { return m_model; }
 	};
 }

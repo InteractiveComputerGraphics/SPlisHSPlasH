@@ -7,7 +7,7 @@ TimeManager* TimeManager::current = 0;
 TimeManager::TimeManager () 
 {
 	time = 0;
-	h = 0.005;
+	h = 0.001;
 }
 
 TimeManager::~TimeManager () 

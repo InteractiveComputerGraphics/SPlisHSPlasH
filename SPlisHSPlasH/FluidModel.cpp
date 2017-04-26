@@ -15,13 +15,12 @@ FluidModel::FluidModel()
 	m_exponent = 7.0;
 	m_surfaceTension = 0.05;
 	m_enableDivergenceSolver = true;
-	m_velocityUpdateMethod = 0;
 
 	ParticleObject *fluidParticles = new ParticleObject();
 	m_particleObjects.push_back(fluidParticles);
 
-	setKernel(0);
-	setGradKernel(0);
+	setKernel(3);
+	setGradKernel(3);
 }
 
 FluidModel::~FluidModel(void)
@@ -79,9 +78,23 @@ void FluidModel::reset()
 	}
 
 	if (m_neighborhoodSearch != NULL)
+		delete m_neighborhoodSearch;
+
+	// Initialize neighborhood search
+	m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
+	m_neighborhoodSearch->set_radius(m_supportRadius);
+
+	// Fluids 
+	m_neighborhoodSearch->add_point_set(&getPosition(0, 0)[0], nPoints, true, true);
+
+	// Boundary
+	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
 	{
-		performNeighborhoodSearchSort();
+		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i);
+		m_neighborhoodSearch->add_point_set(&rb->m_x[0][0], rb->m_x.size(), rb->m_rigidBody->isDynamic(), false);
 	}
+
+	//performNeighborhoodSearchSort();
 	updateBoundaryPsi();
 }
 
@@ -142,21 +155,6 @@ void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidPa
 	// initialize masses
 	initMasses();
 
-	// Initialize neighborhood search
-	if (m_neighborhoodSearch == NULL)
-		m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
-	m_neighborhoodSearch->set_radius(m_supportRadius);
-
-	// Fluids 
-	m_neighborhoodSearch->add_point_set(&getPosition(0, 0)[0], nFluidParticles, true, true);
-
-	// Boundary
-	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
-	{
-		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i);
-		m_neighborhoodSearch->add_point_set(&rb->m_x[0][0], rb->m_x.size(), rb->m_rigidBody->isDynamic(), false);
-	}
-
 	reset();
 }
 
@@ -171,11 +169,11 @@ void FluidModel::updateBoundaryPsi()
 
 	// Activate only static boundaries
 	std::cout << "Initialize boundary psi\n";
-	m_neighborhoodSearch->point_set(0).enable_neighborsearch(false);
+	m_neighborhoodSearch->set_active(false);
 	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
 	{
 		if (!getRigidBodyParticleObject(i)->m_rigidBody->isDynamic())
-			m_neighborhoodSearch->point_set(i + 1).enable_neighborsearch(true);
+			m_neighborhoodSearch->set_active(i + 1, true, true);
 	}
 
 	m_neighborhoodSearch->find_neighbors();
@@ -193,23 +191,22 @@ void FluidModel::updateBoundaryPsi()
 	for (unsigned int body = 0; body < numberOfRigidBodyParticleObjects(); body++)
 	{
 		// Deactivate all
-		for (int j = 1; j < m_neighborhoodSearch->point_sets().size(); j++)
-			m_neighborhoodSearch->point_set(j).enable_neighborsearch(false);
+		m_neighborhoodSearch->set_active(false);
 
 		// Only activate next dynamic body
 		if (getRigidBodyParticleObject(body)->m_rigidBody->isDynamic())
 		{
-			m_neighborhoodSearch->point_set(body + 1).enable_neighborsearch(true);
+			m_neighborhoodSearch->set_active(body + 1, true, true);
 			m_neighborhoodSearch->find_neighbors();
 			computeBoundaryPsi(body);
 		}
 	}
 
-	// Activate only fluids
-	m_neighborhoodSearch->point_set(0).enable_neighborsearch(true);
-	for (int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++)
-		m_neighborhoodSearch->point_set(i).enable_neighborsearch(false);
-
+	// Activate only fluids 	
+	m_neighborhoodSearch->set_active(false);
+	m_neighborhoodSearch->set_active(0u, 0u, true);
+	for (unsigned int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++)
+		m_neighborhoodSearch->set_active(0u, i, true);
 }
 
 void FluidModel::computeBoundaryPsi(const unsigned int body)
@@ -225,11 +222,13 @@ void FluidModel::computeBoundaryPsi(const unsigned int body)
 		for (int i = 0; i < (int)numBoundaryParticles; i++)
 		{
 			Real delta = m_W_zero;
-			for (unsigned int j = 0; j < m_neighborhoodSearch->point_set(body + 1).n_neighbors(i); j++)
+			for (unsigned int pid = 1; pid < numberOfPointSets(); pid++)
 			{
-				const CompactNSearch::PointID &pid = m_neighborhoodSearch->point_set(body + 1).neighbor(i, j);
-				if (pid.point_set_id != 0)
-					delta += W(getPosition(body + 1, i) - getPosition(pid.point_set_id, pid.point_id));
+				for (unsigned int j = 0; j < m_neighborhoodSearch->point_set(body + 1).n_neighbors(pid, i); j++)
+				{
+					const unsigned int neighborIndex = m_neighborhoodSearch->point_set(body + 1).neighbor(pid, i, j);
+					delta += W(getPosition(body + 1, i) - getPosition(pid, neighborIndex));
+				}
 			}
 			const Real volume = 1.0 / delta;
 			rb->m_boundaryPsi[i] = density0 * volume; 

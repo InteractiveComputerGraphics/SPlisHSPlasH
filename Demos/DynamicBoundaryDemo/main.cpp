@@ -119,6 +119,7 @@ void timeStep ()
 void simulationMethodChanged()
 {
 	pbdWrapper.initGUI();
+	reset();
 }
 
 void renderBoundary()

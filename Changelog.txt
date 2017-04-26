@@ -1,3 +1,10 @@
+1.1.0
+	- added new scenes
+	- added implicit viscosity (Bender and Koschier, "Divergence-free SPH for incompressible and viscous fluids", IEEE Transactions on Visualization and Computer Graphics, 2017)
+	- added Projective Fluids implementation (Weiler et al., "Projective Fluids", Proceedings of Motion in Games, ACM, 2016)
+	- updated CompactNSearch
+	- updated PositionBasedDynamics
+	- optimized DFSPH
 	- updated to Eigen 3.3
 
 1.0.0

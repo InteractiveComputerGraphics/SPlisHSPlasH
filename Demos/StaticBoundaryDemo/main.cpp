@@ -29,6 +29,7 @@ void initBoundaryData();
 void render ();
 void renderBoundary();
 void reset();
+void simulationMethodChanged();
 
 
 DemoBase base;
@@ -42,6 +43,7 @@ int main( int argc, char **argv )
 	base.init(argc, argv, "StaticBoundaryDemo");
 	initBoundaryData();
 	base.buildModel();
+	base.setSimulationMethodChangedFct(simulationMethodChanged);
 
 	MiniGL::setClientIdleFunc(50, timeStep);
 	MiniGL::setKeyFunc(0, 'r', reset);
@@ -66,6 +68,10 @@ void reset()
 	TimeManager::getCurrent()->setTime(0.0);
 }
 
+void simulationMethodChanged()
+{
+	reset();
+}
 
 void timeStep ()
 {

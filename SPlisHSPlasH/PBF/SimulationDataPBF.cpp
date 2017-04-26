@@ -16,10 +16,10 @@ SimulationDataPBF::~SimulationDataPBF(void)
 void SimulationDataPBF::init(FluidModel *model)
 {
 	m_model = model;
-	m_lambda.resize(model->numParticles());
-	m_deltaX.resize(model->numParticles());
-	m_oldX.resize(model->numParticles());
-	m_lastX.resize(model->numParticles());
+	m_lambda.resize(model->numParticles(), 0.0);
+	m_deltaX.resize(model->numParticles(), Vector3r::Zero());
+	m_oldX.resize(model->numParticles(), Vector3r::Zero());
+	m_lastX.resize(model->numParticles(), Vector3r::Zero());
 	reset();
 }
 

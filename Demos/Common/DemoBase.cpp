@@ -12,6 +12,7 @@
 #include "Utilities/PartioReaderWriter.h"
 #include "Visualization/Selection.h"
 #include "GL/glut.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
 
 
 using namespace SPH;
@@ -193,14 +194,19 @@ void DemoBase::initParameters()
 	m_parameters.push_back(Parameter(ParameterIDs::MaxIterations, "MaxIterations", TW_TYPE_UINT32, " label='Max. iterations' group=Simulation ", this));
 	m_parameters.push_back(Parameter(ParameterIDs::MaxError, "MaxError", TW_TYPE_REAL, " label='Max.density error(%)'  min=0.00001 precision=4 group=Simulation ", this));
 
-	m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "Viscosity", TW_TYPE_REAL, " label='Viscosity coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
 	TwType enumTypeVisco = TwDefineEnum("ViscosityMethod", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender2017}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "Viscosity", TW_TYPE_REAL, " label='Viscosity coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
 
-	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTension", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
-
+	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+	{
+		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxIter, "ViscoMaxIterations", TW_TYPE_UINT32, " label='Max. iterations (visco)' group=Simulation ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxError, "ViscoMaxError", TW_TYPE_REAL, " label='Max. visco error'  min=0.001 precision=3 group=Simulation ", this));
+	}
+	
 	TwType enumTypeST = TwDefineEnum("SurfaceTensionMethod", NULL, 0);
 	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTensionMethod, "SurfaceTensionMethod", enumTypeST, " label='Surface tension' enum='0 {None}, 1 {Becker & Teschner 2007}, 2 {Akinci et al. 2013}, 3 {He et al. 2014}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTension", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
 
 	TwType enumType3 = TwDefineEnum("CFL_Method", NULL, 0);
 	m_parameters.push_back(Parameter(ParameterIDs::CFL_Method, "CFL_Method", enumType3, " label='CFL - method' enum='0 {None}, 1 {CFL}, 2 {CFL - iterations}' group=CFL ", this));
@@ -276,9 +282,6 @@ void DemoBase::buildModel()
 	m_simulationMethod.simulationMethod = SimulationMethods::DFSPH;
 	setSimulationMethod((SimulationMethods) m_scene.simulationMethod);
 
-	m_simulationMethod.model.setKernel(3);
-	m_simulationMethod.model.setGradKernel(3);
-
 	m_simulationMethod.simulation->setCflMethod(m_scene.cflMethod);
 	m_simulationMethod.simulation->setCflFactor(m_scene.cflFactor);
 	m_simulationMethod.simulation->setCflMaxTimeStepSize(m_scene.cflMaxTimeStepSize);
@@ -289,7 +292,6 @@ void DemoBase::buildModel()
 	m_simulationMethod.simulation->setViscosityMethod((ViscosityMethods) m_scene.viscosityMethod);
 	m_simulationMethod.simulation->setSurfaceTensionMethod((SurfaceTensionMethods)m_scene.surfaceTensionMethod);
 	
-
 	m_simulationMethod.model.setEnableDivergenceSolver(m_scene.enableDivergenceSolver);
 	m_simulationMethod.model.setViscosity(m_scene.viscosity);
 	m_simulationMethod.model.setSurfaceTension(m_scene.surfaceTension);
@@ -298,6 +300,13 @@ void DemoBase::buildModel()
 	m_simulationMethod.model.setVelocityUpdateMethod(m_scene.velocityUpdateMethod);
 	m_simulationMethod.model.setStiffness(m_scene.stiffness);
 	m_simulationMethod.model.setExponent(m_scene.exponent);
+
+	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+	{
+		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
+		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
+	}
+
 
 	initParameters();
 }
@@ -424,6 +433,18 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 		const Real val = *(const Real *)(value);
 		sm.model.setViscosity(val);
 	}
+	else if (p->id == ParameterIDs::ViscoMaxIter)
+	{
+		const unsigned int val = *(const unsigned int *)(value);
+		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxIter(val);
+	}
+	else if (p->id == ParameterIDs::ViscoMaxError)
+	{
+		const Real val = *(const Real *)(value);
+		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxError(val);
+	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{
 		const Real val = *(const Real *)(value);
@@ -438,6 +459,12 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 	{
 		const short val = *(const short *)(value);
 		sm.simulation->setViscosityMethod((ViscosityMethods)val);
+		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+		{
+			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxIter(base->m_scene.viscoMaxIter);
+			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxError(base->m_scene.viscoMaxError);
+			base->initParameters();
+		}		
 	}
 	else if (p->id == ParameterIDs::WCSPH_Stiffness)
 	{
@@ -472,8 +499,11 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 	else if (p->id == ParameterIDs::Kernel_Method)
 	{
 		const short val = *(const short *)(value);
-		sm.model.setKernel((unsigned int)val);
-		sm.model.updateBoundaryPsi();
+		if (val != sm.model.getKernel())
+		{
+			sm.model.setKernel((unsigned int)val);
+			sm.model.updateBoundaryPsi();
+		}
 	}
 	else if (p->id == ParameterIDs::GradKernel_Method)
 	{
@@ -540,6 +570,16 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	else if (p->id == ParameterIDs::Viscosity)
 	{
 		*(Real *)(value) = sm.model.getViscosity();
+	}
+	else if (p->id == ParameterIDs::ViscoMaxIter)
+	{
+		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+			*(unsigned int *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxIter();
+	}
+	else if (p->id == ParameterIDs::ViscoMaxError)
+	{
+		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+			*(Real *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxError();
 	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{
@@ -744,45 +784,63 @@ void DemoBase::setSimulationMethod(SimulationMethods method)
 		{
 			m_simulationMethod.simulation = new TimeStepWCSPH(&m_simulationMethod.model);
 			m_simulationMethod.simulation->setCflMethod(0);
-			m_simulationMethod.model.setKernel(0);
 			m_simulationMethod.model.setGradKernel(0);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 0)
+			{
+				m_simulationMethod.model.setKernel(0);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 			TimeManager::getCurrent()->setTimeStepSize(0.001);
 		}
 		else if (method == SimulationMethods::PCISPH)
 		{
 			m_simulationMethod.simulation = new TimeStepPCISPH(&m_simulationMethod.model);
-			m_simulationMethod.model.setKernel(0);
 			m_simulationMethod.model.setGradKernel(0);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 0)
+			{
+				m_simulationMethod.model.setKernel(0);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 		}
 		else if (method == SimulationMethods::PBF)
 		{
 			m_simulationMethod.simulation = new TimeStepPBF(&m_simulationMethod.model);
-			m_simulationMethod.model.setKernel(1);
 			m_simulationMethod.model.setGradKernel(2);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 1)
+			{
+				m_simulationMethod.model.setKernel(1);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 		}
 		else if (method == SimulationMethods::IISPH)
 		{
 			m_simulationMethod.simulation = new TimeStepIISPH(&m_simulationMethod.model);
-			m_simulationMethod.model.setKernel(0);
 			m_simulationMethod.model.setGradKernel(0);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 0)
+			{
+				m_simulationMethod.model.setKernel(0);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 		}
 		else if (method == SimulationMethods::DFSPH)
 		{
 			m_simulationMethod.simulation = new TimeStepDFSPH(&m_simulationMethod.model);
-			m_simulationMethod.model.setKernel(3);
 			m_simulationMethod.model.setGradKernel(3);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 3)
+			{
+				m_simulationMethod.model.setKernel(3);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 		}
 		else if (method == SimulationMethods::PF)
 		{
 			m_simulationMethod.simulation = new TimeStepPF(&m_simulationMethod.model);
-			m_simulationMethod.model.setKernel(3);
 			m_simulationMethod.model.setGradKernel(3);
-			m_simulationMethod.model.updateBoundaryPsi();
+			if (m_simulationMethod.model.getKernel() != 3)
+			{
+				m_simulationMethod.model.setKernel(3);
+				m_simulationMethod.model.updateBoundaryPsi();
+			}
 		}
 		m_simulationMethod.simulationMethod = method;
 

@@ -222,7 +222,7 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				const Real hr3 = pow(m_radius - sqrt(r2), 3);
+				const Real hr3 = pow(m_radius - r, 3);
 				res = m_k * hr3;
 			}
 			return res;
@@ -394,7 +394,7 @@ namespace SPH
 	};
 
 
-	/** \brief Precomputed kernel which is based on a lookup table as described by Bender and Koschier \cite Bender:2015, \cite Bender2016.
+	/** \brief Precomputed kernel which is based on a lookup table as described by Bender and Koschier \cite Bender:2015, \cite Bender2017.
 	*
 	* The lookup tables can be used in combination with any kernel. 
 	*/

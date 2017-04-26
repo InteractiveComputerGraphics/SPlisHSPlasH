@@ -37,6 +37,7 @@ The SPlisHSPlasH library implements the following pressure solvers:
 
 * Standard SPH formulation of viscosity
 * XSPH
+* Implicit viscosity (Bender and Koschier, "Divergence-free SPH for incompressible and viscous fluids", IEEE Transactions on Visualization and Computer Graphics, 2017)
 
 ## Surface Tension
 
@@ -76,7 +77,7 @@ Divergence-Free SPH for Incompressible and Viscous Fluids:
 
 * Jan Bender and Dan Koschier. Divergence-free smoothed particle hydrodynamics. In Proceedings of ACM SIGGRAPH / Eurographics Symposium on Computer Animation, 2015. ACM.
 
-* Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 2016.
+* Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 2017.
 
 * Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, and Miles Macklin. A survey on position-based simulation methods in computer graphics. Computer Graphics Forum, 33(6):228–251, 2014.
 

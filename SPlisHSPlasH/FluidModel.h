@@ -122,14 +122,19 @@ namespace SPH
 			CompactNSearch::NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
 			void performNeighborhoodSearchSort();
 
-			FORCE_INLINE unsigned int numberOfNeighbors(const unsigned int index) const
+			FORCE_INLINE unsigned int numberOfPointSets() const
 			{
-				return static_cast<unsigned int>(m_neighborhoodSearch->point_set(0).n_neighbors(index));
+				return static_cast<unsigned int>(m_neighborhoodSearch->n_point_sets());
 			}
 
-			FORCE_INLINE const CompactNSearch::PointID& getNeighbor(const unsigned int index, const unsigned int k) const
+			FORCE_INLINE unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index) const
 			{
-				return m_neighborhoodSearch->point_set(0).neighbor(index, k);
+				return static_cast<unsigned int>(m_neighborhoodSearch->point_set(0).n_neighbors(pointSetIndex, index));
+			}
+
+			FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int k) const
+			{
+				return m_neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
 			}
 
 			Real getViscosity() const { return m_viscosity; }

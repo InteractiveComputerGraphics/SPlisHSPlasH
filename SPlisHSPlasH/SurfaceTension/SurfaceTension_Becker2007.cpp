@@ -27,28 +27,37 @@ void SurfaceTension_Becker2007::step()
 		{
 			const Vector3r &xi = m_model->getPosition(0, i);
 			Vector3r &ai = m_model->getAcceleration(i);
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
-				const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 				const Vector3r xixj = xi - xj;
 				const Real r2 = xixj.dot(xixj);
-
-				if (particleId.point_set_id == 0)
-				{
-					if (r2 > diameter2)
-						ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(xi - xj);
-					else
-						ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
-				}
+				if (r2 > diameter2)
+					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(xi - xj);
 				else
-				{
-					if (r2 > diameter2)
-						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (xi - xj) * m_model->W(xi - xj);
-					else
-						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
+					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
+			}
 
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+				{
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+					const Vector3r xixj = xi - xj;
+					const Real r2 = xixj.dot(xixj);
+					if (r2 > diameter2)
+						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(pid, neighborIndex) * (xi - xj) * m_model->W(xi - xj);
+					else
+						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(pid, neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
 				}
 			}
 		}

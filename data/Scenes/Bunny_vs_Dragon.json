@@ -1,7 +1,24 @@
 {
 	"Configuration": 
 	{
-		"particleRadius": 0.025	
+		"particleRadius": 0.025,
+		"simulationMethod": 4,
+		"viscosity": 0.02,
+		"viscosityMethod": 2,
+		"gravitation": [0,-9.81,0], 
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0,
+		"cflMethod": 1, 
+		"cflFactor": 0.5,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 1,
+		"enableDivergenceSolver": true
 	},
 	"RigidBodies": [
 		{
@@ -38,7 +55,7 @@
 	"FluidModels": [
 		{
 			"particleFile": "../models/bunny.bgeo",
-			"translation": [-2.0, 0.05, 0.0],
+			"translation": [-2.0, 0.1, 0.0],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 3.14159265359,
 			"scale": 1

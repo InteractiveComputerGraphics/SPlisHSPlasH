@@ -8,6 +8,7 @@
 #include "windows.h"
 #else
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 using namespace SPH;

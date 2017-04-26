@@ -22,9 +22,13 @@ namespace SPH
 	using Vector2r = Eigen::Matrix<Real, 2, 1>;
 	using Vector3r = Eigen::Matrix<Real, 3, 1>;
 	using Vector4r = Eigen::Matrix<Real, 4, 1>;
+	using Vector5r = Eigen::Matrix<Real, 5, 1>;
+	using Vector6r = Eigen::Matrix<Real, 6, 1>;
 	using Matrix2r = Eigen::Matrix<Real, 2, 2>;
 	using Matrix3r = Eigen::Matrix<Real, 3, 3>;
 	using Matrix4r = Eigen::Matrix<Real, 4, 4>;
+	using Matrix5r = Eigen::Matrix<Real, 5, 5>;
+	using Matrix6r = Eigen::Matrix<Real, 6, 6>;
 	using AlignedBox2r = Eigen::AlignedBox<Real, 2>;
 	using AlignedBox3r = Eigen::AlignedBox<Real, 3>;
 	using AngleAxisr = Eigen::AngleAxis<Real>;

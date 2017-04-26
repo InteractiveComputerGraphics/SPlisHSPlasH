@@ -15,7 +15,6 @@ TimeStepDFSPH::TimeStepDFSPH(FluidModel *model) :
 	TimeStep(model)
 {
 	m_simulationData.init(model);
-	model->updateBoundaryPsi();
 	m_counter = 0;
 	m_iterationsV = 0;
 }
@@ -112,22 +111,28 @@ void TimeStepDFSPH::computeDFSPHFactor()
 			Vector3r grad_p_i;
 			grad_p_i.setZero();
 
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
-				const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-
-				if (particleId.point_set_id == 0)
-				{					
-					const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
-					sum_grad_p_k += grad_p_j.squaredNorm();
-
-					grad_p_i -= grad_p_j;
-				}
-				else
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+				const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
+				sum_grad_p_k += grad_p_j.squaredNorm();
+				grad_p_i -= grad_p_j;
+			}
+			
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 				{
-					const Vector3r grad_p_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->gradW(xi - xj);
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+					const Vector3r grad_p_j = -m_model->getBoundaryPsi(pid, neighborIndex) * m_model->gradW(xi - xj);
 					sum_grad_p_k += grad_p_j.squaredNorm();
 					grad_p_i -= grad_p_j;
 				}
@@ -140,7 +145,7 @@ void TimeStepDFSPH::computeDFSPHFactor()
 			//////////////////////////////////////////////////////////////////////////
 			Real &factor = m_simulationData.getFactor(i);
 
-			sum_grad_p_k = max(sum_grad_p_k, 1.0e-6);
+			sum_grad_p_k = max(sum_grad_p_k, m_eps);
 			factor = -1.0 / (sum_grad_p_k);
 		}
 	}
@@ -183,26 +188,41 @@ void TimeStepDFSPH::pressureSolve()
 				Vector3r &vel = m_model->getVelocity(0, i);
 				const Real ki = m_simulationData.getKappa(i);
 				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+					const Real kj = m_simulationData.getKappa(neighborIndex);
 
-					if (particleId.point_set_id == 0)
+					const Real kSum = (ki + kj);
+					if (fabs(kSum) > m_eps)
 					{
+						const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 						const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
-						const Real kj = m_simulationData.getKappa(neighborIndex);
-						vel -= h * (ki + kj) * grad_p_j;					// ki, kj already contain inverse density
+						vel -= h * kSum * grad_p_j;					// ki, kj already contain inverse density
 					}
-					else
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				if (fabs(ki) > m_eps)
+				{
+					for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
 					{
-						const Vector3r grad_p_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->gradW(xi - xj);
+						for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+						{
+							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+							const Vector3r grad_p_j = -m_model->getBoundaryPsi(pid, neighborIndex) * m_model->gradW(xi - xj);
+							const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
+							vel += velChange;
 
-						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
-						vel += velChange;
-
-						m_model->getForce(particleId.point_set_id, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+							m_model->getForce(pid, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+						}
 					}
 				}
 			}
@@ -259,30 +279,44 @@ void TimeStepDFSPH::pressureSolve()
 				Vector3r &v_i = m_model->getVelocity(0, i);
 				const Vector3r &xi = m_model->getPosition(0, i);
 
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-
-					if (particleId.point_set_id == 0)
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+					const Real b_j = m_simulationData.getDensityAdv(neighborIndex) - density0;
+					const Real kj = b_j*m_simulationData.getFactor(neighborIndex);
+					const Real kSum = (ki + kj);
+					if (fabs(kSum) > m_eps)
 					{
-						const Real b_j = m_simulationData.getDensityAdv(neighborIndex) - density0;
-						const Real kj = b_j*m_simulationData.getFactor(neighborIndex);
+						const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 						const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
 
 						// Directly update velocities instead of storing pressure accelerations
-						v_i -= h * (ki + kj) * grad_p_j;			// ki, kj already contain inverse density						
+						v_i -= h * kSum * grad_p_j;			// ki, kj already contain inverse density						
 					}
-					else
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				if (fabs(ki) > m_eps)
+				{
+					for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
 					{
-						const Vector3r grad_p_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->gradW(xi - xj);
+						for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+						{
+							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+							const Vector3r grad_p_j = -m_model->getBoundaryPsi(pid, neighborIndex) * m_model->gradW(xi - xj);
 
-						// Directly update velocities instead of storing pressure accelerations
-						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
-						v_i += velChange;
+							// Directly update velocities instead of storing pressure accelerations
+							const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
+							v_i += velChange;
 
-						m_model->getForce(particleId.point_set_id, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+							m_model->getForce(pid, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+						}
 					}
 				}
 			}
@@ -355,26 +389,42 @@ void TimeStepDFSPH::divergenceSolve()
 				Vector3r &vel = m_model->getVelocity(0, i);
 				const Real ki = m_simulationData.getKappaV(i);
 				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+					const Real kj = m_simulationData.getKappaV(neighborIndex);
 
-					if (particleId.point_set_id == 0)
+					const Real kSum = (ki + kj);
+					if (fabs(kSum) > m_eps)
 					{
+						const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 						const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
-						const Real kj = m_simulationData.getKappaV(neighborIndex);
-						vel -= h * (ki + kj) * grad_p_j;					// ki, kj already contain inverse density
+						vel -= h * kSum * grad_p_j;					// ki, kj already contain inverse density
 					}
-					else
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				if (fabs(ki) > m_eps)
+				{
+					for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
 					{
-						const Vector3r grad_p_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->gradW(xi - xj);
+						for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+						{
+							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+							const Vector3r grad_p_j = -m_model->getBoundaryPsi(pid, neighborIndex) * m_model->gradW(xi - xj);
 
-						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
-						vel += velChange;
+							const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
+							vel += velChange;
 
-						m_model->getForce(particleId.point_set_id, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+							m_model->getForce(pid, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+						}
 					}
 				}
 			}
@@ -434,27 +484,43 @@ void TimeStepDFSPH::divergenceSolve()
 				Vector3r &v_i = m_model->getVelocity(0, i);
 
 				const Vector3r &xi = m_model->getPosition(0, i);
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 				{
-					const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-					const unsigned int &neighborIndex = particleId.point_id;
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
+					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);					
+					const Real b_j = m_simulationData.getDensityAdv(neighborIndex);
+					const Real kj = b_j*m_simulationData.getFactor(neighborIndex);
 
-					if (particleId.point_set_id == 0)
+					const Real kSum = (ki + kj);
+					if (fabs(kSum) > m_eps)
 					{
-						const Real b_j = m_simulationData.getDensityAdv(neighborIndex);
-						const Real kj = b_j*m_simulationData.getFactor(neighborIndex);
+						const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 						const Vector3r grad_p_j = -m_model->getMass(neighborIndex) * m_model->gradW(xi - xj);
-						v_i -= h * (ki + kj) * grad_p_j;			// ki, kj already contain inverse density
+						v_i -= h * kSum * grad_p_j;			// ki, kj already contain inverse density
 					}
-					else
+				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				if (fabs(ki) > m_eps)
+				{
+					for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
 					{
-						const Vector3r grad_p_j = -m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * m_model->gradW(xi - xj);
+						for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+						{
+							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+							const Vector3r grad_p_j = -m_model->getBoundaryPsi(pid, neighborIndex) * m_model->gradW(xi - xj);
 
-						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
-						v_i += velChange;
+							const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
+							v_i += velChange;
 
-						m_model->getForce(particleId.point_set_id, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+							m_model->getForce(pid, neighborIndex) -= m_model->getMass(i) * velChange * invH;
+						}
 					}
 				}
 			}
@@ -498,20 +564,29 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int index, const int numPar
 	const Vector3r &xi = m_model->getPosition(0, index);
 	const Vector3r &vi = m_model->getVelocity(0, index);
 	Real delta = 0.0;
-	for (unsigned int j = 0; j < m_model->numberOfNeighbors(index); j++)
-	{
-		const CompactNSearch::PointID &particleId = m_model->getNeighbor(index, j);
-		const unsigned int &neighborIndex = particleId.point_id;
-		const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-		const Vector3r &vj = m_model->getVelocity(particleId.point_set_id, neighborIndex);
 
-		if (particleId.point_set_id == 0)
+	//////////////////////////////////////////////////////////////////////////
+	// Fluid
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, index); j++)
+	{
+		const unsigned int neighborIndex = m_model->getNeighbor(0, index, j);
+		const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+		const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
+		delta += m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Boundary
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+	{
+		for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, index); j++)
 		{
-			delta += m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
-		}
-		else
-		{
-			delta += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+			const unsigned int neighborIndex = m_model->getNeighbor(pid, index, j);
+			const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+			const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
+			delta += m_model->getBoundaryPsi(pid, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
 		}
 	}
 
@@ -525,20 +600,29 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int index, const Real h,
 	const Vector3r &xi = m_model->getPosition(0, index);
 	const Vector3r &vi = m_model->getVelocity(0, index);
 	densityAdv = 0.0;
-	for (unsigned int j = 0; j < m_model->numberOfNeighbors(index); j++)
-	{
-		const CompactNSearch::PointID &particleId = m_model->getNeighbor(index, j);
-		const unsigned int &neighborIndex = particleId.point_id;
-		const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-		const Vector3r &vj = m_model->getVelocity(particleId.point_set_id, neighborIndex);
 
-		if (particleId.point_set_id == 0)
+	//////////////////////////////////////////////////////////////////////////
+	// Fluid
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, index); j++)
+	{
+		const unsigned int neighborIndex = m_model->getNeighbor(0, index, j);
+		const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+		const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
+		densityAdv += m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Boundary
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+	{
+		for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, index); j++)
 		{
-			densityAdv += m_model->getMass(neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
-		}
-		else
-		{
-			densityAdv += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
+			const unsigned int neighborIndex = m_model->getNeighbor(pid, index, j);
+			const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+			const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
+			densityAdv += m_model->getBoundaryPsi(pid, neighborIndex) * (vi - vj).dot(m_model->gradW(xi - xj));
 		}
 	}
 
@@ -562,10 +646,14 @@ void TimeStepDFSPH::performNeighborhoodSearch()
 	const unsigned int numParticles = m_model->numParticles();
 	const Real supportRadius = m_model->getSupportRadius();
 
-	if (m_counter % 100 == 0)
+	if (m_counter % 500 == 0)
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
+		if (m_viscosity)
+			m_viscosity->performNeighborhoodSearchSort();
+		if (m_surfaceTension)
+			m_surfaceTension->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 

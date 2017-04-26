@@ -30,7 +30,7 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	{
 		nlohmann::json config = j["Configuration"];
 
-		scene.timeStepSize = 0.005;
+		scene.timeStepSize = 0.001;
 		readValue(config["timeStepSize"], scene.timeStepSize);
 
 		scene.particleRadius = 0.025;
@@ -68,6 +68,12 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.viscosity = 0.02;
 		readValue(config["viscosity"], scene.viscosity);
+
+		scene.viscoMaxIter = 50;
+		readValue(config["viscoMaxIter"], scene.viscoMaxIter);
+
+		scene.viscoMaxError = 0.01;
+		readValue(config["viscoMaxError"], scene.viscoMaxError);
 
 		scene.viscosityMethod = 2;
 		readValue(config["viscosityMethod"], scene.viscosityMethod);

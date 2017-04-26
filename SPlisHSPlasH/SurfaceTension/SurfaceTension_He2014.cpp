@@ -32,21 +32,28 @@ void SurfaceTension_He2014::step()
 			const Vector3r &xi = m_model->getPosition(0, i);
 			Real &ci = getColor(i);
 			ci = m_model->getMass(i) / m_model->getDensity(i) * m_model->W_zero();
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
-			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
 
-				if (particleId.point_set_id == 0)
-				{					
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-					const Real density_j = m_model->getDensity(neighborIndex);
-					ci += m_model->getMass(neighborIndex) / density_j * m_model->W(xi - xj);
-				}
-				else
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
+			{
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+				const Real density_j = m_model->getDensity(neighborIndex);
+				ci += m_model->getMass(neighborIndex) / density_j * m_model->W(xi - xj);
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 				{
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-					ci += m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density0 * m_model->W(xi - xj);
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+					ci += m_model->getBoundaryPsi(pid, neighborIndex) / density0 * m_model->W(xi - xj);
 				}
 			}
 		}
@@ -62,17 +69,16 @@ void SurfaceTension_He2014::step()
 			Vector3r gradC_i;
 			gradC_i.setZero();
 			const Real &density_i = m_model->getDensity(i);
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
-			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
 
-				if (particleId.point_set_id == 0)
-				{
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-					const Real &density_j = m_model->getDensity(neighborIndex);
-					gradC_i += m_model->getMass(neighborIndex) / density_j * getColor(neighborIndex) * m_model->gradW(xi - xj);
-				}				
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
+			{
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+				const Real &density_j = m_model->getDensity(neighborIndex);
+				gradC_i += m_model->getMass(neighborIndex) / density_j * getColor(neighborIndex) * m_model->gradW(xi - xj);
 			}
 			gradC_i *= (1.0 / getColor(i));
 			Real &gradC2_i = getGradC2(i);
@@ -91,22 +97,29 @@ void SurfaceTension_He2014::step()
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real &density_i = m_model->getDensity(i);
 			const Real factor = 0.25*k / density_i;
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
-			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
 
-				if (particleId.point_set_id == 0)
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
+			{
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+				const Real &gradC2_j = getGradC2(neighborIndex);
+				const Real &density_j = m_model->getDensity(neighborIndex);
+				ai += factor*m_model->getMass(neighborIndex) / density_j * (gradC2_i + gradC2_j) * m_model->gradW(xi - xj);
+			}
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 				{
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-					const Real &gradC2_j = getGradC2(neighborIndex);
-					const Real &density_j = m_model->getDensity(neighborIndex);
-					ai += factor*m_model->getMass(neighborIndex) / density_j * (gradC2_i + gradC2_j) * m_model->gradW(xi - xj);
-				}
-				else
-				{
-					const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-					ai += factor*m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) / density0 * gradC2_i * m_model->gradW(xi - xj);
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+					ai += factor*m_model->getBoundaryPsi(pid, neighborIndex) / density0 * gradC2_i * m_model->gradW(xi - xj);
 				}
 			}
 		}

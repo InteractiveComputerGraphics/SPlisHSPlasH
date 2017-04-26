@@ -12,7 +12,6 @@ TimeStepWCSPH::TimeStepWCSPH(FluidModel *model) :
 	TimeStep(model)
 {
 	m_simulationData.init(model);
-	model->updateBoundaryPsi();
 	m_counter = 0;
 }
 
@@ -96,26 +95,34 @@ void TimeStepWCSPH::computePressureAccels()
 			ai.setZero();
 
 			const Real dpi = m_simulationData.getPressure(i) / (density_i*density_i);
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(i); j++)
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
 			{
-				const CompactNSearch::PointID &particleId = m_model->getNeighbor(i, j);
-				const unsigned int &neighborIndex = particleId.point_id;
-				const Vector3r &xj = m_model->getPosition(particleId.point_set_id, neighborIndex);
-				if (particleId.point_set_id == 0)		// Test if fluid particle
-				{					
-					// Pressure 
-					const Real &density_j = m_model->getDensity(neighborIndex);
+				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
+				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+#
+				// Pressure 
+				const Real &density_j = m_model->getDensity(neighborIndex);
+				const Real dpj = m_simulationData.getPressure(neighborIndex) / (density_j*density_j);
+				ai -= m_model->getMass(neighborIndex) * (dpi + dpj) * m_model->gradW(xi - xj);
+			}
 
-					const Real dpj = m_simulationData.getPressure(neighborIndex) / (density_j*density_j);
-
-					ai -= m_model->getMass(neighborIndex) * (dpi + dpj) * m_model->gradW(xi - xj);
-				}
-				else
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			{
+				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
 				{
-					const Vector3r a = m_model->getBoundaryPsi(particleId.point_set_id, neighborIndex) * (dpi)* m_model->gradW(xi - xj);
+					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
+					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
+
+					const Vector3r a = m_model->getBoundaryPsi(pid, neighborIndex) * (dpi)* m_model->gradW(xi - xj);
 					ai -= a;
 
-					m_model->getForce(particleId.point_set_id, neighborIndex) += m_model->getMass(i) * a;
+					m_model->getForce(pid, neighborIndex) += m_model->getMass(i) * a;
 				}
 			}
 		}
@@ -127,10 +134,14 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 	const unsigned int numParticles = m_model->numParticles();
 	const Real supportRadius = m_model->getSupportRadius();
 
-	if (m_counter % 100 == 0)
+	if (m_counter % 500 == 0)
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
+		if (m_viscosity)
+			m_viscosity->performNeighborhoodSearchSort();
+		if (m_surfaceTension)
+			m_surfaceTension->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 

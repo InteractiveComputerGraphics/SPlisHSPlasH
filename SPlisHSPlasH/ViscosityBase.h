@@ -21,6 +21,8 @@ namespace SPH
 		virtual void reset() {};
 
 		FluidModel *getModel() { return m_model; }
+
+		virtual void performNeighborhoodSearchSort() {};
 	};
 }
 

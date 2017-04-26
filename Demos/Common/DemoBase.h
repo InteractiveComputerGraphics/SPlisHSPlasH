@@ -36,6 +36,7 @@ namespace SPH
 			TimeStepSize = 1, IterationCount, IterationCountV,
 			Gravitation, SimMethod, VelocityUpdateMethod, 
 			Viscosity, ViscosityMethod, 
+			ViscoMaxIter, ViscoMaxError,
 			WCSPH_Stiffness, WCSPH_Exponent,
 			DFSPH_EnableDivergenceSolver,
 			CFL_Method, CFL_Factor, CFL_MaxTimeStepSize, 

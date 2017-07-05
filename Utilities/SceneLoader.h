@@ -80,6 +80,8 @@ namespace SPH
 			unsigned int viscosityMethod;
 			unsigned int surfaceTensionMethod;
 			unsigned int simulationMethod;
+			bool enablePartioExport; 
+			unsigned int partioFPS;
 		};
 
 

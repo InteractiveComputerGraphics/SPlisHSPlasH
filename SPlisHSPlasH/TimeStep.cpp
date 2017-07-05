@@ -18,6 +18,7 @@ TimeStep::TimeStep(FluidModel *model)
 {
 	m_model = model;
 	m_iterations = 0;
+	m_iterationsV = 0;
 	m_cflMethod = 1;
 	m_cflFactor = 0.5;
 	m_cflMaxTimeStepSize = 0.005;
@@ -26,9 +27,10 @@ TimeStep::TimeStep(FluidModel *model)
 	m_maxIterationsV = 100;
 	m_maxErrorV = 0.1;
 	m_viscosity = NULL;
+	m_viscosityMethod = ViscosityMethods::None;
 	setViscosityMethod(ViscosityMethods::XSPH);
 	m_surfaceTension = NULL;
-	setSurfaceTensionMethod(SurfaceTensionMethods::None);
+	m_surfaceTensionMethod = SurfaceTensionMethods::None;
 }
 
 TimeStep::~TimeStep(void)

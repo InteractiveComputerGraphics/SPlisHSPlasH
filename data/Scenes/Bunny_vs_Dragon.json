@@ -33,7 +33,7 @@
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
-			"translation": [1.5,0,-0.75],
+			"translation": [1.5,0.05,-0.75],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 0,
 			"scale": [1, 1, 1], 
@@ -43,7 +43,7 @@
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
-			"translation": [1.5,0,0.75],
+			"translation": [1.5,0.05,0.75],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 0,
 			"scale": [1, 1, 1], 

@@ -65,6 +65,8 @@ namespace SPH
 		int m_renderWalls;
 		bool m_doPause;
 		Real m_pauseAt;
+		bool m_enablePartioExport;
+		unsigned int m_framesPerSecond;
 		Vector3r m_oldMousePos;
 		std::vector<unsigned int> m_selectedParticles;
 		SimulationMethodChangedFct m_simulationMethodChangedFct;
@@ -120,7 +122,10 @@ namespace SPH
 		Real getPauseAt() const { return m_pauseAt; }
 		void setPauseAt(Real val) { m_pauseAt = val; }
 		void setSimulationMethod(SimulationMethods method);
-
+		bool getEnablePartioExport() const { return m_enablePartioExport; }
+		void setEnablePartioExport(bool val) { m_enablePartioExport = val; }
+		unsigned int getFramesPerSecond() const { return m_framesPerSecond; }
+		void setFramesPerSecond(unsigned int val) { m_framesPerSecond = val; }
 	};
 }
  

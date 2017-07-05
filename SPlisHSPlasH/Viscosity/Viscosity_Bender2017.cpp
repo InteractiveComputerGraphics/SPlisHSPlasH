@@ -11,7 +11,7 @@ Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	m_viscosityLambda.resize(model->numParticles(), Vector6r::Zero());
 	m_lastViscosityLambda.resize(model->numParticles(), Vector6r::Zero());
 
-	m_maxIter = 50;
+	m_maxIter = 100;
 	m_maxError = 0.01;
 }
 
@@ -26,7 +26,7 @@ Viscosity_Bender2017::~Viscosity_Bender2017(void)
 void Viscosity_Bender2017::step()
 {
 	const int numParticles = (int) m_model->numParticles();
-	const unsigned int maxIter = maxIter;
+	const unsigned int maxIter = m_maxIter;
 	const Real maxError = m_maxError;	
 	const Real maxError2 = maxError*maxError;
 

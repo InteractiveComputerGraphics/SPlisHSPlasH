@@ -21,11 +21,39 @@ using namespace SPH;
 using namespace Eigen;
 using namespace std;
 
+/** The wall is defined by the minimum and maximum position where
+* one coordinate must have the same value.
+*/
+struct AABB
+{
+	Vector3r m_minX;
+	Vector3r m_maxX;
+
+	AABB()
+	{
+		m_minX.setZero(); m_maxX.setZero();
+	}
+
+	bool contains(const Vector3r &x)
+	{
+		if ((m_minX[0] <= x[0]) &&
+			(m_minX[1] <= x[1]) &&
+			(m_minX[2] <= x[2]) &&
+			(m_maxX[0] >= x[0]) &&
+			(m_maxX[1] >= x[1]) &&
+			(m_maxX[2] >= x[2]))
+			return true;
+		return false;
+	}
+};
+
+
 void initShader();
 void render();
 void pointShaderBegin(const float *col);
 void pointShaderEnd();
 void timeStep() {}
+void updateBoundingBox();
 
 
 string inputFile = "";
@@ -33,6 +61,7 @@ string exePath, dataPath;
 Real particleRadius = 0.025;
 std::vector<Vector3r> x;
 std::vector<Vector3r> v;
+AABB fluidBoundingBox;
 Real maxVel = 1.0;
 Shader shader;
 GLint context_major_version;
@@ -79,6 +108,8 @@ int main( int argc, char **argv )
 	for (unsigned int i = 0; i < v.size(); i++)
 		maxVel = std::max(maxVel, v[i].norm());
 
+	updateBoundingBox();
+
 	// OpenGL
 	MiniGL::init(argc, argv, 1024, 768, 0, 0, "Partio Viewer");
 	MiniGL::initLights();
@@ -120,6 +151,34 @@ void initShader()
 	shader.addUniform("projection_radius");
 	shader.addUniform("max_velocity");
 	shader.end();
+}
+
+void renderAABB(const AABB &aabb, float *color)
+{
+	Vector3r a = aabb.m_minX;
+	Vector3r b(aabb.m_maxX[0], aabb.m_minX[1], aabb.m_minX[2]);
+	Vector3r c(aabb.m_maxX[0], aabb.m_maxX[1], aabb.m_minX[2]);
+	Vector3r d(aabb.m_minX[0], aabb.m_maxX[1], aabb.m_minX[2]);
+	Vector3r e(aabb.m_minX[0], aabb.m_minX[1], aabb.m_maxX[2]);
+	Vector3r f(aabb.m_maxX[0], aabb.m_minX[1], aabb.m_maxX[2]);
+	Vector3r g(aabb.m_maxX[0], aabb.m_maxX[1], aabb.m_maxX[2]);
+	Vector3r h(aabb.m_minX[0], aabb.m_maxX[1], aabb.m_maxX[2]);
+
+	const float w = 2.0;
+	MiniGL::drawVector(a, b, w, color);
+	MiniGL::drawVector(b, c, w, color);
+	MiniGL::drawVector(c, d, w, color);
+	MiniGL::drawVector(d, a, w, color);
+
+	MiniGL::drawVector(e, f, w, color);
+	MiniGL::drawVector(f, g, w, color);
+	MiniGL::drawVector(g, h, w, color);
+	MiniGL::drawVector(h, e, w, color);
+
+	MiniGL::drawVector(a, e, w, color);
+	MiniGL::drawVector(b, f, w, color);
+	MiniGL::drawVector(c, g, w, color);
+	MiniGL::drawVector(d, h, w, color);
 }
 
 void render()
@@ -172,6 +231,10 @@ void render()
 		glEnd();
 		glEnable(GL_LIGHTING);
 	}
+
+	// Render bounding box - fluid
+	float col[4] = { 0.3,0.3,0.3,1 };
+	renderAABB(fluidBoundingBox, col);
 }
 
 void pointShaderBegin(const float *col)
@@ -204,3 +267,22 @@ void pointShaderEnd()
 {
 	shader.end();
 }
+
+void updateBoundingBox()
+{
+	fluidBoundingBox.m_minX = Vector3r(REAL_MAX, REAL_MAX, REAL_MAX);
+	fluidBoundingBox.m_maxX = Vector3r(-REAL_MAX, -REAL_MAX, -REAL_MAX);
+	const Real r2 = particleRadius*0.5;
+
+	for (unsigned int i = 0; i < x.size(); i++)
+	{
+		fluidBoundingBox.m_minX[0] = min(fluidBoundingBox.m_minX[0], x[i][0] - r2);
+		fluidBoundingBox.m_minX[1] = min(fluidBoundingBox.m_minX[1], x[i][1] - r2);
+		fluidBoundingBox.m_minX[2] = min(fluidBoundingBox.m_minX[2], x[i][2] - r2);
+
+		fluidBoundingBox.m_maxX[0] = max(fluidBoundingBox.m_maxX[0], x[i][0] + r2);
+		fluidBoundingBox.m_maxX[1] = max(fluidBoundingBox.m_maxX[1], x[i][1] + r2);
+		fluidBoundingBox.m_maxX[2] = max(fluidBoundingBox.m_maxX[2], x[i][2] + r2);
+	}
+}
+

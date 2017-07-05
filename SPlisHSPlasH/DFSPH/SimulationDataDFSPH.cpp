@@ -3,7 +3,11 @@
 
 using namespace SPH;
 
-SimulationDataDFSPH::SimulationDataDFSPH()
+SimulationDataDFSPH::SimulationDataDFSPH() :
+	m_factor(),
+	m_kappa(),
+	m_kappaV(),
+	m_density_adv()
 {
 	m_model = NULL;
 }

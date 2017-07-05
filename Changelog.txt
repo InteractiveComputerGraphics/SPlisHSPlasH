@@ -1,3 +1,7 @@
+	- added partio export for fluid simulations
+	- updated to Eigen 3.3.4
+	- bugfixes
+
 1.1.0
 	- added new scenes
 	- added implicit viscosity (Bender and Koschier, "Divergence-free SPH for incompressible and viscous fluids", IEEE Transactions on Visualization and Computer Graphics, 2017)

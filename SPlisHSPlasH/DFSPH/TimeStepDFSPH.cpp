@@ -12,7 +12,8 @@ using namespace std;
 #define USE_WARMSTART_V
 
 TimeStepDFSPH::TimeStepDFSPH(FluidModel *model) :
-	TimeStep(model)
+	TimeStep(model),
+	m_simulationData()
 {
 	m_simulationData.init(model);
 	m_counter = 0;
@@ -378,13 +379,13 @@ void TimeStepDFSPH::divergenceSolve()
 		for (int i = 0; i < numParticles; i++)
 		{
 			m_simulationData.getKappaV(i) = 0.5*max(m_simulationData.getKappaV(i)*invH, -0.5);
-			//computeDensityChange(i, h, density0);
+			computeDensityChange(i, h, density0);
 		}
 
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			//if (m_simulationData.getDensityAdv(i) > 0.0)
+			if (m_simulationData.getDensityAdv(i) > 0.0)
 			{
 				Vector3r &vel = m_model->getVelocity(0, i);
 				const Real ki = m_simulationData.getKappaV(i);
@@ -600,11 +601,12 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int index, const Real h,
 	const Vector3r &xi = m_model->getPosition(0, index);
 	const Vector3r &vi = m_model->getVelocity(0, index);
 	densityAdv = 0.0;
+	unsigned int numNeighbors = m_model->numberOfNeighbors(0, index);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
-	for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, index); j++)
+	for (unsigned int j = 0; j < numNeighbors; j++)
 	{
 		const unsigned int neighborIndex = m_model->getNeighbor(0, index, j);
 		const Vector3r &xj = m_model->getPosition(0, neighborIndex);
@@ -617,6 +619,7 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int index, const Real h,
 	//////////////////////////////////////////////////////////////////////////
 	for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
 	{
+		numNeighbors += m_model->numberOfNeighbors(pid, index);
 		for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, index); j++)
 		{
 			const unsigned int neighborIndex = m_model->getNeighbor(pid, index, j);
@@ -626,11 +629,12 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int index, const Real h,
 		}
 	}
 
-	const Real &density = m_model->getDensity(index);
-	densityAdv = density + h*densityAdv;
+	// only correct positive divergence
+	densityAdv = max(densityAdv, 0.0);
 
-	densityAdv = max(densityAdv, density0);
-	densityAdv = (densityAdv - density0) * (1.0 / h);
+	// in case of particle deficiency do not perform a divergence solve
+ 	if (numNeighbors < 20)
+ 		densityAdv = 0.0;
 }
 
 void TimeStepDFSPH::reset()

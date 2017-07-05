@@ -20,12 +20,14 @@ using namespace std;
  
 DemoBase::DemoBase()
 {
-	m_numberOfStepsPerRenderUpdate = 8;
+	m_numberOfStepsPerRenderUpdate = 4;
 	m_sceneFile = "";
 	m_renderWalls = 4;
 	m_doPause = true;
 	m_pauseAt = -1.0;
 	m_useParticleCaching = true;
+	m_enablePartioExport = false;
+	m_framesPerSecond = 25;
 	m_simulationMethodChangedFct = NULL;
 }
 
@@ -181,6 +183,9 @@ void DemoBase::initParameters()
 	TwAddVarRW(MiniGL::getTweakBar(), "Pause", TW_TYPE_BOOLCPP, &m_doPause, " label='Pause' group=Simulation key=SPACE ");
 	TwAddVarRW(MiniGL::getTweakBar(), "PauseAt", TW_TYPE_REAL, &m_pauseAt, " label='Pause simulation at' step=0.001 precision=4 group=Simulation ");
 	TwAddVarRW(MiniGL::getTweakBar(), "numberOfStepsPerRenderUpdate", TW_TYPE_UINT32, &m_numberOfStepsPerRenderUpdate, " label='# time steps / update' min=1 group=Simulation ");
+	TwAddVarRW(MiniGL::getTweakBar(), "EnablePartioExport", TW_TYPE_BOOLCPP, &m_enablePartioExport, " label='Partio export' group=Simulation ");
+	TwAddVarRW(MiniGL::getTweakBar(), "FramesPerSecond", TW_TYPE_UINT32, &m_framesPerSecond, " label='Export FPS' group=Simulation ");
+	TwAddSeparator(MiniGL::getTweakBar(), NULL, " group=Simulation");
 
 	m_parameters.push_back(Parameter(ParameterIDs::TimeStepSize, "TimeStepSize", TW_TYPE_REAL, " label='Time step size'  min=0.0 max = 0.1 step=0.001 precision=4 group=Simulation ", this));
 
@@ -280,6 +285,9 @@ void DemoBase::buildModel()
 
 	m_simulationMethod.simulation = new TimeStepDFSPH(&m_simulationMethod.model);
 	m_simulationMethod.simulationMethod = SimulationMethods::DFSPH;
+	m_simulationMethod.model.setKernel(3);
+	m_simulationMethod.model.setGradKernel(3);
+
 	setSimulationMethod((SimulationMethods) m_scene.simulationMethod);
 
 	m_simulationMethod.simulation->setCflMethod(m_scene.cflMethod);
@@ -301,12 +309,14 @@ void DemoBase::buildModel()
 	m_simulationMethod.model.setStiffness(m_scene.stiffness);
 	m_simulationMethod.model.setExponent(m_scene.exponent);
 
+	setEnablePartioExport(m_scene.enablePartioExport);
+	setFramesPerSecond(m_scene.partioFPS);
+
 	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 	{
 		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
 		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
 	}
-
 
 	initParameters();
 }
@@ -846,6 +856,6 @@ void DemoBase::setSimulationMethod(SimulationMethods method)
 
 		initParameters();
 		if (m_simulationMethodChangedFct)
-			m_simulationMethodChangedFct();
+			m_simulationMethodChangedFct();	
 	}
 }

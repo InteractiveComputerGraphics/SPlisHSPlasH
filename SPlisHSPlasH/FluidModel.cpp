@@ -4,10 +4,14 @@
 
 using namespace SPH;
 
-FluidModel::FluidModel() 
+FluidModel::FluidModel() :
+	m_particleObjects(),
+	m_masses(),
+	m_a(),
+	m_density()
 {	
 	m_density0 = 1000.0;
-	m_particleRadius = 0.025;
+	setParticleRadius(0.025);
 	m_viscosity = 0.02;
 	m_neighborhoodSearch = NULL;
 	m_gravitation = Vector3r(0.0, -9.81, 0.0);
@@ -15,6 +19,7 @@ FluidModel::FluidModel()
 	m_exponent = 7.0;
 	m_surfaceTension = 0.05;
 	m_enableDivergenceSolver = true;
+	m_velocityUpdateMethod = 0;
 
 	ParticleObject *fluidParticles = new ParticleObject();
 	m_particleObjects.push_back(fluidParticles);

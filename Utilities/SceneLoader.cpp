@@ -102,6 +102,11 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		scene.enableDivergenceSolver = true;
 		readValue(config["enableDivergenceSolver"], scene.enableDivergenceSolver);
 
+		scene.enablePartioExport = false;
+		readValue(config["enablePartioExport"], scene.enablePartioExport);
+
+		scene.partioFPS = 25;
+		readValue(config["partioFPS"], scene.partioFPS);
 
 	}
 

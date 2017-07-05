@@ -61,13 +61,14 @@ http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Videos
 
-Divergence-Free Smoothed Particle Hydrodynamics:
+The following videos were generated using the SPlisHSPlasH library:
 
-[![Video](https://img.youtube.com/vi/POnmzzhc5E0/0.jpg)](https://www.youtube.com/watch?v=POnmzzhc5E0)
+*A Micropolar Material Model for Turbulent SPH Fluids* | *Density Maps for Improved SPH Boundary Handling*
+:---:|:---:
+[![Video](https://img.youtube.com/vi/fsvDbzEui3w/0.jpg)](https://www.youtube.com/watch?v=fsvDbzEui3w) | [![Video](https://img.youtube.com/vi/P82qmTAahg0/0.jpg)](https://www.youtube.com/watch?v=P82qmTAahg0)
+*Divergence-Free Smoothed Particle Hydrodynamics* | *Divergence-Free SPH for Incompressible and Viscous Fluids*
+[![Video](https://img.youtube.com/vi/POnmzzhc5E0/0.jpg)](https://www.youtube.com/watch?v=POnmzzhc5E0) | [![Video](https://img.youtube.com/vi/tl4mx0TtaAc/0.jpg)](https://www.youtube.com/watch?v=tl4mx0TtaAc)
 
-Divergence-Free SPH for Incompressible and Viscous Fluids:
-
-[![Video](https://img.youtube.com/vi/tl4mx0TtaAc/0.jpg)](https://www.youtube.com/watch?v=tl4mx0TtaAc)
 
 ## References
 
@@ -78,6 +79,8 @@ Divergence-Free SPH for Incompressible and Viscous Fluids:
 * Jan Bender and Dan Koschier. Divergence-free smoothed particle hydrodynamics. In Proceedings of ACM SIGGRAPH / Eurographics Symposium on Computer Animation, 2015. ACM.
 
 * Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 2017.
+
+* Jan Bender, Dan Koschier, Tassilo Kugelstadt and Marcel Weiler, "A Micropolar Material Model for Turbulent SPH Fluids", In Proceedings of ACM SIGGRAPH / EUROGRAPHICS Symposium on Computer Animation (SCA), 2017
 
 * Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, and Miles Macklin. A survey on position-based simulation methods in computer graphics. Computer Graphics Forum, 33(6):228–251, 2014.
 

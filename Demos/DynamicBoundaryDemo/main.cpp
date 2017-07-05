@@ -33,10 +33,12 @@ void reset();
 void updateBoundaryParticles(const bool forceUpdate);
 void updateBoundaryForces();
 void simulationMethodChanged();
+void partioExport();
 
 DemoBase base;
 PBDWrapper pbdWrapper;
-
+Real nextFrameTime = 0.0;
+unsigned int frameCounter = 1;
 
 // main 
 int main( int argc, char **argv )
@@ -86,6 +88,9 @@ void reset()
 
 	base.getSimulationMethod().simulation->reset();
 	TimeManager::getCurrent()->setTime(0.0);
+
+	nextFrameTime = 0.0;
+	frameCounter = 1;
 }
 
 void timeStep ()
@@ -113,6 +118,16 @@ void timeStep ()
 		STOP_TIMING_AVG;
 
 		updateBoundaryParticles(false);
+
+		if (base.getEnablePartioExport())
+		{
+			if (TimeManager::getCurrent()->getTime() >= nextFrameTime)
+			{
+				nextFrameTime += 1.0 / base.getFramesPerSecond();
+				partioExport();
+				frameCounter++;
+			}
+		}
 	}
 }
 
@@ -237,14 +252,6 @@ void initBoundaryData()
 			PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
 		}
 
-		// Cache sampling
-		std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
-		std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
-		std::string scene_path = FileSystem::getFilePath(base.getSceneFile());
-		std::string scene_file_name = FileSystem::getFileName(base.getSceneFile());
-		string cachePath = scene_path + "/" + mesh_base_path + "/Cache";
-		string particleFileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + "_" + mesh_file_name + "_" + std::to_string(i) + ".bgeo");
-
 		PBD::SimulationModel &model = pbdWrapper.getSimulationModel();
 		PBD::SimulationModel::RigidBodyVector &rigidBodies = model.getRigidBodies();
 		PBDRigidBody *rb = new PBDRigidBody(rigidBodies[i]);
@@ -254,6 +261,14 @@ void initBoundaryData()
 
 		if (scene.boundaryModels[i]->samplesFile == "")
 		{
+			// Cache sampling
+			std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
+			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
+			std::string scene_path = FileSystem::getFilePath(base.getSceneFile());
+			std::string scene_file_name = FileSystem::getFileName(base.getSceneFile());
+			string cachePath = scene_path + "/" + mesh_base_path + "/Cache";
+			string particleFileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + "_" + mesh_file_name + "_" + std::to_string(i) + ".bgeo");
+
 			bool foundCacheFile = false;
 			if (useCache)
 			{
@@ -335,4 +350,17 @@ void updateBoundaryForces()
 			rbo->addTorque(torque);
 		}
 	}
+}
+
+void partioExport()
+{
+	FluidModel &model = base.getSimulationMethod().model;
+	std::string exportPath = FileSystem::normalizePath(base.getExePath() + "/PartioExport");
+	FileSystem::makeDirs(exportPath);
+
+	std::string fileName = "ParticleData";
+	fileName = fileName + std::to_string(frameCounter) + ".bgeo";
+	std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
+
+	PartioReaderWriter::writeParticles(exportFileName, model.numParticles(), &model.getPosition(0, 0), &model.getVelocity(0, 0), 0.0);
 }

@@ -501,28 +501,28 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	{
 		const PBD::SceneLoader::TargetAngleMotorHingeJointData &jd = data.m_targetAngleMotorHingeJointData[i];
 		m_model.addTargetAngleMotorHingeJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetAngleMotorHingeJoint*)constraints[constraints.size() - 1])->setTargetAngle(jd.m_target);
+		((PBD::TargetAngleMotorHingeJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetVelocityMotorHingeJointData.size(); i++)
 	{
 		const PBD::SceneLoader::TargetVelocityMotorHingeJointData &jd = data.m_targetVelocityMotorHingeJointData[i];
 		m_model.addTargetVelocityMotorHingeJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetVelocityMotorHingeJoint*)constraints[constraints.size() - 1])->setTargetAngularVelocity(jd.m_target);
+		((PBD::TargetVelocityMotorHingeJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetPositionMotorSliderJointData.size(); i++)
 	{
 		const PBD::SceneLoader::TargetPositionMotorSliderJointData &jd = data.m_targetPositionMotorSliderJointData[i];
 		m_model.addTargetPositionMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetPositionMotorSliderJoint*)constraints[constraints.size() - 1])->setTargetPosition(jd.m_target);
+		((PBD::TargetPositionMotorSliderJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetVelocityMotorSliderJointData.size(); i++)
 	{
 		const PBD::SceneLoader::TargetVelocityMotorSliderJointData &jd = data.m_targetVelocityMotorSliderJointData[i];
 		m_model.addTargetVelocityMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetVelocityMotorSliderJoint*)constraints[constraints.size() - 1])->setTargetVelocity(jd.m_target);
+		((PBD::TargetVelocityMotorSliderJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
 	}
 
 	m_cd.updateAABBs(m_model);

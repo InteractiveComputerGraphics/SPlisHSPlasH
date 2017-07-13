@@ -1,3 +1,4 @@
+1.2.0
 	- added micropolar model for turbulent fluids (Bender et al., "A Micropolar Material Model for Turbulent SPH Fluids", ACM SIGGRAPH/EUROGRAPHICS Symposium on Computer Animation, 2017)
 	- added vorticity confinement method
 	- added fluid emitters

@@ -362,5 +362,5 @@ void partioExport()
 	fileName = fileName + std::to_string(frameCounter) + ".bgeo";
 	std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
 
-	PartioReaderWriter::writeParticles(exportFileName, model.numParticles(), &model.getPosition(0, 0), &model.getVelocity(0, 0), 0.0);
+	PartioReaderWriter::writeParticles(exportFileName, model.numActiveParticles(), &model.getPosition(0, 0), &model.getVelocity(0, 0), 0.0);
 }

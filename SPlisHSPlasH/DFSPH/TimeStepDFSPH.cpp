@@ -29,7 +29,7 @@ void TimeStepDFSPH::step()
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
 
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const bool enableDivergenceSolver = m_model->getEnableDivergenceSolver(); 
 
 	performNeighborhoodSearch();
@@ -52,8 +52,7 @@ void TimeStepDFSPH::step()
 	// Compute accelerations: a(t)
 	clearAccelerations();
 
-	computeSurfaceTension();
-	computeViscosity();
+	computeNonPressureForces();
 
 	updateTimeStepSize();
 
@@ -82,6 +81,8 @@ void TimeStepDFSPH::step()
 		}
 	}
 
+	emitParticles();
+
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
 }
@@ -93,7 +94,7 @@ void TimeStepDFSPH::computeDFSPHFactor()
 	//////////////////////////////////////////////////////////////////////////
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const int numParticles = (int) m_model->numParticles();
+	const int numParticles = (int) m_model->numActiveParticles();
 
 	#pragma omp parallel default(shared)
 	{
@@ -159,7 +160,7 @@ void TimeStepDFSPH::pressureSolve()
 	const Real invH = 1.0 / h;
 	const Real invH2 = 1.0/h2;
 	const Real density0 = m_model->getDensity0();
-	const int numParticles = (int)m_model->numParticles();
+	const int numParticles = (int)m_model->numActiveParticles();
 	Real avg_density_err = 0.0;
 
 #ifdef USE_WARMSTART			
@@ -361,7 +362,7 @@ void TimeStepDFSPH::divergenceSolve()
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH = 1.0 / h;
-	const int numParticles = (int)m_model->numParticles();
+	const int numParticles = (int)m_model->numActiveParticles();
 	const unsigned int maxIter = m_maxIterationsV;
 	const Real maxError = m_maxErrorV;
 	const Real density0 = m_model->getDensity0();
@@ -633,8 +634,8 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int index, const Real h,
 	densityAdv = max(densityAdv, 0.0);
 
 	// in case of particle deficiency do not perform a divergence solve
- 	if (numNeighbors < 20)
- 		densityAdv = 0.0;
+	if (numNeighbors < 20)
+		densityAdv = 0.0;
 }
 
 void TimeStepDFSPH::reset()
@@ -647,9 +648,6 @@ void TimeStepDFSPH::reset()
 
 void TimeStepDFSPH::performNeighborhoodSearch()
 {
-	const unsigned int numParticles = m_model->numParticles();
-	const Real supportRadius = m_model->getSupportRadius();
-
 	if (m_counter % 500 == 0)
 	{
 		m_model->performNeighborhoodSearchSort();
@@ -658,8 +656,21 @@ void TimeStepDFSPH::performNeighborhoodSearch()
 			m_viscosity->performNeighborhoodSearchSort();
 		if (m_surfaceTension)
 			m_surfaceTension->performNeighborhoodSearchSort();
+		if (m_vorticity)
+			m_vorticity->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
+}
+
+void TimeStepDFSPH::emittedParticles(const unsigned int startIndex)
+{
+	m_simulationData.emittedParticles(startIndex);
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
 }

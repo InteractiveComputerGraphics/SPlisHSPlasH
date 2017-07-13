@@ -33,8 +33,9 @@ namespace SPH
 		};
 
 		enum ParameterIDs {
-			TimeStepSize = 1, IterationCount, IterationCountV,
+			Separator = 0, TimeStepSize, IterationCount, IterationCountV,
 			Gravitation, SimMethod, VelocityUpdateMethod, 
+			Vorticity, ViscosityT, ViscosityOmega, InertiaInverse,
 			Viscosity, ViscosityMethod, 
 			ViscoMaxIter, ViscoMaxError,
 			WCSPH_Stiffness, WCSPH_Exponent,
@@ -42,7 +43,8 @@ namespace SPH
 			CFL_Method, CFL_Factor, CFL_MaxTimeStepSize, 
 			Kernel_Method, GradKernel_Method, 
 			SurfaceTension, SurfaceTensionMethod,
-			MaxIterations, MaxError, MaxIterationsV, MaxErrorV
+			MaxIterations, MaxError, MaxIterationsV, MaxErrorV,
+			NumParticles, ReusedParticles
 		};
 
 		enum SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, NUM_METHODS };
@@ -67,6 +69,8 @@ namespace SPH
 		Real m_pauseAt;
 		bool m_enablePartioExport;
 		unsigned int m_framesPerSecond;
+		bool m_renderAngularVelocities;
+		Real m_renderMaxVelocity;
 		Vector3r m_oldMousePos;
 		std::vector<unsigned int> m_selectedParticles;
 		SimulationMethodChangedFct m_simulationMethodChangedFct;
@@ -126,6 +130,10 @@ namespace SPH
 		void setEnablePartioExport(bool val) { m_enablePartioExport = val; }
 		unsigned int getFramesPerSecond() const { return m_framesPerSecond; }
 		void setFramesPerSecond(unsigned int val) { m_framesPerSecond = val; }
+		Real getRenderMaxVelocity() const { return m_renderMaxVelocity; }
+		void setRenderMaxVelocity(Real val) { m_renderMaxVelocity = val; }
+		bool getRenderAngularVelocities() const { return m_renderAngularVelocities; }
+		void setRenderAngularVelocities(bool val) { m_renderAngularVelocities = val; }
 	};
 }
  

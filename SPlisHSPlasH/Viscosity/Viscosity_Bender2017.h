@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -11,7 +11,7 @@ namespace SPH
 	* viscous fuids introduced
 	* by Bender and Koschier \cite Bender2017.
 	*/
-	class Viscosity_Bender2017 : public ViscosityBase
+	class Viscosity_Bender2017 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Vector6r> m_targetStrainRate;

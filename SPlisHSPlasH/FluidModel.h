@@ -7,9 +7,12 @@
 #include "CompactNSearch.h"
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
+#include "EmitterSystem.h"
 
 namespace SPH 
 {	
+	class TimeStep;
+
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
 	class FluidModel 
@@ -40,6 +43,7 @@ namespace SPH
 			typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
 
 	protected:
+			EmitterSystem m_emitterSystem;
 			Vector3r m_gravitation;
 			unsigned int m_kernelMethod;
 			unsigned int m_gradKernelMethod;
@@ -53,6 +57,7 @@ namespace SPH
 			// If the mass is zero, the particle is static
 			std::vector<Real> m_masses;
 			std::vector<Vector3r> m_a;
+			std::vector<unsigned char> m_active;
 
 			// initial position
 			std::vector<Real> m_density;
@@ -74,6 +79,9 @@ namespace SPH
 			// DFSPH
 			bool m_enableDivergenceSolver;
 
+			unsigned int m_numActiveParticles;
+			unsigned int m_numActiveParticles0;
+
 			void initMasses();
 			void computeBoundaryPsi(const unsigned int body);
 
@@ -86,16 +94,19 @@ namespace SPH
 			virtual void releaseFluidParticles();
 
 		public:
+			void setNumActiveParticles(const unsigned int num);
+
 			virtual void cleanupModel();
 			virtual void reset();
 
 			void updateBoundaryPsi();
 
-			void initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles);
+			void initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, const unsigned int nMaxEmitterParticles);
 			void addRigidBodyObject(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
 			
 			RigidBodyParticleObject *getRigidBodyParticleObject(const unsigned int index) { return (FluidModel::RigidBodyParticleObject*) m_particleObjects[index + 1]; }
 			const unsigned int numParticles() const { return static_cast<unsigned int>(m_masses.size()); }
+			unsigned int numActiveParticles() const;
 			const unsigned int numberOfRigidBodyParticleObjects() const { return static_cast<unsigned int>(m_particleObjects.size()-1); }
 
 			FORCE_INLINE Real getDensity0() const { return m_density0; }
@@ -106,6 +117,11 @@ namespace SPH
 
 			Real getSurfaceTension() const { return m_surfaceTension; }
 			void setSurfaceTension(Real val) { m_surfaceTension = val; }
+
+			unsigned int getNumActiveParticles0() const { return m_numActiveParticles0; }
+			void setNumActiveParticles0(unsigned int val) { m_numActiveParticles0 = val; }
+
+			SPH::EmitterSystem& getEmitterSystem() { return m_emitterSystem; }
 
 			unsigned int getKernel() const { return m_kernelMethod; }
 			void setKernel(unsigned int val);
@@ -240,6 +256,21 @@ namespace SPH
 			FORCE_INLINE void setMass(const unsigned int i, const Real mass)
 			{
 				m_masses[i] = mass;
+			}
+
+			FORCE_INLINE const unsigned char getActive(const unsigned int i) const
+			{
+				return m_active[i];
+			}
+
+			FORCE_INLINE unsigned char& getActive(const unsigned int i)
+			{
+				return m_active[i];
+			}
+
+			FORCE_INLINE void setActive(const unsigned int i, const unsigned char val)
+			{
+				m_active[i] = val;
 			}
 
 			FORCE_INLINE const Real& getBoundaryPsi(const unsigned int objectIndex, const unsigned int i) const

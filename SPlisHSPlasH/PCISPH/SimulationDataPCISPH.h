@@ -46,6 +46,7 @@ namespace SPH
 
 			Real getPCISPH_ScalingFactor() { return m_pcisph_factor; }
 
+			void emittedParticles(const unsigned int startIndex);
 
 			FORCE_INLINE Vector3r &getLastPosition(const unsigned int i)
 			{

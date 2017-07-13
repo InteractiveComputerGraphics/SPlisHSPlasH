@@ -29,8 +29,7 @@ void TimeStepWCSPH::step()
 	// Compute accelerations: a(t)
 	clearAccelerations();
 	computeDensities();
-	computeViscosity();
-	computeSurfaceTension();
+	computeNonPressureForces();
 
 	const Real stiffness = m_model->getStiffness();	
 	const Real density0 = m_model->getDensity0();
@@ -40,7 +39,7 @@ void TimeStepWCSPH::step()
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int) m_model->numParticles(); i++)
+		for (int i = 0; i < (int) m_model->numActiveParticles(); i++)
 		{
 			Real &density = m_model->getDensity(i);
 			density = max(density, density0);
@@ -55,7 +54,7 @@ void TimeStepWCSPH::step()
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static) 
-		for (int i = 0; i < (int)m_model->numParticles(); i++)
+		for (int i = 0; i < (int)m_model->numActiveParticles(); i++)
 		{
 			Vector3r &pos = m_model->getPosition(0, i);
 			Vector3r &vel = m_model->getVelocity(0, i);
@@ -65,6 +64,8 @@ void TimeStepWCSPH::step()
 			pos += vel * h;
 		}
 	}
+
+	emitParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -80,7 +81,7 @@ void TimeStepWCSPH::reset()
 
 void TimeStepWCSPH::computePressureAccels()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
@@ -131,8 +132,7 @@ void TimeStepWCSPH::computePressureAccels()
 
 void TimeStepWCSPH::performNeighborhoodSearch()
 {
-	const unsigned int numParticles = m_model->numParticles();
-	const Real supportRadius = m_model->getSupportRadius();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	if (m_counter % 500 == 0)
 	{
@@ -142,8 +142,20 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 			m_viscosity->performNeighborhoodSearchSort();
 		if (m_surfaceTension)
 			m_surfaceTension->performNeighborhoodSearchSort();
+		if (m_vorticity)
+			m_vorticity->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
+}
+
+void TimeStepWCSPH::emittedParticles(const unsigned int startIndex)
+{
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
 }

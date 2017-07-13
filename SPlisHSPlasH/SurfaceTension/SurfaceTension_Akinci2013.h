@@ -3,14 +3,14 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the surface tension method introduced
 	* by Akinci et al. \cite Akinci:2013.
 	*/
-	class SurfaceTension_Akinci2013 : public SurfaceTensionBase
+	class SurfaceTension_Akinci2013 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Vector3r> m_normals;

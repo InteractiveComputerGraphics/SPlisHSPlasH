@@ -1,0 +1,58 @@
+{
+	"Configuration": 
+	{
+		"timeStepSize": 0.001,
+		"particleRadius": 0.025,
+		"maxEmitterParticles": 5000,
+		"viscosity": 0.05,
+		"numberOfStepsPerRenderUpdate": 2,
+		"emitterReuseParticles": true,
+		"emitterBoxMin": [-2.0,-2.5,-2.0],
+		"emitterBoxMax": [1.0,4,2.0]
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2.5, 4, 1.0],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		}
+	], 
+	"Emitters": [
+		{
+			"width": 8, 
+			"height": 3, 
+			"translation": [-1.2,0.75,0.0],
+			"direction": [1, 0, 0],
+			"velocity": [2, 0, 0.0],	
+			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
+			"emitsPerSecond": 40,
+			"type": 0
+		}, 
+		{
+			"width": 7, 
+			"translation": [0.9,1.0,0.0],
+			"direction": [-1, 0, 0],
+			"velocity": [-2, 0, 0.0],	
+			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
+			"emitsPerSecond": 40,
+			"type": 1
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-1.25, 0.0, -0.5],
+			"end": [0.5, 0.2, 0.5],
+			"translation": [0.0, 0.0, 0.0],
+			"scale": [1, 1, 1]
+		}
+	]
+}
+
+
+

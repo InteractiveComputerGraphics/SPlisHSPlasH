@@ -4,7 +4,7 @@
 using namespace SPH;
 
 SurfaceTension_Akinci2013::SurfaceTension_Akinci2013(FluidModel *model) :
-	SurfaceTensionBase(model)
+	NonPressureForceBase(model)
 {
 	m_normals.resize(model->numParticles(), SPH::Vector3r::Zero());
 }
@@ -18,7 +18,7 @@ SurfaceTension_Akinci2013::~SurfaceTension_Akinci2013(void)
 void SurfaceTension_Akinci2013::computeNormals()
 {
 	const Real supportRadius = m_model->getSupportRadius();
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	// Compute normals
 	#pragma omp parallel default(shared)
@@ -50,7 +50,7 @@ void SurfaceTension_Akinci2013::step()
 {
 	const Real density0 = m_model->getDensity0();
 	const Real supportRadius = m_model->getSupportRadius();
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_model->getSurfaceTension();
 
 	computeNormals();
@@ -126,7 +126,7 @@ void SurfaceTension_Akinci2013::reset()
 
 void SurfaceTension_Akinci2013::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 

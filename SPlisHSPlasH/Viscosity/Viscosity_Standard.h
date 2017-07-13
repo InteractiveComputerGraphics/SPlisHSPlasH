@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -12,7 +12,7 @@ namespace SPH
 	* The method evaluates the term \f$\nu \nabla^2 \mathbf{v}\f$ and uses an approximation 
 	* of the kernel Laplacian to improve the stability. This approximation is given in \cite Ihmsen2014.
 	*/
-	class Viscosity_Standard : public ViscosityBase
+	class Viscosity_Standard : public NonPressureForceBase
 	{
 	public:
 		Viscosity_Standard(FluidModel *model);

@@ -4,7 +4,7 @@
 using namespace SPH;
 
 SurfaceTension_Becker2007::SurfaceTension_Becker2007(FluidModel *model) :
-	SurfaceTensionBase(model)
+	NonPressureForceBase(model)
 {
 }
 
@@ -14,7 +14,7 @@ SurfaceTension_Becker2007::~SurfaceTension_Becker2007(void)
 
 void SurfaceTension_Becker2007::step()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_model->getSurfaceTension();
 	const Real diameter = 2.0 * m_model->getParticleRadius();
 	const Real diameter2 = diameter*diameter;

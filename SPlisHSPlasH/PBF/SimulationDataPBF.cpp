@@ -33,7 +33,7 @@ void SimulationDataPBF::cleanup()
 
 void SimulationDataPBF::reset()
 {
-	for(unsigned int i=0; i < m_deltaX.size(); i++)
+	for(unsigned int i=0; i < m_model->numActiveParticles(); i++)
 	{
 		m_deltaX[i].setZero();
 		m_lambda[i] = 0.0;
@@ -44,7 +44,7 @@ void SimulationDataPBF::reset()
 
 void SimulationDataPBF::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -53,5 +53,14 @@ void SimulationDataPBF::performNeighborhoodSearchSort()
 	d.sort_field(&m_deltaX[0]);
 	d.sort_field(&m_oldX[0]);
 	d.sort_field(&m_lastX[0]);
+}
+
+void SimulationDataPBF::emittedParticles(const unsigned int startIndex)
+{
+	// initialize lastX values for new particles
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_lastX[i] = m_model->getPosition(0, i);
+	}
 }
 

@@ -26,6 +26,8 @@ namespace SPH
 		*/
 		virtual void performNeighborhoodSearch();
 
+		virtual void emittedParticles(const unsigned int startIndex);
+
 	public:
 		TimeStepWCSPH(FluidModel *model);
 		virtual ~TimeStepWCSPH(void);

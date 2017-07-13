@@ -50,12 +50,25 @@ namespace SPH
 			unsigned char mode;
 		};
 
+		/** \brief Struct to store an emitter object */
+		struct EmitterData
+		{
+			unsigned int width;
+			unsigned int height;
+			Vector3r x;
+			Vector3r dir;
+			Vector3r v;
+			Real emitsPerSecond;
+			unsigned int type;
+		};
+
 		/** \brief Struct to store scene information */
 		struct Scene
 		{
 			std::vector<BoundaryData*> boundaryModels;
 			std::vector<FluidData*> fluidModels;
 			std::vector<FluidBlock*> fluidBlocks;
+			std::vector<EmitterData*> emitters;
 			Real particleRadius;
 			Real pauseAt;
 			unsigned int numberOfStepsPerRenderUpdate;
@@ -79,9 +92,19 @@ namespace SPH
 			Real timeStepSize;
 			unsigned int viscosityMethod;
 			unsigned int surfaceTensionMethod;
+			unsigned int fluidModel;
+			Real viscosityT;
+			Real viscosityOmega;
+			Real inertiaInverse;
 			unsigned int simulationMethod;
+			unsigned int maxEmitterParticles;
 			bool enablePartioExport; 
 			unsigned int partioFPS;
+			Real renderMaxVelocity;
+			bool renderAngularVelocities;
+			bool emitterReuseParticles;
+			Vector3r emitterBoxMin;
+			Vector3r emitterBoxMax;
 		};
 
 

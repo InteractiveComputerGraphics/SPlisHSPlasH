@@ -9,6 +9,7 @@
 #include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
 #include "Utilities/FileSystem.h"
+#include <cfloat>
 
 // Enable memory leak detection
 #ifdef _DEBUG

@@ -30,12 +30,16 @@ namespace SPH
 		*/
 		virtual void performNeighborhoodSearch();
 
+		virtual void emittedParticles(const unsigned int startIndex);
+
 	public:
 		TimeStepIISPH(FluidModel *model);
 		virtual ~TimeStepIISPH(void);
 
 		virtual void step();
 		virtual void reset();
+
+		const SimulationDataIISPH &getSimulationData() { return m_simulationData; };
 	};
 }
 

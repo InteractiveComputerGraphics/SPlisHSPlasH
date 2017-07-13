@@ -38,7 +38,7 @@ void SimulationDataPCISPH::init(FluidModel *model)
 	unsigned int index = 0;
 	unsigned int maxNeighbors = 0;
 
-	for (int i = 0; i < (int)model->numParticles(); i++)
+	for (int i = 0; i < (int)model->numActiveParticles(); i++)
 	{
 		if (m_model->numberOfNeighbors(0, i) > maxNeighbors)
 		{
@@ -83,7 +83,7 @@ void SimulationDataPCISPH::reset()
 
 void SimulationDataPCISPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -93,4 +93,14 @@ void SimulationDataPCISPH::performNeighborhoodSearchSort()
 	d.sort_field(&m_densityAdv[0]);
 	d.sort_field(&m_pressure[0]);
 	d.sort_field(&m_pressureAccel[0]);
+}
+
+void SimulationDataPCISPH::emittedParticles(const unsigned int startIndex)
+{
+	// initialize values for new particles
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_lastX[i] = m_model->getPosition(0, i);
+		m_lastV[i] = m_model->getVelocity(0, i);
+	}
 }

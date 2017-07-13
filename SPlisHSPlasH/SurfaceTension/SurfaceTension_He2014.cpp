@@ -4,7 +4,7 @@
 using namespace SPH;
 
 SurfaceTension_He2014::SurfaceTension_He2014(FluidModel *model) :
-	SurfaceTensionBase(model)
+	NonPressureForceBase(model)
 {
 	m_color.resize(model->numParticles(), 0.0);
 	m_gradC2.resize(model->numParticles(), 0.0);
@@ -19,7 +19,7 @@ SurfaceTension_He2014::~SurfaceTension_He2014(void)
 
 void SurfaceTension_He2014::step()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_model->getSurfaceTension();
 	const Real density0 = m_model->getDensity0();
 
@@ -133,7 +133,7 @@ void SurfaceTension_He2014::reset()
 
 void SPH::SurfaceTension_He2014::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -141,4 +141,3 @@ void SPH::SurfaceTension_He2014::performNeighborhoodSearchSort()
 	d.sort_field(&m_color[0]);
 	d.sort_field(&m_gradC2[0]);
 }
-

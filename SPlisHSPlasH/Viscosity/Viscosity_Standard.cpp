@@ -4,7 +4,7 @@
 using namespace SPH;
 
 Viscosity_Standard::Viscosity_Standard(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 }
 
@@ -14,7 +14,7 @@ Viscosity_Standard::~Viscosity_Standard(void)
 
 void Viscosity_Standard::step()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real h = m_model->getSupportRadius();
 	const Real h2 = h*h;
 	const Real viscosity = m_model->getViscosity();

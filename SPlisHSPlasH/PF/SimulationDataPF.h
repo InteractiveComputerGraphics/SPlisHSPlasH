@@ -51,6 +51,8 @@ namespace SPH
 		 */
 		void performNeighborhoodSearchSort();
 
+		void emittedParticles(const unsigned int startIndex);
+
 		FORCE_INLINE const Vector3r getOldPosition(const unsigned int i) const
 		{
 			return m_old_position[i];

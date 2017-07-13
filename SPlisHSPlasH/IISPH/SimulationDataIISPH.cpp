@@ -39,7 +39,7 @@ void SimulationDataIISPH::cleanup()
 
 void SimulationDataIISPH::reset()
 {
-	for(unsigned int i=0; i < m_lastPressure.size(); i++)
+	for(unsigned int i=0; i < m_model->numActiveParticles(); i++)
 	{
 		m_lastPressure[i] = 0.0;
 	}
@@ -47,7 +47,7 @@ void SimulationDataIISPH::reset()
 
 void SimulationDataIISPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -59,4 +59,13 @@ void SimulationDataIISPH::performNeighborhoodSearchSort()
 	d.sort_field(&m_pressure[0]);
 	d.sort_field(&m_lastPressure[0]);
 	d.sort_field(&m_pressureAccel[0]);
+}
+
+void SimulationDataIISPH::emittedParticles(const unsigned int startIndex)
+{
+	// initialize last pressure values for new particles
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_lastPressure[i] = 0.0;
+	}
 }

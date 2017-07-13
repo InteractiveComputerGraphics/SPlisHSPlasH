@@ -31,14 +31,13 @@ void TimeStepPBF::step()
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int) m_model->numParticles(); i++)
-		{			
+		for (int i = 0; i < (int) m_model->numActiveParticles(); i++)
+		{
 			m_simulationData.getLastPosition(i) = m_simulationData.getOldPosition(i);
 			m_simulationData.getOldPosition(i) = m_model->getPosition(0, i);
 			TimeIntegration::semiImplicitEuler(h, m_model->getMass(i), m_model->getPosition(0, i), m_model->getVelocity(0, i), m_model->getAcceleration(i));
 		}
 	}
-
 
 	// Perform neighborhood search
 	performNeighborhoodSearch();
@@ -54,7 +53,7 @@ void TimeStepPBF::step()
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)m_model->numParticles(); i++)
+			for (int i = 0; i < (int) m_model->numActiveParticles(); i++)
 			{
 				TimeIntegration::velocityUpdateFirstOrder(h, m_model->getMass(i), m_model->getPosition(0, i), m_simulationData.getOldPosition(i), m_model->getVelocity(0, i));
 				m_model->getAcceleration(i).setZero();
@@ -66,7 +65,7 @@ void TimeStepPBF::step()
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)m_model->numParticles(); i++)
+			for (int i = 0; i < (int)m_model->numActiveParticles(); i++)
 			{
 				TimeIntegration::velocityUpdateSecondOrder(h, m_model->getMass(i), m_model->getPosition(0, i), m_simulationData.getOldPosition(i), m_simulationData.getLastPosition(i), m_model->getVelocity(0, i));
 				m_model->getAcceleration(i).setZero();
@@ -74,20 +73,20 @@ void TimeStepPBF::step()
 		}
 	}
 
-	// Compute viscosity 
-	computeViscosity();
-	computeSurfaceTension();
+	computeNonPressureForces();
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)m_model->numParticles(); i++)
+		for (int i = 0; i < (int)m_model->numActiveParticles(); i++)
 		{
 			m_model->getVelocity(0, i) += h * m_model->getAcceleration(i);
 		}
 	}
 
 	updateTimeStepSize();
+
+	emitParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -107,7 +106,7 @@ void TimeStepPBF::pressureSolve()
 	m_iterations = 0;
 	const Real eps = 1.0e-6;
 
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real invH = 1.0 / TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH2 = invH*invH;
 
@@ -123,9 +122,9 @@ void TimeStepPBF::pressureSolve()
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)numParticles; i++)
+			for (int i = 0; i < (int) numParticles; i++)
 			{
-				Real &density = m_model->getDensity(i);
+				Real &density = m_model->getDensity(i);				
 
 				// Compute current density for particle i
 				density = m_model->getMass(i) * m_model->W_zero();
@@ -189,7 +188,7 @@ void TimeStepPBF::pressureSolve()
 						{
 							const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
 							const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
-
+							
 							// Boundary: Akinci2012
 							const Vector3r gradC_j = -m_model->getBoundaryPsi(pid, neighborIndex) / density0 * m_model->gradW(xi - xj);
 							sum_grad_C2 += gradC_j.squaredNorm();
@@ -267,19 +266,30 @@ void TimeStepPBF::pressureSolve()
 
 void TimeStepPBF::performNeighborhoodSearch()
 {
-	const unsigned int numParticles = m_model->numParticles();
-	const Real supportRadius = m_model->getSupportRadius();
-
-// 	if (m_counter % 500 == 0)
-// 	{
-// 		m_model->performNeighborhoodSearchSort();
-// 		m_simulationData.performNeighborhoodSearchSort();
-// 		if (m_viscosity)
-// 			m_viscosity->performNeighborhoodSearchSort();
-// 		if (m_surfaceTension)
-// 			m_surfaceTension->performNeighborhoodSearchSort();
-// 	}
-// 	m_counter++;
+	if (m_counter % 500 == 0)
+	{
+		m_model->performNeighborhoodSearchSort();
+		m_simulationData.performNeighborhoodSearchSort();
+		if (m_viscosity)
+			m_viscosity->performNeighborhoodSearchSort();
+		if (m_surfaceTension)
+			m_surfaceTension->performNeighborhoodSearchSort();
+		if (m_vorticity)
+			m_vorticity->performNeighborhoodSearchSort();
+	}
+	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
+}
+
+void TimeStepPBF::emittedParticles(const unsigned int startIndex)
+{
+
+	m_simulationData.emittedParticles(startIndex);
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
 }

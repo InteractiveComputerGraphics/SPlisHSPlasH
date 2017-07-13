@@ -84,6 +84,16 @@ set(VISCOSITY_SOURCE_FILES
 	Viscosity/Viscosity_Bender2017.cpp
 	)	
 	
+set(VORTICITY_HEADER_FILES
+	Vorticity/MicropolarModel_Bender2017.h
+	Vorticity/VorticityConfinement.h
+	)
+	
+set(VORTICITY_SOURCE_FILES
+	Vorticity/MicropolarModel_Bender2017.cpp
+	Vorticity/VorticityConfinement.cpp
+	)		
+	
 set(UTILS_HEADER_FILES
 	Utilities/PoissonDiskSampling.h
 	Utilities/Timing.h
@@ -104,22 +114,24 @@ include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
 
 add_library(SPlisHSPlasH
 	Common.h
+	Emitter.cpp
+	Emitter.h
+	EmitterSystem.cpp
+	EmitterSystem.h
 	FluidModel.cpp
 	FluidModel.h
 	RigidBodyObject.h
 	SPHKernels.cpp
 	SPHKernels.h
 	StaticRigidBody.h
-	SurfaceTensionBase.cpp
-	SurfaceTensionBase.h
 	TimeManager.cpp
 	TimeManager.h	
 	TimeStep.cpp
 	TimeStep.h
 	TriangleMesh.cpp
 	TriangleMesh.h
-	ViscosityBase.cpp
-	ViscosityBase.h
+	NonPressureForceBase.cpp
+	NonPressureForceBase.h
 	
 	${WCSPH_HEADER_FILES}
 	${WCSPH_SOURCE_FILES}
@@ -145,6 +157,9 @@ add_library(SPlisHSPlasH
 	${SURFACETENSION_HEADER_FILES}
 	${SURFACETENSION_SOURCE_FILES}
 	
+	${VORTICITY_HEADER_FILES}
+	${VORTICITY_SOURCE_FILES}
+	
 	${UTILS_HEADER_FILES}
 	${UTILS_SOURCE_FILES}
 	
@@ -169,6 +184,8 @@ source_group("Header Files\\Viscosity" FILES ${VISCOSITY_HEADER_FILES})
 source_group("Source Files\\Viscosity" FILES ${VISCOSITY_SOURCE_FILES})
 source_group("Header Files\\SurfaceTension" FILES ${SURFACETENSION_HEADER_FILES})
 source_group("Source Files\\SurfaceTension" FILES ${SURFACETENSION_SOURCE_FILES})
+source_group("Header Files\\Vorticity" FILES ${VORTICITY_HEADER_FILES})
+source_group("Source Files\\Vorticity" FILES ${VORTICITY_SOURCE_FILES})
 source_group("Header Files\\Utils" FILES ${UTILS_HEADER_FILES})
 source_group("Source Files\\Utils" FILES ${UTILS_SOURCE_FILES})
 

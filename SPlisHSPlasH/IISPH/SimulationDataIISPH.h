@@ -45,6 +45,8 @@ namespace SPH
 			 */
 			void performNeighborhoodSearchSort();
 
+			void emittedParticles(const unsigned int startIndex);
+
 			FORCE_INLINE const Real getAii(const unsigned int i) const
 			{
 				return m_aii[i];

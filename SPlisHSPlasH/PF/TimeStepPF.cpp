@@ -58,7 +58,7 @@ void TimeStepPF::step()
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
 
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	clearAccelerations();
 	initialGuessForPositions();
@@ -69,8 +69,7 @@ void TimeStepPF::step()
 	STOP_TIMING_AVG;
 
 	computeDensities();
-	computeSurfaceTension();
-	computeViscosity();
+	computeNonPressureForces();
 	addAccellerationToVelocity();
 
 	updateTimeStepSize();
@@ -89,7 +88,7 @@ void TimeStepPF::reset()
 
 void TimeStepPF::initialGuessForPositions()
 {
-	const auto numParticles = m_model->numParticles();
+	const auto numParticles = m_model->numActiveParticles();
 	const auto h = TimeManager::getCurrent()->getTimeStepSize();
 
 #pragma omp parallel for
@@ -104,7 +103,7 @@ void TimeStepPF::initialGuessForPositions()
 
 void TimeStepPF::prepareSolve()
 {
-	const auto numParticles = m_model->numParticles();
+	const auto numParticles = m_model->numActiveParticles();
 	auto      x             = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 
 	#pragma omp parallel default(shared)
@@ -122,7 +121,7 @@ void TimeStepPF::prepareSolve()
 
 void TimeStepPF::solvePDConstraints()
 {
-	const auto numParticles = m_model->numParticles();
+	const auto numParticles = m_model->numActiveParticles();
 
 	prepareSolve();
 
@@ -137,7 +136,7 @@ void TimeStepPF::solvePDConstraints()
 
 void TimeStepPF::updatePositionsAndVelocity()
 {
-	const auto  numParticles = m_model->numParticles();
+	const auto  numParticles = m_model->numActiveParticles();
 	const auto  h            = TimeManager::getCurrent()->getTimeStepSize();
 	const auto& x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 
@@ -157,7 +156,7 @@ void SPH::TimeStepPF::addAccellerationToVelocity()
 {
 	#pragma omp parallel default(shared)
 	{
-		const auto  numParticles = m_model->numParticles();
+		const auto  numParticles = m_model->numActiveParticles();
 		const auto  h = TimeManager::getCurrent()->getTimeStepSize();
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
@@ -169,7 +168,7 @@ void SPH::TimeStepPF::addAccellerationToVelocity()
 
 SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 {
-	const auto numVariables = 3u * m_model->numParticles();
+	const auto numVariables = 3u * m_model->numActiveParticles();
 	const auto restart_iterations = 50u;
 	
 	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
@@ -220,7 +219,7 @@ SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
 /** \brief calculate the negative gradient for CG*/
 void SPH::TimeStepPF::calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs)
 {
-	const auto numVariables = 3u * m_model->numParticles();
+	const auto numVariables = 3u * m_model->numActiveParticles();
 	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
 	// use r as temporary buffer for matrix-vector product
 	matrixFreeLHS(x, r);
@@ -233,7 +232,7 @@ void SPH::TimeStepPF::calculateNegativeGradient(VectorXr & r, VectorXr & b, cons
 /** \brief compute product of system matrix with x in a matrix-free way and store the result in result*/
 void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 {
-	const auto numParticles = m_model->numParticles();
+	const auto numParticles = m_model->numActiveParticles();
 	const auto numVariables = 3u * numParticles;
 	const auto h = TimeManager::getCurrent()->getTimeStepSize();
 	
@@ -279,7 +278,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 /** \brief compute the right hand side of the system in a matrix-free fashion and store the result in result*/
 void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 {
-	const auto numParticles = m_model->numParticles();
+	const auto numParticles = m_model->numActiveParticles();
 	const auto numVariables = 3u * numParticles;
 	const auto h            = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -437,9 +436,6 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 
 void TimeStepPF::performNeighborhoodSearch()
 {
-	const unsigned int numParticles = m_model->numParticles();
-	const Real supportRadius = m_model->getSupportRadius();
-
 	if (m_counter % 500 == 0)
 	{
 		m_model->performNeighborhoodSearchSort();
@@ -448,8 +444,23 @@ void TimeStepPF::performNeighborhoodSearch()
 			m_viscosity->performNeighborhoodSearchSort();
 		if (m_surfaceTension)
 			m_surfaceTension->performNeighborhoodSearchSort();
+		if (m_vorticity)
+			m_vorticity->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
 }
+
+void TimeStepPF::emittedParticles(const unsigned int startIndex)
+{
+
+	m_simulationData.emittedParticles(startIndex);
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
+}
+

@@ -33,7 +33,7 @@ void SimulationDataWCSPH::reset()
 
 void SimulationDataWCSPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 

@@ -30,9 +30,7 @@ void TimeStepIISPH::step()
 
 	computeDensities();
 
-	// Compute viscosity 
-	computeViscosity();
-	computeSurfaceTension();
+	computeNonPressureForces();
 
 	updateTimeStepSize();
 
@@ -46,6 +44,8 @@ void TimeStepIISPH::step()
 	STOP_TIMING_AVG;
 
 	integration();
+
+	emitParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -61,7 +61,7 @@ void TimeStepIISPH::reset()
 
 void TimeStepIISPH::predictAdvection()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -189,7 +189,7 @@ void TimeStepIISPH::predictAdvection()
 
 void TimeStepIISPH::pressureSolve()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	const Real density0 = m_model->getDensity0();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
@@ -313,7 +313,7 @@ void TimeStepIISPH::pressureSolve()
 
 void TimeStepIISPH::integration()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	// Compute pressure forces
 	computePressureAccels();
@@ -335,7 +335,7 @@ void TimeStepIISPH::integration()
 
 void TimeStepIISPH::computePressureAccels()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
@@ -385,9 +385,6 @@ void TimeStepIISPH::computePressureAccels()
 
 void TimeStepIISPH::performNeighborhoodSearch()
 {
-	const unsigned int numParticles = m_model->numParticles();
-	const Real supportRadius = m_model->getSupportRadius();
-
 	if (m_counter % 500 == 0)
 	{
 		m_model->performNeighborhoodSearchSort();
@@ -396,8 +393,22 @@ void TimeStepIISPH::performNeighborhoodSearch()
 			m_viscosity->performNeighborhoodSearchSort();
 		if (m_surfaceTension)
 			m_surfaceTension->performNeighborhoodSearchSort();
+		if (m_vorticity)
+			m_vorticity->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	TimeStep::performNeighborhoodSearch();
+}
+
+void TimeStepIISPH::emittedParticles(const unsigned int startIndex)
+{
+
+	m_simulationData.emittedParticles(startIndex);
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
 }

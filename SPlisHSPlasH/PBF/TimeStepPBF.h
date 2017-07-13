@@ -29,6 +29,8 @@ namespace SPH
 		*/
 		virtual void performNeighborhoodSearch();
 
+		virtual void emittedParticles(const unsigned int startIndex);
+
 	public:
 		/** Initialize the simulation data required for this method. */
 		TimeStepPBF(FluidModel *model);

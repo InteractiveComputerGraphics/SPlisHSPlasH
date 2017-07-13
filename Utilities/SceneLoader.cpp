@@ -84,6 +84,18 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		scene.surfaceTensionMethod = 0;
 		readValue(config["surfaceTensionMethod"], scene.surfaceTensionMethod);
 
+		scene.fluidModel = 0;
+		readValue(config["fluidModel"], scene.fluidModel);
+
+		scene.viscosityT = 0.01;
+		readValue(config["viscosityT"], scene.viscosityT);
+
+		scene.viscosityOmega = 0.1;
+		readValue(config["viscosityOmega"], scene.viscosityOmega);
+
+		scene.inertiaInverse = 0.5;
+		readValue(config["inertiaInverse"], scene.inertiaInverse);
+
 		scene.density0 = 1000.0;
 		readValue(config["density0"], scene.density0);
 
@@ -102,12 +114,32 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		scene.enableDivergenceSolver = true;
 		readValue(config["enableDivergenceSolver"], scene.enableDivergenceSolver);
 
+		scene.maxEmitterParticles = 1000;
+		readValue(config["maxEmitterParticles"], scene.maxEmitterParticles);
+
 		scene.enablePartioExport = false;
 		readValue(config["enablePartioExport"], scene.enablePartioExport);
 
 		scene.partioFPS = 25;
 		readValue(config["partioFPS"], scene.partioFPS);
 
+		scene.renderMaxVelocity = 25.0;
+		readValue(config["renderMaxVelocity"], scene.renderMaxVelocity);
+
+		scene.renderAngularVelocities = false;
+		readValue(config["renderAngularVelocity"], scene.renderAngularVelocities);
+
+		// reuse particles if they are outside of a bounding box
+		scene.emitterReuseParticles = false;
+		readValue(config["emitterReuseParticles"], scene.emitterReuseParticles);
+
+		// boxMin
+		scene.emitterBoxMin = Vector3r(-1.0, -1.0, -1.0);
+		readVector(config["emitterBoxMin"], scene.emitterBoxMin);
+
+		// boxMax
+		scene.emitterBoxMax = Vector3r(1.0, 1.0, 1.0);
+		readVector(config["emitterBoxMax"], scene.emitterBoxMax);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -227,6 +259,48 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 				scene.fluidBlocks.push_back(block);
 			}
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// read emitters
+	//////////////////////////////////////////////////////////////////////////
+	if (j.find("Emitters") != j.end())
+	{
+		nlohmann::json emitters = j["Emitters"];
+		for (auto& emitter : emitters)
+		{
+			EmitterData *data = new EmitterData();
+
+			// width
+			data->width = 5;
+			readValue(emitter["width"], data->width);
+
+			// height
+			data->height = 5;
+			readValue(emitter["height"], data->height);
+
+			// translation
+			data->x = Vector3r::Zero();
+			readVector(emitter["translation"], data->x);
+
+			// direction
+			data->dir = Vector3r(1.0, 0.0, 0.0);
+			readVector(emitter["direction"], data->dir);
+
+			// velocity
+			data->v = Vector3r(1.0, 0.0, 0.0);
+			readVector(emitter["velocity"], data->v);
+
+			// emits per second
+			data->emitsPerSecond = 10;
+			readValue(emitter["emitsPerSecond"], data->emitsPerSecond);
+
+			// type: 0 = rectangular, 1 = circle
+			data->type = 0;
+			readValue(emitter["type"], data->type);
+
+			scene.emitters.push_back(data);
 		}
 	}
 }

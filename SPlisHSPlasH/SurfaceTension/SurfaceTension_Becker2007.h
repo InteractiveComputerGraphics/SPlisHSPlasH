@@ -3,14 +3,14 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the surface tension method introduced
 	* by Becker and Teschner \cite Becker:2007.
 	*/
-	class SurfaceTension_Becker2007 : public SurfaceTensionBase
+	class SurfaceTension_Becker2007 : public NonPressureForceBase
 	{
 	public:
 		SurfaceTension_Becker2007(FluidModel *model);

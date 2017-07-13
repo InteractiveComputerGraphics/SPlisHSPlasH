@@ -4,7 +4,7 @@
 using namespace SPH;
 
 Viscosity_XSPH::Viscosity_XSPH(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 }
 
@@ -14,7 +14,7 @@ Viscosity_XSPH::~Viscosity_XSPH(void)
 
 void Viscosity_XSPH::step()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 
 	const Real viscosity = m_model->getViscosity();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();

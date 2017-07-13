@@ -13,6 +13,8 @@
 #include "Visualization/Selection.h"
 #include "GL/glut.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
+#include "SPlisHSPlasH/Vorticity/VorticityConfinement.h"
+#include "SPlisHSPlasH/Emitter.h"
 
 
 using namespace SPH;
@@ -150,7 +152,7 @@ void DemoBase::pointShaderBegin(const float *col)
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	glUniform1f(m_shader.getUniform("viewport_width"), (float)viewport[2]);
 	glUniform1f(m_shader.getUniform("radius"), (float)m_scene.particleRadius);
-	glUniform1f(m_shader.getUniform("max_velocity"), 25.0);
+	glUniform1f(m_shader.getUniform("max_velocity"), (GLfloat) getRenderMaxVelocity());
 	glUniform3fv(m_shader.getUniform("color"), 1, col);
 
 	GLfloat matrix[16];
@@ -183,35 +185,57 @@ void DemoBase::initParameters()
 	TwAddVarRW(MiniGL::getTweakBar(), "Pause", TW_TYPE_BOOLCPP, &m_doPause, " label='Pause' group=Simulation key=SPACE ");
 	TwAddVarRW(MiniGL::getTweakBar(), "PauseAt", TW_TYPE_REAL, &m_pauseAt, " label='Pause simulation at' step=0.001 precision=4 group=Simulation ");
 	TwAddVarRW(MiniGL::getTweakBar(), "numberOfStepsPerRenderUpdate", TW_TYPE_UINT32, &m_numberOfStepsPerRenderUpdate, " label='# time steps / update' min=1 group=Simulation ");
+	TwAddVarRW(MiniGL::getTweakBar(), "renderMaxVelocity", TW_TYPE_REAL, &m_renderMaxVelocity, " label='Max. velocity (shader)' min=0.00001 group=Simulation ");
+	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+		TwAddVarRW(MiniGL::getTweakBar(), "renderAngularVelocities", TW_TYPE_BOOLCPP, &m_renderAngularVelocities, " label='Render angular velocities' group=Simulation ");
 	TwAddVarRW(MiniGL::getTweakBar(), "EnablePartioExport", TW_TYPE_BOOLCPP, &m_enablePartioExport, " label='Partio export' group=Simulation ");
 	TwAddVarRW(MiniGL::getTweakBar(), "FramesPerSecond", TW_TYPE_UINT32, &m_framesPerSecond, " label='Export FPS' group=Simulation ");
 	TwAddSeparator(MiniGL::getTweakBar(), NULL, " group=Simulation");
 
 	m_parameters.push_back(Parameter(ParameterIDs::TimeStepSize, "TimeStepSize", TW_TYPE_REAL, " label='Time step size'  min=0.0 max = 0.1 step=0.001 precision=4 group=Simulation ", this));
 
+	m_parameters.push_back(Parameter(ParameterIDs::NumParticles, "NumParticles", TW_TYPE_UINT32, " label='# active particles' readonly=true group=Simulation ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::ReusedParticles, "ReusedParticles", TW_TYPE_UINT32, " label='# reused particles' readonly=true group=Simulation ", this));
+
 	m_parameters.push_back(Parameter(ParameterIDs::IterationCount, "IterationCount", TW_TYPE_UINT32, " label='Iterations' readonly=true group=Simulation ", this));
 
 	m_parameters.push_back(Parameter(ParameterIDs::Gravitation, "Gravitation", TW_TYPE_DIR3R, " label='Gravitation' group=Simulation", this));
 
 	TwType enumType = TwDefineEnum("SimulationMethodType", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}, 5 {PF}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}' group=Simulation", this));
 
 	m_parameters.push_back(Parameter(ParameterIDs::MaxIterations, "MaxIterations", TW_TYPE_UINT32, " label='Max. iterations' group=Simulation ", this));
 	m_parameters.push_back(Parameter(ParameterIDs::MaxError, "MaxError", TW_TYPE_REAL, " label='Max.density error(%)'  min=0.00001 precision=4 group=Simulation ", this));
 
+	TwType enumTypeFM = TwDefineEnum("Vorticity", NULL, 0);
+	m_parameters.push_back(Parameter(ParameterIDs::Vorticity, "VorticityMethod", enumTypeFM, " label='Vorticity' enum='0 {None}, 1 {Micropolar model}, 2 {Vorticity confinement}' group=Vorticity", this));
+
+	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+	{
+		m_parameters.push_back(Parameter(ParameterIDs::ViscosityT, "ViscosityT", TW_TYPE_REAL, " label='Transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::ViscosityOmega, "ViscosityOmega", TW_TYPE_REAL, " label='Omega viscosity coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::InertiaInverse, "InertiaInverse", TW_TYPE_REAL, " label='Inertia inverse'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+	}
+
+	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
+	{
+		m_parameters.push_back(Parameter(ParameterIDs::ViscosityT, "ViscosityT", TW_TYPE_REAL, " label='Transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+	}
+
 	TwType enumTypeVisco = TwDefineEnum("ViscosityMethod", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender2017}' group=Simulation", this));
-	m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "Viscosity", TW_TYPE_REAL, " label='Viscosity coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender2017}' group=Viscosity ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "ViscosityCoeff", TW_TYPE_REAL, " label='Viscosity coefficient' min=0.0 step=0.001 precision=4 group=Viscosity ", this));
 
 	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 	{
-		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxIter, "ViscoMaxIterations", TW_TYPE_UINT32, " label='Max. iterations (visco)' group=Simulation ", this));
-		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxError, "ViscoMaxError", TW_TYPE_REAL, " label='Max. visco error'  min=0.001 precision=3 group=Simulation ", this));
-	}
-	
+		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxIter, "ViscoMaxIterations", TW_TYPE_UINT32, " label='Max. iterations (visco)' group=Viscosity ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxError, "ViscoMaxError", TW_TYPE_REAL, " label='Max. visco error'  min=0.001 precision=3 group=Viscosity ", this));
+	}	
+
 	TwType enumTypeST = TwDefineEnum("SurfaceTensionMethod", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTensionMethod, "SurfaceTensionMethod", enumTypeST, " label='Surface tension' enum='0 {None}, 1 {Becker & Teschner 2007}, 2 {Akinci et al. 2013}, 3 {He et al. 2014}' group=Simulation", this));
-	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTension", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=Simulation ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTensionMethod, "SurfaceTensionMethod", enumTypeST, " label='Surface tension' enum='0 {None}, 1 {Becker & Teschner 2007}, 2 {Akinci et al. 2013}, 3 {He et al. 2014}' group=SurfaceTension", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTensionCoeff", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=SurfaceTension ", this));
+
 
 	TwType enumType3 = TwDefineEnum("CFL_Method", NULL, 0);
 	m_parameters.push_back(Parameter(ParameterIDs::CFL_Method, "CFL_Method", enumType3, " label='CFL - method' enum='0 {None}, 1 {CFL}, 2 {CFL - iterations}' group=CFL ", this));
@@ -253,7 +277,10 @@ void DemoBase::initParameters()
 
 	for (auto &p : m_parameters)
 	{
-		TwAddVarCB(MiniGL::getTweakBar(), p.name.c_str(), p.type, setParameter, getParameter, &p, p.tweakBarDefinition.c_str());
+		if (p.id == ParameterIDs::Separator)
+			TwAddSeparator(MiniGL::getTweakBar(), NULL, p.tweakBarDefinition.c_str());
+		else
+			TwAddVarCB(MiniGL::getTweakBar(), p.name.c_str(), p.type, setParameter, getParameter, &p, p.tweakBarDefinition.c_str());
 	}
 
 	TwType enumTypeWalls = TwDefineEnum("RenderWalls", NULL, 0);
@@ -273,7 +300,7 @@ void DemoBase::buildModel()
 	setPauseAt(m_scene.pauseAt);
 	setNumberOfStepsPerRenderUpdate(m_scene.numberOfStepsPerRenderUpdate);
 
-	m_simulationMethod.model.initModel((unsigned int)fluidParticles.size(), fluidParticles.data());
+	m_simulationMethod.model.initModel((unsigned int)fluidParticles.size(), fluidParticles.data(), m_scene.maxEmitterParticles);
 
 	std::cout << "Number of fluid particles: " << fluidParticles.size() << "\n";
 
@@ -285,6 +312,19 @@ void DemoBase::buildModel()
 
 	m_simulationMethod.simulation = new TimeStepDFSPH(&m_simulationMethod.model);
 	m_simulationMethod.simulationMethod = SimulationMethods::DFSPH;
+
+	//////////////////////////////////////////////////////////////////////////
+	// emitters
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
+	{
+		SceneLoader::EmitterData *ed = m_scene.emitters[i];
+		m_simulationMethod.model.getEmitterSystem().addEmitter(ed->width, ed->height,
+			ed->x, ed->dir, ed->v, ed->emitsPerSecond, ed->type);
+	}
+	if (m_scene.emitterReuseParticles)
+		m_simulationMethod.model.getEmitterSystem().enableReuseParticles(m_scene.emitterBoxMin, m_scene.emitterBoxMax);
+
 	m_simulationMethod.model.setKernel(3);
 	m_simulationMethod.model.setGradKernel(3);
 
@@ -299,7 +339,21 @@ void DemoBase::buildModel()
 	m_simulationMethod.simulation->setMaxErrorV(m_scene.maxErrorV);
 	m_simulationMethod.simulation->setViscosityMethod((ViscosityMethods) m_scene.viscosityMethod);
 	m_simulationMethod.simulation->setSurfaceTensionMethod((SurfaceTensionMethods)m_scene.surfaceTensionMethod);
+	m_simulationMethod.simulation->setVorticityMethod((VorticityMethods)m_scene.fluidModel);
+
+	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+	{
+		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setViscosityT(m_scene.viscosityT);
+		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setViscosityOmega(m_scene.viscosityOmega);
+		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setInertiaInverse(m_scene.inertiaInverse);
+	}
+
+	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
+	{
+		((VorticityConfinement*)m_simulationMethod.simulation->getVorticityBase())->setViscosityT(m_scene.viscosityT);
+	}
 	
+
 	m_simulationMethod.model.setEnableDivergenceSolver(m_scene.enableDivergenceSolver);
 	m_simulationMethod.model.setViscosity(m_scene.viscosity);
 	m_simulationMethod.model.setSurfaceTension(m_scene.surfaceTension);
@@ -311,6 +365,8 @@ void DemoBase::buildModel()
 
 	setEnablePartioExport(m_scene.enablePartioExport);
 	setFramesPerSecond(m_scene.partioFPS);
+	setRenderMaxVelocity(m_scene.renderMaxVelocity);
+	setRenderAngularVelocities(m_scene.renderAngularVelocities);
 
 	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 	{
@@ -438,6 +494,42 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 		const short val = *(const short *)(value);
 		sm.model.setVelocityUpdateMethod((unsigned int)val);
 	}
+	else if (p->id == ParameterIDs::Vorticity)
+	{
+		const short val = *(const short *)(value);
+		sm.simulation->setVorticityMethod((VorticityMethods)val);
+
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+		{			
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityT(base->m_scene.viscosityT);
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityOmega(base->m_scene.viscosityOmega);
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setInertiaInverse(base->m_scene.inertiaInverse);
+		}
+		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
+			((VorticityConfinement*)sm.simulation->getVorticityBase())->setViscosityT(base->m_scene.viscosityT);
+
+		base->initParameters();
+	}
+	else if (p->id == ParameterIDs::ViscosityT)
+	{
+		const Real val = *(const Real *)(value);
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityT(val);
+		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
+			((VorticityConfinement*)sm.simulation->getVorticityBase())->setViscosityT(val);
+	}
+	else if (p->id == ParameterIDs::ViscosityOmega)
+	{
+		const Real val = *(const Real *)(value);
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityOmega(val);
+	}
+	else if (p->id == ParameterIDs::InertiaInverse)
+	{
+		const Real val = *(const Real *)(value);
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setInertiaInverse(val);
+	}
 	else if (p->id == ParameterIDs::Viscosity)
 	{
 		const Real val = *(const Real *)(value);
@@ -548,6 +640,14 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	{
 		*(Real *)(value) = TimeManager::getCurrent()->getTimeStepSize();
 	}
+	else if (p->id == ParameterIDs::NumParticles)
+	{
+		*((unsigned int*)value) = sm.model.numActiveParticles();
+	}
+	else if (p->id == ParameterIDs::ReusedParticles)
+	{
+		*((unsigned int*)value) = sm.model.getEmitterSystem().numReusedParticles();
+	}
 	else if (p->id == ParameterIDs::IterationCount)
 	{
 		if (sm.simulation != NULL)
@@ -576,6 +676,27 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	else if (p->id == ParameterIDs::VelocityUpdateMethod)
 	{
 		*(short *)(value) = (short)sm.model.getVelocityUpdateMethod();
+	}
+	else if (p->id == ParameterIDs::Vorticity)
+	{
+		*(short *)(value) = (short)sm.simulation->getVorticityMethod();
+	}
+	else if (p->id == ParameterIDs::ViscosityT)
+	{
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			*(Real *)(value) = ((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->getViscosityT();
+		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
+			*(Real *)(value) = ((VorticityConfinement*)sm.simulation->getVorticityBase())->getViscosityT();
+	}
+	else if (p->id == ParameterIDs::ViscosityOmega)
+	{
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			*(Real *)(value) = ((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->getViscosityOmega();
+	}
+	else if (p->id == ParameterIDs::InertiaInverse)
+	{
+		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
+			*(Real *)(value) = ((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->getInertiaInverse();
 	}
 	else if (p->id == ParameterIDs::Viscosity)
 	{
@@ -656,8 +777,10 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 void DemoBase::renderFluid()
 {
 	// Draw simulation model
-
-	const unsigned int nParticles = m_simulationMethod.model.numParticles();
+	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
+	const unsigned int nParticles = m_simulationMethod.model.numActiveParticles();
+	if (nParticles == 0)
+		return;
 
 	float surfaceColor[4] = { 0.2f, 0.6f, 0.8f, 1 };
 	float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
@@ -675,15 +798,23 @@ void DemoBase::renderFluid()
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
 		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
+		float fluidColor2[4] = { 0.3f, 0.9f, 0.5f, 1.0f };
 		pointShaderBegin(&fluidColor[0]);
 
-		if (m_simulationMethod.model.numParticles() > 0)
+		if (m_simulationMethod.model.numActiveParticles() > 0)
 		{
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &m_simulationMethod.model.getPosition(0, 0));
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &m_simulationMethod.model.getVelocity(0, 0));
-			glDrawArrays(GL_POINTS, 0, m_simulationMethod.model.numParticles());
+			if (m_renderAngularVelocities && (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar))
+			{
+				glUniform3fv(m_shader.getUniform("color"), 1, fluidColor2);
+				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->getAngularVelocity(0)[0]);
+			}
+			else
+				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &m_simulationMethod.model.getVelocity(0, 0));
+
+			glDrawArrays(GL_POINTS, 0, m_simulationMethod.model.numActiveParticles());
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
 		}
@@ -742,7 +873,6 @@ void DemoBase::renderFluid()
 		glEnable(GL_LIGHTING);
 	}
 
-	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
 }
 
 
@@ -767,11 +897,14 @@ void DemoBase::mouseMove(int x, int y, void *clientData)
 void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
 {
 	DemoBase *base = (DemoBase*)clientData;
+	const unsigned int nParticles = base->m_simulationMethod.model.numActiveParticles();
+	if (nParticles == 0)
+		return;
 
 	std::vector<unsigned int> hits;
 	base->m_selectedParticles.clear();
 	Selection::selectRect(start, end, &base->m_simulationMethod.model.getPosition(0, 0), 
-		&base->m_simulationMethod.model.getPosition(0, base->m_simulationMethod.model.numParticles() - 1), 
+		&base->m_simulationMethod.model.getPosition(0, base->m_simulationMethod.model.numActiveParticles() - 1),
 		base->m_selectedParticles);
 	if (base->m_selectedParticles.size() > 0)
 		MiniGL::setMouseMoveFunc(GLUT_MIDDLE_BUTTON, mouseMove);
@@ -856,6 +989,6 @@ void DemoBase::setSimulationMethod(SimulationMethods method)
 
 		initParameters();
 		if (m_simulationMethodChangedFct)
-			m_simulationMethodChangedFct();	
+			m_simulationMethodChangedFct();
 	}
 }

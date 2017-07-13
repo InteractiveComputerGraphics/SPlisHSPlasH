@@ -9,6 +9,8 @@
 #include "Viscosity/Viscosity_XSPH.h"
 #include "Viscosity/Viscosity_Standard.h"
 #include "Viscosity/Viscosity_Bender2017.h"
+#include "Vorticity/VorticityConfinement.h"
+#include "EmitterSystem.h"
 
 
 using namespace SPH;
@@ -31,6 +33,8 @@ TimeStep::TimeStep(FluidModel *model)
 	setViscosityMethod(ViscosityMethods::XSPH);
 	m_surfaceTension = NULL;
 	m_surfaceTensionMethod = SurfaceTensionMethods::None;
+	m_fluidModel = VorticityMethods::None;
+	m_vorticity = NULL;
 }
 
 TimeStep::~TimeStep(void)
@@ -39,7 +43,7 @@ TimeStep::~TimeStep(void)
 
 void TimeStep::clearAccelerations()
 {
-	const unsigned int count = m_model->numParticles();
+	const unsigned int count = m_model->numActiveParticles();
 	const Vector3r &grav = m_model->getGravitation();
 	for (unsigned int i=0; i < count; i++)
 	{
@@ -54,7 +58,7 @@ void TimeStep::clearAccelerations()
 
 void TimeStep::computeDensities()
 {
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real density0 = m_model->getDensity0();
 	
 	#pragma omp parallel default(shared)
@@ -120,7 +124,7 @@ void TimeStep::updateTimeStepSizeCFL(const Real minTimeStepSize)
 
 	// Approximate max. position change due to current velocities
 	Real maxVel = 0.1;
-	const unsigned int numParticles = m_model->numParticles();
+	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real diameter = 2.0*radius;
 	for (unsigned int i = 0; i < numParticles; i++)
 	{
@@ -156,6 +160,13 @@ void TimeStep::updateTimeStepSizeCFL(const Real minTimeStepSize)
 	TimeManager::getCurrent()->setTimeStepSize(h);
 }
 
+void TimeStep::computeNonPressureForces()
+{
+	computeSurfaceTension();
+	computeViscosity();
+	computeVorticity();
+}
+
 void TimeStep::computeSurfaceTension()
 {
 	if (m_surfaceTension)
@@ -166,6 +177,12 @@ void TimeStep::computeViscosity()
 {
 	if (m_viscosity)
 		m_viscosity->step();
+}
+
+void TimeStep::computeVorticity()
+{
+	if (m_vorticity)
+		m_vorticity->step();
 }
 
 void TimeStep::performNeighborhoodSearch()
@@ -228,3 +245,26 @@ void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 		m_viscosity = new Viscosity_Bender2017(m_model);
 }
 
+void TimeStep::setVorticityMethod(SPH::VorticityMethods val)
+{
+	if ((val < VorticityMethods::None) || (val > VorticityMethods::VorticityConfinement))
+		val = VorticityMethods::None;
+
+	if (val == m_fluidModel)
+		return;
+
+	delete m_vorticity;
+	m_vorticity = NULL;
+
+	m_fluidModel = val;
+
+	if (m_fluidModel == VorticityMethods::Micropolar)
+		m_vorticity = new MicropolarModel_Bender2017(m_model);
+	else if (m_fluidModel == VorticityMethods::VorticityConfinement)
+		m_vorticity = new VorticityConfinement(m_model);
+}
+
+void TimeStep::emitParticles()
+{
+	getModel()->getEmitterSystem().step(this);
+}

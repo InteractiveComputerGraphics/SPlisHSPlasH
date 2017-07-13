@@ -46,6 +46,7 @@ namespace SPH
 			 * to call the z_sort of the neighborhood search.
 			 */
 			void performNeighborhoodSearchSort();
+			void emittedParticles(const unsigned int startIndex);
 
 			FORCE_INLINE const Real getFactor(const unsigned int i) const
 			{

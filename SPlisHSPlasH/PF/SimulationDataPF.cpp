@@ -49,7 +49,7 @@ void SimulationDataPF::reset()
 
 void SimulationDataPF::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -58,4 +58,15 @@ void SimulationDataPF::performNeighborhoodSearchSort()
 	d.sort_field(&m_num_fluid_neighbors[0]);
 	d.sort_field((Vector3r*)&m_x[0]);
 	d.sort_field(&m_s[0]);
+}
+
+void SimulationDataPF::emittedParticles(const unsigned int startIndex)
+{
+	// initialize values for new particles
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_old_position[i] = m_model->getPosition(0, i);
+		m_num_fluid_neighbors[i] = 0;
+		m_s[i].setZero();
+	}
 }

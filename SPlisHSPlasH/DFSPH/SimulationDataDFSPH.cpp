@@ -38,7 +38,7 @@ void SimulationDataDFSPH::cleanup()
 
 void SimulationDataDFSPH::reset()
 {
-	for (unsigned int i = 0; i < m_kappa.size(); i++)
+	for (unsigned int i = 0; i < m_model->numActiveParticles(); i++)
 	{
 		m_kappa[i] = 0.0;
 		m_kappaV[i] = 0.0;
@@ -47,7 +47,7 @@ void SimulationDataDFSPH::reset()
 
 void SimulationDataDFSPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -56,4 +56,14 @@ void SimulationDataDFSPH::performNeighborhoodSearchSort()
 	d.sort_field(&m_kappa[0]);
 	d.sort_field(&m_kappaV[0]);
 	d.sort_field(&m_density_adv[0]);
+}
+
+void SimulationDataDFSPH::emittedParticles(const unsigned int startIndex)
+{
+	// initialize kappa values for new particles
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_kappa[i] = 0.0;
+		m_kappaV[i] = 0.0;
+	}
 }

@@ -3,14 +3,14 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the XSPH method descibed by
 	* Schechter and Bridson \cite Schechter:2012.
 	*/
-	class Viscosity_XSPH : public ViscosityBase
+	class Viscosity_XSPH : public NonPressureForceBase
 	{
 	public:
 		Viscosity_XSPH(FluidModel *model);

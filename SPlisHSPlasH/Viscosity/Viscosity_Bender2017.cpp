@@ -4,7 +4,7 @@
 using namespace SPH;
 
 Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 	m_targetStrainRate.resize(model->numParticles(), Vector6r::Zero());
 	m_viscosityFactor.resize(model->numParticles(), Matrix6r::Zero());
@@ -25,7 +25,7 @@ Viscosity_Bender2017::~Viscosity_Bender2017(void)
 
 void Viscosity_Bender2017::step()
 {
-	const int numParticles = (int) m_model->numParticles();
+	const int numParticles = (int) m_model->numActiveParticles();
 	const unsigned int maxIter = m_maxIter;
 	const Real maxError = m_maxError;	
 	const Real maxError2 = maxError*maxError;
@@ -180,7 +180,7 @@ void Viscosity_Bender2017::computeViscosityFactor()
 	// Init parameters
 	//////////////////////////////////////////////////////////////////////////
 
-	const int numParticles = (int) m_model->numParticles();
+	const int numParticles = (int) m_model->numActiveParticles();
 
 	#pragma omp parallel default(shared)
 	{
@@ -272,7 +272,7 @@ void Viscosity_Bender2017::computeViscosityFactor()
 
 void Viscosity_Bender2017::computeTargetStrainRate()
 {
-	const int numParticles = (int) m_model->numParticles();
+	const int numParticles = (int) m_model->numActiveParticles();
 	const Real viscosity = m_model->getViscosity();
 		
 	// Compute target strain rate
@@ -312,7 +312,7 @@ void Viscosity_Bender2017::computeTargetStrainRate()
 
 void Viscosity_Bender2017::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numParticles();
+	const unsigned int numPart = m_model->numActiveParticles();
 	if (numPart == 0)
 		return;
 

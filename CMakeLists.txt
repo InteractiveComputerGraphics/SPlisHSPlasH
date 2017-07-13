@@ -47,7 +47,7 @@ ExternalProject_Add(
    ExternalProject_CompactNSearch
    PREFIX "${CMAKE_SOURCE_DIR}/extern/CompactNSearch"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-   GIT_TAG "1af0c1d13120d195f8c176ed418423aa17e6d87f"
+   GIT_TAG "1d9cf800ab4cbb2af956577b99fdd355c16181ba"
    INSTALL_DIR ${ExternalInstallDir}/CompactNSearch
    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/CompactNSearch
 ) 

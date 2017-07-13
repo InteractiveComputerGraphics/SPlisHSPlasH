@@ -1,6 +1,8 @@
 #include "FluidModel.h"
 #include "SPHKernels.h"
 #include <iostream>
+#include "TimeManager.h"
+#include "TimeStep.h"
 
 using namespace SPH;
 
@@ -54,12 +56,14 @@ void FluidModel::cleanupModel()
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
+	m_active.clear();
 	delete m_neighborhoodSearch;
 }
 
 void FluidModel::reset()
 {
-	const unsigned int nPoints = numParticles();
+	setNumActiveParticles(m_numActiveParticles0);
+	const unsigned int nPoints = numActiveParticles();
 
 	// reset velocities and accelerations
 	for (unsigned int i = 1; i < m_particleObjects.size(); i++)
@@ -82,24 +86,13 @@ void FluidModel::reset()
 		m_density[i] = 0.0;
 	}
 
+	if (m_neighborhoodSearch->point_set(0).n_points() != nPoints)
+		m_neighborhoodSearch->resize_point_set(0, &getPosition(0, 0)[0], nPoints);
+
 	if (m_neighborhoodSearch != NULL)
-		delete m_neighborhoodSearch;
-
-	// Initialize neighborhood search
-	m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
-	m_neighborhoodSearch->set_radius(m_supportRadius);
-
-	// Fluids 
-	m_neighborhoodSearch->add_point_set(&getPosition(0, 0)[0], nPoints, true, true);
-
-	// Boundary
-	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
 	{
-		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i);
-		m_neighborhoodSearch->add_point_set(&rb->m_x[0][0], rb->m_x.size(), rb->m_rigidBody->isDynamic(), false);
+		performNeighborhoodSearchSort();
 	}
-
-	//performNeighborhoodSearchSort();
 	updateBoundaryPsi();
 }
 
@@ -127,6 +120,7 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_a.resize(newSize);
 	m_masses.resize(newSize);
 	m_density.resize(newSize);
+	m_active.resize(newSize);
 }
 
 void FluidModel::releaseFluidParticles()
@@ -137,15 +131,19 @@ void FluidModel::releaseFluidParticles()
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
+	m_active.clear();
 }
 
-void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles)
+void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, const unsigned int nMaxEmitterParticles)
 {
 	releaseFluidParticles();
-	resizeFluidParticles(nFluidParticles);
+	resizeFluidParticles(nFluidParticles + nMaxEmitterParticles);
 
 	// init kernel
 	setParticleRadius(m_particleRadius);
+
+	// make sure that m_W_zero is set correctly for the new particle radius
+	setKernel(getKernel());
 
 	// copy fluid positions
 	#pragma omp parallel default(shared)
@@ -159,6 +157,24 @@ void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidPa
 
 	// initialize masses
 	initMasses();
+
+	// Initialize neighborhood search
+	if (m_neighborhoodSearch == NULL)
+		m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
+	m_neighborhoodSearch->set_radius(m_supportRadius);
+
+	// Fluids 
+	m_neighborhoodSearch->add_point_set(&getPosition(0, 0)[0], nFluidParticles, true, true);
+
+	// Boundary
+	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
+	{
+		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i);
+		m_neighborhoodSearch->add_point_set(&rb->m_x[0][0], rb->m_x.size(), rb->m_rigidBody->isDynamic(), false);
+	}
+
+	m_numActiveParticles0 = nFluidParticles;
+	m_numActiveParticles = m_numActiveParticles0;
 
 	reset();
 }
@@ -208,9 +224,9 @@ void FluidModel::updateBoundaryPsi()
 	}
 
 	// Activate only fluids 	
-	m_neighborhoodSearch->set_active(false);
-	m_neighborhoodSearch->set_active(0u, 0u, true);
-	for (unsigned int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++)
+	m_neighborhoodSearch->set_active(false); 	
+	m_neighborhoodSearch->set_active(0u, 0u, true); 	
+	for (unsigned int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++) 		
 		m_neighborhoodSearch->set_active(0u, i, true);
 }
 
@@ -268,7 +284,7 @@ void FluidModel::addRigidBodyObject(RigidBodyObject *rbo, const unsigned int num
 
 void FluidModel::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = numParticles();
+	const unsigned int numPart = numActiveParticles();
 	if (numPart == 0)
 		return;
 
@@ -352,4 +368,14 @@ void SPH::FluidModel::setKernel(unsigned int val)
 		m_W_zero = FluidModel::PrecomputedCubicKernel::W_zero();
 		m_kernelFct = FluidModel::PrecomputedCubicKernel::W;
 	}
+}
+
+void FluidModel::setNumActiveParticles(const unsigned int num)
+{
+	m_numActiveParticles = num;
+}
+
+unsigned int FluidModel::numActiveParticles() const
+{
+	return m_numActiveParticles;
 }

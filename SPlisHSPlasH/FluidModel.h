@@ -57,7 +57,6 @@ namespace SPH
 			// If the mass is zero, the particle is static
 			std::vector<Real> m_masses;
 			std::vector<Vector3r> m_a;
-			std::vector<unsigned char> m_active;
 
 			// initial position
 			std::vector<Real> m_density;
@@ -256,21 +255,6 @@ namespace SPH
 			FORCE_INLINE void setMass(const unsigned int i, const Real mass)
 			{
 				m_masses[i] = mass;
-			}
-
-			FORCE_INLINE const unsigned char getActive(const unsigned int i) const
-			{
-				return m_active[i];
-			}
-
-			FORCE_INLINE unsigned char& getActive(const unsigned int i)
-			{
-				return m_active[i];
-			}
-
-			FORCE_INLINE void setActive(const unsigned int i, const unsigned char val)
-			{
-				m_active[i] = val;
 			}
 
 			FORCE_INLINE const Real& getBoundaryPsi(const unsigned int objectIndex, const unsigned int i) const

@@ -199,6 +199,8 @@ void TimeStep::reset()
 		m_surfaceTension->reset();
 	if (m_viscosity)
 		m_viscosity->reset();
+	if (m_vorticity)
+		m_vorticity->reset();
 	m_iterations = 0;
 
 	TimeManager::getCurrent()->setTimeStepSize(0.001);

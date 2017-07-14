@@ -56,12 +56,12 @@ void FluidModel::cleanupModel()
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
-	m_active.clear();
 	delete m_neighborhoodSearch;
 }
 
 void FluidModel::reset()
 {
+	m_emitterSystem.reset();
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
 
@@ -76,8 +76,11 @@ void FluidModel::reset()
 		}
 	}
 	
+	if (m_neighborhoodSearch->point_set(0).n_points() != nPoints)
+		m_neighborhoodSearch->resize_point_set(0, &getPosition(0, 0)[0], nPoints);
+
 	// Fluid
-	for(unsigned int i=0; i < nPoints; i++)
+	for (unsigned int i = 0; i < nPoints; i++)
 	{
 		const Vector3r& x0 = getPosition0(0, i);
 		getPosition(0, i) = x0;
@@ -86,13 +89,6 @@ void FluidModel::reset()
 		m_density[i] = 0.0;
 	}
 
-	if (m_neighborhoodSearch->point_set(0).n_points() != nPoints)
-		m_neighborhoodSearch->resize_point_set(0, &getPosition(0, 0)[0], nPoints);
-
-	if (m_neighborhoodSearch != NULL)
-	{
-		performNeighborhoodSearchSort();
-	}
 	updateBoundaryPsi();
 }
 
@@ -120,7 +116,6 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_a.resize(newSize);
 	m_masses.resize(newSize);
 	m_density.resize(newSize);
-	m_active.resize(newSize);
 }
 
 void FluidModel::releaseFluidParticles()
@@ -131,7 +126,6 @@ void FluidModel::releaseFluidParticles()
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
-	m_active.clear();
 }
 
 void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, const unsigned int nMaxEmitterParticles)
@@ -291,7 +285,6 @@ void FluidModel::performNeighborhoodSearchSort()
 	m_neighborhoodSearch->z_sort();
 
 	auto const& d = m_neighborhoodSearch->point_set(0);
-	d.sort_field(&m_particleObjects[0]->m_x0[0]);
 	d.sort_field(&m_particleObjects[0]->m_x[0]);
 	d.sort_field(&m_particleObjects[0]->m_v[0]);
 	d.sort_field(&m_a[0]);
@@ -308,7 +301,6 @@ void FluidModel::performNeighborhoodSearchSort()
 		if (rb->m_rigidBody->isDynamic())			// sort only dynamic boundaries
 		{
 			auto const& d = m_neighborhoodSearch->point_set(i);
-			d.sort_field(&rb->m_x0[0]);
 			d.sort_field(&rb->m_x[0]);
 			d.sort_field(&rb->m_v[0]);
 			d.sort_field(&rb->m_f[0]);

@@ -88,6 +88,7 @@ void reset()
 
 	base.getSimulationMethod().simulation->reset();
 	TimeManager::getCurrent()->setTime(0.0);
+	base.getSelectedParticles().clear();
 
 	nextFrameTime = 0.0;
 	frameCounter = 1;

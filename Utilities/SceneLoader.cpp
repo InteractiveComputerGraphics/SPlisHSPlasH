@@ -19,7 +19,15 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		return;
 	}
 	nlohmann::json j;
-	j << input_file;
+	try
+	{
+		j << input_file;
+	}
+	catch (const std::exception& e)
+	{
+		std::cout << e.what() << std::endl;
+		exit(1);
+	}	
 
 	std::string base_path = FileSystem::getFilePath(fileName);
 
@@ -41,6 +49,12 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.numberOfStepsPerRenderUpdate = 8;
 		readValue(config["numberOfStepsPerRenderUpdate"], scene.numberOfStepsPerRenderUpdate);
+
+		scene.renderMaxVelocity = 25.0;
+		readValue(config["renderMaxVelocity"], scene.renderMaxVelocity);
+
+		scene.renderAngularVelocities = false;
+		readValue(config["renderAngularVelocities"], scene.renderAngularVelocities);
 
 		scene.cflMethod = 1;
 		readValue(config["cflMethod"], scene.cflMethod);
@@ -84,17 +98,23 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		scene.surfaceTensionMethod = 0;
 		readValue(config["surfaceTensionMethod"], scene.surfaceTensionMethod);
 
-		scene.fluidModel = 0;
-		readValue(config["fluidModel"], scene.fluidModel);
+		scene.vorticityMethod = 0;
+		readValue(config["vorticityMethod"], scene.vorticityMethod);
 
-		scene.viscosityT = 0.01;
-		readValue(config["viscosityT"], scene.viscosityT);
+		scene.vorticityCoeff = 0.01;
+		readValue(config["vorticityCoeff"], scene.vorticityCoeff);
 
 		scene.viscosityOmega = 0.1;
 		readValue(config["viscosityOmega"], scene.viscosityOmega);
 
 		scene.inertiaInverse = 0.5;
 		readValue(config["inertiaInverse"], scene.inertiaInverse);
+
+		scene.dragMethod = 0;
+		readValue(config["dragMethod"], scene.dragMethod);
+
+		scene.dragCoefficient = 0.01;
+		readValue(config["dragCoefficient"], scene.dragCoefficient);
 
 		scene.density0 = 1000.0;
 		readValue(config["density0"], scene.density0);
@@ -122,12 +142,6 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.partioFPS = 25;
 		readValue(config["partioFPS"], scene.partioFPS);
-
-		scene.renderMaxVelocity = 25.0;
-		readValue(config["renderMaxVelocity"], scene.renderMaxVelocity);
-
-		scene.renderAngularVelocities = false;
-		readValue(config["renderAngularVelocity"], scene.renderAngularVelocities);
 
 		// reuse particles if they are outside of a bounding box
 		scene.emitterReuseParticles = false;
@@ -256,6 +270,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				block->box.m_maxX[2] = scale[2] * maxX[2] + translation[2];
 
 				readValue(fluidBlock["denseMode"], block->mode);
+
+				// velocity
+				block->initialVelocity = Vector3r::Zero();
+				readVector(fluidBlock["initialVelocity"], block->initialVelocity);
 
 				scene.fluidBlocks.push_back(block);
 			}

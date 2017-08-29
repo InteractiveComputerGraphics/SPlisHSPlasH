@@ -3,15 +3,15 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/NonPressureForceBase.h"
+#include "ViscosityBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the implicit simulation method for
-	* viscous fuids introduced
+	* viscous fluids introduced
 	* by Bender and Koschier \cite Bender2017.
 	*/
-	class Viscosity_Bender2017 : public NonPressureForceBase
+	class Viscosity_Bender2017 : public ViscosityBase
 	{
 	protected: 
 		std::vector<Vector6r> m_targetStrainRate;

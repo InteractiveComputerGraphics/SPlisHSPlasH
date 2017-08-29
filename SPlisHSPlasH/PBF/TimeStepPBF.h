@@ -19,6 +19,7 @@ namespace SPH
 	protected:
 		SimulationDataPBF m_simulationData;
 		unsigned int m_counter;
+		unsigned int m_velocityUpdateMethod;
 
 		/** Perform a position-based correction step for the following density constraint:\n
 		*  \f$C(\mathbf{x}) = \left (\frac{\rho_i}{\rho_0} - 1 \right )= 0\f$\n
@@ -41,6 +42,9 @@ namespace SPH
 
 		/** Reset the simulation method. */
 		virtual void reset();
+
+		unsigned int getVelocityUpdateMethod() const { return m_velocityUpdateMethod; }
+		void setVelocityUpdateMethod(unsigned int val) { m_velocityUpdateMethod = val; }
 	};
 }
 

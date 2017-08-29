@@ -4,7 +4,7 @@
 using namespace SPH;
 
 SurfaceTension_Akinci2013::SurfaceTension_Akinci2013(FluidModel *model) :
-	NonPressureForceBase(model)
+	SurfaceTensionBase(model)
 {
 	m_normals.resize(model->numParticles(), SPH::Vector3r::Zero());
 }
@@ -51,7 +51,7 @@ void SurfaceTension_Akinci2013::step()
 	const Real density0 = m_model->getDensity0();
 	const Real supportRadius = m_model->getSupportRadius();
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const Real k = m_model->getSurfaceTension();
+	const Real k = getSurfaceTension();
 
 	computeNormals();
 

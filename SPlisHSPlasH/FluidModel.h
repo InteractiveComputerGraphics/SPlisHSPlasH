@@ -57,26 +57,15 @@ namespace SPH
 			// If the mass is zero, the particle is static
 			std::vector<Real> m_masses;
 			std::vector<Vector3r> m_a;
+			std::vector<Vector3r> m_v0;
 
 			// initial position
 			std::vector<Real> m_density;
 
-			Real m_viscosity;
-			Real m_surfaceTension;
 			Real m_density0;
 			Real m_particleRadius;
 			Real m_supportRadius;
 			CompactNSearch::NeighborhoodSearch *m_neighborhoodSearch;
-
-			// PBF
-			unsigned int m_velocityUpdateMethod;
-
-			// WCSPH
-			Real m_stiffness;
-			Real m_exponent;
-
-			// DFSPH
-			bool m_enableDivergenceSolver;
 
 			unsigned int m_numActiveParticles;
 			unsigned int m_numActiveParticles0;
@@ -100,7 +89,7 @@ namespace SPH
 
 			void updateBoundaryPsi();
 
-			void initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, const unsigned int nMaxEmitterParticles);
+			void initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles);
 			void addRigidBodyObject(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
 			
 			RigidBodyParticleObject *getRigidBodyParticleObject(const unsigned int index) { return (FluidModel::RigidBodyParticleObject*) m_particleObjects[index + 1]; }
@@ -109,13 +98,10 @@ namespace SPH
 			const unsigned int numberOfRigidBodyParticleObjects() const { return static_cast<unsigned int>(m_particleObjects.size()-1); }
 
 			FORCE_INLINE Real getDensity0() const { return m_density0; }
-			FORCE_INLINE void setDensity0(const Real v) { m_density0 = v; }
+			void setDensity0(const Real v);
 			Real getSupportRadius() const { return m_supportRadius; }
 			Real getParticleRadius() const { return m_particleRadius; }
 			void setParticleRadius(Real val);
-
-			Real getSurfaceTension() const { return m_surfaceTension; }
-			void setSurfaceTension(Real val) { m_surfaceTension = val; }
 
 			unsigned int getNumActiveParticles0() const { return m_numActiveParticles0; }
 			void setNumActiveParticles0(unsigned int val) { m_numActiveParticles0 = val; }
@@ -127,8 +113,8 @@ namespace SPH
 			unsigned int getGradKernel() const { return m_gradKernelMethod; }
 			void setGradKernel(unsigned int val);
 
-			FORCE_INLINE Real W_zero() { return m_W_zero; }
-			FORCE_INLINE Real W(const Vector3r &r) { return m_kernelFct(r); }
+			FORCE_INLINE Real W_zero() const { return m_W_zero; }
+			FORCE_INLINE Real W(const Vector3r &r) const { return m_kernelFct(r); }
 			FORCE_INLINE Vector3r gradW(const Vector3r &r) { return m_gradKernelFct(r); }
 
 			const SPH::Vector3r& getGravitation() const { return m_gravitation; }
@@ -151,21 +137,6 @@ namespace SPH
 			{
 				return m_neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
 			}
-
-			Real getViscosity() const { return m_viscosity; }
-			void setViscosity(Real val) { m_viscosity = val; }
-
-			Real getStiffness() const { return m_stiffness; }
-			void setStiffness(Real val) { m_stiffness = val; }
-
-			Real getExponent() const { return m_exponent; }
-			void setExponent(Real val) { m_exponent = val; }
-
-			bool getEnableDivergenceSolver() const { return m_enableDivergenceSolver; }
-			void setEnableDivergenceSolver(bool val) { m_enableDivergenceSolver = val; }
-
-			unsigned int getVelocityUpdateMethod() const { return m_velocityUpdateMethod; }
-			void setVelocityUpdateMethod(unsigned int val) { m_velocityUpdateMethod = val; }
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int objectIndex, const unsigned int i)
 			{
@@ -210,6 +181,21 @@ namespace SPH
 			FORCE_INLINE void setVelocity(const unsigned int objectIndex, const unsigned int i, const Vector3r &vel)
 			{
 				m_particleObjects[objectIndex]->m_v[i] = vel;
+			}
+
+			FORCE_INLINE Vector3r &getVelocity0(const unsigned int i)
+			{
+				return m_v0[i];
+			}
+
+			FORCE_INLINE const Vector3r &getVelocity0(const unsigned int i) const
+			{
+				return m_v0[i];
+			}
+
+			FORCE_INLINE void setVelocity0(const unsigned int i, const Vector3r &vel)
+			{
+				m_v0[i] = vel;
 			}
 
 			FORCE_INLINE Vector3r &getAcceleration(const unsigned int i)

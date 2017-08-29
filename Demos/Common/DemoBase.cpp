@@ -15,6 +15,9 @@
 #include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
 #include "SPlisHSPlasH/Vorticity/VorticityConfinement.h"
 #include "SPlisHSPlasH/Emitter.h"
+#include "SPlisHSPlasH/Drag/DragForce_Gissler2017.h"
+#include "SPlisHSPlasH/Drag/DragForce_Macklin2014.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
 
 
 using namespace SPH;
@@ -202,7 +205,7 @@ void DemoBase::initParameters()
 	m_parameters.push_back(Parameter(ParameterIDs::Gravitation, "Gravitation", TW_TYPE_DIR3R, " label='Gravitation' group=Simulation", this));
 
 	TwType enumType = TwDefineEnum("SimulationMethodType", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}' group=Simulation", this));
+	m_parameters.push_back(Parameter(ParameterIDs::SimMethod, "SimulationMethod", enumType, " label='Simulation method' enum='0 {WCSPH}, 1 {PCISPH}, 2 {PBF}, 3 {IISPH}, 4 {DFSPH}, 5 {Projective Fluids}' group=Simulation", this));
 
 	m_parameters.push_back(Parameter(ParameterIDs::MaxIterations, "MaxIterations", TW_TYPE_UINT32, " label='Max. iterations' group=Simulation ", this));
 	m_parameters.push_back(Parameter(ParameterIDs::MaxError, "MaxError", TW_TYPE_REAL, " label='Max.density error(%)'  min=0.00001 precision=4 group=Simulation ", this));
@@ -212,21 +215,23 @@ void DemoBase::initParameters()
 
 	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
 	{
-		m_parameters.push_back(Parameter(ParameterIDs::ViscosityT, "ViscosityT", TW_TYPE_REAL, " label='Transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::VorticityCoeff, "VorticityCoeff", TW_TYPE_REAL, " label='Vorticity transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
 		m_parameters.push_back(Parameter(ParameterIDs::ViscosityOmega, "ViscosityOmega", TW_TYPE_REAL, " label='Omega viscosity coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
 		m_parameters.push_back(Parameter(ParameterIDs::InertiaInverse, "InertiaInverse", TW_TYPE_REAL, " label='Inertia inverse'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
 	}
 
 	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
 	{
-		m_parameters.push_back(Parameter(ParameterIDs::ViscosityT, "ViscosityT", TW_TYPE_REAL, " label='Transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
+		m_parameters.push_back(Parameter(ParameterIDs::VorticityCoeff, "VorticityCoeff", TW_TYPE_REAL, " label='Vorticity transfer coefficient'  min=0.0 step=0.001 precision=4 group=Vorticity ", this));
 	}
 
 	TwType enumTypeVisco = TwDefineEnum("ViscosityMethod", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender2017}' group=Viscosity ", this));
-	m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "ViscosityCoeff", TW_TYPE_REAL, " label='Viscosity coefficient' min=0.0 step=0.001 precision=4 group=Viscosity ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender and Koschier 2017}, 4 {Peer et al. 2015}' group=Viscosity ", this));
+	if (m_simulationMethod.simulation->getViscosityMethod() != ViscosityMethods::None)
+		m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "ViscosityCoeff", TW_TYPE_REAL, " label='Viscosity coefficient' min=0.0 step=0.001 precision=4 group=Viscosity ", this));
 
-	if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
+	if ((m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017) ||
+		(m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2015))
 	{
 		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxIter, "ViscoMaxIterations", TW_TYPE_UINT32, " label='Max. iterations (visco)' group=Viscosity ", this));
 		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxError, "ViscoMaxError", TW_TYPE_REAL, " label='Max. visco error'  min=0.001 precision=3 group=Viscosity ", this));
@@ -234,8 +239,14 @@ void DemoBase::initParameters()
 
 	TwType enumTypeST = TwDefineEnum("SurfaceTensionMethod", NULL, 0);
 	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTensionMethod, "SurfaceTensionMethod", enumTypeST, " label='Surface tension' enum='0 {None}, 1 {Becker & Teschner 2007}, 2 {Akinci et al. 2013}, 3 {He et al. 2014}' group=SurfaceTension", this));
-	m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTensionCoeff", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=SurfaceTension ", this));
+	if (m_simulationMethod.simulation->getSurfaceTensionMethod() != SurfaceTensionMethods::None)
+		m_parameters.push_back(Parameter(ParameterIDs::SurfaceTension, "SurfaceTensionCoeff", TW_TYPE_REAL, " label='Surface tension coefficient'  min=0.0 step=0.001 precision=4 group=SurfaceTension ", this));
 
+	TwType enumTypeDM = TwDefineEnum("Drag", NULL, 0);
+	m_parameters.push_back(Parameter(ParameterIDs::DragMethod, "DragMethod", enumTypeDM, " label='Drag method' enum='0 {None}, 1 {Macklin et al. 2014}, 2 {Gissler et al. 2017}' group='Drag Force'", this));
+
+	if (m_simulationMethod.simulation->getDragMethod() != DragMethods::None) 
+		m_parameters.push_back(Parameter(ParameterIDs::DragCoefficient, "DragCoefficient", TW_TYPE_REAL, " label='Drag coefficient'  min=0.0 step=0.01 precision=3 group='Drag Force' ", this));
 
 	TwType enumType3 = TwDefineEnum("CFL_Method", NULL, 0);
 	m_parameters.push_back(Parameter(ParameterIDs::CFL_Method, "CFL_Method", enumType3, " label='CFL - method' enum='0 {None}, 1 {CFL}, 2 {CFL - iterations}' group=CFL ", this));
@@ -257,7 +268,7 @@ void DemoBase::initParameters()
 
 	if (m_simulationMethod.simulationMethod == SimulationMethods::WCSPH)
 	{
-		m_parameters.push_back(Parameter(ParameterIDs::WCSPH_Stiffness, "WCSPH_Stiffness", TW_TYPE_REAL, " label='Stiffness (B)' min=0.0 group=WCSPH", this));
+		m_parameters.push_back(Parameter(ParameterIDs::Stiffness, "Stiffness", TW_TYPE_REAL, " label='Stiffness' min=0.0 group=WCSPH", this));
 		m_parameters.push_back(Parameter(ParameterIDs::WCSPH_Exponent, "WCSPH_Exponent", TW_TYPE_REAL, " label='Exponent (gamma)' min=0.0 group=WCSPH", this));
 	}
 
@@ -271,7 +282,7 @@ void DemoBase::initParameters()
 
 	if (m_simulationMethod.simulationMethod == SimulationMethods::PF)
 	{
-		// no special parameters yet
+		m_parameters.push_back(Parameter(ParameterIDs::Stiffness, "Stiffness", TW_TYPE_REAL, " label='Stiffness' min=0.0 group=PF", this));
 	}
 
 
@@ -300,7 +311,7 @@ void DemoBase::buildModel()
 	setPauseAt(m_scene.pauseAt);
 	setNumberOfStepsPerRenderUpdate(m_scene.numberOfStepsPerRenderUpdate);
 
-	m_simulationMethod.model.initModel((unsigned int)fluidParticles.size(), fluidParticles.data(), m_scene.maxEmitterParticles);
+	m_simulationMethod.model.initModel((unsigned int)fluidParticles.size(), fluidParticles.data(), fluidVelocities.data(), m_scene.maxEmitterParticles);
 
 	std::cout << "Number of fluid particles: " << fluidParticles.size() << "\n";
 
@@ -339,29 +350,40 @@ void DemoBase::buildModel()
 	m_simulationMethod.simulation->setMaxErrorV(m_scene.maxErrorV);
 	m_simulationMethod.simulation->setViscosityMethod((ViscosityMethods) m_scene.viscosityMethod);
 	m_simulationMethod.simulation->setSurfaceTensionMethod((SurfaceTensionMethods)m_scene.surfaceTensionMethod);
-	m_simulationMethod.simulation->setVorticityMethod((VorticityMethods)m_scene.fluidModel);
+	m_simulationMethod.simulation->setVorticityMethod((VorticityMethods)m_scene.vorticityMethod);
+	m_simulationMethod.simulation->setDragMethod((DragMethods)m_scene.dragMethod);
+
+	if (m_simulationMethod.simulation->getVorticityMethod() != VorticityMethods::None)
+		((VorticityBase*)m_simulationMethod.simulation->getVorticityBase())->setVorticityCoeff(m_scene.vorticityCoeff);
 
 	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
-	{
-		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setViscosityT(m_scene.viscosityT);
+	{		
 		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setViscosityOmega(m_scene.viscosityOmega);
 		((MicropolarModel_Bender2017*)m_simulationMethod.simulation->getVorticityBase())->setInertiaInverse(m_scene.inertiaInverse);
 	}
 
-	if (m_simulationMethod.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
-	{
-		((VorticityConfinement*)m_simulationMethod.simulation->getVorticityBase())->setViscosityT(m_scene.viscosityT);
-	}
-	
+	if (m_simulationMethod.simulation->getDragMethod() != DragMethods::None)
+		((DragBase*)m_simulationMethod.simulation->getDragBase())->setDragCoefficient(m_scene.dragCoefficient);	
 
-	m_simulationMethod.model.setEnableDivergenceSolver(m_scene.enableDivergenceSolver);
-	m_simulationMethod.model.setViscosity(m_scene.viscosity);
-	m_simulationMethod.model.setSurfaceTension(m_scene.surfaceTension);
+	if (m_simulationMethod.simulation->getViscosityMethod() != ViscosityMethods::None)
+		m_simulationMethod.simulation->getViscosityBase()->setViscosity(m_scene.viscosity);
+	if (m_simulationMethod.simulation->getSurfaceTensionMethod() != SurfaceTensionMethods::None)
+		m_simulationMethod.simulation->getSurfaceTensionBase()->setSurfaceTension(m_scene.surfaceTension);
 	m_simulationMethod.model.setDensity0(m_scene.density0);
 	m_simulationMethod.model.setGravitation(m_scene.gravitation);
-	m_simulationMethod.model.setVelocityUpdateMethod(m_scene.velocityUpdateMethod);
-	m_simulationMethod.model.setStiffness(m_scene.stiffness);
-	m_simulationMethod.model.setExponent(m_scene.exponent);
+
+	if (m_simulationMethod.simulationMethod == SimulationMethods::WCSPH)
+	{
+		((TimeStepWCSPH*)m_simulationMethod.simulation)->setStiffness(m_scene.stiffness);
+		((TimeStepWCSPH*)m_simulationMethod.simulation)->setExponent(m_scene.exponent);
+	}
+	else if (m_simulationMethod.simulationMethod == SimulationMethods::DFSPH)
+		((TimeStepDFSPH*)m_simulationMethod.simulation)->setEnableDivergenceSolver(m_scene.enableDivergenceSolver);
+	else if (m_simulationMethod.simulationMethod == SimulationMethods::PBF)
+		((TimeStepPBF*)m_simulationMethod.simulation)->setVelocityUpdateMethod(m_scene.velocityUpdateMethod);
+	else if (m_simulationMethod.simulationMethod == SimulationMethods::PF)
+		((TimeStepPF*)m_simulationMethod.simulation)->setStiffness(m_scene.stiffness);
+
 
 	setEnablePartioExport(m_scene.enablePartioExport);
 	setFramesPerSecond(m_scene.partioFPS);
@@ -373,6 +395,11 @@ void DemoBase::buildModel()
 		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
 		((Viscosity_Bender2017*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
 	}
+	else if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+	{
+		((Viscosity_Peer2015*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
+		((Viscosity_Peer2015*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
+	}
 
 	initParameters();
 }
@@ -381,7 +408,7 @@ void DemoBase::buildModel()
 void DemoBase::initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities)
 {
 	std::cout << "Initialize fluid particles\n";
-	createFluidBlocks(fluidParticles);
+	createFluidBlocks(fluidParticles, fluidVelocities);
 
 	std::string base_path = FileSystem::getFilePath(m_sceneFile);
 
@@ -389,14 +416,19 @@ void DemoBase::initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<
 	unsigned int endIndex = 0;
 	for (unsigned int i = 0; i < m_scene.fluidModels.size(); i++)
 	{
-		string fileName = base_path + "/" + m_scene.fluidModels[i]->samplesFile;
+		std::string fileName;
+		if (FileSystem::isRelativePath(m_scene.fluidModels[i]->samplesFile))
+			fileName = base_path + "/" + m_scene.fluidModels[i]->samplesFile;
+		else
+			fileName = m_scene.fluidModels[i]->samplesFile;
+
 		PartioReaderWriter::readParticles(fileName, m_scene.fluidModels[i]->translation, m_scene.fluidModels[i]->rotation, m_scene.fluidModels[i]->scale, fluidParticles, fluidVelocities);
 		m_simulationMethod.model.setParticleRadius(m_scene.particleRadius);
 	}
 }
 
 
-void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles)
+void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities)
 {
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 	{
@@ -431,6 +463,7 @@ void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles)
 
 		Vector3r start = m_scene.fluidBlocks[i]->box.m_minX + 2.0*m_scene.particleRadius*Vector3r::Ones();
 		fluidParticles.reserve(fluidParticles.size() + stepsX*stepsY*stepsZ);
+		fluidVelocities.resize(fluidParticles.size() + stepsX*stepsY*stepsZ, m_scene.fluidBlocks[i]->initialVelocity);
 		for (int j = 0; j < stepsX; j++)
 		{
 			for (int k = 0; k < stepsY; k++)
@@ -492,31 +525,30 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 	else if (p->id == ParameterIDs::VelocityUpdateMethod)
 	{
 		const short val = *(const short *)(value);
-		sm.model.setVelocityUpdateMethod((unsigned int)val);
+		if (sm.simulationMethod == SimulationMethods::PBF)
+			((TimeStepPBF*)sm.simulation)->setVelocityUpdateMethod((unsigned int)val);
 	}
 	else if (p->id == ParameterIDs::Vorticity)
 	{
 		const short val = *(const short *)(value);
 		sm.simulation->setVorticityMethod((VorticityMethods)val);
 
+		if (sm.simulation->getVorticityMethod() != VorticityMethods::None)
+			((VorticityBase*)sm.simulation->getVorticityBase())->setVorticityCoeff(base->m_scene.vorticityCoeff);
+
 		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
 		{			
-			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityT(base->m_scene.viscosityT);
 			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityOmega(base->m_scene.viscosityOmega);
 			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setInertiaInverse(base->m_scene.inertiaInverse);
 		}
-		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
-			((VorticityConfinement*)sm.simulation->getVorticityBase())->setViscosityT(base->m_scene.viscosityT);
 
 		base->initParameters();
 	}
-	else if (p->id == ParameterIDs::ViscosityT)
+	else if (p->id == ParameterIDs::VorticityCoeff)
 	{
 		const Real val = *(const Real *)(value);
-		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
-			((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->setViscosityT(val);
-		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
-			((VorticityConfinement*)sm.simulation->getVorticityBase())->setViscosityT(val);
+		if (sm.simulation->getVorticityMethod() != VorticityMethods::None)
+			((VorticityBase*)sm.simulation->getVorticityBase())->setVorticityCoeff(val);
 	}
 	else if (p->id == ParameterIDs::ViscosityOmega)
 	{
@@ -533,29 +565,36 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 	else if (p->id == ParameterIDs::Viscosity)
 	{
 		const Real val = *(const Real *)(value);
-		sm.model.setViscosity(val);
+		if (sm.simulation->getViscosityMethod() != ViscosityMethods::None)
+			sm.simulation->getViscosityBase()->setViscosity(val);
 	}
 	else if (p->id == ParameterIDs::ViscoMaxIter)
 	{
 		const unsigned int val = *(const unsigned int *)(value);
 		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxIter(val);
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxIter(val);
 	}
 	else if (p->id == ParameterIDs::ViscoMaxError)
 	{
 		const Real val = *(const Real *)(value);
 		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxError(val);
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxError(val);
 	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{
 		const Real val = *(const Real *)(value);
-		sm.model.setSurfaceTension(val);
+		if (sm.simulation->getSurfaceTensionMethod() != SurfaceTensionMethods::None)
+			sm.simulation->getSurfaceTensionBase()->setSurfaceTension(val);
 	}
 	else if (p->id == ParameterIDs::SurfaceTensionMethod)
 	{
 		const short val = *(const short *)(value);
 		sm.simulation->setSurfaceTensionMethod((SurfaceTensionMethods)val);
+		base->initParameters();
 	}
 	else if (p->id == ParameterIDs::ViscosityMethod)
 	{
@@ -565,23 +604,49 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 		{
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxIter(base->m_scene.viscoMaxIter);
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxError(base->m_scene.viscoMaxError);
-			base->initParameters();
 		}		
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+		{
+			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxIter(base->m_scene.viscoMaxIter);
+			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxError(base->m_scene.viscoMaxError);
+		}
+		base->initParameters();
 	}
-	else if (p->id == ParameterIDs::WCSPH_Stiffness)
+	else if (p->id == ParameterIDs::DragMethod)
+	{
+		const short val = *(const short *)(value);
+		sm.simulation->setDragMethod((DragMethods)val);
+
+		if (sm.simulation->getDragMethod() != DragMethods::None)
+			((DragBase*)sm.simulation->getDragBase())->setDragCoefficient(base->m_scene.dragCoefficient);
+
+		base->initParameters();
+	}
+	else if (p->id == ParameterIDs::DragCoefficient)
 	{
 		const Real val = *(const Real *)(value);
-		sm.model.setStiffness(val);
+		if (sm.simulation->getDragMethod() != DragMethods::None)
+			((DragBase*)sm.simulation->getDragBase())->setDragCoefficient(val);
+	}		
+	else if (p->id == ParameterIDs::Stiffness)
+	{
+		const Real val = *(const Real *)(value);
+		if (sm.simulationMethod == SimulationMethods::WCSPH)
+			((TimeStepWCSPH*)sm.simulation)->setStiffness(val);
+		else if (sm.simulationMethod == SimulationMethods::PF)
+			((TimeStepPF*)sm.simulation)->setStiffness(val);
 	}
 	else if (p->id == ParameterIDs::WCSPH_Exponent)
 	{
 		const Real val = *(const Real *)(value);
-		sm.model.setExponent(val);
+		if (sm.simulationMethod == SimulationMethods::WCSPH)
+			((TimeStepWCSPH*) sm.simulation)->setExponent(val);
 	}
 	else if (p->id == ParameterIDs::DFSPH_EnableDivergenceSolver)
 	{
 		const bool val = *(const bool *)(value);
-		sm.model.setEnableDivergenceSolver(val);
+		if (sm.simulationMethod == SimulationMethods::DFSPH)
+			((TimeStepDFSPH*)sm.simulation)->setEnableDivergenceSolver(val);
 	}
 	else if (p->id == ParameterIDs::CFL_Method)
 	{
@@ -675,18 +740,17 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	}
 	else if (p->id == ParameterIDs::VelocityUpdateMethod)
 	{
-		*(short *)(value) = (short)sm.model.getVelocityUpdateMethod();
+		if (sm.simulationMethod == SimulationMethods::PBF)
+			*(short *)(value) = (short)((TimeStepPBF*)sm.simulation)->getVelocityUpdateMethod();
 	}
 	else if (p->id == ParameterIDs::Vorticity)
 	{
 		*(short *)(value) = (short)sm.simulation->getVorticityMethod();
 	}
-	else if (p->id == ParameterIDs::ViscosityT)
+	else if (p->id == ParameterIDs::VorticityCoeff)
 	{
-		if (sm.simulation->getVorticityMethod() == VorticityMethods::Micropolar)
-			*(Real *)(value) = ((MicropolarModel_Bender2017*)sm.simulation->getVorticityBase())->getViscosityT();
-		else if (sm.simulation->getVorticityMethod() == VorticityMethods::VorticityConfinement)
-			*(Real *)(value) = ((VorticityConfinement*)sm.simulation->getVorticityBase())->getViscosityT();
+		if (sm.simulation->getVorticityMethod() != VorticityMethods::None)
+			*(Real *)(value) = ((VorticityBase*)sm.simulation->getVorticityBase())->getVorticityCoeff();
 	}
 	else if (p->id == ParameterIDs::ViscosityOmega)
 	{
@@ -700,21 +764,27 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	}
 	else if (p->id == ParameterIDs::Viscosity)
 	{
-		*(Real *)(value) = sm.model.getViscosity();
+		if (sm.simulation->getViscosityMethod() != ViscosityMethods::None)
+			*(Real *)(value) = sm.simulation->getViscosityBase()->getViscosity();
 	}
 	else if (p->id == ParameterIDs::ViscoMaxIter)
 	{
 		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 			*(unsigned int *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxIter();
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+			*(unsigned int *)(value) = ((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->getMaxIter();
 	}
 	else if (p->id == ParameterIDs::ViscoMaxError)
 	{
 		if (sm.simulation->getViscosityMethod() == ViscosityMethods::Bender2017)
 			*(Real *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxError();
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
+			*(Real *)(value) = ((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->getMaxError();
 	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{
-		*(Real *)(value) = sm.model.getSurfaceTension();
+		if (sm.simulation->getSurfaceTensionMethod() != SurfaceTensionMethods::None)
+			*(Real *)(value) = sm.simulation->getSurfaceTensionBase()->getSurfaceTension();
 	}
 	else if (p->id == ParameterIDs::SurfaceTensionMethod)
 	{
@@ -724,17 +794,32 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 	{
 		*(short *)(value) = (short)sm.simulation->getViscosityMethod();
 	}
-	else if (p->id == ParameterIDs::WCSPH_Stiffness)
+	else if (p->id == ParameterIDs::DragMethod)
 	{
-		*(Real *)(value) = sm.model.getStiffness();
+		*(short *)(value) = (short)sm.simulation->getDragMethod();
+	}
+	else if (p->id == ParameterIDs::DragCoefficient)
+	{
+		if (sm.simulation->getDragMethod() != DragMethods::None)
+			*(Real *)(value) = ((DragBase*)sm.simulation->getDragBase())->getDragCoefficient();
+	}	
+	else if (p->id == ParameterIDs::Stiffness)
+	{
+		if (sm.simulationMethod == SimulationMethods::WCSPH)
+			*(Real *)(value) = ((TimeStepWCSPH*)sm.simulation)->getStiffness();
+		else if (sm.simulationMethod == SimulationMethods::PF)
+			*(Real *)(value) = ((TimeStepPF*)sm.simulation)->getStiffness();
 	}
 	else if (p->id == ParameterIDs::WCSPH_Exponent)
 	{
-		*(Real *)(value) = sm.model.getExponent();
+		if (sm.simulationMethod == SimulationMethods::WCSPH)
+			*(Real *)(value) = ((TimeStepWCSPH*)sm.simulation)->getExponent();
 	}
 	else if (p->id == ParameterIDs::DFSPH_EnableDivergenceSolver)
 	{
-		*(bool *)(value) = sm.model.getEnableDivergenceSolver();
+		if (sm.simulationMethod == SimulationMethods::DFSPH)
+			*(bool *)(value) = ((TimeStepDFSPH*)sm.simulation)->getEnableDivergenceSolver();
+
 	}
 	else if (p->id == ParameterIDs::CFL_Method)
 	{

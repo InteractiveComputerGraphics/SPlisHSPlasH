@@ -1,5 +1,6 @@
 #include "FileSystem.h"
 #include "StringTools.h"
+#include "extern/md5/md5.h"
 #include <vector>
 #include <iostream>
 #if WIN32
@@ -176,4 +177,50 @@ std::string FileSystem::getProgramPath()
 	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
 	return std::string(buffer).substr(0, pos);
 
+}
+
+std::string FileSystem::getFileMD5(const std::string &filename) 
+{
+	std::ifstream file(filename);
+
+	if (!file)
+		std::cerr << "Cannot open file: " << filename << std::endl;
+	else
+	{
+		MD5 context(file);
+		return context.hex_digest();
+	}
+	return "";
+}
+
+bool FileSystem::writeMD5File(const std::string& fileName, const std::string& md5File)
+{
+	std::ofstream fstream;
+	fstream.open(md5File.c_str(), std::ios::out);
+	if (fstream.fail())
+	{
+		std::cerr << "Failed to open file: " << md5File << "\n";
+		return false;
+	}
+	std::string md5 = getFileMD5(fileName);
+	if (md5 != "")
+		fstream.write(md5.c_str(), md5.size());
+	fstream.close();
+	return true;
+}
+
+bool FileSystem::checkMD5(const std::string& md5Hash, const std::string& md5File)
+{
+	std::ifstream fstream;
+	fstream.open(md5File.c_str(), std::ios::in);
+	if (fstream.fail())
+	{
+		std::cerr << "Failed to open file: " << md5File << "\n";
+		return false;
+	}
+	std::string str((std::istreambuf_iterator<char>(fstream)),
+		std::istreambuf_iterator<char>());
+	fstream.close();
+
+	return str == md5Hash;
 }

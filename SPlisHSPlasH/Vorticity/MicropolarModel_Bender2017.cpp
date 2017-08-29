@@ -5,11 +5,10 @@
 using namespace SPH;
 
 MicropolarModel_Bender2017::MicropolarModel_Bender2017(FluidModel *model) :
-	NonPressureForceBase(model)
+	VorticityBase(model)
 {
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 	m_angularAcceleration.resize(model->numParticles(), Vector3r::Zero());
-	m_viscosityT = 0.01;
 	m_inertiaInverse = 0.5;
 	m_viscosityOmega = 0.1;
 }
@@ -28,7 +27,7 @@ void MicropolarModel_Bender2017::step()
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH = 1.0 / h;
 
-	const Real nu_t = m_viscosityT;
+	const Real nu_t = m_vorticityCoeff;
 	const Real zeta = m_viscosityOmega;
 
 	#pragma omp parallel default(shared)

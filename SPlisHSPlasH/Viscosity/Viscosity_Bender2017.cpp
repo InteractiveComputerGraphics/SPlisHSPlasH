@@ -4,7 +4,7 @@
 using namespace SPH;
 
 Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
-	NonPressureForceBase(model)
+	ViscosityBase(model)
 {
 	m_targetStrainRate.resize(model->numParticles(), Vector6r::Zero());
 	m_viscosityFactor.resize(model->numParticles(), Matrix6r::Zero());
@@ -139,7 +139,6 @@ void Viscosity_Bender2017::step()
 
 
 	// Compute viscosity forces (XSPH) with boundary to simulate simple friction
-	const Real viscosity = m_model->getViscosity();
 	const Real invH = (1.0 / h);
 	#pragma omp parallel default(shared)
 	{
@@ -161,7 +160,7 @@ void Viscosity_Bender2017::step()
 					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
 					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
 					const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
-					ai -= invH * 0.1 * viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi - vj)* m_model->W(xi - xj);
+					ai -= invH * 0.1 * m_viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi - vj)* m_model->W(xi - xj);
 				}
 			}
 		}
@@ -273,7 +272,6 @@ void Viscosity_Bender2017::computeViscosityFactor()
 void Viscosity_Bender2017::computeTargetStrainRate()
 {
 	const int numParticles = (int) m_model->numActiveParticles();
-	const Real viscosity = m_model->getViscosity();
 		
 	// Compute target strain rate
 	#pragma omp parallel default(shared)
@@ -298,12 +296,12 @@ void Viscosity_Bender2017::computeTargetStrainRate()
 				const Vector3r vji = vj - vi;
 				const Real m = m_model->getMass(neighborIndex);
 				const Real m2 = m * 2.0;
-				strainRate[0] += (1.0-viscosity) * m2 * vji[0] * gradW[0];
-				strainRate[1] += (1.0-viscosity) * m2 * vji[1] * gradW[1];
-				strainRate[2] += (1.0-viscosity) * m2 * vji[2] * gradW[2];
-				strainRate[3] += (1.0-viscosity) * m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
-				strainRate[4] += (1.0-viscosity) * m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
-				strainRate[5] += (1.0-viscosity) * m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
+				strainRate[0] += (1.0-m_viscosity) * m2 * vji[0] * gradW[0];
+				strainRate[1] += (1.0-m_viscosity) * m2 * vji[1] * gradW[1];
+				strainRate[2] += (1.0-m_viscosity) * m2 * vji[2] * gradW[2];
+				strainRate[3] += (1.0-m_viscosity) * m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
+				strainRate[4] += (1.0-m_viscosity) * m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
+				strainRate[5] += (1.0-m_viscosity) * m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
 			}
 			strainRate = (0.5 / density_i) * strainRate;
 		}

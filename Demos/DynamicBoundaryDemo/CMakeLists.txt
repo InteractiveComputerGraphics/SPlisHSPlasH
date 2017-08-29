@@ -1,5 +1,5 @@
-set(SIMULATION_LINK_LIBRARIES Utilities AntTweakBar glew partio zlib SPlisHSPlasH)
-set(SIMULATION_DEPENDENCIES Utilities AntTweakBar glew partio zlib SPlisHSPlasH)
+set(SIMULATION_LINK_LIBRARIES Utilities AntTweakBar glew partio zlib SPlisHSPlasH MD5)
+set(SIMULATION_DEPENDENCIES Utilities AntTweakBar glew partio zlib SPlisHSPlasH MD5)
 
 if(WIN32)
   set(SIMULATION_LINK_LIBRARIES freeglut opengl32.lib glu32.lib ${SIMULATION_LINK_LIBRARIES})

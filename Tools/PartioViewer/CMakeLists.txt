@@ -1,5 +1,5 @@
-set(VIEWER_LINK_LIBRARIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib)
-set(VIEWER_DEPENDENCIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib)
+set(VIEWER_LINK_LIBRARIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5)
+set(VIEWER_DEPENDENCIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5)
 
 if(WIN32)
   set(VIEWER_LINK_LIBRARIES freeglut opengl32.lib glu32.lib ${VIEWER_LINK_LIBRARIES})

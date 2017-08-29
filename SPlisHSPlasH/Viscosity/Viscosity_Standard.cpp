@@ -4,7 +4,7 @@
 using namespace SPH;
 
 Viscosity_Standard::Viscosity_Standard(FluidModel *model) :
-	NonPressureForceBase(model)
+	ViscosityBase(model)
 {
 }
 
@@ -17,7 +17,6 @@ void Viscosity_Standard::step()
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real h = m_model->getSupportRadius();
 	const Real h2 = h*h;
-	const Real viscosity = m_model->getViscosity();
 
 	#pragma omp parallel default(shared)
 	{
@@ -41,7 +40,7 @@ void Viscosity_Standard::step()
 				// Viscosity
 				const Real density_j = m_model->getDensity(neighborIndex);
 				const Vector3r xixj = xi - xj;
-				ai += 2.0 * viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj) * (xixj.dot(m_model->gradW(xi - xj)))/(xixj.squaredNorm() + 0.01*h2);
+				ai += 2.0 * m_viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj) * (xixj.dot(m_model->gradW(xi - xj)))/(xixj.squaredNorm() + 0.01*h2);
 			}
 
 			////////////////////////////////////////////////////////////////////////////

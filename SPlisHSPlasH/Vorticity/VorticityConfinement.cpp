@@ -5,11 +5,10 @@
 using namespace SPH;
 
 VorticityConfinement::VorticityConfinement(FluidModel *model) :
-	NonPressureForceBase(model)
+	VorticityBase(model)
 {
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 	m_normOmega.resize(model->numParticles(), 0.0);
-	m_viscosityT = 0.001;
 }
 
 VorticityConfinement::~VorticityConfinement(void)
@@ -79,7 +78,7 @@ void VorticityConfinement::step()
 			}
 
 			etai.normalize();
-			ai += m_viscosityT * etai.cross(omegai);
+			ai += m_vorticityCoeff * etai.cross(omegai);
 		}
 	}
 }

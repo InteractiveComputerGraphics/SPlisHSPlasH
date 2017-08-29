@@ -13,6 +13,9 @@ TimeStepWCSPH::TimeStepWCSPH(FluidModel *model) :
 {
 	m_simulationData.init(model);
 	m_counter = 0;
+
+	m_stiffness = 50000.0;
+	m_exponent = 7.0;
 }
 
 TimeStepWCSPH::~TimeStepWCSPH(void)
@@ -31,10 +34,10 @@ void TimeStepWCSPH::step()
 	computeDensities();
 	computeNonPressureForces();
 
-	const Real stiffness = m_model->getStiffness();	
+	const Real stiffness = getStiffness();	
 	const Real density0 = m_model->getDensity0();
 
-	const Real exponent = m_model->getExponent();
+	const Real exponent = getExponent();
 
 	#pragma omp parallel default(shared)
 	{
@@ -138,12 +141,7 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		if (m_viscosity)
-			m_viscosity->performNeighborhoodSearchSort();
-		if (m_surfaceTension)
-			m_surfaceTension->performNeighborhoodSearchSort();
-		if (m_vorticity)
-			m_vorticity->performNeighborhoodSearchSort();
+		TimeStep::performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
@@ -152,10 +150,6 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 
 void TimeStepWCSPH::emittedParticles(const unsigned int startIndex)
 {
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
+	m_simulationData.emittedParticles(startIndex);
+	TimeStep::emittedParticles(startIndex);
 }

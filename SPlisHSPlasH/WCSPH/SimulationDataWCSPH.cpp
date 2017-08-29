@@ -41,3 +41,13 @@ void SimulationDataWCSPH::performNeighborhoodSearchSort()
 	d.sort_field(&m_pressure[0]);
 	d.sort_field(&m_pressureAccel[0]);
 }
+
+
+void SimulationDataWCSPH::emittedParticles(const unsigned int startIndex)
+{
+	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	{
+		m_pressure[i] = 0.0;
+		m_pressureAccel[i].setZero();
+	}
+}

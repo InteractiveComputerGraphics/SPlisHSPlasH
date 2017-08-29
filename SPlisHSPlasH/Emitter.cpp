@@ -111,6 +111,7 @@ void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reus
 		if (numEmittedParticles != 0)
 		{
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
+			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -207,6 +208,7 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 		if (numEmittedParticles != 0)
 		{
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
+			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -232,7 +234,7 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 			}
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
 			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
-				model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
+			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
 

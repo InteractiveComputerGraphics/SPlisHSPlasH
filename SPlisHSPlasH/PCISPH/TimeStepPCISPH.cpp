@@ -214,12 +214,7 @@ void TimeStepPCISPH::performNeighborhoodSearch()
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		if (m_viscosity)
-			m_viscosity->performNeighborhoodSearchSort();
-		if (m_surfaceTension)
-			m_surfaceTension->performNeighborhoodSearchSort();
-		if (m_vorticity)
-			m_vorticity->performNeighborhoodSearchSort();
+		TimeStep::performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
@@ -230,10 +225,5 @@ void TimeStepPCISPH::emittedParticles(const unsigned int startIndex)
 {
 
 	m_simulationData.emittedParticles(startIndex);
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
+	TimeStep::emittedParticles(startIndex);
 }

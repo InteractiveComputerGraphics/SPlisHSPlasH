@@ -5,6 +5,8 @@
 		"particleRadius": 0.025,
 		"maxEmitterParticles": 5000,
 		"viscosity": 0.05,
+		"dragMethod": 1, 
+		"dragCoefficient": 0.5,
 		"numberOfStepsPerRenderUpdate": 2,
 		"emitterReuseParticles": true,
 		"emitterBoxMin": [-2.0,-2.5,-2.0],

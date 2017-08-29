@@ -3,19 +3,18 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/NonPressureForceBase.h"
+#include "VorticityBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the micropolar material model introduced
 	* by Bender et al. \cite Bender:2017.
 	*/
-	class MicropolarModel_Bender2017 : public NonPressureForceBase
+	class MicropolarModel_Bender2017 : public VorticityBase
 	{
 	protected:
 		std::vector<Vector3r> m_angularAcceleration;
 		std::vector<Vector3r> m_omega;
-		Real m_viscosityT;
 		Real m_viscosityOmega;
 		Real m_inertiaInverse;
 
@@ -28,8 +27,6 @@ namespace SPH
 
 		virtual void performNeighborhoodSearchSort();
 
-		Real getViscosityT() const { return m_viscosityT; }
-		void setViscosityT(Real val) { m_viscosityT = val; }
 		Real getViscosityOmega() const { return m_viscosityOmega; }
 		void setViscosityOmega(Real val) { m_viscosityOmega = val; }
 		Real getInertiaInverse() const { return m_inertiaInverse; }

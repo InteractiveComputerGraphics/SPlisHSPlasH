@@ -17,6 +17,7 @@ if (WIN32)
   extern/glew 
   extern/zlib 
   extern/partio 
+  extern/MD5
   Demos SPlisHSPlasH Utilities Tools)
 else()
   subdirs(
@@ -24,6 +25,7 @@ else()
 	extern/glew 
 	extern/zlib 
 	extern/partio 
+	extern/md5
 	Demos SPlisHSPlasH Utilities Tools)
 endif()
 

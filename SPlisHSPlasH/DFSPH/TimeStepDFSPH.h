@@ -19,6 +19,7 @@ namespace SPH
 		SimulationDataDFSPH m_simulationData;
 		unsigned int m_counter;
 		const Real m_eps = 1.0e-5;
+		bool m_enableDivergenceSolver;
 
 		void computeDFSPHFactor();
 		void pressureSolve();
@@ -37,6 +38,9 @@ namespace SPH
 
 		virtual void step();
 		virtual void reset();
+
+		bool getEnableDivergenceSolver() const { return m_enableDivergenceSolver; }
+		void setEnableDivergenceSolver(bool val) { m_enableDivergenceSolver = val; }
 	};
 }
 

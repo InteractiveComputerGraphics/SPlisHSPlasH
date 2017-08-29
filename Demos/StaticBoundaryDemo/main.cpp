@@ -12,6 +12,7 @@
 #include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
 #include "Demos/Common/DemoBase.h"
 #include "Utilities/FileSystem.h"
+#include <fstream>
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -194,7 +195,6 @@ void renderBoundary()
 }
 
 
-
 void initBoundaryData()
 {
 	std::string base_path = FileSystem::getFilePath(base.getSceneFile());
@@ -231,16 +231,29 @@ void initBoundaryData()
 			string cachePath = scene_path + "/" + mesh_base_path + "/Cache";
 			string particleFileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + "_" + mesh_file_name + "_" + std::to_string(i) + ".bgeo");
 
+			// check MD5 if cache file is available
 			bool foundCacheFile = false;
+			bool md5 = false;
+
+			std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + ".md5");
 			if (useCache)
 			{
-				foundCacheFile = PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
+				foundCacheFile = FileSystem::fileExists(particleFileName);
 				if (foundCacheFile)
-					std::cout << "Loaded cached boundary sampling: " << particleFileName << "\n";
-
+				{
+					string md5Str = FileSystem::getFileMD5(base.getSceneFile());
+					md5 = FileSystem::checkMD5(md5Str, md5FileName);
+				}
 			}
 
-			if (!useCache || !foundCacheFile)
+			
+			if (useCache && foundCacheFile && md5)
+			{
+				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
+				std::cout << "Loaded cached boundary sampling: " << particleFileName << "\n";
+			}
+
+			if (!useCache || !foundCacheFile || !md5)
 			{
 				std::cout << "Surface sampling of " << meshFileName << "\n";
 				START_TIMING("Poisson disk sampling");
@@ -253,6 +266,8 @@ void initBoundaryData()
 				{
 					std::cout << "Save particle sampling: " << particleFileName << "\n";
 					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), NULL, scene.particleRadius);
+
+					FileSystem::writeMD5File(base.getSceneFile(), md5FileName);
 				}
 			}
 		}

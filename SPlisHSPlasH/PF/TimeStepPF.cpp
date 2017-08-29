@@ -47,6 +47,7 @@ TimeStepPF::TimeStepPF(FluidModel *model) :
 	m_simulationData.init(model);
 	m_counter = 0;
 	m_iterationsV = 0;
+	m_stiffness = 50000.0;
 }
 
 TimeStepPF::~TimeStepPF(void)
@@ -261,7 +262,7 @@ void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
 	// influence of momentum
 	#pragma omp parallel default(shared)
 	{
-		const auto system_scale = h * h * m_model->getStiffness();
+		const auto system_scale = h * h * getStiffness();
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
@@ -419,7 +420,7 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 	// influence of momentum
 	#pragma omp parallel default(shared)
 	{
-		const auto system_scale = h * h * m_model->getStiffness();
+		const auto system_scale = h * h * getStiffness();
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
@@ -440,12 +441,7 @@ void TimeStepPF::performNeighborhoodSearch()
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		if (m_viscosity)
-			m_viscosity->performNeighborhoodSearchSort();
-		if (m_surfaceTension)
-			m_surfaceTension->performNeighborhoodSearchSort();
-		if (m_vorticity)
-			m_vorticity->performNeighborhoodSearchSort();
+		TimeStep::performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
@@ -456,11 +452,6 @@ void TimeStepPF::emittedParticles(const unsigned int startIndex)
 {
 
 	m_simulationData.emittedParticles(startIndex);
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
+	TimeStep::emittedParticles(startIndex);
 }
 

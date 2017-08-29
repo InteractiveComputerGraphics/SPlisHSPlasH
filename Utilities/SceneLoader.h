@@ -48,6 +48,7 @@ namespace SPH
 		{
 			Box box;
 			unsigned char mode;
+			Vector3r initialVelocity;
 		};
 
 		/** \brief Struct to store an emitter object */
@@ -92,19 +93,21 @@ namespace SPH
 			Real timeStepSize;
 			unsigned int viscosityMethod;
 			unsigned int surfaceTensionMethod;
-			unsigned int fluidModel;
-			Real viscosityT;
+			unsigned int vorticityMethod;
+			unsigned int dragMethod;
+			Real vorticityCoeff;
 			Real viscosityOmega;
 			Real inertiaInverse;
+			Real dragCoefficient;
 			unsigned int simulationMethod;
 			unsigned int maxEmitterParticles;
 			bool enablePartioExport; 
 			unsigned int partioFPS;
-			Real renderMaxVelocity;
-			bool renderAngularVelocities;
 			bool emitterReuseParticles;
 			Vector3r emitterBoxMin;
 			Vector3r emitterBoxMax;
+			Real renderMaxVelocity;
+			bool renderAngularVelocities;
 		};
 
 

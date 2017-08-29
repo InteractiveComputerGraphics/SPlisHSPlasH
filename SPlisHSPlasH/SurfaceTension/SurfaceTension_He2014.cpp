@@ -4,7 +4,7 @@
 using namespace SPH;
 
 SurfaceTension_He2014::SurfaceTension_He2014(FluidModel *model) :
-	NonPressureForceBase(model)
+	SurfaceTensionBase(model)
 {
 	m_color.resize(model->numParticles(), 0.0);
 	m_gradC2.resize(model->numParticles(), 0.0);
@@ -20,7 +20,7 @@ SurfaceTension_He2014::~SurfaceTension_He2014(void)
 void SurfaceTension_He2014::step()
 {
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const Real k = m_model->getSurfaceTension();
+	const Real k = getSurfaceTension();
 	const Real density0 = m_model->getDensity0();
 
 	// Compute color field

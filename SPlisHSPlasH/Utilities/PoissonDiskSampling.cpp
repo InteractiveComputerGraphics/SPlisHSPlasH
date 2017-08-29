@@ -36,9 +36,7 @@ void PoissonDiskSampling::sampleMesh(const unsigned int numVertices, const Vecto
 	determineTriangleAreas(numVertices, vertices, numFaces, faces);
 
 	const Real circleArea = M_PI * minRadius * minRadius;
-	m_numTestpointsPerFace = (unsigned int) (40.0 * (m_maxArea / circleArea));
-
-	const unsigned int numInitialPoints = (numFaces*m_numTestpointsPerFace);
+	const unsigned int numInitialPoints = (unsigned int) (40.0 * (m_totalArea / circleArea)); 
 	//cout << "# Initial points: " << numInitialPoints << endl;
 
 	m_initialInfoVec.resize(numInitialPoints);
@@ -102,7 +100,16 @@ void PoissonDiskSampling::determineTriangleAreas(const unsigned int numVertices,
 			const Real area = (d1.cross(d2)).norm() / 2.0;
 			m_areas[i] = area;
 			totalArea += area;
-			tmpMaxArea = max(area, tmpMaxArea);
+			//tmpMaxArea = max(area, tmpMaxArea);
+
+			if (area > tmpMaxArea)
+			{
+				#pragma omp critical
+				{
+					tmpMaxArea = max(area, tmpMaxArea);
+				}
+			}
+
 		}
 	}
 	m_maxArea = max(tmpMaxArea, m_maxArea);

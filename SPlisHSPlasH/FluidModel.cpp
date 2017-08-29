@@ -10,18 +10,13 @@ FluidModel::FluidModel() :
 	m_particleObjects(),
 	m_masses(),
 	m_a(),
+	m_v0(),
 	m_density()
 {	
 	m_density0 = 1000.0;
 	setParticleRadius(0.025);
-	m_viscosity = 0.02;
 	m_neighborhoodSearch = NULL;
 	m_gravitation = Vector3r(0.0, -9.81, 0.0);
-	m_stiffness = 50000.0;
-	m_exponent = 7.0;
-	m_surfaceTension = 0.05;
-	m_enableDivergenceSolver = true;
-	m_velocityUpdateMethod = 0;
 
 	ParticleObject *fluidParticles = new ParticleObject();
 	m_particleObjects.push_back(fluidParticles);
@@ -53,6 +48,7 @@ void FluidModel::cleanupModel()
 	}
 	m_particleObjects.clear();
 
+	m_v0.clear();
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
@@ -84,7 +80,7 @@ void FluidModel::reset()
 	{
 		const Vector3r& x0 = getPosition0(0, i);
 		getPosition(0, i) = x0;
-		getVelocity(0, i).setZero();
+		getVelocity(0, i) = getVelocity0(i);
 		getAcceleration(i).setZero();
 		m_density[i] = 0.0;
 	}
@@ -113,6 +109,7 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_particleObjects[0]->m_x0.resize(newSize);
 	m_particleObjects[0]->m_x.resize(newSize);
 	m_particleObjects[0]->m_v.resize(newSize);
+	m_v0.resize(newSize);
 	m_a.resize(newSize);
 	m_masses.resize(newSize);
 	m_density.resize(newSize);
@@ -123,12 +120,13 @@ void FluidModel::releaseFluidParticles()
 	m_particleObjects[0]->m_x0.clear();
 	m_particleObjects[0]->m_x.clear();
 	m_particleObjects[0]->m_v.clear();
+	m_v0.clear();
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
 }
 
-void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, const unsigned int nMaxEmitterParticles)
+void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
 {
 	releaseFluidParticles();
 	resizeFluidParticles(nFluidParticles + nMaxEmitterParticles);
@@ -146,6 +144,7 @@ void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidPa
 		for (int i = 0; i < (int)nFluidParticles; i++)
 		{
 			getPosition0(0, i) = fluidParticles[i];
+			getVelocity0(i) = fluidVelocities[i];
 		}
 	}
 
@@ -307,6 +306,13 @@ void FluidModel::performNeighborhoodSearchSort()
 			d.sort_field(&rb->m_boundaryPsi[0]);
 		}
 	}
+}
+
+void SPH::FluidModel::setDensity0(const Real v)
+{
+	m_density0 = v; 
+	initMasses(); 
+	updateBoundaryPsi();
 }
 
 void SPH::FluidModel::setParticleRadius(Real val)

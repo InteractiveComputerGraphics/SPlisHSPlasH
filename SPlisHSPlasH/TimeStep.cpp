@@ -9,8 +9,11 @@
 #include "Viscosity/Viscosity_XSPH.h"
 #include "Viscosity/Viscosity_Standard.h"
 #include "Viscosity/Viscosity_Bender2017.h"
+#include "Viscosity/Viscosity_Peer2015.h"
 #include "Vorticity/VorticityConfinement.h"
 #include "EmitterSystem.h"
+#include "Drag/DragForce_Gissler2017.h"
+#include "Drag/DragForce_Macklin2014.h"
 
 
 using namespace SPH;
@@ -35,6 +38,8 @@ TimeStep::TimeStep(FluidModel *model)
 	m_surfaceTensionMethod = SurfaceTensionMethods::None;
 	m_fluidModel = VorticityMethods::None;
 	m_vorticity = NULL;
+	m_dragMethod = DragMethods::None;
+	m_drag = NULL;
 }
 
 TimeStep::~TimeStep(void)
@@ -59,7 +64,6 @@ void TimeStep::clearAccelerations()
 void TimeStep::computeDensities()
 {
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const Real density0 = m_model->getDensity0();
 	
 	#pragma omp parallel default(shared)
 	{
@@ -162,9 +166,12 @@ void TimeStep::updateTimeStepSizeCFL(const Real minTimeStepSize)
 
 void TimeStep::computeNonPressureForces()
 {
+	START_TIMING("computeNonPressureForces")
 	computeSurfaceTension();
 	computeViscosity();
 	computeVorticity();
+	computeDragForce();
+	STOP_TIMING_AVG
 }
 
 void TimeStep::computeSurfaceTension()
@@ -185,6 +192,12 @@ void TimeStep::computeVorticity()
 		m_vorticity->step();
 }
 
+void TimeStep::computeDragForce()
+{
+	if (m_drag)
+		m_drag->step();
+}
+
 void TimeStep::performNeighborhoodSearch()
 {
 	START_TIMING("neighborhood_search");
@@ -201,6 +214,8 @@ void TimeStep::reset()
 		m_viscosity->reset();
 	if (m_vorticity)
 		m_vorticity->reset();
+	if (m_drag)
+		m_drag->reset();
 	m_iterations = 0;
 
 	TimeManager::getCurrent()->setTimeStepSize(0.001);
@@ -226,9 +241,33 @@ void TimeStep::setSurfaceTensionMethod(SurfaceTensionMethods val)
 		m_surfaceTension = new SurfaceTension_He2014(m_model);
 }
 
+void TimeStep::performNeighborhoodSearchSort()
+{
+	if (m_viscosity)
+		m_viscosity->performNeighborhoodSearchSort();
+	if (m_surfaceTension)
+		m_surfaceTension->performNeighborhoodSearchSort();
+	if (m_vorticity)
+		m_vorticity->performNeighborhoodSearchSort();
+	if (m_drag)
+		m_drag->performNeighborhoodSearchSort();
+}
+
+void TimeStep::emittedParticles(const unsigned int startIndex)
+{
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
+	if (m_drag)
+		m_drag->emittedParticles(startIndex);
+}
+
 void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 {
-	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::Bender2017))
+	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::Peer2015))
 		val = ViscosityMethods::XSPH;
 
 	if (val == m_viscosityMethod)
@@ -245,6 +284,8 @@ void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 		m_viscosity = new Viscosity_XSPH(m_model);
 	else if (m_viscosityMethod == ViscosityMethods::Bender2017)
 		m_viscosity = new Viscosity_Bender2017(m_model);
+	else if (m_viscosityMethod == ViscosityMethods::Peer2015)
+		m_viscosity = new Viscosity_Peer2015(m_model);
 }
 
 void TimeStep::setVorticityMethod(SPH::VorticityMethods val)
@@ -264,6 +305,25 @@ void TimeStep::setVorticityMethod(SPH::VorticityMethods val)
 		m_vorticity = new MicropolarModel_Bender2017(m_model);
 	else if (m_fluidModel == VorticityMethods::VorticityConfinement)
 		m_vorticity = new VorticityConfinement(m_model);
+}
+
+void TimeStep::setDragMethod(SPH::DragMethods val)
+{
+	if ((val < DragMethods::None) || (val > DragMethods::Gissler2017))
+		val = DragMethods::None;
+
+	if (val == m_dragMethod)
+		return;
+
+	delete m_drag;
+	m_drag = NULL;
+
+	m_dragMethod = val;
+
+	if (m_dragMethod == DragMethods::Gissler2017)
+		m_drag = new DragForce_Gissler2017(m_model);
+	else if (m_dragMethod == DragMethods::Macklin2014)
+		m_drag = new DragForce_Macklin2014(m_model);
 }
 
 void TimeStep::emitParticles()

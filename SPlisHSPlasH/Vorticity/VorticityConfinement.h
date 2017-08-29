@@ -3,19 +3,18 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SPlisHSPlasH/NonPressureForceBase.h"
+#include "VorticityBase.h"
 
 namespace SPH
 {
 	/** \brief This class implements the vorticity confinement method introduced
 	* by Macklin and Mueller \cite Macklin:2013:PBF.
 	*/
-	class VorticityConfinement : public NonPressureForceBase
+	class VorticityConfinement : public VorticityBase
 	{
 	protected:
 		std::vector<Vector3r> m_omega;
 		std::vector<Real> m_normOmega;
-		Real m_viscosityT;
 
 	public:
 		VorticityConfinement(FluidModel *model);
@@ -25,9 +24,6 @@ namespace SPH
 		virtual void reset();
 
 		virtual void performNeighborhoodSearchSort();
-
-		Real getViscosityT() const { return m_viscosityT; }
-		void setViscosityT(Real val) { m_viscosityT = val; }
 
 		FORCE_INLINE const Vector3r& getAngularVelocity(const unsigned int i) const
 		{

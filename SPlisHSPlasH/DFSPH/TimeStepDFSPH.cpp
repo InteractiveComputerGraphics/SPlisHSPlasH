@@ -18,6 +18,7 @@ TimeStepDFSPH::TimeStepDFSPH(FluidModel *model) :
 	m_simulationData.init(model);
 	m_counter = 0;
 	m_iterationsV = 0;
+	m_enableDivergenceSolver = true;
 }
 
 TimeStepDFSPH::~TimeStepDFSPH(void)
@@ -30,7 +31,6 @@ void TimeStepDFSPH::step()
 	const Real h = tm->getTimeStepSize();
 
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const bool enableDivergenceSolver = m_model->getEnableDivergenceSolver(); 
 
 	performNeighborhoodSearch();
 
@@ -40,7 +40,7 @@ void TimeStepDFSPH::step()
 	computeDFSPHFactor();
 	STOP_TIMING_AVG;
 
-	if (enableDivergenceSolver)
+	if (m_enableDivergenceSolver)
 	{
 		START_TIMING("divergenceSolve");
 		divergenceSolve();
@@ -652,12 +652,7 @@ void TimeStepDFSPH::performNeighborhoodSearch()
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		if (m_viscosity)
-			m_viscosity->performNeighborhoodSearchSort();
-		if (m_surfaceTension)
-			m_surfaceTension->performNeighborhoodSearchSort();
-		if (m_vorticity)
-			m_vorticity->performNeighborhoodSearchSort();
+		TimeStep::performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
@@ -667,10 +662,5 @@ void TimeStepDFSPH::performNeighborhoodSearch()
 void TimeStepDFSPH::emittedParticles(const unsigned int startIndex)
 {
 	m_simulationData.emittedParticles(startIndex);
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
+	TimeStep::emittedParticles(startIndex);
 }

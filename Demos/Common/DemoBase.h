@@ -35,10 +35,12 @@ namespace SPH
 		enum ParameterIDs {
 			Separator = 0, TimeStepSize, IterationCount, IterationCountV,
 			Gravitation, SimMethod, VelocityUpdateMethod, 
-			Vorticity, ViscosityT, ViscosityOmega, InertiaInverse,
+			Vorticity, VorticityCoeff, ViscosityOmega, InertiaInverse, BaroclinicCoeff, 
+			DragMethod, DragCoefficient,
+			BuoyancyMethod, BuoyancyCoefficient, ThermalConductivity, RadiationHalfTime, AmbientAirPressure, 
 			Viscosity, ViscosityMethod, 
 			ViscoMaxIter, ViscoMaxError,
-			WCSPH_Stiffness, WCSPH_Exponent,
+			Stiffness, WCSPH_Exponent,
 			DFSPH_EnableDivergenceSolver,
 			CFL_Method, CFL_Factor, CFL_MaxTimeStepSize, 
 			Kernel_Method, GradKernel_Method, 
@@ -70,6 +72,7 @@ namespace SPH
 		bool m_enablePartioExport;
 		unsigned int m_framesPerSecond;
 		bool m_renderAngularVelocities;
+		bool m_renderTemperatures;
 		Real m_renderMaxVelocity;
 		Vector3r m_oldMousePos;
 		std::vector<unsigned int> m_selectedParticles;
@@ -78,7 +81,7 @@ namespace SPH
 		void initShaders();
 		void initParameters();
 		void initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
-		void createFluidBlocks(std::vector<Vector3r> &fluidParticles);
+		void createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
 
 		static void TW_CALL setParameter(const void *value, void *clientData);
 		static void TW_CALL getParameter(void *value, void *clientData);
@@ -134,6 +137,8 @@ namespace SPH
 		void setRenderMaxVelocity(Real val) { m_renderMaxVelocity = val; }
 		bool getRenderAngularVelocities() const { return m_renderAngularVelocities; }
 		void setRenderAngularVelocities(bool val) { m_renderAngularVelocities = val; }
+		bool getRenderTemperatures() const { return m_renderTemperatures; }
+		void setRenderTemperatures(bool val) { m_renderTemperatures = val; }
 	};
 }
  

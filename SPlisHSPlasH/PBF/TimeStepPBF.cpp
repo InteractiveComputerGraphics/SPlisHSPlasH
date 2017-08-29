@@ -14,6 +14,7 @@ TimeStepPBF::TimeStepPBF(FluidModel *model) :
 {
 	m_simulationData.init(model);
 	m_counter = 0;
+	m_velocityUpdateMethod = 0;
 }
 
 TimeStepPBF::~TimeStepPBF(void)
@@ -48,7 +49,7 @@ void TimeStepPBF::step()
 	STOP_TIMING_AVG;
 
 	// Update velocities	
-	if (m_model->getVelocityUpdateMethod() == 0)
+	if (getVelocityUpdateMethod() == 0)
 	{
 		#pragma omp parallel default(shared)
 		{
@@ -270,12 +271,7 @@ void TimeStepPBF::performNeighborhoodSearch()
 	{
 		m_model->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		if (m_viscosity)
-			m_viscosity->performNeighborhoodSearchSort();
-		if (m_surfaceTension)
-			m_surfaceTension->performNeighborhoodSearchSort();
-		if (m_vorticity)
-			m_vorticity->performNeighborhoodSearchSort();
+		TimeStep::performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
@@ -286,10 +282,5 @@ void TimeStepPBF::emittedParticles(const unsigned int startIndex)
 {
 
 	m_simulationData.emittedParticles(startIndex);
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
+	TimeStep::emittedParticles(startIndex);
 }

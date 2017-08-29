@@ -16,6 +16,9 @@ namespace SPH
 	class TimeStepWCSPH : public TimeStep
 	{
 	protected:
+		Real m_stiffness;
+		Real m_exponent;
+
 		SimulationDataWCSPH m_simulationData;
 		unsigned int m_counter;
 
@@ -34,6 +37,12 @@ namespace SPH
 
 		virtual void step();
 		virtual void reset();
+
+		Real getStiffness() const { return m_stiffness; }
+		void setStiffness(Real val) { m_stiffness = val; }
+
+		Real getExponent() const { return m_exponent; }
+		void setExponent(Real val) { m_exponent = val; }
 	};
 }
 

@@ -14,6 +14,7 @@ namespace SPH
 	class TimeStepPF : public TimeStep
 	{
 	protected:
+		Real m_stiffness;
 		enum class CGSolveState { ALREADY_SOLVED, CONVERGED, MAX_ITER_REACHED };
 		using VectorXr = Eigen::Matrix<Real, -1, 1>;
 		using VectorXrMap = Eigen::Map<VectorXr>;
@@ -43,6 +44,9 @@ namespace SPH
 
 		virtual void step();
 		virtual void reset();
+
+		Real getStiffness() const { return m_stiffness; }
+		void setStiffness(Real val) { m_stiffness = val; }
 	};
 }
 

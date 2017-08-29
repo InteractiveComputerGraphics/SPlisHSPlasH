@@ -5,12 +5,17 @@
 #include "FluidModel.h"
 #include "NonPressureForceBase.h"
 #include "Vorticity/MicropolarModel_Bender2017.h"
+#include "Viscosity/ViscosityBase.h"
+#include "SurfaceTension/SurfaceTensionBase.h"
+#include "Vorticity/VorticityBase.h"
+#include "Drag/DragBase.h"
 
 namespace SPH
 {
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014 }; 
-	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017 }; 
+	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015 };
 	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement };
+	enum class DragMethods { None = 0, Macklin2014, Gissler2017 };
 
 	/** \brief Base class for the simulation methods. 
 	*/
@@ -28,11 +33,13 @@ namespace SPH
 		Real m_maxErrorV;
 		unsigned int m_maxIterationsV;
 		SurfaceTensionMethods m_surfaceTensionMethod;
-		NonPressureForceBase *m_surfaceTension;
+		SurfaceTensionBase *m_surfaceTension;
 		ViscosityMethods m_viscosityMethod;
-		NonPressureForceBase *m_viscosity;
+		ViscosityBase *m_viscosity;
 		VorticityMethods m_fluidModel;
-		NonPressureForceBase *m_vorticity;
+		VorticityBase *m_vorticity;
+		DragMethods m_dragMethod;
+		DragBase *m_drag;
 
 		/** Clear accelerations and add gravitation.
 		*/
@@ -53,9 +60,12 @@ namespace SPH
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		virtual void performNeighborhoodSearch();
+		void performNeighborhoodSearchSort();
+
 		void computeSurfaceTension();
 		void computeViscosity();
 		void computeVorticity();
+		void computeDragForce();
 		void computeNonPressureForces();
 
 	public:
@@ -89,12 +99,16 @@ namespace SPH
 		void setViscosityMethod(ViscosityMethods val);
 		VorticityMethods getVorticityMethod() const { return m_fluidModel; }
 		void setVorticityMethod(SPH::VorticityMethods val);
+		DragMethods getDragMethod() const { return m_dragMethod; }
+		void setDragMethod(SPH::DragMethods val);
 		void emitParticles();
 
-		virtual void emittedParticles(const unsigned int startIndex) {};
+		virtual void emittedParticles(const unsigned int startIndex);
 
-		NonPressureForceBase *getViscosityBase() { return m_viscosity; }
-		NonPressureForceBase *getVorticityBase() { return m_vorticity; }
+		SurfaceTensionBase *getSurfaceTensionBase() { return m_surfaceTension; }
+		ViscosityBase *getViscosityBase() { return m_viscosity; }
+		VorticityBase *getVorticityBase() { return m_vorticity; }
+		DragBase *getDragBase() { return m_drag; }
 	};
 }
 

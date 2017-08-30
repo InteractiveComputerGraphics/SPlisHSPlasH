@@ -1,0 +1,24 @@
+{
+	"Configuration":
+	{
+		"timeStepSize": 0.001,
+		"particleRadius": 0.025,
+		"maxEmitterParticles": 5000,
+		"viscosity": 0.05,
+		"dragMethod": 2,
+		"dragCoefficient": 1.0,
+		"numberOfStepsPerRenderUpdate": 2,
+		"emitterReuseParticles": true,
+		"emitterBoxMin": [-2.0,-2.5,-2.0],
+		"emitterBoxMax": [1.0,4,2.0]
+	},
+    "FluidBlocks": [
+        {
+            "denseMode": 0,
+            "start": [-0.5, 0.0, -0.5],
+            "end": [0.5, 1.0, 0.5],
+            "translation": [0.0, 3.0, 0.0],
+            "scale": [1, 1, 1]
+        }
+    ]
+}

@@ -50,6 +50,9 @@ void EmitterSystem::reuseParticles(FluidModel *model)
 
 void EmitterSystem::step(TimeStep *timeStep)
 {
+	if (m_emitters.size() == 0)
+		return;
+
 	reuseParticles(timeStep->getModel());
 	unsigned int indexReuse = 0;	
 	for (size_t i = 0; i < m_emitters.size(); i++)

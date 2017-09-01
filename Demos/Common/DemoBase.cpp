@@ -18,6 +18,7 @@
 #include "SPlisHSPlasH/Drag/DragForce_Gissler2017.h"
 #include "SPlisHSPlasH/Drag/DragForce_Macklin2014.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
 
 
 using namespace SPH;
@@ -226,12 +227,13 @@ void DemoBase::initParameters()
 	}
 
 	TwType enumTypeVisco = TwDefineEnum("ViscosityMethod", NULL, 0);
-	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender and Koschier 2017}, 4 {Peer et al. 2015}' group=Viscosity ", this));
+	m_parameters.push_back(Parameter(ParameterIDs::ViscosityMethod, "ViscosityMethod", enumTypeVisco, " label='Viscosity' enum='0 {None}, 1 {Standard}, 2 {XSPH}, 3 {Bender and Koschier 2017}, 4 {Peer et al. 2015}, 5 {Peer et al. 2016}' group=Viscosity ", this));
 	if (m_simulationMethod.simulation->getViscosityMethod() != ViscosityMethods::None)
 		m_parameters.push_back(Parameter(ParameterIDs::Viscosity, "ViscosityCoeff", TW_TYPE_REAL, " label='Viscosity coefficient' min=0.0 step=0.001 precision=4 group=Viscosity ", this));
 
 	if ((m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Bender2017) ||
-		(m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2015))
+		(m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2015) ||
+		(m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2016))
 	{
 		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxIter, "ViscoMaxIterations", TW_TYPE_UINT32, " label='Max. iterations (visco)' group=Viscosity ", this));
 		m_parameters.push_back(Parameter(ParameterIDs::ViscoMaxError, "ViscoMaxError", TW_TYPE_REAL, " label='Max. visco error'  min=0.001 precision=3 group=Viscosity ", this));
@@ -399,6 +401,11 @@ void DemoBase::buildModel()
 	{
 		((Viscosity_Peer2015*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
 		((Viscosity_Peer2015*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
+	}
+	else if (m_simulationMethod.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+	{
+		((Viscosity_Peer2016*)m_simulationMethod.simulation->getViscosityBase())->setMaxError(m_scene.viscoMaxError);
+		((Viscosity_Peer2016*)m_simulationMethod.simulation->getViscosityBase())->setMaxIter(m_scene.viscoMaxIter);
 	}
 
 	initParameters();
@@ -575,6 +582,8 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxIter(val);
 		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
 			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxIter(val);
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+			((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->setMaxIter(val);
 	}
 	else if (p->id == ParameterIDs::ViscoMaxError)
 	{
@@ -583,6 +592,8 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 			((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->setMaxError(val);
 		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
 			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxError(val);
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+			((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->setMaxError(val);
 	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{
@@ -609,6 +620,11 @@ void TW_CALL DemoBase::setParameter(const void *value, void *clientData)
 		{
 			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxIter(base->m_scene.viscoMaxIter);
 			((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->setMaxError(base->m_scene.viscoMaxError);
+		}
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+		{
+			((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->setMaxIter(base->m_scene.viscoMaxIter);
+			((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->setMaxError(base->m_scene.viscoMaxError);
 		}
 		base->initParameters();
 	}
@@ -773,6 +789,8 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 			*(unsigned int *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxIter();
 		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
 			*(unsigned int *)(value) = ((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->getMaxIter();
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+			*(unsigned int *)(value) = ((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->getMaxIter();
 	}
 	else if (p->id == ParameterIDs::ViscoMaxError)
 	{
@@ -780,6 +798,8 @@ void TW_CALL DemoBase::getParameter(void *value, void *clientData)
 			*(Real *)(value) = ((Viscosity_Bender2017*)sm.simulation->getViscosityBase())->getMaxError();
 		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2015)
 			*(Real *)(value) = ((Viscosity_Peer2015*)sm.simulation->getViscosityBase())->getMaxError();
+		else if (sm.simulation->getViscosityMethod() == ViscosityMethods::Peer2016)
+			*(Real *)(value) = ((Viscosity_Peer2016*)sm.simulation->getViscosityBase())->getMaxError();
 	}
 	else if (p->id == ParameterIDs::SurfaceTension)
 	{

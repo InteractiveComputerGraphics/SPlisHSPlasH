@@ -136,8 +136,7 @@ namespace Eigen
 	{
 		using namespace SPH;
 
-		/** Implementation of the matrix-free matrix vector product which is used for the
-		* method of Peer et al. 2015 */
+		/** Implementation of the matrix-free matrix vector product  */
 		template<typename Rhs>
 		struct generic_product_impl<MatrixReplacement, Rhs, SparseShape, DenseShape, GemvProduct> // GEMV stands for generic matrix-vector
 			: generic_product_impl_base<MatrixReplacement, Rhs, generic_product_impl<MatrixReplacement, Rhs> >

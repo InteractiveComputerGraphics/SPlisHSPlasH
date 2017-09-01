@@ -194,10 +194,4 @@ void Viscosity_Peer2015::reset()
 
 void Viscosity_Peer2015::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numActiveParticles();
-	if (numPart == 0)
-		return;
-
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
-	d.sort_field(&m_targetNablaV[0]);
 }

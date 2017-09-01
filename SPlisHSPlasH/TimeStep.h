@@ -13,7 +13,7 @@
 namespace SPH
 {
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014 }; 
-	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015 };
+	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016 };
 	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement };
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017 };
 

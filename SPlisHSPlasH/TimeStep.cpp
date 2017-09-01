@@ -10,6 +10,7 @@
 #include "Viscosity/Viscosity_Standard.h"
 #include "Viscosity/Viscosity_Bender2017.h"
 #include "Viscosity/Viscosity_Peer2015.h"
+#include "Viscosity/Viscosity_Peer2016.h"
 #include "Vorticity/VorticityConfinement.h"
 #include "EmitterSystem.h"
 #include "Drag/DragForce_Gissler2017.h"
@@ -267,7 +268,7 @@ void TimeStep::emittedParticles(const unsigned int startIndex)
 
 void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 {
-	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::Peer2015))
+	if ((val < ViscosityMethods::None) || (val > ViscosityMethods::Peer2016))
 		val = ViscosityMethods::XSPH;
 
 	if (val == m_viscosityMethod)
@@ -286,6 +287,8 @@ void SPH::TimeStep::setViscosityMethod(ViscosityMethods val)
 		m_viscosity = new Viscosity_Bender2017(m_model);
 	else if (m_viscosityMethod == ViscosityMethods::Peer2015)
 		m_viscosity = new Viscosity_Peer2015(m_model);
+	else if (m_viscosityMethod == ViscosityMethods::Peer2016)
+		m_viscosity = new Viscosity_Peer2016(m_model);
 }
 
 void TimeStep::setVorticityMethod(SPH::VorticityMethods val)

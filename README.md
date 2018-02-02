@@ -7,8 +7,9 @@ The library uses the following external libraries: [Eigen](http://eigen.tuxfamil
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
+- [Discregrid] (https://github.com/InteractiveComputerGraphics/Discregrid) to detect collisions between rigid bodies
 - [CompactNSearch](https://github.com/InteractiveComputerGraphics/CompactNSearch) to perform the neighborhood search 
-
+- [GenericParameters] (https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
 
 **Author**: [Jan Bender](http://www.interactive-graphics.de), **License**: MIT
@@ -106,6 +107,8 @@ The following videos were generated using the SPlisHSPlasH library:
 [![Video](https://img.youtube.com/vi/fsvDbzEui3w/0.jpg)](https://www.youtube.com/watch?v=fsvDbzEui3w) | [![Video](https://img.youtube.com/vi/P82qmTAahg0/0.jpg)](https://www.youtube.com/watch?v=P82qmTAahg0)
 *Divergence-Free Smoothed Particle Hydrodynamics* | *Divergence-Free SPH for Incompressible and Viscous Fluids*
 [![Video](https://img.youtube.com/vi/POnmzzhc5E0/0.jpg)](https://www.youtube.com/watch?v=POnmzzhc5E0) | [![Video](https://img.youtube.com/vi/tl4mx0TtaAc/0.jpg)](https://www.youtube.com/watch?v=tl4mx0TtaAc)
+*A Physically Consistent Implicit Viscosity Solver for SPH Fluids* | 
+[![Video](https://img.youtube.com/vi/D_nEhix1G-w/0.jpg)](https://www.youtube.com/watch?v=D_nEhix1G-w) | 
 
 
 ## References

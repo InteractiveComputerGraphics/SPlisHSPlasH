@@ -3,12 +3,13 @@
 
 #include "Common.h"
 #include "FluidModel.h"
+#include "ParameterObject.h"
 
 namespace SPH
 {
 	/** \brief Base class for all non-pressure force methods.
 	*/
-	class NonPressureForceBase
+	class NonPressureForceBase : public GenParam::ParameterObject
 	{
 	protected:
 		FluidModel *m_model;
@@ -24,6 +25,8 @@ namespace SPH
 		virtual void emittedParticles(const unsigned int startIndex) {};
 
 		FluidModel *getModel() { return m_model; }
+
+		virtual void init();
 	};
 }
 

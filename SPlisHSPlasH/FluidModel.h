@@ -8,6 +8,7 @@
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
 #include "EmitterSystem.h"
+#include "ParameterObject.h"
 
 namespace SPH 
 {	
@@ -15,11 +16,28 @@ namespace SPH
 
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
-	class FluidModel 
+	class FluidModel : public GenParam::ParameterObject
 	{
 		public:
+			static int KERNEL_METHOD;
+			static int GRAD_KERNEL_METHOD;
+			static int NUM_PARTICLES;
+			static int NUM_REUSED_PARTICLES;
+			static int PARTICLE_RADIUS;
+			static int DENSITY0;
+			static int ENUM_KERNEL_CUBIC;
+			static int ENUM_KERNEL_POLY6;
+			static int ENUM_KERNEL_SPIKY;
+			static int ENUM_KERNEL_PRECOMPUTED_CUBIC;
+			static int ENUM_GRADKERNEL_CUBIC;
+			static int ENUM_GRADKERNEL_POLY6;
+			static int ENUM_GRADKERNEL_SPIKY;
+			static int ENUM_GRADKERNEL_PRECOMPUTED_CUBIC;
+
 			FluidModel();
 			virtual ~FluidModel();
+
+			void init();
 
 			/** \brief Struct to store the state of a particle object (x0, x, v).
 			*/
@@ -43,10 +61,9 @@ namespace SPH
 			typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
 
 	protected:
-			EmitterSystem m_emitterSystem;
-			Vector3r m_gravitation;
-			unsigned int m_kernelMethod;
-			unsigned int m_gradKernelMethod;
+			EmitterSystem *m_emitterSystem;
+			int m_kernelMethod;
+			int m_gradKernelMethod;
 			Real m_W_zero;
 			Real(*m_kernelFct)(const Vector3r &);
 			Vector3r(*m_gradKernelFct)(const Vector3r &r);
@@ -70,6 +87,8 @@ namespace SPH
 			unsigned int m_numActiveParticles;
 			unsigned int m_numActiveParticles0;
 
+			virtual void initParameters();
+
 			void initMasses();
 			void computeBoundaryPsi(const unsigned int body);
 
@@ -80,6 +99,17 @@ namespace SPH
 			/** Release the arrays containing the particle data.
 			*/
 			virtual void releaseFluidParticles();
+
+			int getKernel() const { return m_kernelMethod; }
+			void setKernel(int val);
+			int getGradKernel() const { return m_gradKernelMethod; }
+			void setGradKernel(int val);
+
+			void setParticleRadius(Real val);
+			Real getParticleRadius() const { return m_particleRadius; }
+
+			FORCE_INLINE Real getDensity0() const { return m_density0; }
+			void setDensity0(const Real v);
 
 		public:
 			void setNumActiveParticles(const unsigned int num);
@@ -97,29 +127,18 @@ namespace SPH
 			unsigned int numActiveParticles() const;
 			const unsigned int numberOfRigidBodyParticleObjects() const { return static_cast<unsigned int>(m_particleObjects.size()-1); }
 
-			FORCE_INLINE Real getDensity0() const { return m_density0; }
-			void setDensity0(const Real v);
-			Real getSupportRadius() const { return m_supportRadius; }
-			Real getParticleRadius() const { return m_particleRadius; }
-			void setParticleRadius(Real val);
+			Real getSupportRadius() const { return m_supportRadius; }			
 
 			unsigned int getNumActiveParticles0() const { return m_numActiveParticles0; }
 			void setNumActiveParticles0(unsigned int val) { m_numActiveParticles0 = val; }
 
-			SPH::EmitterSystem& getEmitterSystem() { return m_emitterSystem; }
+			SPH::EmitterSystem* getEmitterSystem() { return m_emitterSystem; }
 
-			unsigned int getKernel() const { return m_kernelMethod; }
-			void setKernel(unsigned int val);
-			unsigned int getGradKernel() const { return m_gradKernelMethod; }
-			void setGradKernel(unsigned int val);
 
 			FORCE_INLINE Real W_zero() const { return m_W_zero; }
 			FORCE_INLINE Real W(const Vector3r &r) const { return m_kernelFct(r); }
 			FORCE_INLINE Vector3r gradW(const Vector3r &r) { return m_gradKernelFct(r); }
-
-			const SPH::Vector3r& getGravitation() const { return m_gravitation; }
-			void setGravitation(const SPH::Vector3r &val) { m_gravitation = val; }
-			
+	
 			CompactNSearch::NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
 			void performNeighborhoodSearchSort();
 

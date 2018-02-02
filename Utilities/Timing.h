@@ -4,31 +4,40 @@
 #include <iostream>
 #include <stack>
 #include <unordered_map>
-#include "SPlisHSPlasH/Common.h"
+#include "Logger.h"
 #include <chrono>
 
-namespace SPH
+namespace Utilities
 {
 	#define START_TIMING(timerName) \
-	Timing::startTiming(timerName);
+	Utilities::Timing::startTiming(timerName);
 
 	#define STOP_TIMING \
-	Timing::stopTiming(false);
+	Utilities::Timing::stopTiming(false);
 
 	#define STOP_TIMING_PRINT \
-	Timing::stopTiming(true);
+	Utilities::Timing::stopTiming(true);
 
 	#define STOP_TIMING_AVG \
 	{ \
 	static int timing_timerId = -1; \
-	Timing::stopTiming(false, timing_timerId); \
+	Utilities::Timing::stopTiming(false, timing_timerId); \
 	}
 
 	#define STOP_TIMING_AVG_PRINT \
 	{ \
 	static int timing_timerId = -1; \
-	Timing::stopTiming(true, timing_timerId); \
+	Utilities::Timing::stopTiming(true, timing_timerId); \
 	}
+
+	#define INIT_TIMING \
+		int Utilities::IDFactory::id = 0; \
+		std::unordered_map<int, Utilities::AverageTime> Utilities::Timing::m_averageTimes; \
+		std::stack<Utilities::TimingHelper> Utilities::Timing::m_timingStack; \
+		bool Utilities::Timing::m_dontPrintTimes = false; \
+		unsigned int Utilities::Timing::m_startCounter = 0; \
+		unsigned int Utilities::Timing::m_stopCounter = 0;
+
 
 	/** \brief Struct to store a time measurement.
 	*/
@@ -70,7 +79,14 @@ namespace SPH
 		static std::stack<TimingHelper> m_timingStack;
 		static std::unordered_map<int, AverageTime> m_averageTimes;
 
-		static void reset();
+		static void reset()
+		{
+			while (!m_timingStack.empty())
+				m_timingStack.pop();
+			m_averageTimes.clear();
+			m_startCounter = 0;
+			m_stopCounter = 0;
+		}
 
 		FORCE_INLINE static void startTiming(const std::string& name = std::string(""))
 		{
@@ -93,7 +109,7 @@ namespace SPH
 				double t = elapsed_seconds.count() * 1000.0;
 
 				if (print)
-					std::cout << "time " << h.name.c_str() << ": " << t << " ms\n" << std::flush;
+					LOG_INFO << "time " << h.name.c_str() << ": " << t << " ms";
 				return t;
 			}
 			return 0;
@@ -114,7 +130,7 @@ namespace SPH
 				double t = elapsed_seconds.count() * 1000.0;
 
 				if (print && !Timing::m_dontPrintTimes)
-					std::cout << "time " << h.name.c_str() << ": " << t << " ms\n" << std::flush;
+					LOG_INFO << "time " << h.name.c_str() << ": " << t << " ms";
 
 				if (id >= 0)
 				{
@@ -146,11 +162,11 @@ namespace SPH
 			{
 				AverageTime &at = iter->second;
 				const double avgTime = at.totalTime / at.counter;
-				std::cout << "Average time " << at.name.c_str() << ": " << avgTime << " ms\n" << std::flush;
+				LOG_INFO << "Average time " << at.name.c_str() << ": " << avgTime << " ms";
 			}
 			if (Timing::m_startCounter != Timing::m_stopCounter)
-				std::cout << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming.\n " << std::flush;
-			std::cout << "---------------------------------------------------------------------------\n\n";
+				LOG_INFO << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming. ";
+			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
 
 		FORCE_INLINE static void printTimeSums()
@@ -160,11 +176,11 @@ namespace SPH
 			{
 				AverageTime &at = iter->second;
 				const double timeSum = at.totalTime;
-				std::cout << "Time sum " << at.name.c_str() << ": " << timeSum << " ms\n" << std::flush;
+				LOG_INFO << "Time sum " << at.name.c_str() << ": " << timeSum << " ms";
 			}
 			if (Timing::m_startCounter != Timing::m_stopCounter)
-				std::cout << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming.\n " << std::flush;
-			std::cout << "---------------------------------------------------------------------------\n\n";
+				LOG_INFO << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming. ";
+			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
 	};
 }

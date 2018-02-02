@@ -4,13 +4,17 @@
 #include "SPlisHSPlasH/Common.h"
 #include "extern/json/json.hpp"
 #include <vector>
+#include "ParameterObject.h"
 
-namespace SPH
+namespace Utilities
 {
 	/** \brief Importer of SPlisHSPlasH scene files. 
 	*/
 	class SceneLoader
 	{
+	protected:
+		nlohmann::json m_jsonData;
+
 	public:
 		/** \brief Struct for an AABB */
 		struct Box
@@ -71,50 +75,18 @@ namespace SPH
 			std::vector<FluidBlock*> fluidBlocks;
 			std::vector<EmitterData*> emitters;
 			Real particleRadius;
-			Real pauseAt;
-			unsigned int numberOfStepsPerRenderUpdate;
-			unsigned int cflMethod;
-			Real cflFactor;
-			Real cflMaxTimeStepSize;
-			Real maxError;
-			unsigned int maxIterations;
-			Real maxErrorV;
-			unsigned int maxIterationsV;
-			Real viscosity;
-			unsigned int viscoMaxIter;
-			Real viscoMaxError;
-			Real surfaceTension;
-			Real density0;
-			unsigned int velocityUpdateMethod;
-			Real stiffness;
-			Real exponent;
-			bool enableDivergenceSolver;
-			Vector3r gravitation;
 			Real timeStepSize;
-			unsigned int viscosityMethod;
-			unsigned int surfaceTensionMethod;
-			unsigned int vorticityMethod;
-			unsigned int dragMethod;
-			Real vorticityCoeff;
-			Real viscosityOmega;
-			Real inertiaInverse;
-			Real dragCoefficient;
-			unsigned int simulationMethod;
 			unsigned int maxEmitterParticles;
-			bool enablePartioExport; 
-			unsigned int partioFPS;
 			bool emitterReuseParticles;
 			Vector3r emitterBoxMin;
 			Vector3r emitterBoxMax;
-			Real renderMaxVelocity;
-			bool renderAngularVelocities;
 		};
 
 
-		static void readScene(const char *fileName, Scene &scene);
+		void readScene(const char *fileName, Scene &scene);
 
 		template <typename T>
-		static bool readValue(const nlohmann::json &j, T &v)
+		bool readValue(const nlohmann::json &j, T &v)
 		{
 			if (j.is_null())
 				return false;
@@ -124,7 +96,7 @@ namespace SPH
 		}
 
 		template <typename T, int size>
-		static bool readVector(const nlohmann::json &j, Eigen::Matrix<T, size, 1> &vec)
+		bool readVector(const nlohmann::json &j, Eigen::Matrix<T, size, 1> &vec)
 		{
 			unsigned int index = 0;
 			if (j.is_null())
@@ -135,6 +107,8 @@ namespace SPH
 				vec[i] = values[i];
 			return true;
 		}
+
+		void readParameterObject(GenParam::ParameterObject *paramObj);
 	};
 
 	template <>

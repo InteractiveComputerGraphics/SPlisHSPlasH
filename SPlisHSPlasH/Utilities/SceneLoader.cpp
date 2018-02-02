@@ -2,30 +2,31 @@
 #include <iostream>
 #include "extern/json/json.hpp"
 #include <fstream>
-#include "FileSystem.h"
+#include "Utilities/FileSystem.h"
+#include "Utilities/Logger.h"
 
-using namespace SPH;
-
+using namespace Utilities;
+using namespace GenParam;
+using namespace std;
 
 
 void SceneLoader::readScene(const char *fileName, Scene &scene)
 {
-	std::cout << "Load scene file: " << fileName << "\n";
+	LOG_INFO << "Load scene file: " << fileName;
 
 	std::ifstream input_file(fileName);
 	if (!input_file.is_open())
 	{
-		std::cerr << "Cannot open file!\n";
+		LOG_ERR << "Cannot open file!";
 		return;
 	}
-	nlohmann::json j;
 	try
 	{
-		j << input_file;
+		m_jsonData << input_file;
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << e.what() << std::endl;
+		LOG_ERR << e.what();
 		exit(1);
 	}	
 
@@ -34,9 +35,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	//////////////////////////////////////////////////////////////////////////
 	// read configuration 
 	//////////////////////////////////////////////////////////////////////////
-	if (j.find("Configuration") != j.end())
+	if (m_jsonData.find("Configuration") != m_jsonData.end())
 	{
-		nlohmann::json config = j["Configuration"];
+		nlohmann::json config = m_jsonData["Configuration"];
 
 		scene.timeStepSize = 0.001;
 		readValue(config["timeStepSize"], scene.timeStepSize);
@@ -44,104 +45,8 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		scene.particleRadius = 0.025;
 		readValue(config["particleRadius"], scene.particleRadius);
 
-		scene.pauseAt = -1.0;
-		readValue(config["pauseAt"], scene.pauseAt);
-
-		scene.numberOfStepsPerRenderUpdate = 8;
-		readValue(config["numberOfStepsPerRenderUpdate"], scene.numberOfStepsPerRenderUpdate);
-
-		scene.renderMaxVelocity = 25.0;
-		readValue(config["renderMaxVelocity"], scene.renderMaxVelocity);
-
-		scene.renderAngularVelocities = false;
-		readValue(config["renderAngularVelocities"], scene.renderAngularVelocities);
-
-		scene.cflMethod = 1;
-		readValue(config["cflMethod"], scene.cflMethod);
-
-		scene.cflFactor = 0.5;
-		readValue(config["cflFactor"], scene.cflFactor);
-
-		scene.cflMaxTimeStepSize = 0.005;
-		readValue(config["cflMaxTimeStepSize"], scene.cflMaxTimeStepSize);
-
-		scene.simulationMethod = 4;
-		readValue(config["simulationMethod"], scene.simulationMethod);
-
-		scene.maxIterations = 100;
-		readValue(config["maxIterations"], scene.maxIterations);
-
-		scene.maxError = 0.01;
-		readValue(config["maxError"], scene.maxError);
-
-		scene.maxIterationsV = 100;
-		readValue(config["maxIterationsV"], scene.maxIterationsV);
-
-		scene.maxErrorV = 0.1;
-		readValue(config["maxErrorV"], scene.maxErrorV);
-
-		scene.viscosity = 0.02;
-		readValue(config["viscosity"], scene.viscosity);
-
-		scene.viscoMaxIter = 50;
-		readValue(config["viscoMaxIter"], scene.viscoMaxIter);
-
-		scene.viscoMaxError = 0.01;
-		readValue(config["viscoMaxError"], scene.viscoMaxError);
-
-		scene.viscosityMethod = 2;
-		readValue(config["viscosityMethod"], scene.viscosityMethod);
-
-		scene.surfaceTension = 0.05;
-		readValue(config["surfaceTension"], scene.surfaceTension);
-
-		scene.surfaceTensionMethod = 0;
-		readValue(config["surfaceTensionMethod"], scene.surfaceTensionMethod);
-
-		scene.vorticityMethod = 0;
-		readValue(config["vorticityMethod"], scene.vorticityMethod);
-
-		scene.vorticityCoeff = 0.01;
-		readValue(config["vorticityCoeff"], scene.vorticityCoeff);
-
-		scene.viscosityOmega = 0.1;
-		readValue(config["viscosityOmega"], scene.viscosityOmega);
-
-		scene.inertiaInverse = 0.5;
-		readValue(config["inertiaInverse"], scene.inertiaInverse);
-
-		scene.dragMethod = 0;
-		readValue(config["dragMethod"], scene.dragMethod);
-
-		scene.dragCoefficient = 0.01;
-		readValue(config["dragCoefficient"], scene.dragCoefficient);
-
-		scene.density0 = 1000.0;
-		readValue(config["density0"], scene.density0);
-
-		scene.gravitation = Vector3r(0.0, -9.81, 0.0);
-		readVector(config["gravitation"], scene.gravitation);
-
-		scene.velocityUpdateMethod = 0;
-		readValue(config["velocityUpdateMethod"], scene.velocityUpdateMethod);
-
-		scene.stiffness = 50000.0;
-		readValue(config["stiffness"], scene.stiffness);
-
-		scene.exponent = 7.0;
-		readValue(config["exponent"], scene.exponent);
-
-		scene.enableDivergenceSolver = true;
-		readValue(config["enableDivergenceSolver"], scene.enableDivergenceSolver);
-
 		scene.maxEmitterParticles = 1000;
 		readValue(config["maxEmitterParticles"], scene.maxEmitterParticles);
-
-		scene.enablePartioExport = false;
-		readValue(config["enablePartioExport"], scene.enablePartioExport);
-
-		scene.partioFPS = 25;
-		readValue(config["partioFPS"], scene.partioFPS);
 
 		// reuse particles if they are outside of a bounding box
 		scene.emitterReuseParticles = false;
@@ -159,9 +64,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	//////////////////////////////////////////////////////////////////////////
 	// read boundary models
 	//////////////////////////////////////////////////////////////////////////
-	if (j.find("RigidBodies") != j.end())
+	if (m_jsonData.find("RigidBodies") != m_jsonData.end())
 	{
-		nlohmann::json boundaryModels = j["RigidBodies"];
+		nlohmann::json boundaryModels = m_jsonData["RigidBodies"];
 		for (auto& boundaryModel : boundaryModels)
 		{
 			std::string particleFile = "";
@@ -209,9 +114,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	//////////////////////////////////////////////////////////////////////////
 	// read fluid models
 	//////////////////////////////////////////////////////////////////////////
-	if (j.find("FluidModels") != j.end())
+	if (m_jsonData.find("FluidModels") != m_jsonData.end())
 	{
-		nlohmann::json fluidModels = j["FluidModels"];
+		nlohmann::json fluidModels = m_jsonData["FluidModels"];
 		for (auto& fluidModel : fluidModels)
 		{
 			std::string particleFile;
@@ -244,9 +149,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	//////////////////////////////////////////////////////////////////////////
 	// read fluid blocks
 	//////////////////////////////////////////////////////////////////////////
-	if (j.find("FluidBlocks") != j.end())
+	if (m_jsonData.find("FluidBlocks") != m_jsonData.end())
 	{
-		nlohmann::json fluidBlocks = j["FluidBlocks"];
+		nlohmann::json fluidBlocks = m_jsonData["FluidBlocks"];
 		for (auto& fluidBlock : fluidBlocks)
 		{
 			// translation
@@ -283,9 +188,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	//////////////////////////////////////////////////////////////////////////
 	// read emitters
 	//////////////////////////////////////////////////////////////////////////
-	if (j.find("Emitters") != j.end())
+	if (m_jsonData.find("Emitters") != m_jsonData.end())
 	{
-		nlohmann::json emitters = j["Emitters"];
+		nlohmann::json emitters = m_jsonData["Emitters"];
 		for (auto& emitter : emitters)
 		{
 			EmitterData *data = new EmitterData();
@@ -338,4 +243,91 @@ bool SceneLoader::readValue(const nlohmann::json &j, bool &v)
 	else
 		v = j.get<bool>();
 	return true;
+}
+
+void SceneLoader::readParameterObject(ParameterObject *paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	const unsigned int numParams = paramObj->numParameters();
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// read configuration 
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find("Configuration") != m_jsonData.end())
+	{
+		nlohmann::json config = m_jsonData["Configuration"];
+		std::vector<std::string> newParamList;
+
+		for (unsigned int i = 0; i < numParams; i++)
+		{
+			ParameterBase *paramBase = paramObj->getParameter(i);
+
+			if (paramBase->getType() == RealParameterType)
+			{
+				Real val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<Real>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT32)
+			{
+				unsigned int val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<unsigned int>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT16)
+			{
+				unsigned short val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<unsigned short>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT8)
+			{
+				unsigned char val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<unsigned char>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT32)
+			{
+				int val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<int>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT16)
+			{
+				short val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<short>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT8)
+			{
+				char val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<NumericParameter<char>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::ENUM)
+			{
+				int val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<EnumParameter*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::BOOL)
+			{
+				bool val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<BoolParameter*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == RealVectorParameterType)
+			{
+				if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
+				{
+					Vector3r val;
+					if (readVector(config[paramBase->getName()], val))
+						static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
+				}
+			}
+		}
+	}
 }

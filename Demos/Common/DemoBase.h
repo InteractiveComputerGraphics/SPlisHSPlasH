@@ -2,15 +2,16 @@
 #define __DemoBase_h__
 
 #include "SPlisHSPlasH/Common.h"
-#include "Utilities/SceneLoader.h"
+#include "SPlisHSPlasH/Utilities/SceneLoader.h"
 #include "Visualization/Shader.h"
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "extern/AntTweakBar/include/AntTweakBar.h"
+#include "ParameterObject.h"
 
 namespace SPH
 {
-	class DemoBase
+	class DemoBase : public GenParam::ParameterObject
 	{
 	public: 
 		struct SimulationMethod
@@ -20,52 +21,18 @@ namespace SPH
 			FluidModel model;
 		};
 
-		struct Parameter
-		{
-			unsigned int id;
-			std::string name;
-			std::string tweakBarDefinition;
-			TwType type;
-			DemoBase *base;
-
-			Parameter(const unsigned int pId, const std::string &pName, const TwType pType, const std::string &pTweakBarDefinition, DemoBase *pBase) :
-				id(pId), name(pName), type(pType), tweakBarDefinition(pTweakBarDefinition), base(pBase) {}
-		};
-
-		enum ParameterIDs {
-			Separator = 0, TimeStepSize, IterationCount, IterationCountV,
-			Gravitation, SimMethod, VelocityUpdateMethod, 
-			Vorticity, VorticityCoeff, ViscosityOmega, InertiaInverse, BaroclinicCoeff, 
-			DragMethod, DragCoefficient,
-			BuoyancyMethod, BuoyancyCoefficient, ThermalConductivity, RadiationHalfTime, AmbientAirPressure, 
-			Viscosity, ViscosityMethod, 
-			ViscoMaxIter, ViscoMaxError,
-			Stiffness, WCSPH_Exponent,
-			DFSPH_EnableDivergenceSolver,
-			CFL_Method, CFL_Factor, CFL_MaxTimeStepSize, 
-			Kernel_Method, GradKernel_Method, 
-			SurfaceTension, SurfaceTensionMethod,
-			MaxIterations, MaxError, MaxIterationsV, MaxErrorV,
-			NumParticles, ReusedParticles
-		};
-
-		enum SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, NUM_METHODS };
-
-		typedef void(*SimulationMethodChangedFct)();
-
 	protected:
 		unsigned int m_numberOfStepsPerRenderUpdate;
 		std::string m_exePath;
 		std::string m_dataPath;
+		std::string m_outputPath;
 		std::string m_sceneFile;
 		bool m_useParticleCaching;
-		SceneLoader::Scene m_scene;
+		Utilities::SceneLoader::Scene m_scene;
 		GLint m_context_major_version;
 		GLint m_context_minor_version;
 		Shader m_shader;
 		Shader m_meshShader;
-		SimulationMethod m_simulationMethod;
-		std::vector<Parameter> m_parameters;
 		int m_renderWalls;
 		bool m_doPause;
 		Real m_pauseAt;
@@ -76,20 +43,36 @@ namespace SPH
 		Real m_renderMaxVelocity;
 		Vector3r m_oldMousePos;
 		std::vector<unsigned int> m_selectedParticles;
-		SimulationMethodChangedFct m_simulationMethodChangedFct;
+		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
+		Real m_nextFrameTime;
+		unsigned int m_frameCounter;
+
+
+		virtual void initParameters();
 
 		void initShaders();
-		void initParameters();
 		void initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
 		void createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
-
-		static void TW_CALL setParameter(const void *value, void *clientData);
-		static void TW_CALL getParameter(void *value, void *clientData);
 
 		static void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData);
 		static void mouseMove(int x, int y, void *clientData);
 
 	public:
+		static int PAUSE;
+		static int PAUSE_AT;
+		static int NUM_STEPS_PER_RENDER;
+		static int PARTIO_EXPORT;
+		static int PARTIO_EXPORT_FPS;
+		static int RENDER_MAX_VEL;
+		static int RENDER_OMEGA;
+		static int RENDER_WALLS;
+
+		static int ENUM_WALLS_NONE;
+		static int ENUM_WALLS_PARTICLES_ALL;
+		static int ENUM_WALLS_PARTICLES_NO_WALLS;
+		static int ENUM_WALLS_GEOMETRY_ALL;
+		static int ENUM_WALLS_GEOMETRY_NO_WALLS;
+
 		DemoBase();
 		virtual ~DemoBase();
 
@@ -99,8 +82,12 @@ namespace SPH
 
 		void renderFluid();
 
-		unsigned int getNumberOfStepsPerRenderUpdate() const { return m_numberOfStepsPerRenderUpdate; }
-		void setNumberOfStepsPerRenderUpdate(unsigned int val) { m_numberOfStepsPerRenderUpdate = val; }
+		void readParameters();
+		void partioExport();
+		void step();
+		void reset();
+
+		Utilities::SceneLoader *getSceneLoader() { return m_sceneLoader.get(); }
 
 		const std::string& getExePath() const { return m_exePath; }
 		const std::string& getDataPath() const { return m_dataPath; }
@@ -114,31 +101,11 @@ namespace SPH
 		void meshShaderEnd();
 		void pointShaderBegin(const float *col);
 		void pointShaderEnd();
-		SceneLoader::Scene& getScene() { return m_scene; }
-		SimulationMethod &getSimulationMethod() { return m_simulationMethod; }
+		Utilities::SceneLoader::Scene& getScene() { return m_scene; }
 
-		int getRenderWalls() const { return m_renderWalls; }
-		void setRenderWalls(int val) { m_renderWalls = val; }
-		bool getPause() const { return m_doPause; }
-		void setPause(bool val) { m_doPause = val; }
 		std::vector<unsigned int>& getSelectedParticles() { return m_selectedParticles; }
 		bool getUseParticleCaching() const { return m_useParticleCaching; }
 		void setUseParticleCaching(bool val) { m_useParticleCaching = val; }
-		SPH::DemoBase::SimulationMethodChangedFct getSimulationMethodChangedFct() const { return m_simulationMethodChangedFct; }
-		void setSimulationMethodChangedFct(SPH::DemoBase::SimulationMethodChangedFct val) { m_simulationMethodChangedFct = val; }
-		Real getPauseAt() const { return m_pauseAt; }
-		void setPauseAt(Real val) { m_pauseAt = val; }
-		void setSimulationMethod(SimulationMethods method);
-		bool getEnablePartioExport() const { return m_enablePartioExport; }
-		void setEnablePartioExport(bool val) { m_enablePartioExport = val; }
-		unsigned int getFramesPerSecond() const { return m_framesPerSecond; }
-		void setFramesPerSecond(unsigned int val) { m_framesPerSecond = val; }
-		Real getRenderMaxVelocity() const { return m_renderMaxVelocity; }
-		void setRenderMaxVelocity(Real val) { m_renderMaxVelocity = val; }
-		bool getRenderAngularVelocities() const { return m_renderAngularVelocities; }
-		void setRenderAngularVelocities(bool val) { m_renderAngularVelocities = val; }
-		bool getRenderTemperatures() const { return m_renderTemperatures; }
-		void setRenderTemperatures(bool val) { m_renderTemperatures = val; }
 	};
 }
  

@@ -3,6 +3,8 @@
 #include <iostream>
 #include "TimeManager.h"
 #include "TimeStep.h"
+#include "FluidModel.h"
+#include "Simulation.h"
 
 using namespace SPH;
 
@@ -53,7 +55,7 @@ void Emitter::getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vector3r &y
 
 
 
-void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
 {
 	if (TimeManager::getCurrent()->getTime() < m_nextEmitTime)
 		return;
@@ -62,9 +64,10 @@ void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reus
 	Vector3r d = m_dir;
 	getOrthogonalVectors(d, axis1, axis2);
 
-	FluidModel *model = timeStep->getModel();
+	FluidModel *model = Simulation::getCurrent()->getModel();
 
-	const Real diam = 2.0*model->getParticleRadius();
+	const Real radius = model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real diam = 2.0*radius;
 
 	const Real startX = -0.5*m_width*diam;
 	const Real startZ = -0.5*m_height*diam;
@@ -111,7 +114,7 @@ void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reus
 		if (numEmittedParticles != 0)
 		{
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
+			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -134,7 +137,7 @@ void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reus
 				}
 			}
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
+			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -145,7 +148,7 @@ void Emitter::emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reus
 
 
 
-void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
 {
 	if (TimeManager::getCurrent()->getTime() < m_nextEmitTime)
 		return;
@@ -154,8 +157,9 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 	Vector3r d = m_dir;
 	getOrthogonalVectors(d, axis1, axis2);
 
-	FluidModel *model = timeStep->getModel();
-	const Real diam = 2.0*model->getParticleRadius();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const Real r = model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real diam = 2.0*r;
 
 	const Real radius = (0.5 * (Real)m_width * diam);
 	const Real radius2 = radius*radius;
@@ -208,7 +212,7 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 		if (numEmittedParticles != 0)
 		{
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
+			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -233,7 +237,7 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 				}
 			}
 			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			timeStep->emittedParticles(model->numActiveParticles() - numEmittedParticles);
+			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
 			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
 		}
 	}
@@ -242,11 +246,11 @@ void Emitter::emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int>
 	m_emitCounter++;
 }
 
-void Emitter::step(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+void Emitter::step(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
 {
 	if (m_type == 1)
-		emitParticlesCircle(timeStep, reusedParticles, indexReuse, numEmittedParticles);
+		emitParticlesCircle(reusedParticles, indexReuse, numEmittedParticles);
 	else
-		emitParticles(timeStep, reusedParticles, indexReuse, numEmittedParticles);
+		emitParticles(reusedParticles, indexReuse, numEmittedParticles);
 }
 

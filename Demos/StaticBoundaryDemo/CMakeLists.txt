@@ -28,21 +28,35 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 	debug CompactNSearch_d)
 link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
 
+############################################################
+# GenericParameters
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_GenericParameters)
+
+
 add_executable(StaticBoundaryDemo
 	main.cpp
 	
 	${PROJECT_PATH}/Demos/Common/DemoBase.cpp
 	${PROJECT_PATH}/Demos/Common/DemoBase.h
+	${PROJECT_PATH}/Demos/Common/TweakBarParameters.cpp
+	${PROJECT_PATH}/Demos/Common/TweakBarParameters.h
   
 	${VIS_FILES}          
   
 	CMakeLists.txt
 )
 
+if(DL_OUTPUT)
+	add_definitions(-DDL_OUTPUT)
+endif()
+
 add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 
 include_directories(${PROJECT_PATH}/extern/freeglut/include)
 include_directories(${PROJECT_PATH}/extern/glew/include)
+include_directories(${PROJECT_PATH}/extern/spdlog/include)
 
 set_target_properties(StaticBoundaryDemo PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(StaticBoundaryDemo PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
@@ -52,3 +66,7 @@ target_link_libraries(StaticBoundaryDemo ${SIMULATION_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 
 set_target_properties(StaticBoundaryDemo PROPERTIES FOLDER "Demos")
+
+add_custom_command(TARGET StaticBoundaryDemo PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:StaticBoundaryDemo>/resources/shaders)

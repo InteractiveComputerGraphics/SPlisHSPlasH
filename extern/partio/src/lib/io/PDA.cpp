@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2011 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -42,17 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <cassert>
 #include <memory>
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 
 using namespace std;
 
 // TODO: convert this to use iterators like the rest of the readers/writers
 
-ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly)
+ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly,std::ostream* errorStream)
 {
-    auto_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
+    unique_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
     if(!*input){
-        cerr<<"Partio: Can't open particle data file: "<<filename<<endl;
+        if(errorStream) *errorStream <<"Partio: Can't open particle data file: "<<filename<<endl;
         return 0;
     }
 
@@ -62,7 +63,7 @@ ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly)
 
     // read NPoints and NPointAttrib
     string word;
-
+    
     if(input->good()){
         *input>>word;
         if(word!="ATTRIBUTES"){simple->release();return 0;}
@@ -86,9 +87,9 @@ ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly)
 
         if(word=="V"){
             attrs.push_back(simple->addAttribute(attrNames[index].c_str(),Partio::VECTOR,3));
-        }else if("R"){
+        }else if(word=="R"){
             attrs.push_back(simple->addAttribute(attrNames[index].c_str(),Partio::FLOAT,1));
-        }else if("I"){
+        }else if(word=="I"){
             attrs.push_back(simple->addAttribute(attrNames[index].c_str(),Partio::INT,1));
         }
 
@@ -104,7 +105,7 @@ ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly)
         simple->release();
         return 0;
     }
-
+    
     // look for beginning of header
     if(input->good()){
         *input>>word;
@@ -136,14 +137,14 @@ ParticlesDataMutable* readPDA(const char* filename,const bool headersOnly)
             }
         }
     }
-
+    
     return simple;
 }
 
-bool writePDA(const char* filename,const ParticlesData& p,const bool compressed)
+bool writePDA(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
 {
-    auto_ptr<ostream> output(
-        compressed ?
+    unique_ptr<ostream> output(
+        compressed ? 
         Gzip_Out(filename,ios::out|ios::binary)
         :new ofstream(filename,ios::out|ios::binary));
 
@@ -163,7 +164,7 @@ bool writePDA(const char* filename,const ParticlesData& p,const bool compressed)
         switch(attrs[aIndex].type){
             case FLOAT: *output<<" R";break;
             case VECTOR: *output<<" V";break;
-            case INDEXEDSTR:
+            case INDEXEDSTR: 
             case INT: *output<<" I";break;
             case NONE: assert(false); break; // TODO: more graceful
         }
@@ -191,4 +192,4 @@ bool writePDA(const char* filename,const ParticlesData& p,const bool compressed)
 
 }
 
-EXIT_PARTIO_NAMESPACE
+}

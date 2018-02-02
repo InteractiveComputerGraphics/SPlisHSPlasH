@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -40,7 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <ext/numeric>
 #endif
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 
 /* balanced kdtree
    Brent Burley, Mar 2006
@@ -210,11 +211,7 @@ template <int k> class KdTree
  public:
     KdTree();
     ~KdTree();
-    /** \brief returns number of points in tree
-    */
     int size() const { return _points.size(); }
-    /** \brief Returns the bounding box containing all points in the tree
-    */
     const BBox<k>& bbox() const { return _bbox; }
     const float* point(int i) const { return _points[i].p; }
     uint64_t id(int i) const { return _ids[i]; }
@@ -442,6 +439,5 @@ void KdTree<k>::findPoints(std::vector<uint64_t>& result, const BBox<k>& bbox,
 	findPoints(result, bbox, n+left+1, right, nextj);
 }
 
-EXIT_PARTIO_NAMESPACE
-
+}
 #endif

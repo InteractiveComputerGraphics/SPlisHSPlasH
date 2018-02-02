@@ -1,16 +1,49 @@
 #include "Viscosity_Peer2015.h"
 #include "SPlisHSPlasH/TimeManager.h"
-#include "SPlisHSPlasH/Utilities/Timing.h"
+#include "Utilities/Timing.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+int Viscosity_Peer2015::ITERATIONS = -1;
+int Viscosity_Peer2015::MAX_ITERATIONS = -1;
+int Viscosity_Peer2015::MAX_ERROR = -1;
+
 
 Viscosity_Peer2015::Viscosity_Peer2015(FluidModel *model) :
 	ViscosityBase(model)
 {
 	m_targetNablaV.resize(model->numParticles(), Matrix3r::Zero());
 
-	m_maxIter = 100;
+	m_iterations = 0;
+	m_maxIter = 50;
 	m_maxError = 0.01;
+}
+
+Viscosity_Peer2015::~Viscosity_Peer2015(void)
+{
+	m_targetNablaV.clear();
+}
+
+void Viscosity_Peer2015::initParameters()
+{
+	ViscosityBase::initParameters();
+
+	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
+	setGroup(ITERATIONS, "Viscosity");
+	setDescription(ITERATIONS, "Iterations required by the viscosity solver.");
+	getParameter(ITERATIONS)->setReadOnly(true);
+
+	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
+	setGroup(MAX_ITERATIONS, "Viscosity");
+	setDescription(MAX_ITERATIONS, "Coefficient for the viscosity force computation");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
+	setGroup(MAX_ERROR, "Viscosity");
+	setDescription(MAX_ERROR, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	rparam->setMinValue(1e-6);
 }
 
 void Viscosity_Peer2015::matrixVecProd(const Real* vec, Real *result, void *userData)
@@ -44,16 +77,11 @@ void Viscosity_Peer2015::diagonalMatrixElement(const unsigned int row, Real &res
 	result = model->getDensity(row) - model->getMass(row) * model->W_zero();
 }
 
-Viscosity_Peer2015::~Viscosity_Peer2015(void)
-{
-	m_targetNablaV.clear();
-}
-
 void Viscosity_Peer2015::step()
 {
 	const int numParticles = (int) m_model->numActiveParticles();
 	const Real viscosity = 1.0 - m_viscosity;
-	const Real density0 = m_model->getDensity0();
+	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -110,6 +138,7 @@ void Viscosity_Peer2015::step()
 	m_solver.setTolerance(m_maxError);
 	m_solver.setMaxIterations(m_maxIter);
 	m_solver.compute(A);
+	m_iterations = static_cast<unsigned int>(m_solver.iterations());
 
 	Eigen::VectorXd b0(numParticles);
 	Eigen::VectorXd b1(numParticles);

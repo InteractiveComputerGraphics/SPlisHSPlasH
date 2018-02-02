@@ -18,7 +18,12 @@ namespace SPH
 		Real m_viscosityOmega;
 		Real m_inertiaInverse;
 
+		virtual void initParameters();
+
 	public:
+		static int VISCOSITY_OMEGA;
+		static int INERTIA_INVERSE;
+
 		MicropolarModel_Bender2017(FluidModel *model);
 		virtual ~MicropolarModel_Bender2017(void);
 
@@ -26,11 +31,6 @@ namespace SPH
 		virtual void reset();
 
 		virtual void performNeighborhoodSearchSort();
-
-		Real getViscosityOmega() const { return m_viscosityOmega; }
-		void setViscosityOmega(Real val) { m_viscosityOmega = val; }
-		Real getInertiaInverse() const { return m_inertiaInverse; }
-		void setInertiaInverse(Real val) { m_inertiaInverse = val; }
 
 		FORCE_INLINE const Vector3r& getAngularAcceleration(const unsigned int i) const
 		{

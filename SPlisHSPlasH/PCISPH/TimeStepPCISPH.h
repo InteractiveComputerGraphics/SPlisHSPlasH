@@ -22,16 +22,17 @@ namespace SPH
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
-		virtual void performNeighborhoodSearch();
+		void performNeighborhoodSearch();
 
 		virtual void emittedParticles(const unsigned int startIndex);
 
 	public:
-		TimeStepPCISPH(FluidModel *model);
+		TimeStepPCISPH();
 		virtual ~TimeStepPCISPH(void);
 
 		virtual void step();
 		virtual void reset();
+		virtual void resize();
 	};
 }
 

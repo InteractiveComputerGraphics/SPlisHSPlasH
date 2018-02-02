@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright (c) 2013  Disney Enterprises, Inc. and Contributors,  All rights reserved
+Copyright (c) 2011 Disney Enterprises, Inc. and Contributors,  All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 Format Contributed by github user: redpawfx (redpawFX@gmail.com)  and Luma Pictures  2011
-Some code for this format  was helped along  by referring to an implementation by github user ikiesow (libPTS)
+Some code for this format  was helped along  by referring to an implementation by
 */
 #include "../Partio.h"
 #include "../core/ParticleHeaders.h"
@@ -47,18 +47,19 @@ Some code for this format  was helped along  by referring to an implementation b
 #include <memory>
 #include <cstring>
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 
 using namespace std;
 
 // TODO: convert this to use iterators like the rest of the readers/writers
 
-ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly)
+ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly,std::ostream* errorStream)
 {
-    auto_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
+    unique_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
     if (!*input)
     {
-        cerr<<"Partio: Can't open particle data file: "<<filename<<endl;
+        if(errorStream) *errorStream<<"Partio: Can't open particle data file: "<<filename<<endl;
         return 0;
     }
 
@@ -107,7 +108,7 @@ ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly)
 			attrs.push_back(simple->addAttribute(attrNames[1].c_str(),Partio::VECTOR,3));
 		}
 		break;
-		case 4:  // position and  refl/emission
+		case 4:  // position and  remission
 		{
 			attrNames.push_back((string)"position");
 			attrNames.push_back((string)"remission");
@@ -123,7 +124,7 @@ ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly)
 			attrs.push_back(simple->addAttribute(attrNames[2].c_str(),Partio::VECTOR,3));
 		}
 		break;
-		case 7: // position refl/emission and  RGB
+		case 7: // position remission and  RGB
 		{
 			attrNames.push_back((string)"position");
 			attrNames.push_back((string)"remission");
@@ -219,16 +220,16 @@ ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly)
 					if (attrs[attrIndex].name == "pointColor")
 					{
 						// 8 bit color  conversion
-						data[0]=lineData[valcount-3]/255;
-						data[1]=lineData[valcount-2]/255;
-						data[2]=lineData[valcount-1]/255;
+						data[0]=lineData[4]/255;
+						data[1]=lineData[5]/255;
+						data[2]=lineData[6]/255;
 					}
 					else if (attrs[attrIndex].name == "position")
 					{
 						// position, we flip y/z
 						data[0]=lineData[0];
 						data[1]=lineData[2];
-						data[2]=-lineData[1];
+						data[2]=lineData[1];
 					}
 					else if (attrs[attrIndex].name == "remission")
 					{
@@ -247,7 +248,7 @@ ParticlesDataMutable* readPTS(const char* filename,const bool headersOnly)
 /*
 bool writePTS(const char* filename,const ParticlesData& p,const bool compressed)
 {
-    auto_ptr<ostream> output(
+    unique_ptr<ostream> output(
         compressed ?
         Gzip_Out(filename,ios::out|ios::binary)
         :new ofstream(filename,ios::out|ios::binary));
@@ -297,5 +298,5 @@ bool writePTS(const char* filename,const ParticlesData& p,const bool compressed)
 }
 */
 
-EXIT_PARTIO_NAMESPACE
+}
 

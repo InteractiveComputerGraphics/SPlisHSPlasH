@@ -15,8 +15,9 @@ SurfaceTension_Becker2007::~SurfaceTension_Becker2007(void)
 void SurfaceTension_Becker2007::step()
 {
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const Real k = getSurfaceTension();
-	const Real diameter = 2.0 * m_model->getParticleRadius();
+	const Real k = m_surfaceTension;
+	const Real radius = m_model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real diameter = 2.0 * radius;
 	const Real diameter2 = diameter*diameter;
 
 	// Compute forces

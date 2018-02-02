@@ -3,6 +3,11 @@
 #include "../TimeManager.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+int MicropolarModel_Bender2017::VISCOSITY_OMEGA = -1;
+int MicropolarModel_Bender2017::INERTIA_INVERSE = -1;
+
 
 MicropolarModel_Bender2017::MicropolarModel_Bender2017(FluidModel *model) :
 	VorticityBase(model)
@@ -17,6 +22,24 @@ MicropolarModel_Bender2017::~MicropolarModel_Bender2017(void)
 {
 	m_omega.clear();
 	m_angularAcceleration.clear();
+}
+
+void MicropolarModel_Bender2017::initParameters()
+{
+	VorticityBase::initParameters();
+
+ 	VISCOSITY_OMEGA = createNumericParameter("viscosityOmega", "Angular viscosity coefficient", &m_viscosityOmega);
+ 	setGroup(VISCOSITY_OMEGA, "Vorticity");
+ 	setDescription(VISCOSITY_OMEGA, "Viscosity coefficient for the angular velocity field.");
+ 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_OMEGA));
+ 	rparam->setMinValue(0.0);
+
+
+	INERTIA_INVERSE = createNumericParameter("inertiaInverse", "Inertia inverse", &m_inertiaInverse);
+	setGroup(INERTIA_INVERSE, "Vorticity");
+	setDescription(INERTIA_INVERSE, "Inverse microinertia used in the micropolar model.");
+	rparam = static_cast<RealParameter*>(getParameter(INERTIA_INVERSE));
+	rparam->setMinValue(0.0);
 }
 
 

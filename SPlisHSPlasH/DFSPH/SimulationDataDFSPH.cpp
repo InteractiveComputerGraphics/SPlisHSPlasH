@@ -1,5 +1,6 @@
 #include "SimulationDataDFSPH.h"
 #include "SPlisHSPlasH/SPHKernels.h"
+#include "SPlisHSPlasH/Simulation.h"
 
 using namespace SPH;
 
@@ -9,7 +10,6 @@ SimulationDataDFSPH::SimulationDataDFSPH() :
 	m_kappaV(),
 	m_density_adv()
 {
-	m_model = NULL;
 }
 
 SimulationDataDFSPH::~SimulationDataDFSPH(void)
@@ -18,9 +18,9 @@ SimulationDataDFSPH::~SimulationDataDFSPH(void)
 }
 
 
-void SimulationDataDFSPH::init(FluidModel *model)
+void SimulationDataDFSPH::init()
 {
-	m_model = model;
+	FluidModel *model = Simulation::getCurrent()->getModel();
 
 	m_factor.resize(model->numParticles(), 0.0);
 	m_kappa.resize(model->numParticles(), 0.0);
@@ -38,7 +38,8 @@ void SimulationDataDFSPH::cleanup()
 
 void SimulationDataDFSPH::reset()
 {
-	for (unsigned int i = 0; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for (unsigned int i = 0; i < model->numActiveParticles(); i++)
 	{
 		m_kappa[i] = 0.0;
 		m_kappaV[i] = 0.0;
@@ -47,11 +48,12 @@ void SimulationDataDFSPH::reset()
 
 void SimulationDataDFSPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numActiveParticles();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const unsigned int numPart = model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	auto const& d = model->getNeighborhoodSearch()->point_set(0);
 	d.sort_field(&m_factor[0]);
 	d.sort_field(&m_kappa[0]);
 	d.sort_field(&m_kappaV[0]);
@@ -61,7 +63,8 @@ void SimulationDataDFSPH::performNeighborhoodSearchSort()
 void SimulationDataDFSPH::emittedParticles(const unsigned int startIndex)
 {
 	// initialize kappa values for new particles
-	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for (unsigned int i = startIndex; i < model->numActiveParticles(); i++)
 	{
 		m_kappa[i] = 0.0;
 		m_kappaV[i] = 0.0;

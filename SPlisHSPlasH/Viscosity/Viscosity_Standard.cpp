@@ -40,7 +40,7 @@ void Viscosity_Standard::step()
 				// Viscosity
 				const Real density_j = m_model->getDensity(neighborIndex);
 				const Vector3r xixj = xi - xj;
-				ai += 2.0 * m_viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj) * (xixj.dot(m_model->gradW(xi - xj)))/(xixj.squaredNorm() + 0.01*h2);
+				ai += 10.0 * m_viscosity * (m_model->getMass(neighborIndex) / density_j) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * m_model->gradW(xi - xj);
 			}
 
 			////////////////////////////////////////////////////////////////////////////
@@ -54,7 +54,7 @@ void Viscosity_Standard::step()
 			//		const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
 			//		const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
 			//		const Vector3r xixj = xi - xj;
-			//		ai += 2.0 * viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi) * (xixj.dot(m_model->gradW(xi - xj))) / (xixj.squaredNorm() + 0.01*h2);
+			//		ai += 10.0 * viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi) * (xixj.dot(m_model->gradW(xi - xj))) / (xixj.squaredNorm() + 0.01*h2);
 			//	}
 			//}
 		}

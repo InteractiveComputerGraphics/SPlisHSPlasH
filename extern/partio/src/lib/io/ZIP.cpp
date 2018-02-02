@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -50,7 +50,7 @@ extern "C"{
 
 #include "ZIP.h"
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio{
 
 
     
@@ -617,5 +617,4 @@ Gzip_Out(const std::string& filename,std::ios::openmode mode)
 //#####################################################################
 
 #endif
-
-EXIT_PARTIO_NAMESPACE
+} // namespace Partio

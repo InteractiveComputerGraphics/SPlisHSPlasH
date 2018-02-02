@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -44,6 +44,7 @@ don't work, please let me know. But in general, it would be
 difficult/error prone to detect what type the PDB file is. 
 
 */
+
 
 #define PDB_VECTOR          1
 #define PDB_REAL            2
@@ -158,3 +159,4 @@ typedef struct {
 
     unsigned int  data;   
 }		PDB_Header32;
+

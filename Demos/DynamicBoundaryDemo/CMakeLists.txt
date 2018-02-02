@@ -29,11 +29,27 @@ set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_CompactNS
 link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
 
 ############################################################
+# GenericParameters
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_GenericParameters)
+
+############################################################
 # PBD
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/include)
 add_definitions(-DUSE_PBD)
 add_definitions(-DPBD_DATA_PATH="${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data")
+
+############################################################
+# Discregrid
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
+	optimized Discregrid 
+	debug Discregrid_d)
+link_directories(${PROJECT_PATH}/extern/install/Discregrid/lib)
+
 	
 set(PBDWRAPPER_SOURCE_FILES	PositionBasedDynamicsWrapper/PBDWrapper.cpp)
 set(PBDWRAPPER_HEADER_FILES	
@@ -53,6 +69,8 @@ add_executable(DynamicBoundaryDemo
 	
 	${PROJECT_PATH}/Demos/Common/DemoBase.cpp
 	${PROJECT_PATH}/Demos/Common/DemoBase.h
+	${PROJECT_PATH}/Demos/Common/TweakBarParameters.cpp
+	${PROJECT_PATH}/Demos/Common/TweakBarParameters.h
   
 	${VIS_FILES}          
 
@@ -61,6 +79,10 @@ add_executable(DynamicBoundaryDemo
   
 	CMakeLists.txt
 )
+
+if(DL_OUTPUT)
+	add_definitions(-DDL_OUTPUT)
+endif()
 
 add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 
@@ -79,4 +101,11 @@ source_group("Source Files\\PBD" FILES ${PBDWRAPPER_SOURCE_FILES})
 
 set_target_properties(DynamicBoundaryDemo PROPERTIES FOLDER "Demos")
 
+add_custom_command(TARGET DynamicBoundaryDemo PRE_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_directory
+					${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:DynamicBoundaryDemo>/resources/shaders)
+
+add_custom_command(TARGET DynamicBoundaryDemo PRE_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data/shaders $<TARGET_FILE_DIR:DynamicBoundaryDemo>/resources/pbd_shaders)
 

@@ -22,10 +22,10 @@ DragForce_Gissler2017::~DragForce_Gissler2017(void)
 void DragForce_Gissler2017::step()
 {
 	const Real supportRadius = m_model->getSupportRadius();
-	const Real radius = m_model->getParticleRadius();
+	const Real radius = m_model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
 	const Real diam = 2.0*radius;
 	static const Real pi = static_cast<Real>(M_PI);
-	const Real rho_l = m_model->getDensity0();
+	const Real rho_l = m_model->getValue<Real>(FluidModel::DENSITY0);
 
 	// Air velocity.
 	const Vector3r va(0, 0, 0);

@@ -14,12 +14,13 @@ namespace SPH
 	protected:
 		Real m_surfaceTension;
 
+		virtual void initParameters();
+
 	public:
+		static int SURFACE_TENSION_COEFFICIENT;
+
 		SurfaceTensionBase(FluidModel *model);
 		virtual ~SurfaceTensionBase(void);
-
-		Real getSurfaceTension() const { return m_surfaceTension; }
-		void setSurfaceTension(Real val) { m_surfaceTension = val; }
 	};
 }
 

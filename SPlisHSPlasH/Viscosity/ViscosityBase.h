@@ -14,12 +14,13 @@ namespace SPH
 	protected:
 		Real m_viscosity;
 
+		virtual void initParameters();
+
 	public:
+		static int VISCOSITY_COEFFICIENT;
+
 		ViscosityBase(FluidModel *model);
 		virtual ~ViscosityBase(void);
-
-		Real getViscosity() const { return m_viscosity; }
-		void setViscosity(Real val) { m_viscosity = val; }
 	};
 }
 

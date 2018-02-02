@@ -23,6 +23,7 @@
 
 #include "math.h"
 #include <iostream>
+#include "Utilities/Logger.h"
 
 using namespace SPH;
 
@@ -483,11 +484,11 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 	getOpenGLVersion(m_context_major_version, m_context_minor_version);
 	glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &m_context_profile);
 
-	std::cout << "OpenGL version " << m_context_major_version << "." << m_context_minor_version << std::endl;
-	std::cout << "Using GLEW " << glewGetString(GLEW_VERSION) << std::endl;
-	std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
-	std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
-	std::cout << "Version: " << glGetString(GL_VERSION) << std::endl;
+	LOG_INFO << "OpenGL version " << m_context_major_version << "." << m_context_minor_version;
+	LOG_INFO << "Using GLEW " << glewGetString(GLEW_VERSION);
+	LOG_INFO << "Vendor: " << glGetString(GL_VENDOR);
+	LOG_INFO << "Renderer: " << glGetString(GL_RENDERER);
+	LOG_INFO << "Version: " << glGetString(GL_VERSION);
 
 
 	// Initialize AntTweakBar

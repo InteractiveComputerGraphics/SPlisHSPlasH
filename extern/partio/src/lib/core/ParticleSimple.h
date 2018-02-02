@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include "Mutex.h"
 #include "../Partio.h"
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio{
 
 template<int d> class KdTree;
 
@@ -54,39 +54,48 @@ public:
 
     void release() const;
 
-	//ParticlesDataMutable* reset() const;
-
     ParticlesSimple();
 
     int numAttributes() const;
+    int numFixedAttributes() const;
     int numParticles() const;
-	bool attributeInfo(const char* attributeName,ParticleAttribute& attribute) const;
+    bool attributeInfo(const char* attributeName,ParticleAttribute& attribute) const;
+    bool fixedAttributeInfo(const char* attributeName,FixedAttribute& attribute) const;
     bool attributeInfo(const int attributeInfo,ParticleAttribute& attribute) const;
+    bool fixedAttributeInfo(const int attributeInfo,FixedAttribute& attribute) const;
     void dataAsFloat(const ParticleAttribute& attribute,const int indexCount,
         const ParticleIndex* particleIndices,const bool sorted,float* values) const;
     int registerIndexedStr(const ParticleAttribute& attribute,const char* str);
+    int registerFixedIndexedStr(const FixedAttribute& attribute,const char* str);
+    void setIndexedStr(const ParticleAttribute& attribute,int indexedStringToken,const char* str);
+    void setFixedIndexedStr(const FixedAttribute& attribute,int indexedStringToken,const char* str);
     int lookupIndexedStr(const ParticleAttribute& attribute,const char* str) const;
+    int lookupFixedIndexedStr(const FixedAttribute& attribute,const char* str) const;
     const std::vector<std::string>& indexedStrs(const ParticleAttribute& attr) const;
+    const std::vector<std::string>& fixedIndexedStrs(const FixedAttribute& attr) const;
     void sort();
     void findPoints(const float bboxMin[3],const float bboxMax[3],std::vector<ParticleIndex>& points) const;
     float findNPoints(const float center[3],int nPoints,const float maxRadius,
         std::vector<ParticleIndex>& points,std::vector<float>& pointDistancesSquared) const;
     int findNPoints(const float center[3],int nPoints,const float maxRadius,
         ParticleIndex *points, float *pointDistancesSquared, float *finalRadius2) const;
+    ParticlesDataMutable* computeClustering(const int numNeighbors,const double radiusSearch,const double radiusInside,const int connections,const double density);
 
     ParticleAttribute addAttribute(const char* attribute,ParticleAttributeType type,const int count);
+    FixedAttribute addFixedAttribute(const char* attribute,ParticleAttributeType type,const int count);
     ParticleIndex addParticle();
     iterator addParticles(const int count);
 
 
-    iterator setupIterator();
-    const_iterator setupConstIterator() const;
+    iterator setupIterator(const int index=0);
+    const_iterator setupConstIterator(const int index=0) const;
     void setupIteratorNextBlock(Partio::ParticleIterator<false>& iterator);
     void setupIteratorNextBlock(Partio::ParticleIterator<true>& iterator) const;
     void setupAccessor(Partio::ParticleIterator<false>& iterator,ParticleAccessor& accessor);
     void setupAccessor(Partio::ParticleIterator<true>& iterator,ParticleAccessor& accessor) const;
 private:
     void* dataInternal(const ParticleAttribute& attribute,const ParticleIndex particleIndex) const;
+    void* fixedDataInternal(const FixedAttribute& attribute) const;
     void dataInternalMultiple(const ParticleAttribute& attribute,const int indexCount,
         const ParticleIndex* particleIndices,const bool sorted,char* values) const;
 
@@ -103,9 +112,13 @@ private:
     std::vector<ParticleAttribute> attributes;
     std::vector<int> attributeStrides;
     std::map<std::string,int> nameToAttribute;
+    std::vector<char*> fixedAttributeData; // Inside is data of appropriate type
+    std::vector<IndexedStrTable> fixedAttributeIndexedStrs;
+    std::vector<FixedAttribute> fixedAttributes;
+    std::map<std::string,int> nameToFixedAttribute;
 
     PartioMutex kdtree_mutex;
     KdTree<3>* kdtree;
 };
 
-EXIT_PARTIO_NAMESPACE
+}

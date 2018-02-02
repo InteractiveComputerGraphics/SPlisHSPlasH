@@ -20,6 +20,9 @@ namespace SPH
 		unsigned int m_counter;
 		const Real m_eps = 1.0e-5;
 		bool m_enableDivergenceSolver;
+		unsigned int m_iterationsV;
+		Real m_maxErrorV;
+		unsigned int m_maxIterationsV;
 
 		void computeDFSPHFactor();
 		void pressureSolve();
@@ -29,18 +32,24 @@ namespace SPH
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
-		virtual void performNeighborhoodSearch();
+		void performNeighborhoodSearch();
 		virtual void emittedParticles(const unsigned int startIndex);
 
+		virtual void initParameters();
+
 	public:
-		TimeStepDFSPH(FluidModel *model);
+		static int SOLVER_ITERATIONS_V;
+		static int MAX_ITERATIONS_V;
+		static int MAX_ERROR_V;
+		static int USE_DIVERGENCE_SOLVER;
+
+		TimeStepDFSPH();
 		virtual ~TimeStepDFSPH(void);
 
 		virtual void step();
 		virtual void reset();
 
-		bool getEnableDivergenceSolver() const { return m_enableDivergenceSolver; }
-		void setEnableDivergenceSolver(bool val) { m_enableDivergenceSolver = val; }
+		virtual void resize();
 	};
 }
 

@@ -1,25 +1,49 @@
-===================================================================
 Partio - A library for particle IO and manipulation
-===================================================================
+===================================================
 
 This is the initial source code release of partio a tool we used for particle
 reading/writing.  It started out as an abstraction for the commonalities in
 particle models (i.e. accessing many attributes associated with an index or
 entity).
 
-Super impatient scons building guide
-====================================
-$ git clone https://github.com/wdas/partio.git
-$ cd partio
-$ scons -j 4
-(dist/ will now have your build)
+Super impatient building guide
+==============================
+
+    # Install Location ~ adjust accordingly
+    prefix=$HOME/local
+    # Partio depends on SeExpr v2.11
+    git clone https://github.com/wdas/seexpr.git
+    pushd seexpr
+      git checkout v2.11
+      make -j prefix=$prefix install
+    popd
+    git clone https://github.com/wdas/partio.git
+    cd partio
+    make -j prefix=$prefix RP_SeExpr=$prefix install
 
 Getting Started
-==============
+===============
 
-I support both scons and cmake build files. I would rather not support
-more. Lately I have been using cmake more, so that may be more up to
-date, but others have contributed fixes from time to time.
+CMake is used to build the project, but we provide a top-level Makefile
+for convenience that takes care of all the steps.
+
+See the Makefile for the user-tweakable variables and corresponding
+cmake options.
+
+The typical usage for an installation into `/usr/local`
+with a temporary staging directory of `/tmp/stage` is:
+
+    make DESTDIR=/tmp/stage RP_SeExpr=/usr/local prefix=/usr/local install
+
+SeExpr
+======
+Partio depends on SeExpr v2 (current `v2.11`).  SeExpr v2 and v3 can co-exist,
+so you can have v2 for building partio installed alongside SeExpr v3+ (master).
+
+SeExpr is not strictly required. SeExpr support is disabled when `RP_SeExpr`
+is not specified to the Makefile.  In CMake, the corresponding variables are
+`-DSEEXPR_BASE=<path>` for the SeExpr location, and `-DPARTIO_SE_ENABLED=1`
+to enable the PartioSe class.
 
 Source code overview
 ====================

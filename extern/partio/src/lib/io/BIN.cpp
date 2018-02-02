@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright (c) 2013  Disney Enterprises, Inc. and Contributors,  All rights reserved
+Copyright (c) 2011 Disney Enterprises, Inc. and Contributors,  All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,8 +48,7 @@ Modifications from: github user: redpawfx (redpawFX@gmail.com)  and Luma Picture
 #include <string>
 #include <memory>
 
-
-ENTER_PARTIO_NAMESPACE
+namespace Partio{
 
 using namespace std;
 
@@ -74,21 +73,51 @@ typedef struct{
     float emitterScale[3];
 } BIN_HEADER;
 
+typedef struct{
+    int verificationCode;
+    char fluidName[250] ;
+    short version;
+    float scaleScene;
+    int fluidType;
+    float elapsedSimulationTime;
+    int frameNumber;
+    int framePerSecond;
+    int numParticles;
+    float radius;
+    float pressure[3];
+    float speed[3];
+    float temperature[3];
+} BIN_HEADERV6;
 
-ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
 
-    auto_ptr<istream> input(new ifstream(filename,ios::in|ios::binary));
+ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly,std::ostream* errorStream){
+
+    unique_ptr<istream> input(new ifstream(filename,ios::in|ios::binary));
 
     if(!*input){
-        cerr << "Partio: Unable to open file " << filename << endl;
+        if(errorStream) *errorStream << "Partio: Unable to open file " << filename << endl;
         return 0;
     }
 
     BIN_HEADER header;
-    input->read((char*)&header, sizeof(header));
+    input->read((char*)&header, sizeof(BIN_HEADERV6));
+
+    // According to the NextLimit bin_particles_file_format.pdf file
+    if (header.version >= 7)
+    {
+        input->read((char*)&header.emitterPosition, sizeof(header.emitterPosition));
+        input->read((char*)&header.emitterRotation, sizeof(header.emitterRotation));
+        input->read((char*)&header.emitterScale, sizeof(header.emitterScale));
+    }
+
+    // After version 13, we don't know what to do
+    if(header.version > 13){
+        cerr << "Partio: Unknown .bin version : " << header.version << endl;
+        return 0;
+    }
 
     if(BIN_MAGIC != header.verificationCode){
-        cerr << "Partio: Magic number '" << hex<<  header.verificationCode << "' of '" << filename << "' doesn't match BIN magic '" << BIN_MAGIC << "'" << endl;
+        if(errorStream) *errorStream<< "Partio: Magic number '" << hex<<  header.verificationCode << "' of '" << filename << "' doesn't match BIN magic '" << BIN_MAGIC << "'" << endl;
         return 0;
     }
 
@@ -103,13 +132,17 @@ ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
     ParticleAttribute forceAttr;
     forceAttr = simple->addAttribute("force", VECTOR, 3);
     ParticleAttribute vortAttr;
-    vortAttr = simple->addAttribute("vorticity", VECTOR, 3);
+    if (header.version >= 9)
+        vortAttr = simple->addAttribute("vorticity", VECTOR, 3);
     ParticleAttribute normAttr;
-    normAttr = simple->addAttribute("normal", VECTOR, 3);
+    if (header.version >= 3)
+        normAttr = simple->addAttribute("normal", VECTOR, 3);
     ParticleAttribute neighborsAttr;
-    neighborsAttr = simple->addAttribute("neighbors", INT, 1);
+    if (header.version >= 4)
+        neighborsAttr = simple->addAttribute("neighbors", INT, 1);
     ParticleAttribute uvwAttr;
-    uvwAttr = simple->addAttribute("uvw", VECTOR, 3);
+    if (header.version >= 5)
+        uvwAttr = simple->addAttribute("uvw", VECTOR, 3);
     ParticleAttribute ageAttr;
     ageAttr = simple->addAttribute("age", FLOAT, 1);
     ParticleAttribute isoTimeAttr;
@@ -128,7 +161,7 @@ ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
     pidAttr = simple->addAttribute("id", INT, 1);
 
     if (!headersOnly)
-	{
+    {
         for(int partIndex = 0; partIndex < simple->numParticles(); partIndex++)
         {
 
@@ -147,9 +180,7 @@ ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
             float pressure = 1.0;
             float mass = 1.0;
             float temperature = 1.0;
-
-			int pid = 0; // versions  < 12
-			uint64_t pid64 = 0; // versions >=12
+            int pid = 0;
 
             input->read ((char *) &position[0], sizeof(float));
                 simple->dataWrite<float>(posAttr, partIndex)[0] = (float)position[0];
@@ -173,32 +204,44 @@ ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
             input->read ((char *) &force[2], sizeof(float));
                 simple->dataWrite<float>(forceAttr, partIndex)[2] = (float)force[2];
 
-            input->read ((char *) &vorticity[0], sizeof(float));
-                simple->dataWrite<float>(vortAttr, partIndex)[0] = (float)vorticity[0];
-            input->read ((char *) &vorticity[1], sizeof(float));
-                simple->dataWrite<float>(vortAttr, partIndex)[1] = (float)vorticity[1];
-            input->read ((char *) &vorticity[2], sizeof(float));
-                simple->dataWrite<float>(vortAttr, partIndex)[2] = (float)vorticity[2];
+            if (header.version >= 9)
+            {
+                input->read ((char *) &vorticity[0], sizeof(float));
+                    simple->dataWrite<float>(vortAttr, partIndex)[0] = (float)vorticity[0];
+                input->read ((char *) &vorticity[1], sizeof(float));
+                    simple->dataWrite<float>(vortAttr, partIndex)[1] = (float)vorticity[1];
+                input->read ((char *) &vorticity[2], sizeof(float));
+                    simple->dataWrite<float>(vortAttr, partIndex)[2] = (float)vorticity[2];
+            }
 
-            input->read ((char *) &normal[0], sizeof(float));
-                simple->dataWrite<float>(normAttr, partIndex)[0] = (float)normal[0];
-            input->read ((char *) &normal[1], sizeof(float));
-                simple->dataWrite<float>(normAttr, partIndex)[1] = (float)normal[1];
-            input->read ((char *) &normal[2], sizeof(float));
-                simple->dataWrite<float>(normAttr, partIndex)[2] = (float)normal[2];
+            if (header.version >= 3)
+            {
+                input->read ((char *) &normal[0], sizeof(float));
+                    simple->dataWrite<float>(normAttr, partIndex)[0] = (float)normal[0];
+                input->read ((char *) &normal[1], sizeof(float));
+                    simple->dataWrite<float>(normAttr, partIndex)[1] = (float)normal[1];
+                input->read ((char *) &normal[2], sizeof(float));
+                    simple->dataWrite<float>(normAttr, partIndex)[2] = (float)normal[2];
+                }
 
+            if (header.version >= 4)
+            {
+                input->read ((char *) &neighbors, sizeof (int));
+                    simple->dataWrite<int>(neighborsAttr, partIndex)[0] = (int)neighbors;
+            }
 
-            input->read ((char *) &neighbors, sizeof (int));
-                simple->dataWrite<int>(neighborsAttr, partIndex)[0] = (int)neighbors;
+            if (header.version >= 5)
+            {
+                input->read ((char *) &uvw[0], sizeof(float));
+                    simple->dataWrite<float>(uvwAttr, partIndex)[0] = (float)uvw[0];
+                input->read ((char *) &uvw[1], sizeof(float));
+                    simple->dataWrite<float>(uvwAttr, partIndex)[1] = (float)uvw[1];
+                input->read ((char *) &uvw[2], sizeof(float));
+                    simple->dataWrite<float>(uvwAttr, partIndex)[2] = (float)uvw[2];
 
-            input->read ((char *) &uvw[0], sizeof(float));
-                simple->dataWrite<float>(uvwAttr, partIndex)[0] = (float)uvw[0];
-            input->read ((char *) &uvw[1], sizeof(float));
-                simple->dataWrite<float>(uvwAttr, partIndex)[1] = (float)uvw[1];
-            input->read ((char *) &uvw[2], sizeof(float));
-                simple->dataWrite<float>(uvwAttr, partIndex)[2] = (float)uvw[2];
+                input->read ((char *) &infoBits, sizeof(infoBits));
+            }
 
-            input->read ((char *) &infoBits, sizeof(infoBits));
             // don't  do anything with this..
             input->read ((char *) &age, sizeof(age));
                 simple->dataWrite<float>(ageAttr, partIndex)[0] = (float)age;
@@ -214,31 +257,32 @@ ParticlesDataMutable* readBIN(const char* filename, const bool headersOnly){
                 simple->dataWrite<float>(massAttr, partIndex)[0] = (float)mass;
             input->read ((char *) &temperature, sizeof(temperature));
                 simple->dataWrite<float>(tempAttr, partIndex)[0] = (float)temperature;
-			if (header.version < 12)
-			{
-				input->read ((char *) &pid, sizeof(pid));
-                simple->dataWrite<int>(pidAttr, partIndex)[0] = (int)pid;
-			}
-			else if (header.version >=12)
-			{
-				input->read ((char *) &pid64, sizeof(pid64));
-                simple->dataWrite<int>(pidAttr, partIndex)[0] = (int)pid64;
-			}
 
+            // pid
+            if (header.version < 12)
+                input->read ((char *) &pid, sizeof(pid));
+            else
+            {
+                // Warning, cast the id on 32 bits here
+                uint64_t pid64;
+                input->read ((char*) &pid64, sizeof(pid64));
+                pid = (int)pid64;
+            }
+            simple->dataWrite<int>(pidAttr, partIndex)[0] = (int)pid;
         }
     }
 
     return simple;
 }
 
-bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compressed*/)
+bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compressed*/,std::ostream* errorStream)
 {
 
-    auto_ptr<ostream> output(
+    unique_ptr<ostream> output(
     new ofstream(filename,ios::out|ios::binary));
 
     if (!*output) {
-        cerr<<"Partio Unable to open file "<<filename<<endl;
+        if(errorStream) *errorStream<<"Partio Unable to open file "<<filename<<endl;
         return false;
     }
 
@@ -252,7 +296,7 @@ bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compresse
     header.framePerSecond = 24; // frames per second
     header.scaleScene = 1.0; // scene scale
     header.fluidType = 9; // fluid type
-    header.version =  13; // version (13 is most current) ///NOTE, version 12+ now sets pid as a uint64_t instead of int so switch this if you need backward compat
+    header.version =  11; // version (11 is most current)
     header.frameNumber =  1; // frame number
     header.elapsedSimulationTime = 0.0416666; //   time elapsed (in seconds)
     header.numParticles = p.numParticles(); // number of particles
@@ -320,8 +364,7 @@ bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compresse
         float pressure = 1.0;
         float mass = 1.0;
         float temperature = 1.0;
-		int pid = particles;
-		uint64_t pid64 = particles;
+        int pid = particles;
 
         // now run thru  the exported attrs  and  replace values for things that we do have
 
@@ -416,16 +459,8 @@ bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compresse
             }
             else if (attr.name == "id")
             {
-				if (header.version <12)
-				{
-					const int* data = p.data<int>(attr, particles);
-					pid= data[0];
-				}
-				else if (header.version >= 12)
-				{
-					const int* data = p.data<int>(attr, particles);
-					pid64 = data[0];
-				}
+                const int* data = p.data<int>(attr, particles);
+                pid= data[0];
             }
 
             else
@@ -468,14 +503,7 @@ bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compresse
         output->write ((const char *) &pressure, sizeof (pressure));
         output->write ((const char *) &mass, sizeof (mass));
         output->write ((const char *) &temperature, sizeof (temperature));
-		if (header.version < 12)
-		{
-			output->write ((const char *) &pid, sizeof (pid));
-		}
-		else if (header.version >=12)
-		{
-			output->write ((const char *) &pid64, sizeof (pid64));
-		}
+        output->write ((const char *) &pid, sizeof (pid));
 
     }
 
@@ -488,4 +516,4 @@ bool writeBIN(const char* filename,const ParticlesData& p,const bool /*compresse
     return true;
 }
 
-EXIT_PARTIO_NAMESPACE
+}// end of namespace Partio

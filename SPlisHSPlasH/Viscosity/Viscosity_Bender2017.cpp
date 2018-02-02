@@ -2,6 +2,12 @@
 #include "SPlisHSPlasH/TimeManager.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+int Viscosity_Bender2017::ITERATIONS = -1;
+int Viscosity_Bender2017::MAX_ITERATIONS = -1;
+int Viscosity_Bender2017::MAX_ERROR = -1;
+
 
 Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	ViscosityBase(model)
@@ -11,7 +17,8 @@ Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	m_viscosityLambda.resize(model->numParticles(), Vector6r::Zero());
 	m_lastViscosityLambda.resize(model->numParticles(), Vector6r::Zero());
 
-	m_maxIter = 100;
+	m_iterations = 0;
+	m_maxIter = 50;
 	m_maxError = 0.01;
 }
 
@@ -21,6 +28,27 @@ Viscosity_Bender2017::~Viscosity_Bender2017(void)
 	m_viscosityFactor.clear();
 	m_viscosityLambda.clear();
 	m_lastViscosityLambda.clear();
+}
+
+void Viscosity_Bender2017::initParameters()
+{
+	ViscosityBase::initParameters();
+
+	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
+	setGroup(ITERATIONS, "Viscosity");
+	setDescription(ITERATIONS, "Iterations required by the viscosity solver.");
+	getParameter(ITERATIONS)->setReadOnly(true);
+
+	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
+	setGroup(MAX_ITERATIONS, "Viscosity");
+	setDescription(MAX_ITERATIONS, "Coefficient for the viscosity force computation");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
+	setGroup(MAX_ERROR, "Viscosity");
+	setDescription(MAX_ERROR, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	rparam->setMinValue(1e-6);
 }
 
 void Viscosity_Bender2017::step()
@@ -36,8 +64,8 @@ void Viscosity_Bender2017::step()
 	computeViscosityFactor();
 	computeTargetStrainRate();
 
-	unsigned int iter = 0;
-	while (iter < maxIter)
+	m_iterations = 0;
+	while (m_iterations < maxIter)
 	{
 		// Compute viscosity constraint value
 		#pragma omp parallel default(shared)
@@ -130,13 +158,12 @@ void Viscosity_Bender2017::step()
 				}
 			}
 		}
-		iter++;
+		m_iterations++;
 
 		if (avgStrainRateError < maxError)
 			break;
 		
 	}
-
 
 	// Compute viscosity forces (XSPH) with boundary to simulate simple friction
 	const Real invH = (1.0 / h);
@@ -320,3 +347,4 @@ void Viscosity_Bender2017::performNeighborhoodSearchSort()
 	d.sort_field(&m_viscosityLambda[0]);
 	d.sort_field(&m_lastViscosityLambda[0]);
 }
+

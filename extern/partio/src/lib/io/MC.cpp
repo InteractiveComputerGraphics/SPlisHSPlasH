@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright (c) 2013  Disney Enterprises, Inc. and Contributors,  All rights reserved
+Copyright (c) 2011 Disney Enterprises, Inc. and Contributors,  All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -48,7 +48,8 @@ Modifications from: github user: redpawfx (redpawFX@gmail.com)  and Luma Picture
 #include <cassert>
 #include <memory>
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 //#define PartioBIG_ENDIAN
 
 using namespace std;
@@ -104,8 +105,8 @@ bool ReadAttrHeader(std::istream& input, Attribute_Header& attribute){
 
 int CharArrayLen(char** charArray){
     int i = 0;
-    if(charArray != false){
-        while(charArray[i] != '\0'){
+    if(charArray != NULL){
+        while(charArray[i] != NULL){
             i++;
         }
     }
@@ -128,18 +129,18 @@ bool IsStringInCharArray(std::string target, char** list){
 static const int MC_MAGIC = ((((('F'<<8)|'O')<<8)|'R')<<8)|'4';
 static const int HEADER_SIZE = 56;
 
-ParticlesDataMutable* readMC(const char* filename, const bool headersOnly){
+ParticlesDataMutable* readMC(const char* filename, const bool headersOnly,std::ostream* errorStream){
 
-    std::auto_ptr<std::istream> input(Gzip_In(filename,std::ios::in|std::ios::binary));
+    std::unique_ptr<std::istream> input(Gzip_In(filename,std::ios::in|std::ios::binary));
     if(!*input){
-        std::cerr << "Partio: Unable to open file " << filename << std::endl;
+        if(errorStream) *errorStream << "Partio: Unable to open file " << filename << std::endl;
         return 0;
     }
 
     int magic;
     read<BIGEND>(*input, magic);
     if(MC_MAGIC != magic){
-        std::cerr << "Partio: Magic number '" << magic << "' of '" << filename << "' doesn't match mc magic '" << MC_MAGIC << "'" << std::endl;
+        if(errorStream) *errorStream  << "Partio: Magic number '" << magic << "' of '" << filename << "' doesn't match mc magic '" << MC_MAGIC << "'" << std::endl;
         return 0;
     }
 
@@ -204,7 +205,7 @@ ParticlesDataMutable* readMC(const char* filename, const bool headersOnly){
         else
 		{
             input->seekg((int)input->tellg() + attrHeader.blocksize);
-            std::cerr << "Partio: Attribute '" << attrHeader.name << " " << attrHeader.type << "' cannot map type" << std::endl;
+            if(errorStream) *errorStream << "Partio: Attribute '" << attrHeader.name << " " << attrHeader.type << "' cannot map type" << std::endl;
         }
     }
     simple->addParticles(numParticles);
@@ -362,4 +363,4 @@ int main(){
 
 */
 
-EXIT_PARTIO_NAMESPACE
+}

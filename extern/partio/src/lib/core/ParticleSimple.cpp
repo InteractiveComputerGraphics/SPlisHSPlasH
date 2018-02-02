@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -46,7 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "KdTree.h"
 
-ENTER_PARTIO_NAMESPACE
+
+using namespace Partio;
 
 ParticlesSimple::
 ParticlesSimple()
@@ -58,6 +59,7 @@ ParticlesSimple::
 ~ParticlesSimple()
 {
     for(unsigned int i=0;i<attributeData.size();i++) free(attributeData[i]);
+    for(unsigned int i=0;i<fixedAttributeData.size();i++) free(fixedAttributeData[i]);
     delete kdtree;
 }
 
@@ -66,17 +68,6 @@ release() const
 {
     freeCached(const_cast<ParticlesSimple*>(this));
 }
-
-/*
-ParticlesDataMutable* ParticlesSimple::reset() const
-{
-	//std::cout << "simple reset" << std::endl;
-	freeCached(const_cast<ParticlesSimple*>(this));
-	ParticlesDataMutable* newParticlesData = create();
-	return newParticlesData;
-}
-*/
-
 
 int ParticlesSimple::
 numParticles() const
@@ -90,11 +81,25 @@ numAttributes() const
     return attributes.size();
 }
 
+int ParticlesSimple::
+numFixedAttributes() const
+{
+    return fixedAttributes.size();
+}
+
 bool ParticlesSimple::
 attributeInfo(const int attributeIndex,ParticleAttribute& attribute) const
 {
     if(attributeIndex<0 || attributeIndex>=(int)attributes.size()) return false;
     attribute=attributes[attributeIndex];
+    return true;
+}
+
+bool ParticlesSimple::
+fixedAttributeInfo(const int attributeIndex,FixedAttribute& attribute) const
+{
+    if(attributeIndex<0 || attributeIndex>=(int)fixedAttributes.size()) return false;
+    attribute=fixedAttributes[attributeIndex];
     return true;
 }
 
@@ -109,6 +114,16 @@ attributeInfo(const char* attributeName,ParticleAttribute& attribute) const
     return false;
 }
 
+bool ParticlesSimple::
+fixedAttributeInfo(const char* attributeName,FixedAttribute& attribute) const
+{
+    std::map<std::string,int>::const_iterator it=nameToFixedAttribute.find(attributeName);
+    if(it!=nameToFixedAttribute.end()){
+        attribute=fixedAttributes[it->second];
+        return true;
+    }
+    return false;
+}
 
 void ParticlesSimple::
 sort()
@@ -210,10 +225,34 @@ addAttribute(const char* attribute,ParticleAttributeType type,const int count)
 
     int stride=TypeSize(type)*count;
     attributeStrides.push_back(stride);
-    char* dataPointer=(char*)malloc(allocatedCount*stride);
+    char* dataPointer=(char*)malloc((size_t)allocatedCount*(size_t)stride);
     attributeData.push_back(dataPointer);
     attributeOffsets.push_back(dataPointer-(char*)0);
     attributeIndexedStrs.push_back(IndexedStrTable());
+
+    return attr;
+}
+
+FixedAttribute ParticlesSimple::
+addFixedAttribute(const char* attribute,ParticleAttributeType type,const int count)
+{
+    if(nameToFixedAttribute.find(attribute) != nameToFixedAttribute.end()){
+        std::cerr<<"Partio: addFixedAttribute failed because attr '"<<attribute<<"'"<<" already exists"<<std::endl;
+        return FixedAttribute();
+    }
+    // TODO: check if attribute already exists and if so what data type
+    FixedAttribute attr;
+    attr.name=attribute;
+    attr.type=type;
+    attr.attributeIndex=fixedAttributes.size(); //  all arrays separate so we don't use this here!
+    attr.count=count;
+    fixedAttributes.push_back(attr);
+    nameToFixedAttribute[attribute]=fixedAttributes.size()-1;
+
+    int stride=TypeSize(type)*count;
+    char* dataPointer=(char*)malloc(stride);
+    fixedAttributeData.push_back(dataPointer);
+    fixedAttributeIndexedStrs.push_back(IndexedStrTable());
 
     return attr;
 }
@@ -223,8 +262,12 @@ addParticle()
 {
     if(allocatedCount==particleCount){
         allocatedCount=std::max(10,std::max(allocatedCount*3/2,particleCount));
-        for(unsigned int i=0;i<attributes.size();i++)
-            attributeData[i]=(char*)realloc(attributeData[i],(size_t)attributeStrides[i]*(size_t)allocatedCount);
+        for(unsigned int i=0;i<attributes.size();i++) {
+            char *memory = (char*)realloc(attributeData[i],(size_t)attributeStrides[i]*(size_t)allocatedCount);
+            if(memory){
+                attributeData[i]=memory;
+            }
+        }
     }
     ParticleIndex index=particleCount;
     particleCount++;
@@ -242,25 +285,23 @@ addParticles(const int countToAdd)
             attributeOffsets[i]=attributeData[i]-(char*)0;
         }
     }
-    //int offset=particleCount;
+    int offset=particleCount;
     particleCount+=countToAdd;
-    iterator it=setupIterator();
-    // TODO: this needs to advance the iterator to the appropriate spot
-    return it;
+    return setupIterator(offset);
 }
 
 ParticlesDataMutable::iterator ParticlesSimple::
-setupIterator()
+setupIterator(const int index)
 {
     if(numParticles()==0) return ParticlesDataMutable::iterator();
-    return ParticlesDataMutable::iterator(this,0,numParticles()-1);
+    return ParticlesDataMutable::iterator(this,index,numParticles()-1);
 }
 
 ParticlesData::const_iterator ParticlesSimple::
-setupConstIterator() const
+setupConstIterator(const int index) const
 {
     if(numParticles()==0) return ParticlesDataMutable::const_iterator();
-    return ParticlesData::const_iterator(this,0,numParticles()-1);
+    return ParticlesData::const_iterator(this,index,numParticles()-1);
 }
 
 void ParticlesSimple::
@@ -295,6 +336,13 @@ dataInternal(const ParticleAttribute& attribute,const ParticleIndex particleInde
 {
     assert(attribute.attributeIndex>=0 && attribute.attributeIndex<(int)attributes.size());
     return attributeData[attribute.attributeIndex]+attributeStrides[attribute.attributeIndex]*particleIndex;
+}
+
+void* ParticlesSimple::
+fixedDataInternal(const FixedAttribute& attribute) const
+{
+    assert(attribute.attributeIndex>=0 && attribute.attributeIndex<(int)fixedAttributes.size());
+    return fixedAttributeData[attribute.attributeIndex];
 }
 
 void ParticlesSimple::
@@ -337,9 +385,30 @@ registerIndexedStr(const ParticleAttribute& attribute,const char* str)
 }
 
 int ParticlesSimple::
+registerFixedIndexedStr(const FixedAttribute& attribute,const char* str)
+{
+    IndexedStrTable& table=fixedAttributeIndexedStrs[attribute.attributeIndex];
+    std::map<std::string,int>::const_iterator it=table.stringToIndex.find(str);
+    if(it!=table.stringToIndex.end()) return it->second;
+    int newIndex=table.strings.size();
+    table.strings.push_back(str);
+    table.stringToIndex[str]=newIndex;
+    return newIndex;
+}
+
+int ParticlesSimple::
 lookupIndexedStr(Partio::ParticleAttribute const &attribute, char const *str) const
 {
     const IndexedStrTable& table=attributeIndexedStrs[attribute.attributeIndex];
+    std::map<std::string,int>::const_iterator it=table.stringToIndex.find(str);
+    if(it!=table.stringToIndex.end()) return it->second;
+    return -1;
+}
+
+int ParticlesSimple::
+lookupFixedIndexedStr(Partio::FixedAttribute const &attribute, char const *str) const
+{
+    const IndexedStrTable& table=fixedAttributeIndexedStrs[attribute.attributeIndex];
     std::map<std::string,int>::const_iterator it=table.stringToIndex.find(str);
     if(it!=table.stringToIndex.end()) return it->second;
     return -1;
@@ -352,4 +421,25 @@ indexedStrs(const ParticleAttribute& attr) const
     return table.strings;
 }
 
-EXIT_PARTIO_NAMESPACE
+const std::vector<std::string>& ParticlesSimple::
+fixedIndexedStrs(const FixedAttribute& attr) const
+{
+    const IndexedStrTable& table=fixedAttributeIndexedStrs[attr.attributeIndex];
+    return table.strings;
+}
+
+void ParticlesSimple::setIndexedStr(const ParticleAttribute& attribute,int indexedStringToken,const char* str){
+    IndexedStrTable& table=attributeIndexedStrs[attribute.attributeIndex];
+    if(indexedStringToken >= int(table.strings.size()) || indexedStringToken < 0) return;
+    table.stringToIndex.erase(table.stringToIndex.find(table.strings[indexedStringToken]));
+    table.strings[indexedStringToken] = str;
+    table.stringToIndex[str]=indexedStringToken;
+}
+
+void ParticlesSimple::setFixedIndexedStr(const FixedAttribute& attribute,int indexedStringToken,const char* str){
+    IndexedStrTable& table=fixedAttributeIndexedStrs[attribute.attributeIndex];
+    if(indexedStringToken >= int(table.strings.size()) || indexedStringToken < 0) return;
+    table.stringToIndex.erase(table.stringToIndex.find(table.strings[indexedStringToken]));
+    table.strings[indexedStringToken] = str;
+    table.stringToIndex[str]=indexedStringToken;
+}

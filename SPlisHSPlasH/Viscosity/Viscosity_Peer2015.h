@@ -17,19 +17,21 @@ namespace SPH
 	{
 	protected: 
 		std::vector<Matrix3r> m_targetNablaV;
-		unsigned int m_maxIter;
-		Real m_maxError;
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner<Real>> Solver;
 		Solver m_solver;
+		unsigned int m_iterations;
+		unsigned int m_maxIter;
+		Real m_maxError;
+
+		virtual void initParameters();
 
 	public:
+		static int ITERATIONS;
+		static int MAX_ITERATIONS;
+		static int MAX_ERROR;
+
 		Viscosity_Peer2015(FluidModel *model);
 		virtual ~Viscosity_Peer2015(void);
-
-		unsigned int getMaxIter() const { return m_maxIter; }
-		void setMaxIter(unsigned int val) { m_maxIter = val; }
-		Real getMaxError() const { return m_maxError; }
-		void setMaxError(Real val) { m_maxError = val; }
 
 		virtual void step();
 		virtual void reset();

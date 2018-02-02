@@ -1,11 +1,11 @@
 #include "SimulationDataWCSPH.h"
 #include "SPlisHSPlasH/SPHKernels.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 
 SimulationDataWCSPH::SimulationDataWCSPH()
 {
-	m_model = NULL;
 }
 
 SimulationDataWCSPH::~SimulationDataWCSPH(void)
@@ -13,12 +13,11 @@ SimulationDataWCSPH::~SimulationDataWCSPH(void)
 	cleanup();
 }
 
-void SimulationDataWCSPH::init(FluidModel *model)
+void SimulationDataWCSPH::init()
 {
-	m_model = model;
-
+	FluidModel *model = Simulation::getCurrent()->getModel();
 	m_pressure.resize(model->numParticles(), 0.0);
-	m_pressureAccel.resize(model->numParticles(), SPH::Vector3r::Zero());
+	m_pressureAccel.resize(model->numParticles(), Vector3r::Zero());
 }
 
 void SimulationDataWCSPH::cleanup()
@@ -33,11 +32,12 @@ void SimulationDataWCSPH::reset()
 
 void SimulationDataWCSPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numActiveParticles();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const unsigned int numPart = model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	auto const& d = model->getNeighborhoodSearch()->point_set(0);
 	d.sort_field(&m_pressure[0]);
 	d.sort_field(&m_pressureAccel[0]);
 }
@@ -45,7 +45,8 @@ void SimulationDataWCSPH::performNeighborhoodSearchSort()
 
 void SimulationDataWCSPH::emittedParticles(const unsigned int startIndex)
 {
-	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for (unsigned int i = startIndex; i < model->numActiveParticles(); i++)
 	{
 		m_pressure[i] = 0.0;
 		m_pressureAccel[i].setZero();

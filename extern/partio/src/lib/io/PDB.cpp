@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -37,7 +37,9 @@ This code is partially based on the Gifts/readpdb directory of Autodesk Maya
 
 #include "../Partio.h"
 #include "../core/ParticleHeaders.h"
-
+namespace PDB{
+#include "pdb.h"
+}
 #include "PartioEndian.h"
 #include "ZIP.h"
 #include <iostream>
@@ -47,11 +49,8 @@ This code is partially based on the Gifts/readpdb directory of Autodesk Maya
 #include <memory>
 #include <string.h>
 #include <algorithm>
-ENTER_PARTIO_NAMESPACE
-
-namespace PDB{
-#include "pdb.h"
-}
+namespace Partio
+{
 
 using namespace std;
 
@@ -75,7 +74,6 @@ template<> struct PDB_POLICY<64>
 
 string GetString(istream& input,bool& error)
 {
-    //cerr<<"enter"<<endl;
     const char terminator='\0';
     // TODO: make this check for FEOF condition! and also more efficient
     char c=' ';
@@ -91,12 +89,12 @@ string GetString(istream& input,bool& error)
 }
 
 
-template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,const bool headersOnly)
+template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,const bool headersOnly,std::ostream* errorStream)
 {
 
-    auto_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
+    unique_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
     if(!*input){
-        cerr<<"Partio: Unable to open file "<<filename<<endl;
+        if(errorStream) *errorStream<<"Partio: Unable to open file "<<filename<<endl;
         return 0;
     }
 
@@ -110,12 +108,12 @@ template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,cons
 
     input->read((char*)&header,sizeof(typename PDB_POLICY<bits>::HEADER));
     if(header.magic != PDB_MAGIC){
-        cerr<<"Partio: failed to get PDB magic"<<endl;
+        if(errorStream) *errorStream<<"Partio: failed to get PDB magic"<<endl;
         return 0;
     }
 
     simple->addParticles(header.data_size);
-
+    
     for(unsigned int i=0;i<header.num_data;i++){
         typename PDB_POLICY<bits>::CHANNEL_IO channelIOHeader;
         input->read((char*)&channelIOHeader,sizeof(channelIOHeader));
@@ -131,7 +129,7 @@ template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,cons
         typename PDB_POLICY<bits>::CHANNEL_DATA channelData;
         input->read((char*)&channelData,sizeof(channelData));
 
-
+        
         ParticleAttributeType type;
         switch(channelHeader.type){
             case PDB_VECTOR: type=VECTOR;break;
@@ -146,10 +144,10 @@ template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,cons
             char buf[1024];
             int toSkip=size;
             while(toSkip>0){
-                input->read(buf,std::min(toSkip,1024));
+                input->read(buf,min(toSkip,1024));
                 toSkip-=1024;
             }
-            cerr<<"Partio: Attribute '"<<name<<"' cannot map type"<<endl;
+            if(errorStream) *errorStream<<"Partio: Attribute '"<<name<<"' cannot map type"<<endl;
         }else{
             int count=channelData.datasize/TypeSize(type);
             ParticleAttribute attrHandle=simple->addAttribute(name.c_str(),type,count);
@@ -175,15 +173,15 @@ template<int bits> ParticlesDataMutable* readPDBHelper(const char* filename,cons
 }
 
 template<int bits>
-bool writePDBHelper(const char* filename,const ParticlesData& p,const bool compressed)
+bool writePDBHelper(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
 {
-    auto_ptr<ostream> output(
-        compressed ?
+    unique_ptr<ostream> output(
+        compressed ? 
         Gzip_Out(filename,ios::out|ios::binary)
         :new ofstream(filename,ios::out|ios::binary));
 
     if(!*output){
-        cerr<<"Partio Unable to open file "<<filename<<endl;
+        if(errorStream) *errorStream<<"Partio Unable to open file "<<filename<<endl;
         return false;
     }
 
@@ -198,7 +196,7 @@ bool writePDBHelper(const char* filename,const ParticlesData& p,const bool compr
     for(int k=0;k<32;k++) h32.padding[k]=0;
     h32.data=0;
     output->write((char*)&h32,sizeof(typename PDB_POLICY<bits>::HEADER));
-
+    
     for(int attrIndex=0;attrIndex<p.numAttributes();attrIndex++){
         ParticleAttribute attr;
         p.attributeInfo(attrIndex,attr);
@@ -215,7 +213,7 @@ bool writePDBHelper(const char* filename,const ParticlesData& p,const bool compr
         cio.encoding=0;
         cio.type=0;
         output->write((char*)&cio,sizeof(typename PDB_POLICY<bits>::CHANNEL_IO));
-
+ 
         // TODO: assert cproper count!
         channel.name=0;
         switch(attr.type){
@@ -253,30 +251,30 @@ bool writePDBHelper(const char* filename,const ParticlesData& p,const bool compr
     return true;
 }
 
-ParticlesDataMutable* readPDB32(const char* filename,const bool headersOnly)
-{return readPDBHelper<32>(filename,headersOnly);}
+ParticlesDataMutable* readPDB32(const char* filename,const bool headersOnly,std::ostream* errorStream)
+{return readPDBHelper<32>(filename,headersOnly,errorStream);}
 
-ParticlesDataMutable* readPDB64(const char* filename,const bool headersOnly)
-{return readPDBHelper<64>(filename,headersOnly);}
+ParticlesDataMutable* readPDB64(const char* filename,const bool headersOnly,std::ostream* errorStream)
+{return readPDBHelper<64>(filename,headersOnly,errorStream);}
 
-bool writePDB32(const char* filename,const ParticlesData& p,const bool compressed)
-{return writePDBHelper<32>(filename,p,compressed);}
+bool writePDB32(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
+{return writePDBHelper<32>(filename,p,compressed,errorStream);}
 
-bool writePDB64(const char* filename,const ParticlesData& p,const bool compressed)
-{return writePDBHelper<64>(filename,p,compressed);}
+bool writePDB64(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
+{return writePDBHelper<64>(filename,p,compressed,errorStream);}
 
-ParticlesDataMutable* readPDB(const char* filename,const bool headersOnly)
+ParticlesDataMutable* readPDB(const char* filename,const bool headersOnly,std::ostream* errorStream)
 {
-    auto_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
+    unique_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
     if(!*input){
-        cerr<<"Partio: Unable to open file "<<filename<<endl;
+        if(errorStream) *errorStream <<"Partio: Unable to open file "<<filename<<endl;
         return 0;
     }
     // Read header and add as many particles as found
     PDB_POLICY<64>::HEADER header;
     input->read((char*)&header,sizeof(header));
     if(header.magic != PDB_MAGIC){
-        cerr<<"Partio: failed to get PDB magic"<<endl;
+        if(errorStream) *errorStream <<"Partio: failed to get PDB magic"<<endl;
         return 0;
     }
     // Now read a channel io ... and see if the the swap is zero or one and encoding is zero. If so then we probably god a good thing
@@ -285,13 +283,13 @@ ParticlesDataMutable* readPDB(const char* filename,const bool headersOnly)
     input->read((char*)&channelIOHeader,sizeof(channelIOHeader));
     //cout<<"we got channel io as "<<int(channelIOHeader.type)<<" swap is "<<channelIOHeader.swap<<endl;
     if(channelIOHeader.type > 5  || channelIOHeader.type < 0 || (channelIOHeader.swap != 1 && channelIOHeader.swap != 0)){
-        return readPDBHelper<32>(filename,headersOnly);
+        return readPDBHelper<32>(filename,headersOnly,errorStream);
     }else{
-        return readPDBHelper<64>(filename,headersOnly);
+        return readPDBHelper<64>(filename,headersOnly,errorStream);
     }
 }
 
-bool writePDB(const char* filename,const ParticlesData& p,const bool compressed)
-{return writePDBHelper<32>(filename,p,compressed);}
+bool writePDB(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
+{return writePDBHelper<32>(filename,p,compressed,errorStream);}
 
-EXIT_PARTIO_NAMESPACE
+}

@@ -17,15 +17,13 @@ namespace SPH
 			virtual ~SimulationDataWCSPH();
 
 		protected:	
-			FluidModel *m_model;
-
 			std::vector<Real> m_pressure;
 			std::vector<Vector3r> m_pressureAccel;
 
 		public:
 			/** Initialize the arrays containing the particle data.
 			*/
-			virtual void init(FluidModel *model);
+			virtual void init();
 			
 			/** Release the arrays containing the particle data.
 			*/

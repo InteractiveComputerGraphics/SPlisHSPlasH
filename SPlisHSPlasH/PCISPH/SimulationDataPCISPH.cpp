@@ -1,13 +1,14 @@
 #include "SimulationDataPCISPH.h"
 #include "SPlisHSPlasH/SPHKernels.h"
+#include "SPlisHSPlasH/Simulation.h"
 #include <iostream>
 #include "SPlisHSPlasH/TimeManager.h"
+#include "Utilities/Logger.h"
 
 using namespace SPH;
 
 SimulationDataPCISPH::SimulationDataPCISPH()
 {
-	m_model = NULL;
 }
 
 SimulationDataPCISPH::~SimulationDataPCISPH(void)
@@ -15,18 +16,18 @@ SimulationDataPCISPH::~SimulationDataPCISPH(void)
 	cleanup();
 }
 
-void SimulationDataPCISPH::init(FluidModel *model)
+void SimulationDataPCISPH::init()
 {
-	m_model = model;
+	FluidModel *model = Simulation::getCurrent()->getModel();
 
-	m_lastX.resize(model->numParticles(), SPH::Vector3r::Zero());
-	m_lastV.resize(model->numParticles(), SPH::Vector3r::Zero());
-	m_pressureAccel.resize(model->numParticles(), SPH::Vector3r::Zero());
+	m_lastX.resize(model->numParticles(), Vector3r::Zero());
+	m_lastV.resize(model->numParticles(), Vector3r::Zero());
+	m_pressureAccel.resize(model->numParticles(), Vector3r::Zero());
 	m_densityAdv.resize(model->numParticles(), 0.0);
 	m_pressure.resize(model->numParticles(), 0.0);
-	m_pressureAccel.resize(model->numParticles(), SPH::Vector3r::Zero());
+	m_pressureAccel.resize(model->numParticles(), Vector3r::Zero());
 
-	std::cout << "Initialize PCISPH scaling factor\n";
+	LOG_INFO << "Initialize PCISPH scaling factor";
 	m_pcisph_factor = 0.0;
 	model->getNeighborhoodSearch()->find_neighbors();
 
@@ -34,15 +35,15 @@ void SimulationDataPCISPH::init(FluidModel *model)
 	// => particle with max. fluid neighbors
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
-	const Real density0 = m_model->getDensity0();
+	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 	unsigned int index = 0;
 	unsigned int maxNeighbors = 0;
 
 	for (int i = 0; i < (int)model->numActiveParticles(); i++)
 	{
-		if (m_model->numberOfNeighbors(0, i) > maxNeighbors)
+		if (model->numberOfNeighbors(0, i) > maxNeighbors)
 		{
-			maxNeighbors = m_model->numberOfNeighbors(0, i);
+			maxNeighbors = model->numberOfNeighbors(0, i);
 			index = i;
 		}
 	}
@@ -54,11 +55,11 @@ void SimulationDataPCISPH::init(FluidModel *model)
 	//////////////////////////////////////////////////////////////////////////
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
-	for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, index); j++)
+	for (unsigned int j = 0; j < model->numberOfNeighbors(0, index); j++)
 	{
-		const unsigned int neighborIndex = m_model->getNeighbor(0, index, j);
-		const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-		const Vector3r gradW = m_model->gradW(xi - xj);
+		const unsigned int neighborIndex = model->getNeighbor(0, index, j);
+		const Vector3r &xj = model->getPosition(0, neighborIndex);
+		const Vector3r gradW = model->gradW(xi - xj);
 		sumGradW += gradW;
 		sumGradW2 += gradW.squaredNorm();
 	}
@@ -83,11 +84,12 @@ void SimulationDataPCISPH::reset()
 
 void SimulationDataPCISPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numActiveParticles();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const unsigned int numPart = model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	auto const& d = model->getNeighborhoodSearch()->point_set(0);
 	d.sort_field(&m_lastX[0]);
 	d.sort_field(&m_lastV[0]);
 	d.sort_field(&m_densityAdv[0]);
@@ -98,9 +100,10 @@ void SimulationDataPCISPH::performNeighborhoodSearchSort()
 void SimulationDataPCISPH::emittedParticles(const unsigned int startIndex)
 {
 	// initialize values for new particles
-	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for (unsigned int i = startIndex; i < model->numActiveParticles(); i++)
 	{
-		m_lastX[i] = m_model->getPosition(0, i);
-		m_lastV[i] = m_model->getVelocity(0, i);
+		m_lastX[i] = model->getPosition(0, i);
+		m_lastV[i] = model->getVelocity(0, i);
 	}
 }

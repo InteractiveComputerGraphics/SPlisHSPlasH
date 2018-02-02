@@ -2,6 +2,8 @@
 #include "FluidModel.h"
 #include "TimeStep.h"
 #include "FluidModel.h"
+#include "Utilities/Logger.h"
+#include "Simulation.h"
 
 
 using namespace SPH;
@@ -24,14 +26,15 @@ EmitterSystem::~EmitterSystem(void)
 	for (size_t i = 0; i < m_emitters.size(); i++)
 		delete m_emitters[i];
 
-	std::cout << "Sum of emitted particles: " << m_numberOfEmittedParticles << "\n";
-	std::cout << "Sum of reused particles: " << m_numReusedParticles << "\n";
+	LOG_INFO << "Sum of emitted particles: " << m_numberOfEmittedParticles;
+	LOG_INFO << "Sum of reused particles: " << m_numReusedParticles;
 }
 
-void EmitterSystem::reuseParticles(FluidModel *model)
+void EmitterSystem::reuseParticles()
 {
 	if (m_reuseParticles)
 	{
+		FluidModel *model = Simulation::getCurrent()->getModel();
 		m_reusedParticles.clear();
 		for (unsigned int i = 0; i < model->numActiveParticles(); i++)
 		{
@@ -48,17 +51,17 @@ void EmitterSystem::reuseParticles(FluidModel *model)
 	}
 }
 
-void EmitterSystem::step(TimeStep *timeStep)
+void EmitterSystem::step()
 {
 	if (m_emitters.size() == 0)
 		return;
 
-	reuseParticles(timeStep->getModel());
+	reuseParticles();
 	unsigned int indexReuse = 0;	
 	for (size_t i = 0; i < m_emitters.size(); i++)
 	{
 		unsigned int numEmittedParticles = 0;
-		m_emitters[i]->step(timeStep, m_reusedParticles, indexReuse, numEmittedParticles);
+		m_emitters[i]->step(m_reusedParticles, indexReuse, numEmittedParticles);
 		m_numberOfEmittedParticles += numEmittedParticles;
 	}
 	m_numReusedParticles += indexReuse;

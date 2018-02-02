@@ -26,7 +26,7 @@ namespace SPH
 			std::vector <unsigned int> m_reusedParticles;
 			std::vector<Emitter*> m_emitters;
 
-			void reuseParticles(FluidModel *model);
+			void reuseParticles();
 
 		public:
 			void enableReuseParticles(const Vector3r &boxMin = Vector3r(-1, -1, -1), const Vector3r &boxMax = Vector3r(1, 1, 1));
@@ -40,7 +40,7 @@ namespace SPH
 			unsigned int numReusedParticles() const { return m_numReusedParticles; }
 			unsigned int numEmittedParticles() const { return m_numberOfEmittedParticles; }
 
-			void step(TimeStep *timeStep);
+			void step();
 			void reset();
 	};
 }

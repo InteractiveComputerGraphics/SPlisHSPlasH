@@ -8,16 +8,15 @@
 #include "Demos/Simulation/SimulationModel.h"
 #include "Demos/Simulation/TimeStepController.h"
 #include "Visualization/MiniGL.h"
-#include "Demos/Simulation/DistanceFieldCollisionDetection.h"
+#include "Demos/Simulation/CubicSDFCollisionDetection.h"
 
 
 class PBDWrapper
 {
 protected:
-	std::string m_dataPath;
 	SPH::Shader *m_shader;
 	PBD::SimulationModel m_model;
-	PBD::DistanceFieldCollisionDetection m_cd;
+	PBD::CubicSDFCollisionDetection m_cd;
 	PBD::TimeStepController m_sim;
 
 	short m_clothSimulationMethod = 2;
@@ -52,6 +51,8 @@ public:
 	void updateVisModels();
 
 	void initShader();
+
+	void loadObj(const std::string &filename, PBD::VertexData &vd, Utilities::IndexedFaceMesh &mesh, const Vector3r &scale);
 
 	PBD::SimulationModel &getSimulationModel() { return m_model; }
 	PBD::DistanceFieldCollisionDetection &getCollisionDetection() { return m_cd; }
@@ -118,17 +119,17 @@ public:
 	
 public:
 	template<class PositionData>
-	static void drawMesh(const PositionData &pd, const PBD::IndexedFaceMesh &mesh, const unsigned int offset, const float * const color);
+	static void drawMesh(const PositionData &pd, const Utilities::IndexedFaceMesh &mesh, const unsigned int offset, const float * const color);
 };
 
 
 template<class PositionData>
-void PBDWrapper::drawMesh(const PositionData &pd, const PBD::IndexedFaceMesh &mesh, const unsigned int offset, const float * const color)
+void PBDWrapper::drawMesh(const PositionData &pd, const Utilities::IndexedFaceMesh &mesh, const unsigned int offset, const float * const color)
 {
 	// draw mesh 
 	const unsigned int *faces = mesh.getFaces().data();
 	const unsigned int nFaces = mesh.numFaces();
-	const PBD::Vector3r *vertexNormals = mesh.getVertexNormals().data();
+	const Vector3r *vertexNormals = mesh.getVertexNormals().data();
 
 	if (SPH::MiniGL::checkOpenGLVersion(3, 3))
 	{

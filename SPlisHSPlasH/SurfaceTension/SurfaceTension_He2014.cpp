@@ -20,8 +20,8 @@ SurfaceTension_He2014::~SurfaceTension_He2014(void)
 void SurfaceTension_He2014::step()
 {
 	const unsigned int numParticles = m_model->numActiveParticles();
-	const Real k = getSurfaceTension();
-	const Real density0 = m_model->getDensity0();
+	const Real k = m_surfaceTension;
+	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 
 	// Compute color field
 	#pragma omp parallel default(shared)

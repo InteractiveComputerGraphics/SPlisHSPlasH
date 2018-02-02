@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -39,9 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <cassert>
 #include <iostream>
 
-#include "../PartioConfig.h"
-
-ENTER_PARTIO_NAMESPACE
+namespace Partio{
 
 #ifdef PartioBIG_ENDIAN
 static const bool big_endian=true;
@@ -127,6 +125,5 @@ template<class E,class T1,class T2,class T3,class T4,class T5,class T6>
 void write(std::ostream& output,const T1& d1,const T2& d2,const T3& d3,const T4& d4,const T5& d5,const T6& d6)
 {write<E>(output,d1);write<E>(output,d2,d3,d4,d5,d6);}
 
-EXIT_PARTIO_NAMESPACE
-
+}
 #endif

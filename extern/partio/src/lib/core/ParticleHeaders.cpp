@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <cassert>
 #include <iostream>
 
-ENTER_PARTIO_NAMESPACE
+using namespace Partio;
 
 ParticleHeaders::
 ParticleHeaders()
@@ -56,18 +56,6 @@ release() const
     delete this;
 }
 
-/*
-ParticlesDataMutable* ParticleHeaders::reset() const
-{
-	//std::cout << "particleHeaders reset" << std::endl;
-	delete this;
-	ParticlesDataMutable * newParticlesData = create();
-	return newParticlesData;
-}
-*/
-
-
-
 int ParticleHeaders::
 numParticles() const
 {
@@ -80,6 +68,11 @@ numAttributes() const
     return attributes.size();
 }
 
+int ParticleHeaders::
+numFixedAttributes() const
+{
+    return fixedAttributes.size();
+}
 
 bool ParticleHeaders::
 attributeInfo(const int attributeIndex,ParticleAttribute& attribute) const
@@ -90,11 +83,30 @@ attributeInfo(const int attributeIndex,ParticleAttribute& attribute) const
 }
 
 bool ParticleHeaders::
+fixedAttributeInfo(const int attributeIndex,FixedAttribute& attribute) const
+{
+    if(attributeIndex<0 || attributeIndex>=(int)fixedAttributes.size()) return false;
+    attribute=fixedAttributes[attributeIndex];
+    return true;
+}
+
+bool ParticleHeaders::
 attributeInfo(const char* attributeName,ParticleAttribute& attribute) const
 {
     std::map<std::string,int>::const_iterator it=nameToAttribute.find(attributeName);
     if(it!=nameToAttribute.end()){
         attribute=attributes[it->second];
+        return true;
+    }
+    return false;
+}
+
+bool ParticleHeaders::
+fixedAttributeInfo(const char* attributeName,FixedAttribute& attribute) const
+{
+    std::map<std::string,int>::const_iterator it=nameToFixedAttribute.find(attributeName);
+    if(it!=nameToFixedAttribute.end()){
+        attribute=fixedAttributes[it->second];
         return true;
     }
     return false;
@@ -115,7 +127,21 @@ registerIndexedStr(const ParticleAttribute& attribute,const char* str)
 }
 
 int ParticleHeaders::
+registerFixedIndexedStr(const FixedAttribute& attribute,const char* str)
+{
+    assert(false);
+    return -1;
+}
+
+int ParticleHeaders::
 lookupIndexedStr(const ParticleAttribute& attribute,const char* str) const
+{
+    assert(false);
+    return -1;
+}
+
+int ParticleHeaders::
+lookupFixedIndexedStr(const FixedAttribute& attribute,const char* str) const
 {
     assert(false);
     return -1;
@@ -123,6 +149,14 @@ lookupIndexedStr(const ParticleAttribute& attribute,const char* str) const
 
 const std::vector<std::string>& ParticleHeaders::
 indexedStrs(const ParticleAttribute& attr) const
+{
+    static std::vector<std::string> dummy;
+    assert(false);
+    return dummy;
+}
+
+const std::vector<std::string>& ParticleHeaders::
+fixedIndexedStrs(const FixedAttribute& attr) const
 {
     static std::vector<std::string> dummy;
     assert(false);
@@ -165,6 +199,20 @@ addAttribute(const char* attribute,ParticleAttributeType type,const int count)
     return attr;
 }
 
+FixedAttribute ParticleHeaders::
+addFixedAttribute(const char* attribute,ParticleAttributeType type,const int count)
+{
+    // TODO: check if attribute already exists and if so what data type
+    FixedAttribute attr;
+    attr.name=attribute;
+    attr.type=type;
+    attr.attributeIndex=fixedAttributes.size(); //  all arrays separate so we don't use this here!
+    attr.count=count;
+    fixedAttributes.push_back(attr);
+    nameToFixedAttribute[attribute]=fixedAttributes.size()-1;
+    return attr;
+}
+
 ParticleIndex ParticleHeaders::
 addParticle()
 {
@@ -187,6 +235,13 @@ dataInternal(const ParticleAttribute& attribute,const ParticleIndex particleInde
     return 0;
 }
 
+void* ParticleHeaders::
+fixedDataInternal(const FixedAttribute& attribute) const
+{
+    assert(false);
+    return 0;
+}
+
 void ParticleHeaders::
 dataInternalMultiple(const ParticleAttribute& attribute,const int indexCount,
     const ParticleIndex* particleIndices,const bool sorted,char* values) const
@@ -201,4 +256,13 @@ dataAsFloat(const ParticleAttribute& attribute,const int indexCount,
     assert(false);
 }
 
-EXIT_PARTIO_NAMESPACE
+
+void ParticleHeaders::
+setIndexedStr(const ParticleAttribute& attribute,int indexedStringToken,const char* str){
+    assert(false);
+}
+
+void ParticleHeaders::
+setFixedIndexedStr(const FixedAttribute& attribute,int indexedStringToken,const char* str){
+    assert(false);
+}

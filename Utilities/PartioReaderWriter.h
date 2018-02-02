@@ -4,7 +4,7 @@
 #include "SPlisHSPlasH/Common.h"
 #include <vector>
 
-namespace SPH
+namespace Utilities
 {
 	/** \brief Class for reading and writing partio files.
 	*/

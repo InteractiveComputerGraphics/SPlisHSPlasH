@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -39,9 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #ifndef PARTIO_WIN32
 
 #include <pthread.h>
-#include "../PartioConfig.h"
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 
 #ifndef PARTIO_USE_SPINLOCK
 
@@ -100,7 +100,7 @@ ENTER_PARTIO_NAMESPACE
     };
     
 #endif // USE_PTHREAD_SPINLOCK
-EXIT_PARTIO_NAMESPACE
+}
 
 #else
 #include <windows.h>

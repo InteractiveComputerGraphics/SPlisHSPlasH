@@ -17,7 +17,6 @@ namespace SPH
 			virtual ~SimulationDataPCISPH();
 
 		protected:	
-			FluidModel *m_model;
 			Real m_pcisph_factor;
 
 			std::vector<Vector3r> m_lastX;
@@ -29,7 +28,7 @@ namespace SPH
 		public:
 			/** Initialize the arrays containing the particle data.
 			*/
-			virtual void init(FluidModel *model);
+			virtual void init();
 
 			/** Release the arrays containing the particle data.
 			*/

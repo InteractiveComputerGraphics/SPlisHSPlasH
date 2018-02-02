@@ -11,5 +11,9 @@ NonPressureForceBase::~NonPressureForceBase(void)
 {
 }
 
+void NonPressureForceBase::init()
+{
+	initParameters();
+}
 
 

@@ -7,8 +7,6 @@
 
 namespace SPH 
 {	
-	class TimeStep;
-
 	class Emitter 
 	{
 		public:
@@ -29,13 +27,13 @@ namespace SPH
 			unsigned int m_emitCounter;
 
 		public:
-			void emitParticles(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
-			void emitParticlesCircle(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
+			void emitParticles(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
+			void emitParticlesCircle(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
 			Real getNextEmitTime() const { return m_nextEmitTime; }
 			void setNextEmitTime(Real val) { m_nextEmitTime = val; }
 			static void getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vector3r &y);
 
-			void step(TimeStep *timeStep, std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
+			void step(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
 			virtual void reset();
 
 	};

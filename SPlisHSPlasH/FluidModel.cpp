@@ -3,8 +3,26 @@
 #include <iostream>
 #include "TimeManager.h"
 #include "TimeStep.h"
+#include "Utilities/Logger.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+int FluidModel::KERNEL_METHOD = -1;
+int FluidModel::GRAD_KERNEL_METHOD = -1;
+int FluidModel::NUM_PARTICLES = -1;
+int FluidModel::NUM_REUSED_PARTICLES = -1;
+int FluidModel::PARTICLE_RADIUS = -1;
+int FluidModel::DENSITY0 = -1;
+int FluidModel::ENUM_KERNEL_CUBIC = -1;
+int FluidModel::ENUM_KERNEL_POLY6 = -1;
+int FluidModel::ENUM_KERNEL_SPIKY = -1;
+int FluidModel::ENUM_KERNEL_PRECOMPUTED_CUBIC = -1;
+int FluidModel::ENUM_GRADKERNEL_CUBIC = -1;
+int FluidModel::ENUM_GRADKERNEL_POLY6 = -1;
+int FluidModel::ENUM_GRADKERNEL_SPIKY = -1;
+int FluidModel::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC = -1;
+
 
 FluidModel::FluidModel() :
 	m_particleObjects(),
@@ -13,16 +31,16 @@ FluidModel::FluidModel() :
 	m_v0(),
 	m_density()
 {	
+	m_emitterSystem = new EmitterSystem();
 	m_density0 = 1000.0;
 	setParticleRadius(0.025);
-	m_neighborhoodSearch = NULL;
-	m_gravitation = Vector3r(0.0, -9.81, 0.0);
+	m_neighborhoodSearch = NULL;	
 
 	ParticleObject *fluidParticles = new ParticleObject();
 	m_particleObjects.push_back(fluidParticles);
 
-	setKernel(3);
-	setGradKernel(3);
+	m_kernelMethod = -1;
+	m_gradKernelMethod = -1;
 }
 
 FluidModel::~FluidModel(void)
@@ -53,11 +71,69 @@ void FluidModel::cleanupModel()
 	m_masses.clear();
 	m_density.clear();
 	delete m_neighborhoodSearch;
+	delete m_emitterSystem;
 }
+
+void FluidModel::init()
+{
+	initParameters();
+}
+
+void FluidModel::initParameters()
+{
+	ParameterObject::initParameters();
+
+	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&FluidModel::getParticleRadius, this);
+	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&FluidModel::setParticleRadius, this, std::placeholders::_1);
+	PARTICLE_RADIUS = createNumericParameter("particleRadius", "Particle radius", getRadiusFct, setRadiusFct);
+	setGroup(PARTICLE_RADIUS, "Simulation");
+	setDescription(PARTICLE_RADIUS, "Radius of the fluid particles.");
+	getParameter(PARTICLE_RADIUS)->setReadOnly(true);
+
+	ParameterBase::GetFunc<Real> getDensity0Fct = std::bind(&FluidModel::getDensity0, this);
+	ParameterBase::SetFunc<Real> setDensity0Fct = std::bind(&FluidModel::setDensity0, this, std::placeholders::_1);
+	DENSITY0 = createNumericParameter("density0", "Rest density", getDensity0Fct, setDensity0Fct);
+	setGroup(DENSITY0, "Simulation");
+	setDescription(DENSITY0, "Rest density of the fluid.");
+	getParameter(DENSITY0)->setReadOnly(true);
+
+	NUM_PARTICLES = createNumericParameter("numParticles", "# active particles", &m_numActiveParticles);
+	setGroup(NUM_PARTICLES, "Simulation");
+	setDescription(NUM_PARTICLES, "Number of active fluids particles in the simulation.");
+	getParameter(NUM_PARTICLES)->setReadOnly(true);
+
+	NUM_REUSED_PARTICLES = createNumericParameter<unsigned int>("numReusedParticles", "# reused particles", [&]() { return m_emitterSystem->numReusedParticles(); });
+	setGroup(NUM_REUSED_PARTICLES, "Simulation");
+	setDescription(NUM_REUSED_PARTICLES, "Number of reused fluids particles in the simulation.");
+	getParameter(NUM_REUSED_PARTICLES)->setReadOnly(true);
+
+	ParameterBase::GetFunc<int> getKernelFct = std::bind(&FluidModel::getKernel, this);
+	ParameterBase::SetFunc<int> setKernelFct = std::bind(&FluidModel::setKernel, this, std::placeholders::_1);
+	KERNEL_METHOD = createEnumParameter("kernel", "Kernel", getKernelFct, setKernelFct);
+	setGroup(KERNEL_METHOD, "Kernel");
+	setDescription(KERNEL_METHOD, "Kernel function used in the SPH model.");
+	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
+	enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
+	enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
+	enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
+	enumParam->addEnumValue("Precomputed cubic spline", ENUM_KERNEL_PRECOMPUTED_CUBIC);
+
+	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&FluidModel::getGradKernel, this);
+	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&FluidModel::setGradKernel, this, std::placeholders::_1);
+	GRAD_KERNEL_METHOD = createEnumParameter("gradKernel", "Gradient of kernel", getGradKernelFct, setGradKernelFct);
+	setGroup(GRAD_KERNEL_METHOD, "Kernel");
+	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the SPH model.");
+	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
+	enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
+	enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
+	enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
+	enumParam->addEnumValue("Precomputed cubic spline", ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+}
+
 
 void FluidModel::reset()
 {
-	m_emitterSystem.reset();
+	m_emitterSystem->reset();
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
 
@@ -174,6 +250,9 @@ void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidPa
 
 void FluidModel::updateBoundaryPsi()
 {
+	if (m_neighborhoodSearch == nullptr)
+		return; 
+
 	//////////////////////////////////////////////////////////////////////////
 	// Compute value psi for boundary particles (boundary handling)
 	// (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012
@@ -182,7 +261,7 @@ void FluidModel::updateBoundaryPsi()
 	// Search boundary neighborhood
 
 	// Activate only static boundaries
-	std::cout << "Initialize boundary psi\n";
+	LOG_INFO << "Initialize boundary psi";
 	m_neighborhoodSearch->set_active(false);
 	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
 	{
@@ -315,7 +394,7 @@ void SPH::FluidModel::setDensity0(const Real v)
 	updateBoundaryPsi();
 }
 
-void SPH::FluidModel::setParticleRadius(Real val)
+void FluidModel::setParticleRadius(Real val)
 {
 	m_particleRadius = val; 
 	m_supportRadius = 4.0*m_particleRadius;
@@ -330,7 +409,7 @@ void SPH::FluidModel::setParticleRadius(Real val)
 }
 
 
-void SPH::FluidModel::setGradKernel(unsigned int val)
+void SPH::FluidModel::setGradKernel(int val)
 {
 	m_gradKernelMethod = val;
 	if (m_gradKernelMethod == 0)
@@ -343,8 +422,11 @@ void SPH::FluidModel::setGradKernel(unsigned int val)
 		m_gradKernelFct = FluidModel::PrecomputedCubicKernel::gradW;
 }
 
-void SPH::FluidModel::setKernel(unsigned int val)
+void SPH::FluidModel::setKernel(int val)
 {
+	if (val == m_kernelMethod)
+		return;
+
 	m_kernelMethod = val;
 	if (m_kernelMethod == 0)
 	{
@@ -366,6 +448,7 @@ void SPH::FluidModel::setKernel(unsigned int val)
 		m_W_zero = FluidModel::PrecomputedCubicKernel::W_zero();
 		m_kernelFct = FluidModel::PrecomputedCubicKernel::W;
 	}
+	updateBoundaryPsi();
 }
 
 void FluidModel::setNumActiveParticles(const unsigned int num)

@@ -42,3 +42,7 @@ target_link_libraries(PartioViewer ${VIEWER_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 
 set_target_properties(PartioViewer PROPERTIES FOLDER "Tools")
+
+add_custom_command(TARGET PartioViewer PRE_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:PartioViewer>/resources/shaders)

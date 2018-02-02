@@ -19,7 +19,7 @@ namespace SPH
 	protected:
 		SimulationDataPBF m_simulationData;
 		unsigned int m_counter;
-		unsigned int m_velocityUpdateMethod;
+		int m_velocityUpdateMethod;
 
 		/** Perform a position-based correction step for the following density constraint:\n
 		*  \f$C(\mathbf{x}) = \left (\frac{\rho_i}{\rho_0} - 1 \right )= 0\f$\n
@@ -28,13 +28,19 @@ namespace SPH
 
 		/** Perform the neighborhood search for all fluid particles. 
 		*/
-		virtual void performNeighborhoodSearch();
+		void performNeighborhoodSearch();
 
 		virtual void emittedParticles(const unsigned int startIndex);
 
+		virtual void initParameters();
+
 	public:
+		static int VELOCITY_UPDATE_METHOD;
+		static int ENUM_PBF_FIRST_ORDER;
+		static int ENUM_PBF_SECOND_ORDER;
+
 		/** Initialize the simulation data required for this method. */
-		TimeStepPBF(FluidModel *model);
+		TimeStepPBF();
 		virtual ~TimeStepPBF(void);
 
 		/** Perform a simulation step. */
@@ -42,9 +48,7 @@ namespace SPH
 
 		/** Reset the simulation method. */
 		virtual void reset();
-
-		unsigned int getVelocityUpdateMethod() const { return m_velocityUpdateMethod; }
-		void setVelocityUpdateMethod(unsigned int val) { m_velocityUpdateMethod = val; }
+		virtual void resize();
 	};
 }
 

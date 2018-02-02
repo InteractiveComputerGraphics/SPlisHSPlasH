@@ -1,3 +1,10 @@
+2.0.0
+	- the parameters of all methods are now handled by the library GenericParameters
+	- the GUI is automatically generated using the information of the generic parameters
+	- updated PositionBasedDynamics library which now supports arbitrary rigid body collisions
+	- added Logger
+	
+
 1.3.1	
 	- added implicit viscosity computation of Peer and Teschner 2016
 	- fixed drag force computation of Gissler et al. 2017

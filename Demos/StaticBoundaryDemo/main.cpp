@@ -5,14 +5,18 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include <Eigen/Dense>
 #include <iostream>
-#include "SPlisHSPlasH/Utilities/Timing.h"
+#include "Utilities/Timing.h"
 #include "Utilities/PartioReaderWriter.h"
 #include "SPlisHSPlasH/StaticRigidBody.h"
 #include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
 #include "Demos/Common/DemoBase.h"
 #include "Utilities/FileSystem.h"
+#include "Utilities/Version.h"
 #include <fstream>
+#include "Utilities/Logger.h"
+#include "SPlisHSPlasH/Simulation.h"
+#include "Demos/Common/TweakBarParameters.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -24,28 +28,41 @@
 using namespace SPH;
 using namespace Eigen;
 using namespace std;
+using namespace Utilities;
 
 void timeStep ();
 void initBoundaryData();
 void render ();
 void renderBoundary();
 void reset();
-void simulationMethodChanged();
-void partioExport();
+void initParameters();
+void loadObj(const std::string &filename, TriangleMesh &geo, const Vector3r &scale);
 
-DemoBase base;
-Real nextFrameTime = 0.0;
-unsigned int frameCounter = 1;
+DemoBase *base;
+
+
 
 // main 
 int main( int argc, char **argv )
 {
 	REPORT_MEMORY_LEAKS;
 
-	base.init(argc, argv, "StaticBoundaryDemo");
+	base = new DemoBase();
+	base->init(argc, argv, "StaticBoundaryDemo");
+
 	initBoundaryData();
-	base.buildModel();
-	base.setSimulationMethodChangedFct(simulationMethodChanged);
+	base->buildModel();
+
+	Simulation *sim = Simulation::getCurrent();
+	sim->setDragMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getDragBase()); });
+	sim->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getSurfaceTensionBase()); });
+	sim->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getViscosityBase()); });
+	sim->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getVorticityBase()); });
+
+	initParameters();
+	base->readParameters();
+
+	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getTimeStep()); });
 
 	MiniGL::setClientIdleFunc(50, timeStep);
 	MiniGL::setKeyFunc(0, 'r', reset);
@@ -53,76 +70,81 @@ int main( int argc, char **argv )
 
 	glutMainLoop ();	
 
-	base.cleanup ();
+	base->cleanup ();
 
-	Timing::printAverageTimes();
-	Timing::printTimeSums();
+	Utilities::Timing::printAverageTimes();
+	Utilities::Timing::printTimeSums();
+
+	delete Simulation::getCurrent();
+	delete base;
 	
 	return 0;
 }
 
-void reset()
+void initParameters()
 {
-	Timing::printAverageTimes();
-	Timing::reset();
+	TwRemoveAllVars(MiniGL::getTweakBar());
+	TweakBarParameters::cleanup();
 
-	base.getSimulationMethod().simulation->reset();
-	TimeManager::getCurrent()->setTime(0.0);
-	base.getSelectedParticles().clear();
+	MiniGL::initTweakBarParameters();
 
-	nextFrameTime = 0.0;
-	frameCounter = 1;
+	TweakBarParameters::createParameterGUI();
+	TweakBarParameters::createParameterObjectGUI(base);
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getModel());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getTimeStep());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getDragBase());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getSurfaceTensionBase());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getViscosityBase());
+	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getVorticityBase());
 }
 
-void simulationMethodChanged()
+void reset()
 {
-	reset();
+	Utilities::Timing::printAverageTimes();
+	Utilities::Timing::reset();
+
+	Simulation::getCurrent()->reset();
+	base->getSelectedParticles().clear();
 }
 
 void timeStep ()
 {
-	if ((base.getPauseAt() > 0.0) && (base.getPauseAt() < TimeManager::getCurrent()->getTime()))
-		base.setPause(true);
+	const Real pauseAt = base->getValue<Real>(DemoBase::PAUSE_AT);
+	if ((pauseAt > 0.0) && (pauseAt < TimeManager::getCurrent()->getTime()))
+		base->setValue(DemoBase::PAUSE, true);
 
-	if (base.getPause())
+	if (base->getValue<bool>(DemoBase::PAUSE))
 		return;
 
 	// Simulation code
-	for (unsigned int i = 0; i < base.getNumberOfStepsPerRenderUpdate(); i++)
+	const unsigned int numSteps = base->getValue<unsigned int>(DemoBase::NUM_STEPS_PER_RENDER);
+	for (unsigned int i = 0; i < numSteps; i++)
 	{
 		START_TIMING("SimStep");
-		base.getSimulationMethod().simulation->step();
+		Simulation::getCurrent()->getTimeStep()->step();
 		STOP_TIMING_AVG;
 
-		if (base.getEnablePartioExport())
-		{
-			if (TimeManager::getCurrent()->getTime() >= nextFrameTime)
-			{
-				nextFrameTime += 1.0 / base.getFramesPerSecond();
-				partioExport();
-				frameCounter++;
-			}
-		}
+		base->step();
 	}
 }
-
 
 void render()
 {
 	MiniGL::coordinateSystem();
 
-	base.renderFluid();
+	base->renderFluid();
 	renderBoundary();
 }
 
 void renderBoundary()
 {
-	DemoBase::SimulationMethod &simulationMethod = base.getSimulationMethod();
-	Shader &shader = base.getShader();
-	Shader &meshShader = base.getMeshShader();
-	SceneLoader::Scene &scene = base.getScene();
-	const int renderWalls = base.getRenderWalls();
-	GLint context_major_version = base.getContextMajorVersion();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	Shader &shader = base->getShader();
+	Shader &meshShader = base->getMeshShader();
+	SceneLoader::Scene &scene = base->getScene();
+	const int renderWalls = base->getValue<int>(DemoBase::RENDER_WALLS);
+	GLint context_major_version = base->getContextMajorVersion();
 
 	float wallColor[4] = { 0.1f, 0.6f, 0.6f, 1.0f };
 	if ((renderWalls == 1) || (renderWalls == 2))
@@ -132,12 +154,12 @@ void renderBoundary()
 			shader.begin();
 			glUniform3fv(shader.getUniform("color"), 1, &wallColor[0]);
 			glEnableVertexAttribArray(0);
-			for (int body = simulationMethod.model.numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+			for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					FluidModel::RigidBodyParticleObject *rb = simulationMethod.model.getRigidBodyParticleObject(body);
-					glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &simulationMethod.model.getPosition(body + 1, 0));
+					FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
+					glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(body + 1, 0));
 					glDrawArrays(GL_POINTS, 0, rb->numberOfParticles());
 				}
 			}
@@ -150,15 +172,15 @@ void renderBoundary()
 			glPointSize(4.0f);
  
 			glBegin(GL_POINTS);
-			for (int body = simulationMethod.model.numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+			for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					FluidModel::RigidBodyParticleObject *rb = simulationMethod.model.getRigidBodyParticleObject(body);
+					FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
 					for (unsigned int i = 0; i < rb->numberOfParticles(); i++)
 					{
 						glColor3fv(wallColor);
-						glVertex3v(&simulationMethod.model.getPosition(body + 1, i)[0]);
+						glVertex3v(&model->getPosition(body + 1, i)[0]);
 					}
 				}
 			}
@@ -168,7 +190,7 @@ void renderBoundary()
 	}
 	else if ((renderWalls == 3) || (renderWalls == 4))
 	{
-		for (int body = simulationMethod.model.numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+		for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
 		{
 			if ((renderWalls == 3) || (!scene.boundaryModels[body]->isWall))
 			{
@@ -185,7 +207,7 @@ void renderBoundary()
 
 				glUniform3fv(meshShader.getUniform("surface_color"), 1, wallColor);
 
-				FluidModel::RigidBodyParticleObject *rb = simulationMethod.model.getRigidBodyParticleObject(body);
+				FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
 				MiniGL::drawMesh(((StaticRigidBody*)rb->m_rigidBody)->getGeometry(), wallColor);
 
 				meshShader.end();
@@ -194,27 +216,70 @@ void renderBoundary()
 	}
 }
 
+void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
+{
+	std::vector<OBJLoader::Vec3f> x;
+	std::vector<OBJLoader::Vec3f> normals;
+	std::vector<MeshFaceIndices> faces;
+	OBJLoader::Vec3f s = { (float) scale[0], (float)scale[1], (float)scale[2] };
+	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
+
+	mesh.release();
+	const unsigned int nPoints = (unsigned int)x.size();
+	const unsigned int nFaces = (unsigned int)faces.size();
+	mesh.initMesh(nPoints, nFaces);
+	for (unsigned int i = 0; i < nPoints; i++)
+	{
+		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
+	}
+	for (unsigned int i = 0; i < nFaces; i++)
+	{
+		// Reduce the indices by one
+		int posIndices[3];
+		for (int j = 0; j < 3; j++)
+		{
+			posIndices[j] = faces[i].posIndices[j] - 1;
+		}
+
+		mesh.addFace(&posIndices[0]);
+	}
+
+	LOG_INFO << "Number of triangles: " << nFaces;
+	LOG_INFO << "Number of vertices: " << nPoints;
+}
 
 void initBoundaryData()
 {
-	std::string base_path = FileSystem::getFilePath(base.getSceneFile());
-	SceneLoader::Scene &scene = base.getScene();
-	const bool useCache = base.getUseParticleCaching();
+	std::string scene_path = FileSystem::getFilePath(base->getSceneFile());
+	std::string scene_file_name = FileSystem::getFileName(base->getSceneFile());
+	SceneLoader::Scene &scene = base->getScene();
+	const bool useCache = base->getUseParticleCaching();
+
+	string cachePath = scene_path + "/Cache";
 
 	for (unsigned int i = 0; i < scene.boundaryModels.size(); i++)
 	{
-		string meshFileName = FileSystem::normalizePath(base_path + "/" + scene.boundaryModels[i]->meshFile);
+		string meshFileName = FileSystem::normalizePath(scene_path + "/" + scene.boundaryModels[i]->meshFile);
+
+		std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + FileSystem::getFileNameWithExt(meshFileName) + ".md5");
+		bool md5 = false;
+		if (useCache)
+		{
+			string md5Str = FileSystem::getFileMD5(meshFileName);
+			if (FileSystem::fileExists(md5FileName))
+				md5 = FileSystem::checkMD5(md5Str, md5FileName);
+		}
 
 		std::vector<Vector3r> boundaryParticles;
 		if (scene.boundaryModels[i]->samplesFile != "")
 		{
-			string particleFileName = base_path + "/" + scene.boundaryModels[i]->samplesFile;
+			string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
 			PartioReaderWriter::readParticles(particleFileName, scene.boundaryModels[i]->translation, scene.boundaryModels[i]->rotation, scene.boundaryModels[i]->scale[0], boundaryParticles);
 		}
 
 		StaticRigidBody *rb = new StaticRigidBody();
 		TriangleMesh &geo = rb->getGeometry();
-		OBJLoader::loadObj(meshFileName, geo, scene.boundaryModels[i]->scale);
+		loadObj(meshFileName, geo, scene.boundaryModels[i]->scale);
 		for (unsigned int j = 0; j < geo.numVertices(); j++)
 			geo.getVertices()[j] = scene.boundaryModels[i]->rotation * geo.getVertices()[j] + scene.boundaryModels[i]->translation;
 
@@ -226,36 +291,25 @@ void initBoundaryData()
 			// Cache sampling
 			std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
 			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
-			std::string scene_path = FileSystem::getFilePath(base.getSceneFile());
-			std::string scene_file_name = FileSystem::getFileName(base.getSceneFile());
-			string cachePath = scene_path + "/" + mesh_base_path + "/Cache";
-			string particleFileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + "_" + mesh_file_name + "_" + std::to_string(i) + ".bgeo");
+
+			const string resStr = to_string(scene.boundaryModels[i]->scale[0]) + "_" + to_string(scene.boundaryModels[i]->scale[1]) + "_" + to_string(scene.boundaryModels[i]->scale[2]);
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_" + std::to_string(i) + "_" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
-			bool md5 = false;
 
-			std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + scene_file_name + ".md5");
 			if (useCache)
-			{
 				foundCacheFile = FileSystem::fileExists(particleFileName);
-				if (foundCacheFile)
-				{
-					string md5Str = FileSystem::getFileMD5(base.getSceneFile());
-					md5 = FileSystem::checkMD5(md5Str, md5FileName);
-				}
-			}
 
-			
 			if (useCache && foundCacheFile && md5)
 			{
 				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
-				std::cout << "Loaded cached boundary sampling: " << particleFileName << "\n";
+				LOG_INFO << "Loaded cached boundary sampling: " << particleFileName;
 			}
 
 			if (!useCache || !foundCacheFile || !md5)
 			{
-				std::cout << "Surface sampling of " << meshFileName << "\n";
+				LOG_INFO << "Surface sampling of " << meshFileName;
 				START_TIMING("Poisson disk sampling");
 				PoissonDiskSampling sampling;
 				sampling.sampleMesh(geo.numVertices(), geo.getVertices().data(), geo.numFaces(), geo.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
@@ -264,26 +318,13 @@ void initBoundaryData()
 				// Cache sampling
 				if (useCache && (FileSystem::makeDir(cachePath) == 0))
 				{
-					std::cout << "Save particle sampling: " << particleFileName << "\n";
-					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), NULL, scene.particleRadius);
-
-					FileSystem::writeMD5File(base.getSceneFile(), md5FileName);
+					LOG_INFO << "Save particle sampling: " << particleFileName;
+					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, scene.particleRadius);
+					FileSystem::writeMD5File(meshFileName, md5FileName);
 				}
 			}
 		}
-		base.getSimulationMethod().model.addRigidBodyObject(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
+		Simulation::getCurrent()->getModel()->addRigidBodyObject(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}
 }
 
-void partioExport()
-{
-	FluidModel &model = base.getSimulationMethod().model;
-	std::string exportPath = FileSystem::normalizePath(base.getExePath() + "/PartioExport");
-	FileSystem::makeDirs(exportPath);
-
-	std::string fileName = "ParticleData";
-	fileName = fileName + std::to_string(frameCounter) + ".bgeo";
-	std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
-
-	PartioReaderWriter::writeParticles(exportFileName, model.numActiveParticles(), &model.getPosition(0, 0), &model.getVelocity(0, 0), model.getParticleRadius());
-}

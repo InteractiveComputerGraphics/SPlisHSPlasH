@@ -18,8 +18,6 @@ namespace SPH
 		virtual ~SimulationDataPF();
 
 	protected:
-		FluidModel *m_model;
-
 		/** \brief particle position from last timestep */
 		std::vector<Vector3r> m_old_position;
 
@@ -36,7 +34,7 @@ namespace SPH
 
 		/** Initialize the arrays containing the particle data.
 		*/
-		virtual void init(FluidModel *model);
+		virtual void init();
 
 		/** Release the arrays containing the particle data.
 		*/

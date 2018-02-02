@@ -1,11 +1,11 @@
 #include "SimulationDataIISPH.h"
 #include "SPlisHSPlasH/SPHKernels.h"
+#include "SPlisHSPlasH/Simulation.h"
 
 using namespace SPH;
 
 SimulationDataIISPH::SimulationDataIISPH()
 {
-	m_model = NULL;
 }
 
 SimulationDataIISPH::~SimulationDataIISPH(void)
@@ -13,17 +13,16 @@ SimulationDataIISPH::~SimulationDataIISPH(void)
 	cleanup();
 }
 
-void SimulationDataIISPH::init(FluidModel *model)
+void SimulationDataIISPH::init()
 {
-	m_model = model;
-
+	FluidModel *model = Simulation::getCurrent()->getModel();
 	m_aii.resize(model->numParticles(), 0.0);
-	m_dii.resize(model->numParticles(), SPH::Vector3r::Zero());
-	m_dij_pj.resize(model->numParticles(), SPH::Vector3r::Zero());
+	m_dii.resize(model->numParticles(), Vector3r::Zero());
+	m_dij_pj.resize(model->numParticles(), Vector3r::Zero());
 	m_density_adv.resize(model->numParticles(), 0.0);
 	m_pressure.resize(model->numParticles(), 0.0);
 	m_lastPressure.resize(model->numParticles(), 0.0);
-	m_pressureAccel.resize(model->numParticles(), SPH::Vector3r::Zero());
+	m_pressureAccel.resize(model->numParticles(), Vector3r::Zero());
 }
 
 void SimulationDataIISPH::cleanup()
@@ -39,7 +38,8 @@ void SimulationDataIISPH::cleanup()
 
 void SimulationDataIISPH::reset()
 {
-	for(unsigned int i=0; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for(unsigned int i=0; i < model->numActiveParticles(); i++)
 	{
 		m_lastPressure[i] = 0.0;
 	}
@@ -47,11 +47,12 @@ void SimulationDataIISPH::reset()
 
 void SimulationDataIISPH::performNeighborhoodSearchSort()
 {
-	const unsigned int numPart = m_model->numActiveParticles();
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const unsigned int numPart = model->numActiveParticles();
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	auto const& d = model->getNeighborhoodSearch()->point_set(0);
 	d.sort_field(&m_aii[0]);
 	d.sort_field(&m_dii[0]);
 	d.sort_field(&m_dij_pj[0]);
@@ -64,7 +65,8 @@ void SimulationDataIISPH::performNeighborhoodSearchSort()
 void SimulationDataIISPH::emittedParticles(const unsigned int startIndex)
 {
 	// initialize last pressure values for new particles
-	for (unsigned int i = startIndex; i < m_model->numActiveParticles(); i++)
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	for (unsigned int i = startIndex; i < model->numActiveParticles(); i++)
 	{
 		m_lastPressure[i] = 0.0;
 	}

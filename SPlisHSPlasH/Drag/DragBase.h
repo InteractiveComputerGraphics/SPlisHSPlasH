@@ -14,12 +14,13 @@ namespace SPH
 	protected:
 		Real m_dragCoefficient;
 
+		virtual void initParameters();
+
 	public:
+		static int DRAG_COEFFICIENT;
+
 		DragBase(FluidModel *model);
 		virtual ~DragBase(void);
-
-		Real getDragCoefficient() const { return m_dragCoefficient; }
-		void setDragCoefficient(Real val) { m_dragCoefficient = val; }
 	};
 }
 

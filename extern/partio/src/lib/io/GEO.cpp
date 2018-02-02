@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -44,7 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <memory>
 
 
-ENTER_PARTIO_NAMESPACE
+namespace Partio
+{
 
 using namespace std;
 
@@ -106,11 +107,11 @@ string scanString(istream& input)
     return string(buf);
 }
 
-ParticlesDataMutable* readGEO(const char* filename,const bool headersOnly)
+ParticlesDataMutable* readGEO(const char* filename,const bool headersOnly,std::ostream* errorStream)
 {
-    auto_ptr<istream> input(Gzip_In(filename,ios::in));
+    unique_ptr<istream> input(Gzip_In(filename,ios::in));
     if(!*input){
-        cerr<<"Partio: Can't open particle data file: "<<filename<<endl;
+        if(errorStream) *errorStream<<"Partio: Can't open particle data file: "<<filename<<endl;
         return 0;
     }
     int NPoints=0, NPointAttrib=0;
@@ -144,7 +145,7 @@ ParticlesDataMutable* readGEO(const char* filename,const bool headersOnly)
         int nvals = 0;
         *input >> attrName >> nvals >> attrType;
         if(attrType=="index"){
-            cerr<<"Partio: attr '"<<attrName<<"' of type index (string) found, treating as integer"<<endl;
+            if(errorStream) *errorStream<<"Partio: attr '"<<attrName<<"' of type index (string) found, treating as integer"<<endl;
             int nIndices=0;
             *input>>nIndices;
             ParticleAttribute attribute=simple->addAttribute(attrName.c_str(),INDEXEDSTR,1);
@@ -153,10 +154,11 @@ ParticlesDataMutable* readGEO(const char* filename,const bool headersOnly)
                 string indexName;
                 //*input>>indexName;
                 indexName=scanString(*input);
-                //std::cerr<<"Partio:    index "<<j<<" is "<<indexName<<std::endl;
-                int id=simple->registerIndexedStr(attribute,indexName.c_str());
-                if(id != j){
-                    cerr<<"Partio: error on read, expected registeerIndexStr to return index "<<j<<" but got "<<id<<" for string "<<indexName<<endl;
+                if (!headersOnly) {
+                    int id=simple->registerIndexedStr(attribute,indexName.c_str());
+                    if(id != j){
+                        if(errorStream) *errorStream<<"Partio: error on read, expected registerIndexStr to return index "<<j<<" but got "<<id<<" for string "<<indexName<<endl;
+                    }
                 }
             }
             accessors.push_back(ParticleAccessor(attrs.back()));
@@ -173,7 +175,7 @@ ParticlesDataMutable* readGEO(const char* filename,const bool headersOnly)
             else if(attrType=="vector") type=VECTOR;
             else if(attrType=="int") type=INT;
             else{
-                cerr<<"Partio: unknown attribute "<<attrType<<" type... aborting"<<endl;
+                if(errorStream) *errorStream<<"Partio: unknown attribute "<<attrType<<" type... aborting"<<endl;
                 type=NONE;
             }
             attrs.push_back(simple->addAttribute(attrName.c_str(),type,nvals));
@@ -233,9 +235,9 @@ void writeType(ostream& output,const ParticlesData& p,const ParticleAttribute& a
     }
 }
 
-bool writeGEO(const char* filename,const ParticlesData& p,const bool compressed)
+bool writeGEO(const char* filename,const ParticlesData& p,const bool compressed,std::ostream* errorStream)
 {
-    auto_ptr<ostream> output(
+    unique_ptr<ostream> output(
         compressed ? 
         Gzip_Out(filename,ios::out)
         :new ofstream(filename,ios::out));
@@ -285,7 +287,7 @@ bool writeGEO(const char* filename,const ParticlesData& p,const bool compressed)
         *output<<endl;
     }
     if(!foundPosition){
-        cerr<<"Partio: didn't find attr 'position' while trying to write GEO"<<endl;
+        if(errorStream) *errorStream<<"Partio: didn't find attr 'position' while trying to write GEO"<<endl;
         return false;
     }
 
@@ -325,4 +327,4 @@ bool writeGEO(const char* filename,const ParticlesData& p,const bool compressed)
     return true;
 }
 
-EXIT_PARTIO_NAMESPACE
+}

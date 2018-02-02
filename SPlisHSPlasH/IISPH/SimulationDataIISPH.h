@@ -17,8 +17,6 @@ namespace SPH
 			virtual ~SimulationDataIISPH();
 
 		protected:	
-			FluidModel *m_model;
-
 			std::vector<Real> m_aii;
 			std::vector<Vector3r> m_dii;
 			std::vector<Vector3r> m_dij_pj;
@@ -30,7 +28,7 @@ namespace SPH
 		public:
 			/** Initialize the arrays containing the particle data.
 			*/
-			virtual void init(FluidModel *model);
+			virtual void init();
 
 			/** Release the arrays containing the particle data.
 			*/

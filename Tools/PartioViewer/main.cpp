@@ -4,12 +4,13 @@
 #include "GL/glew.h"
 #include "Visualization/MiniGL.h"
 #include "GL/glut.h"
-#include "SPlisHSPlasH/Utilities/Timing.h"
+#include "Utilities/Timing.h"
 #include "Utilities/PartioReaderWriter.h"
 #include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
 #include "Utilities/FileSystem.h"
 #include <cfloat>
+#include "Utilities/Version.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -18,9 +19,13 @@
 #endif
 #endif
 
+INIT_TIMING
+INIT_LOGGING
+
 using namespace SPH;
 using namespace Eigen;
 using namespace std;
+using namespace Utilities;
 
 /** The wall is defined by the minimum and maximum position where
 * one coordinate must have the same value.
@@ -73,6 +78,10 @@ GLint context_minor_version;
 int main( int argc, char **argv )
 {
 	REPORT_MEMORY_LEAKS;
+
+	std::cout << "Git refspec: " << GIT_REFSPEC << std::endl;
+	std::cout << "Git SHA1: " << GIT_SHA1 << std::endl;
+	std::cout << "Git status: " << GIT_LOCAL_STATUS << std::endl;
 
 	exePath = FileSystem::getProgramPath();
 	dataPath = FileSystem::normalizePath(exePath + "/" + std::string(SPH_DATA_PATH));
@@ -138,8 +147,8 @@ int main( int argc, char **argv )
 
 void initShader()
 {
-	string vertFile = dataPath + "/shaders/vs_points.glsl";
-	string fragFile = dataPath + "/shaders/fs_points.glsl";
+	string vertFile = exePath + "/resources/shaders/vs_points.glsl";
+	string fragFile = exePath + "/resources/shaders/fs_points.glsl";
 	shader.compileShaderFile(GL_VERTEX_SHADER, vertFile);
 	shader.compileShaderFile(GL_FRAGMENT_SHADER, fragFile);
 	shader.createAndLinkProgram();

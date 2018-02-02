@@ -2,7 +2,7 @@
 #include "extern/partio/src/lib/Partio.h"
 #include "FileSystem.h"
 
-using namespace SPH;
+using namespace Utilities;
 
 
 bool PartioReaderWriter::readParticles(const std::string &fileName, const Vector3r &translation, const Matrix3r &rotation, const Real scale,

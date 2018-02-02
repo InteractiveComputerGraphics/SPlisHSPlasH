@@ -14,12 +14,13 @@ namespace SPH
 	protected:
 		Real m_vorticityCoeff;
 
+		virtual void initParameters();
+
 	public:
+		static int VORTICITY_COEFFICIENT;
+
 		VorticityBase(FluidModel *model);
 		virtual ~VorticityBase(void);
-
-		Real getVorticityCoeff() const { return m_vorticityCoeff; }
-		void setVorticityCoeff(Real val) { m_vorticityCoeff = val; }
 	};
 }
 

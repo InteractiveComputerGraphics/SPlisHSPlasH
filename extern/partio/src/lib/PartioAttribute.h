@@ -1,6 +1,6 @@
 /*
 PARTIO SOFTWARE
-Copyright 2013 Disney Enterprises, Inc. All rights reserved
+Copyright 2010 Disney Enterprises, Inc. All rights reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,10 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #ifndef _PartioParticleAttribute_h_
 #define _PartioParticleAttribute_h_
-
-#include "PartioConfig.h"
-
-ENTER_PARTIO_NAMESPACE
+namespace Partio{
 
 // Particle Types
 enum ParticleAttributeType {NONE=0,VECTOR=1,FLOAT=2,INT=3,INDEXEDSTR=4};
@@ -74,7 +71,7 @@ typeCheck(const ParticleAttributeType& type)
     }
 }
 
-inline
+inline 
 int TypeSize(ParticleAttributeType attrType)
 {
     switch(attrType){
@@ -93,7 +90,7 @@ std::string TypeName(ParticleAttributeType attrType);
 //!  Particle Collection Interface
 /*!
   This class provides a handle and description of an attribute. This includes
-  what type the primitive is, how many instances of the primitive there, name of
+  what type the primitive is, the number of entries, the name of
   the attribute and an index which speeds lookups of data
 */
 class ParticleAttribute
@@ -116,6 +113,31 @@ public:
     // std::string comment;
 };
 
-EXIT_PARTIO_NAMESPACE
+// Fixed Attribute Specifier
+//!  Fixed Attribute Interface
+/*!
+  This class provides a handle and description of an attribute. This includes
+  what type the primitive is, the number of entries, the name of
+  the attribute and an index which speeds lookups of data
+*/
+class FixedAttribute
+{
+public:
+    //! Type of attribute
+    ParticleAttributeType type;
 
+    //! Number of entries, should be 3 if type is VECTOR
+    int count;
+
+    //! Name of attribute
+    std::string name;
+
+    //! Internal method of fast access, user should not use or change
+    int attributeIndex;
+
+    //! Comment used by various data/readers for extra attribute information
+    //! for example for a PTC file to read and write this could be "color" or "point"
+    // std::string comment;
+};
+}
 #endif

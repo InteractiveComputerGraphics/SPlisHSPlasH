@@ -39,9 +39,9 @@ ExternalProject_Add(
    ExternalProject_PositionBasedDynamics
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "39a5099c39df84494df14aaad6fb9af845793ff7"
+   GIT_TAG "db841a2e7660ea856bc5090a109447edc832701d"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
-   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1		
+   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir}
 ) 
 
 ## CompactNSearch
@@ -54,6 +54,13 @@ ExternalProject_Add(
    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/CompactNSearch
 ) 
 
-
-
+## GenericParameters
+ExternalProject_Add(
+   ExternalProject_GenericParameters
+   PREFIX "${CMAKE_SOURCE_DIR}/extern/GenericParameters"
+   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/GenericParameters.git
+   GIT_TAG "1ec904bf8555e78ae0d8ba2f9f9a395371c5d4eb"
+   INSTALL_DIR ${ExternalInstallDir}/GenericParameters
+   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1		
+) 
 

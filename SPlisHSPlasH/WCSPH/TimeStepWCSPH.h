@@ -27,22 +27,21 @@ namespace SPH
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
-		virtual void performNeighborhoodSearch();
+		void performNeighborhoodSearch();
 
 		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void initParameters();
 
 	public:
-		TimeStepWCSPH(FluidModel *model);
+		static int STIFFNESS;
+		static int EXPONENT;
+
+		TimeStepWCSPH();
 		virtual ~TimeStepWCSPH(void);
 
 		virtual void step();
 		virtual void reset();
-
-		Real getStiffness() const { return m_stiffness; }
-		void setStiffness(Real val) { m_stiffness = val; }
-
-		Real getExponent() const { return m_exponent; }
-		void setExponent(Real val) { m_exponent = val; }
+		virtual void resize();
 	};
 }
 

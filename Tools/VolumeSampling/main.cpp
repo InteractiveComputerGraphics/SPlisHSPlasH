@@ -1,15 +1,19 @@
 #include "SPlisHSPlasH/Common.h"
 #include <Eigen/Dense>
 #include "extern/cxxopts/cxxopts.hpp"
-#include "SPlisHSPlasH/Utilities/Timing.h"
+#include "Utilities/Timing.h"
 #include "Utilities/OBJLoader.h"
 #include "WindingNumbers.h"
 #include "Utilities/PartioReaderWriter.h"
+#include "Utilities/Version.h"
 
 using namespace SPH;
 using namespace Eigen;
 using namespace std;
+using namespace Utilities;
 
+INIT_TIMING
+INIT_LOGGING
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -20,13 +24,13 @@ using namespace std;
 
 
 void sampleObject(TriangleMesh &mesh);
+void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 void partioExport();
 
 struct Region
 {
 public:
 	typedef Real value_type;
-
 
 	Region() {}
 	Region(Real minx, Real miny, Real minz,
@@ -70,6 +74,10 @@ int main(int argc, char **argv)
 {
 	REPORT_MEMORY_LEAKS;
 
+	std::cout << "Git refspec: " << GIT_REFSPEC << std::endl;
+	std::cout << "Git SHA1: " << GIT_SHA1 << std::endl;
+	std::cout << "Git status: " << GIT_LOCAL_STATUS << std::endl;
+
 	Timing::m_dontPrintTimes = true;
 
 	exePath = string(argv[0]);
@@ -110,7 +118,8 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			std::cout << "Input or output missing!" << std::endl;;
+			std::cout << "Input or output missing!" << std::endl;
+			std::cout << options.help({ "", "Group" }) << std::endl;
 			exit(1);
 		}
 
@@ -142,7 +151,7 @@ int main(int argc, char **argv)
 
 	diameter = 2.0 * radius;
 	TriangleMesh mesh;
-	OBJLoader::loadObj(inputFile, mesh, scale*Vector3r::Ones());
+	loadObj(inputFile, mesh, scale*Vector3r::Ones());
  	sampleObject(mesh);
 	PartioReaderWriter::writeParticles(outputFile, (unsigned int)particles.size(), particles.data(), NULL, radius);
 
@@ -151,6 +160,38 @@ int main(int argc, char **argv)
 	Timing::printAverageTimes();
 
 	return 0;
+}
+
+void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
+{
+	std::vector<OBJLoader::Vec3f> x;
+	std::vector<OBJLoader::Vec3f> normals;
+	std::vector<MeshFaceIndices> faces;
+	OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
+	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
+
+	mesh.release();
+	const unsigned int nPoints = (unsigned int)x.size();
+	const unsigned int nFaces = (unsigned int)faces.size();
+	mesh.initMesh(nPoints, nFaces);
+	for (unsigned int i = 0; i < nPoints; i++)
+	{
+		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
+	}
+	for (unsigned int i = 0; i < nFaces; i++)
+	{
+		// Reduce the indices by one
+		int posIndices[3];
+		for (int j = 0; j < 3; j++)
+		{
+			posIndices[j] = faces[i].posIndices[j] - 1;
+		}
+
+		mesh.addFace(&posIndices[0]);
+	}
+
+	LOG_INFO << "Number of triangles: " << nFaces;
+	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
  void sampleObject(TriangleMesh &mesh)

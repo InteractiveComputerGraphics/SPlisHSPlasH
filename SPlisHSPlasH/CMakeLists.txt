@@ -118,13 +118,13 @@ set(DRAG_SOURCE_FILES
 	
 set(UTILS_HEADER_FILES
 	Utilities/PoissonDiskSampling.h
-	Utilities/Timing.h
 	Utilities/MatrixFreeSolver.h
+	Utilities/SceneLoader.h
 	)
 	
 set(UTILS_SOURCE_FILES
 	Utilities/PoissonDiskSampling.cpp
-	Utilities/Timing.cpp
+	Utilities/SceneLoader.cpp
 	)	
 	
 find_package( Eigen3 REQUIRED )
@@ -134,6 +134,11 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 # CompactNSearch
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
+
+############################################################
+# GenericParameters
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
 
 add_library(SPlisHSPlasH
 	Common.h
@@ -147,6 +152,8 @@ add_library(SPlisHSPlasH
 	SPHKernels.cpp
 	SPHKernels.h
 	StaticRigidBody.h
+	Simulation.cpp
+	Simulation.h
 	TimeManager.cpp
 	TimeManager.h	
 	TimeStep.cpp
@@ -193,6 +200,7 @@ add_library(SPlisHSPlasH
 )
 
 add_dependencies(SPlisHSPlasH ExternalProject_CompactNSearch)
+add_dependencies(SPlisHSPlasH ExternalProject_GenericParameters)
 
 source_group("Header Files\\WCSPH" FILES ${WCSPH_HEADER_FILES})
 source_group("Source Files\\WCSPH" FILES ${WCSPH_SOURCE_FILES})

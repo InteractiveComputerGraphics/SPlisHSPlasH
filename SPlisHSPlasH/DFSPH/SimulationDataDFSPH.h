@@ -17,8 +17,6 @@ namespace SPH
 			virtual ~SimulationDataDFSPH();
 
 		protected:	
-			FluidModel *m_model;
-
 			/** \brief factor \f$\alpha_i\f$ \cite Bender:2015 */
 			std::vector<Real> m_factor;
 			/** \brief stores \f$\kappa\f$ value of last time step for a warm start of the pressure solver */
@@ -32,7 +30,7 @@ namespace SPH
 
 			/** Initialize the arrays containing the particle data.
 			*/
-			virtual void init(FluidModel *model);
+			virtual void init();
 
 			/** Release the arrays containing the particle data.
 			*/

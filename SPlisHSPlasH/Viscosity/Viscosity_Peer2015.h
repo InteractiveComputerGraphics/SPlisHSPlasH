@@ -17,7 +17,7 @@ namespace SPH
 	{
 	protected: 
 		std::vector<Matrix3r> m_targetNablaV;
-		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner<Real>> Solver;
+		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner1D> Solver;
 		Solver m_solver;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;

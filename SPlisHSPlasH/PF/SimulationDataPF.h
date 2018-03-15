@@ -25,10 +25,13 @@ namespace SPH
 		std::vector<unsigned int> m_num_fluid_neighbors;
 
 		/** \brief variables for optimization */
-		std::vector<Real> m_x;
+		std::vector<Vector3r> m_x;
 
 		/** \brief positions predicted from momentum */
 		std::vector<Vector3r> m_s;
+
+		/** \brief diagonal of system matrix, used by preconditioner*/
+		std::vector<Vector3r> m_mat_diag;
 
 	public:
 
@@ -81,12 +84,12 @@ namespace SPH
 			m_num_fluid_neighbors[i] = n;
 		}
 
-		FORCE_INLINE const std::vector<Real>& getX() const
+		FORCE_INLINE const std::vector<Vector3r>& getX() const
 		{
 			return m_x;
 		}
 
-		FORCE_INLINE std::vector<Real>& getX()
+		FORCE_INLINE std::vector<Vector3r>& getX()
 		{
 			return m_x;
 		}
@@ -104,6 +107,21 @@ namespace SPH
 		FORCE_INLINE void setS(const unsigned int i, const Vector3r & s)
 		{
 			m_s[i] = s;
+		}
+
+		FORCE_INLINE const Vector3r& getDiag(const unsigned int i) const
+		{
+			return m_mat_diag[i];
+		}
+
+		FORCE_INLINE Vector3r& getDiag(const unsigned int i)
+		{
+			return m_mat_diag[i];
+		}
+
+		FORCE_INLINE void setDiag(const unsigned int i, const Vector3r & s)
+		{
+			m_mat_diag[i] = s;
 		}
 	};
 }

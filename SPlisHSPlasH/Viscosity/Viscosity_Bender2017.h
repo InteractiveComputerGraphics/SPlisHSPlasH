@@ -17,7 +17,6 @@ namespace SPH
 		std::vector<Vector6r> m_targetStrainRate;
 		std::vector<Matrix6r> m_viscosityFactor;
 		std::vector<Vector6r> m_viscosityLambda;
-		std::vector<Vector6r> m_lastViscosityLambda;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;
 		Real m_maxError;
@@ -131,21 +130,6 @@ namespace SPH
 		FORCE_INLINE void setViscosityLambda(const unsigned int i, const Vector6r &val)
 		{
 			m_viscosityLambda[i] = val;
-		}
-
-		FORCE_INLINE const Vector6r& getLastViscosityLambda(const unsigned int i) const
-		{
-			return m_lastViscosityLambda[i];
-		}
-
-		FORCE_INLINE Vector6r& getLastViscosityLambda(const unsigned int i)
-		{
-			return m_lastViscosityLambda[i];
-		}
-
-		FORCE_INLINE void setViscosityLastLambda(const unsigned int i, const Vector6r &val)
-		{
-			m_lastViscosityLambda[i] = val;
 		}
 	};
 }

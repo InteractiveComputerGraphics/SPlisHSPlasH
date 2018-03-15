@@ -16,6 +16,7 @@ configure_file("${PROJECT_PATH}/Utilities/Version.h.in" "${PROJECT_PATH}/Utiliti
 
 add_library(Utilities
 	
+	Counting.h
 	FileSystem.h
 	Logger.h
 	OBJLoader.h

@@ -7,6 +7,8 @@
 #include "Viscosity/Viscosity_Bender2017.h"
 #include "Viscosity/Viscosity_Peer2015.h"
 #include "Viscosity/Viscosity_Peer2016.h"
+#include "Viscosity/Viscosity_Takahashi2015.h"
+#include "Viscosity/Viscosity_Weiler2018.h"
 #include "Vorticity/VorticityConfinement.h"
 #include "Drag/DragForce_Gissler2017.h"
 #include "Drag/DragForce_Macklin2014.h"
@@ -53,6 +55,8 @@ int Simulation::ENUM_VISCOSITY_XSPH = -1;
 int Simulation::ENUM_VISCOSITY_BENDER2017 = -1;
 int Simulation::ENUM_VISCOSITY_PEER2015 = -1;
 int Simulation::ENUM_VISCOSITY_PEER2016 = -1;
+int Simulation::ENUM_VISCOSITY_TAKAHASHI2015 = -1;
+int Simulation::ENUM_VISCOSITY_WEILER2018 = -1;
 int Simulation::ENUM_VORTICITY_NONE = -1;
 int Simulation::ENUM_VORTICITY_MICROPOLAR = -1;
 int Simulation::ENUM_VORTICITY_VC = -1;
@@ -145,7 +149,7 @@ void Simulation::initParameters()
 	setDescription(CFL_METHOD, "CFL method used for adaptive time stepping.");
 	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(CFL_METHOD));
 	enumParam->addEnumValue("None", ENUM_CFL_NONE);
-	enumParam->addEnumValue("CFL", ENUM_CFL_NONE);
+	enumParam->addEnumValue("CFL", ENUM_CFL_STANDARD);
 	enumParam->addEnumValue("CFL - iterations", ENUM_CFL_ITER);
 
 	CFL_FACTOR = createNumericParameter("cflFactor", "CFL - factor", &m_cflFactor);
@@ -206,6 +210,8 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("Bender and Koschier 2017", ENUM_VISCOSITY_BENDER2017);
 	enumParam->addEnumValue("Peer et al. 2015", ENUM_VISCOSITY_PEER2015);
 	enumParam->addEnumValue("Peer et al. 2016", ENUM_VISCOSITY_PEER2016);
+	enumParam->addEnumValue("Takahashi et al. 2015 (improved)", ENUM_VISCOSITY_TAKAHASHI2015);
+	enumParam->addEnumValue("Weiler et al. 2018", ENUM_VISCOSITY_WEILER2018);
 
 
 	ParameterBase::GetFunc<int> getVorticityFct = std::bind(&Simulation::getVorticityMethod, this);
@@ -445,6 +451,10 @@ void Simulation::setViscosityMethod(const int val)
 		m_viscosity = new Viscosity_Peer2015(m_model);
 	else if (m_viscosityMethod == ViscosityMethods::Peer2016)
 		m_viscosity = new Viscosity_Peer2016(m_model);
+	else if (m_viscosityMethod == ViscosityMethods::Takahashi2015)
+		m_viscosity = new Viscosity_Takahashi2015(m_model);
+	else if (m_viscosityMethod == ViscosityMethods::Weiler2018)
+		m_viscosity = new Viscosity_Weiler2018(m_model);
 
 	if (m_viscosity != nullptr)
 		m_viscosity->init();

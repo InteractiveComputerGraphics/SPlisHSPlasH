@@ -62,8 +62,7 @@ namespace SPH
 
 
 	/** Matrix-free Jacobi preconditioner  */
-	template <typename _Scalar>
-	class JacobiPreconditioner
+	class JacobiPreconditioner1D
 	{
 	public:
 		typedef typename SystemMatrixType::StorageIndex StorageIndex;
@@ -74,7 +73,7 @@ namespace SPH
 			MaxColsAtCompileTime = Eigen::Dynamic
 		};
 
-		JacobiPreconditioner() {}
+		JacobiPreconditioner1D() {}
 
 		void init(const unsigned int dim, DiagonalMatrixElementFct fct, void *userData)
 		{
@@ -87,13 +86,13 @@ namespace SPH
 		Eigen::ComputationInfo info() { return Eigen::Success; }
 
 		template<typename MatType>
-		JacobiPreconditioner& analyzePattern(const MatType&) { return *this; }
+		JacobiPreconditioner1D& analyzePattern(const MatType&) { return *this; }
 
 		template<typename MatType>
-		JacobiPreconditioner& factorize(const MatType& mat) { return *this; }
+		JacobiPreconditioner1D& factorize(const MatType& mat) { return *this; }
 
 		template<typename MatType>
-		JacobiPreconditioner& compute(const MatType& mat) 
+		JacobiPreconditioner1D& compute(const MatType& mat) 
 		{ 
 			m_invDiag.resize(m_dim);
 			#pragma omp parallel default(shared)
@@ -116,9 +115,9 @@ namespace SPH
 		}
 
 		template<typename Rhs>
-		inline const Eigen::Solve<JacobiPreconditioner, Rhs> solve(const Eigen::MatrixBase<Rhs>& b) const
+		inline const Eigen::Solve<JacobiPreconditioner1D, Rhs> solve(const Eigen::MatrixBase<Rhs>& b) const
 		{
-			return Eigen::Solve<JacobiPreconditioner, Rhs>(*this, b.derived());
+			return Eigen::Solve<JacobiPreconditioner1D, Rhs>(*this, b.derived());
 		}
 
 	protected:
@@ -127,6 +126,149 @@ namespace SPH
 		DiagonalMatrixElementFct m_diagonalElementFct;
 		void *m_userData;
 		Eigen::VectorXd m_invDiag;
+	};
+
+	/** Matrix-free Jacobi preconditioner  */
+	class JacobiPreconditioner3D
+	{
+	public:
+		typedef typename SystemMatrixType::StorageIndex StorageIndex;
+		typedef void(*DiagonalMatrixElementFct) (const unsigned int, Vector3r&, void *);
+		
+		enum {
+			ColsAtCompileTime = Eigen::Dynamic,
+			MaxColsAtCompileTime = Eigen::Dynamic
+		};
+
+		JacobiPreconditioner3D() {}
+
+		void init(const unsigned int dim, DiagonalMatrixElementFct fct, void *userData)
+		{
+			m_dim = dim; m_diagonalElementFct = fct; m_userData = userData;
+		}
+
+		Eigen::Index rows() const { return 3*m_dim; }
+		Eigen::Index cols() const { return 3*m_dim; }
+
+		Eigen::ComputationInfo info() { return Eigen::Success; }
+
+		template<typename MatType>
+		JacobiPreconditioner3D& analyzePattern(const MatType&) { return *this; }
+
+		template<typename MatType>
+		JacobiPreconditioner3D& factorize(const MatType& mat) { return *this; }
+
+		template<typename MatType>
+		JacobiPreconditioner3D& compute(const MatType& mat)
+		{
+			m_invDiag.resize(m_dim*3);
+			#pragma omp parallel default(shared)
+			{
+				#pragma omp for schedule(static) 
+				for (int i = 0; i < (int)m_dim; i++)
+				{
+					Vector3r res;
+					m_diagonalElementFct(i, res, m_userData);
+					m_invDiag[3*i] = 1.0 / res[0];
+					m_invDiag[3*i+1] = 1.0 / res[1];
+					m_invDiag[3*i+2] = 1.0 / res[2];
+				}
+			}
+			return *this;
+		}
+
+		template<typename Rhs, typename Dest>
+		void _solve_impl(const Rhs& b, Dest& x) const
+		{
+			x = m_invDiag.array() * b.array();
+		}
+
+		template<typename Rhs>
+		inline const Eigen::Solve<JacobiPreconditioner3D, Rhs> solve(const Eigen::MatrixBase<Rhs>& b) const
+		{
+			return Eigen::Solve<JacobiPreconditioner3D, Rhs>(*this, b.derived());
+		}
+
+	protected:
+		unsigned int m_dim;
+		/** diagonal matrix element callback */
+		DiagonalMatrixElementFct m_diagonalElementFct;
+		void *m_userData;
+		Eigen::VectorXd m_invDiag;
+	};
+
+	/** Matrix-free 3x3 block Jacobi preconditioner  */
+	class BlockJacobiPreconditioner3D
+	{
+	public:
+		typedef typename SystemMatrixType::StorageIndex StorageIndex;
+		typedef void(*DiagonalMatrixElementFct) (const unsigned int, Matrix3r&, void *);
+
+		enum {
+			ColsAtCompileTime = Eigen::Dynamic,
+			MaxColsAtCompileTime = Eigen::Dynamic
+		};
+
+		BlockJacobiPreconditioner3D() {}
+
+		void init(const unsigned int dim, DiagonalMatrixElementFct fct, void *userData)
+		{
+			m_dim = dim; m_diagonalElementFct = fct; m_userData = userData;
+		}
+
+		Eigen::Index rows() const { return 3 * m_dim; }
+		Eigen::Index cols() const { return 3 * m_dim; }
+
+		Eigen::ComputationInfo info() { return Eigen::Success; }
+
+		template<typename MatType>
+		BlockJacobiPreconditioner3D& analyzePattern(const MatType&) { return *this; }
+
+		template<typename MatType>
+		BlockJacobiPreconditioner3D& factorize(const MatType& mat) { return *this; }
+
+		template<typename MatType>
+		BlockJacobiPreconditioner3D& compute(const MatType& mat)
+		{
+			m_invDiag.resize(m_dim);
+			#pragma omp parallel default(shared)
+			{
+				#pragma omp for schedule(static) 
+				for (int i = 0; i < (int)m_dim; i++)
+				{
+					Matrix3r res;
+					m_diagonalElementFct(i, res, m_userData);
+					m_invDiag[i] = res.inverse();
+				}
+			}
+			return *this;
+		}
+
+		template<typename Rhs, typename Dest>
+		void _solve_impl(const Rhs& b, Dest& x) const
+		{
+			#pragma omp parallel default(shared)
+			{
+				#pragma omp for schedule(static) 
+				for (int i = 0; i < (int)m_dim; i++)
+				{
+					x.block<3, 1>(3 * i, 0) = m_invDiag[i] * b.block<3, 1>(3 * i, 0);
+				}
+			}
+		}
+
+		template<typename Rhs>
+		inline const Eigen::Solve<BlockJacobiPreconditioner3D, Rhs> solve(const Eigen::MatrixBase<Rhs>& b) const
+		{
+			return Eigen::Solve<BlockJacobiPreconditioner3D, Rhs>(*this, b.derived());
+		}
+
+	protected:
+		unsigned int m_dim;
+		/** diagonal matrix element callback */
+		DiagonalMatrixElementFct m_diagonalElementFct;
+		void *m_userData;
+		std::vector<Matrix3r> m_invDiag;
 	};
 }
 

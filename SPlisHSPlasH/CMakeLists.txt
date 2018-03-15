@@ -81,6 +81,8 @@ set(VISCOSITY_HEADER_FILES
 	Viscosity/Viscosity_Bender2017.h
 	Viscosity/Viscosity_Peer2015.h
 	Viscosity/Viscosity_Peer2016.h
+	Viscosity/Viscosity_Takahashi2015.h
+	Viscosity/Viscosity_Weiler2018.h
 	)
 	
 set(VISCOSITY_SOURCE_FILES
@@ -90,6 +92,8 @@ set(VISCOSITY_SOURCE_FILES
 	Viscosity/Viscosity_Bender2017.cpp
 	Viscosity/Viscosity_Peer2015.cpp
 	Viscosity/Viscosity_Peer2016.cpp
+	Viscosity/Viscosity_Takahashi2015.cpp
+	Viscosity/Viscosity_Weiler2018.cpp
 	)	
 	
 set(VORTICITY_HEADER_FILES

@@ -6,10 +6,10 @@
 		"particleRadius": 0.025, 
 		"density0": 1000, 
 		"simulationMethod": 4,
-		"viscosity": 0.5,
-		"viscosityMethod": 3,
+		"viscosity": 0.05,
+		"viscosityMethod": 4,
 		"viscoMaxIter": 200, 
-		"viscoMaxError": 0.05,
+		"viscoMaxError": 0.08,
 		"gravitation": [0.1,-9.81,0], 
 		"surfaceTension": 0.2,
 		"surfaceTensionMethod": 0,
@@ -40,8 +40,8 @@
 	"FluidBlocks": [
 		{
 			"denseMode": 0,
-			"start": [-0.1, 0.01, -0.1],
-			"end": [0.1, 12.0, 0.1],
+			"start": [-0.1, 0.01, -0.4],
+			"end": [0.1, 6.0, 0.4],
 			"translation": [0, 0.0, 0.0],
 			"scale": [0.75,1,0.75]
 		}

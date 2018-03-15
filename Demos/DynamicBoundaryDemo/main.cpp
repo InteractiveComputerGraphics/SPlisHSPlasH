@@ -15,6 +15,7 @@
 #include "Utilities/FileSystem.h"
 #include "Utilities/Version.h"
 #include "Utilities/SystemInfo.h"
+#include "Utilities/Counting.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "Demos/Common/TweakBarParameters.h"
 
@@ -82,6 +83,9 @@ int main( int argc, char **argv )
 
 	Utilities::Timing::printAverageTimes();
 	Utilities::Timing::printTimeSums();
+
+	Utilities::Counting::printAverageCounts();
+	Utilities::Counting::printCounterSums();
 
 	delete Simulation::getCurrent();
 	delete base;
@@ -300,7 +304,7 @@ void initBoundaryData()
 			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
 			
 			const string resStr = to_string(scene.boundaryModels[i]->scale[0]) + "_" + to_string(scene.boundaryModels[i]->scale[1]) + "_" + to_string(scene.boundaryModels[i]->scale[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_" + std::to_string(i) + "_" + resStr + ".bgeo");
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_dbd_" + std::to_string(scene.particleRadius) + "_" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
@@ -322,6 +326,10 @@ void initBoundaryData()
 				sampling.sampleMesh(mesh.numVertices(), &vd.getPosition(0), mesh.numFaces(), mesh.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
 				STOP_TIMING_AVG;
 
+				// transform back to local coordinates
+				for (unsigned int j = 0; j < boundaryParticles.size(); j++)
+					boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
+
 				// Cache sampling
 				if (useCache && (FileSystem::makeDir(cachePath) == 0))
 				{
@@ -330,9 +338,6 @@ void initBoundaryData()
 					FileSystem::writeMD5File(meshFileName, md5FileName);
 				}
 			}
-			// transform back to local coordinates
-			for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-				boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
 		}
 		Simulation::getCurrent()->getModel()->addRigidBodyObject(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}

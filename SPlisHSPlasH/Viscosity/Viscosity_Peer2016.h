@@ -18,21 +18,25 @@ namespace SPH
 	protected: 
 		std::vector<Matrix3r> m_targetNablaV;
 		std::vector<Vector3r> m_omega;
-		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner<Real>> Solver;
+		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner1D> Solver;
 		Solver m_solverV;
 		Solver m_solverOmega;
 		unsigned int m_iterationsV;
 		unsigned int m_iterationsOmega;
-		unsigned int m_maxIter;
-		Real m_maxError;
+		unsigned int m_maxIterV;
+		Real m_maxErrorV;
+		unsigned int m_maxIterOmega;
+		Real m_maxErrorOmega;
 
 		virtual void initParameters();
 
 	public:
 		static int ITERATIONS_V;
 		static int ITERATIONS_OMEGA;
-		static int MAX_ITERATIONS;
-		static int MAX_ERROR;
+		static int MAX_ITERATIONS_V;
+		static int MAX_ERROR_V;
+		static int MAX_ITERATIONS_OMEGA;
+		static int MAX_ERROR_OMEGA;
 
 		Viscosity_Peer2016(FluidModel *model);
 		virtual ~Viscosity_Peer2016(void);

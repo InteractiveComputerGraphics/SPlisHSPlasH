@@ -12,11 +12,13 @@
 #include "NumericParameter.h"
 #include "Utilities/Logger.h"
 #include "Utilities/Timing.h"
+#include "Utilities/Counting.h"
 #include "Utilities/Version.h"
 #include "Utilities/SystemInfo.h"
 
 INIT_LOGGING
 INIT_TIMING
+INIT_COUNTING
 
 using namespace SPH;
 using namespace std;
@@ -156,7 +158,7 @@ void DemoBase::init(int argc, char **argv, const char *demoName)
 		return;
 
 	// OpenGL
-	MiniGL::init(argc, argv, 1024, 768, 0, 0, demoName);
+	MiniGL::init(argc, argv, 1280, 960, 0, 0, demoName);
 	MiniGL::initLights();
 	MiniGL::getOpenGLVersion(m_context_major_version, m_context_minor_version);
 	MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 3.0, 8.0), Vector3r(0.0, 0.0, 0.0));

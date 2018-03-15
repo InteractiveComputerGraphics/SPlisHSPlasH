@@ -1,3 +1,9 @@
+2.1.0	
+	- added implicit viscosity computation of Weiler et al. 2018
+	- added implicit viscosity computation of Takahashi et al. 2015
+	- significantly improved performance of Projective Fluids
+	- added counting class
+
 2.0.0
 	- the parameters of all methods are now handled by the library GenericParameters
 	- the GUI is automatically generated using the information of the generic parameters

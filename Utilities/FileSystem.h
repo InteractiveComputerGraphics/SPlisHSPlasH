@@ -250,7 +250,10 @@ namespace Utilities
 			else
 			{
 				MD5 context(file);
-				return context.hex_digest();
+				char *md5hex = context.hex_digest();
+				std::string res(md5hex);
+				delete[] md5hex;
+				return res;
 			}
 			return "";
 		}

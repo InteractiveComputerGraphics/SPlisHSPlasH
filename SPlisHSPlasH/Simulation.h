@@ -15,7 +15,7 @@ namespace SPH
 {
 	enum class SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, NumSimulationMethods };
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, NumSurfaceTensionMethods };
-	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, NumViscosityMethods };
+	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, Takahashi2015, Weiler2018, NumViscosityMethods };
 	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement, NumVorticityMethods };
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
 
@@ -54,6 +54,8 @@ namespace SPH
 		static int ENUM_VISCOSITY_BENDER2017;
 		static int ENUM_VISCOSITY_PEER2015;
 		static int ENUM_VISCOSITY_PEER2016;
+		static int ENUM_VISCOSITY_TAKAHASHI2015;
+		static int ENUM_VISCOSITY_WEILER2018;
 
 		static int ENUM_VORTICITY_NONE;
 		static int ENUM_VORTICITY_MICROPOLAR;
@@ -130,7 +132,7 @@ namespace SPH
 		VorticityBase *getVorticityBase() { return m_vorticity; }
 		DragBase *getDragBase() { return m_drag; }
 		TimeStep *getTimeStep() { return m_timeStep; }
-#
+
 		/** Update time step size depending on the chosen method.
 		*/
 		void updateTimeStepSize();

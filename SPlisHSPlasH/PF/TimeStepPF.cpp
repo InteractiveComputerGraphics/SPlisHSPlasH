@@ -15,7 +15,7 @@ using namespace GenParam;
 
 int TimeStepPF::STIFFNESS = -1;
 
-#define Vec3Block(i) template block<3, 1> (3 * (i), 0)
+#define Vec3Block(i) template segment<3>(3 * (i))
 
 // helper functions
 namespace
@@ -72,9 +72,6 @@ void TimeStepPF::step()
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getModel();
 	TimeManager *tm = TimeManager::getCurrent ();
-	const Real h = tm->getTimeStepSize();
-
-	const unsigned int numParticles = model->numActiveParticles();
 
 	clearAccelerations();
 	initialGuessForPositions();
@@ -88,10 +85,10 @@ void TimeStepPF::step()
 	sim->computeNonPressureForces();
 	addAccellerationToVelocity();
 
-	sim->updateTimeStepSize();
-
 	// Compute new time	
-	tm->setTime (tm->getTime () + h);
+	sim->updateTimeStepSize();
+	sim->emitParticles();
+	tm->setTime(tm->getTime () + tm->getTimeStepSize());
 }
 
 void TimeStepPF::reset()
@@ -117,38 +114,61 @@ void TimeStepPF::initialGuessForPositions()
 	}
 }
 
-void TimeStepPF::prepareSolve()
-{
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const auto numParticles = model->numActiveParticles();
-	auto      x             = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
-
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)numParticles; i++)
-		{
-			x.Vec3Block(i) = model->getPosition(0, i);
-			auto nfn = model->numberOfNeighbors(0, i) + 1u;
-
-			m_simulationData.setNumFluidNeighbors(i, nfn);
-		}
-	}
-}
-
 void TimeStepPF::solvePDConstraints()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	const auto model = Simulation::getCurrent()->getModel();
 	const auto numParticles = model->numActiveParticles();
 
-	prepareSolve();
-
-	for (m_iterations = 0u; m_iterations < m_maxIterations; m_iterations++)
+	//////////////////////////////////////////////////////////////////////////
+	// initialize positions
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel for schedule(static)  
+	for (int i = 0; i < (int)numParticles; i++)
 	{
-		const auto s = cgSolve();
-		if (s == CGSolveState::ALREADY_SOLVED) break;
+		m_simulationData.getX()[i] = m_simulationData.getS(i);
 	}
 
+	//////////////////////////////////////////////////////////////////////////
+	// count number of fluid neighbors for relaxation
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel for schedule(static)  
+	for (int i = 0; i < (int)numParticles; i++)
+	{
+		m_simulationData.setNumFluidNeighbors(i, model->numberOfNeighbors(0, i) + 1u);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Init linear system solver and preconditioner
+	//////////////////////////////////////////////////////////////////////////
+	MatrixReplacement A(3 * numParticles, matrixVecProd, (void*) this);
+#ifdef PD_USE_DIAGONAL_PRECONDITIONER
+	preparePreconditioner();
+	m_solver.preconditioner().init(numParticles, diagonalMatrixElement, (void*)this);
+#endif
+	m_solver.setMaxIterations(m_maxIterations);
+	m_solver.compute(A);
+
+	auto x = Eigen::Map<VectorXr>(m_simulationData.getX().data()->data(), 3 * numParticles,	1);
+	VectorXr b(3 * numParticles);
+	for (m_iterations = 0u; m_iterations < m_maxIterations; m_iterations++)
+	{
+		//////////////////////////////////////////////////////////////////////////
+		// Compute RHS
+		//////////////////////////////////////////////////////////////////////////
+		matrixFreeRHS(b);
+
+		//////////////////////////////////////////////////////////////////////////
+		// Solve linear system 
+		//////////////////////////////////////////////////////////////////////////
+#ifdef PD_USE_DIAGONAL_PRECONDITIONER
+		// hack to make the solver perform at least min_iter CG iterations for stability
+		constexpr unsigned int min_iter = 1;
+		m_solver.setTolerance(m_iterations < min_iter ? 1e-32 : 1e-10);
+#endif
+		x = m_solver.solveWithGuess(b, x);
+		if (m_solver.iterations() == 0)
+			break;
+	}
 	updatePositionsAndVelocity();
 }
 
@@ -157,19 +177,42 @@ void TimeStepPF::updatePositionsAndVelocity()
 	FluidModel *model = Simulation::getCurrent()->getModel();
 	const auto  numParticles = model->numActiveParticles();
 	const auto  h            = TimeManager::getCurrent()->getTimeStepSize();
-	const auto& x            = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
+	const auto& x            = m_simulationData.getX();
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			model->setPosition(0, i, x.Vec3Block(i));
-			auto vel = (model->getPosition(0, i) - m_simulationData.getOldPosition(i)) / h;
+			auto vel = (x[i] - m_simulationData.getOldPosition(i)) / h;
+			model->setPosition(0, i, x[i]);
 			model->setVelocity(0, i, vel);
 		}
 	}
 }
+
+#ifdef PD_USE_DIAGONAL_PRECONDITIONER
+FORCE_INLINE void SPH::TimeStepPF::diagonalMatrixElement(const unsigned int row, Vector3r &result, void *userData)
+{
+	TimeStepPF *timeStepPF = static_cast<TimeStepPF*>(userData);
+	result = timeStepPF->m_simulationData.getDiag(row);
+}
+
+void SPH::TimeStepPF::preparePreconditioner()
+{
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const auto h = TimeManager::getCurrent()->getTimeStepSize();
+	const auto system_scale = h * h * m_stiffness;
+	const auto numParticles = model->numActiveParticles();
+	#pragma omp parallel for schedule(static)  
+	for (int i = 0; i < (int)numParticles; i++)
+	{
+		const auto numFluidNeighbors = model->numberOfNeighbors(0, i);
+		m_simulationData.setDiag(i, Vector3r::Constant(system_scale * (numFluidNeighbors + 1) + model->getMass(i)));
+	}
+}
+
+#endif
 
 void SPH::TimeStepPF::addAccellerationToVelocity()
 {
@@ -186,133 +229,20 @@ void SPH::TimeStepPF::addAccellerationToVelocity()
 	}
 }
 
-SPH::TimeStepPF::CGSolveState SPH::TimeStepPF::cgSolve()
-{
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const auto numVariables = 3u * model->numActiveParticles();
-	const auto restart_iterations = 50u;
-	
-	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
-	// initialization of CG
-	VectorXr d(numVariables);
-	VectorXr r(numVariables);
-	VectorXr q(numVariables);
-	VectorXr b(numVariables);
-	calculateNegativeGradient(r, b, true);
-	d = r;
-
-	const auto tol_abs   = 1e-10;
-	const auto tol_rel   = 1e-8;
-	      auto delta_new = r.squaredNorm();
-	const auto delta_0   = delta_new;
-	      auto delta_old = std::numeric_limits<Real>::max();
-
-	if ((delta_new < tol_abs) || (delta_new < tol_rel * delta_0))
-		return CGSolveState::ALREADY_SOLVED;
-
-	// CG iterations
-	for (auto cg_it = 0u; cg_it < numVariables; cg_it++)
-	{
-		matrixFreeLHS(d, q);
-		const auto alpha = delta_new / d.dot(q);
-		x += alpha * d;
-		
-		if ((cg_it + 1) % restart_iterations == 0)
-			calculateNegativeGradient(r, b, false);
-		else
-			r -= alpha * q;
-
-		// test for convergence
-		delta_old = delta_new;
-		delta_new = r.squaredNorm();
-		if ((delta_new < tol_abs) || (delta_new < tol_rel * delta_0))
-		{
-			return CGSolveState::CONVERGED;
-		}
-
-		const auto beta = delta_new / delta_old;
-		d *= beta;
-		d += r;
-	}
-	return CGSolveState::MAX_ITER_REACHED;
-}
-
-/** \brief calculate the negative gradient for CG*/
-void SPH::TimeStepPF::calculateNegativeGradient(VectorXr & r, VectorXr & b, const bool updateRhs)
-{
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const auto numVariables = 3u * model->numActiveParticles();
-	auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
-	// use r as temporary buffer for matrix-vector product
-	matrixFreeLHS(x, r);
-	if (updateRhs)
-		matrixFreeRHS(b);
-	// -grad_f = b - A*x
-	r = b - r;
-}
-
-/** \brief compute product of system matrix with x in a matrix-free way and store the result in result*/
-void SPH::TimeStepPF::matrixFreeLHS(const VectorXr & x, VectorXr & result)
-{
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const auto numParticles = model->numActiveParticles();
-	const auto numVariables = 3u * numParticles;
-	const auto h = TimeManager::getCurrent()->getTimeStepSize();
-	
-	AtomicRealVec accumulator(numVariables);
-
-	// influence of pressure
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)numParticles; i++)
-		{
-			const auto numNeighbors = model->numberOfNeighbors(0, i);
-			const Vector3r& xi = x.Vec3Block(i);
-			for (auto c = 0u; c < 3; c++)
-				addToAtomicReal(accumulator[3 * i + c]._a, xi[c]);
-			for (auto j = 0u; j < numNeighbors; j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r& xj = x.Vec3Block(neighborIndex);
-				for (auto c = 0u; c < 3; c++)
-					addToAtomicReal(accumulator[3 * neighborIndex + c]._a, xj[c]);
-			}
-		}
-	}
-
-	// influence of momentum
-	#pragma omp parallel default(shared)
-	{
-		const auto system_scale = h * h * m_stiffness;
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)numParticles; i++)
-		{
-			const auto m = model->getMass(i);
-			for (auto c = 0u; c < 3; c++)
-			{
-				const auto id = 3 * i + c;
-				result[id] = system_scale * accumulator[id]._a + m * x[id];
-			}
-		}
-	}
-}
-
 /** \brief compute the right hand side of the system in a matrix-free fashion and store the result in result*/
 void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 {
 	FluidModel *model = Simulation::getCurrent()->getModel();
 	const auto numParticles = model->numActiveParticles();
-	const auto numVariables = 3u * numParticles;
 	const auto h            = TimeManager::getCurrent()->getTimeStepSize();
 	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 
-	AtomicRealVec accumulator(numVariables);
+	AtomicRealVec accumulator(3 * numParticles);
 
 	// influence of pressure
 	#pragma omp parallel default(shared)
 	{
-		auto x = VectorXrMap(m_simulationData.getX().data(), m_simulationData.getX().size(), 1);
+		const auto & x = m_simulationData.getX();
 		const auto density0_inv = 1 / density0;
 
 		// local step for fluid constraints
@@ -324,15 +254,20 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			{
 				numNeighbors += model->numberOfNeighbors(pid, i);
 			}
+			//////////////////////////////////////////////////////////////////////////
 			// particle positions in current constraint, will be projected
+			//////////////////////////////////////////////////////////////////////////
 			std::vector<Vector3r> p(numNeighbors + 1);
-			p[0] = x.Vec3Block(i);
-			int counter = 1;
+			// the i'th particle itself
+			p[0] = x[i];
+			unsigned int counter = 1;
+			// fluid neighbors
 			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
 			{
 				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				p[counter++] = x.Vec3Block(neighborIndex);
+				p[counter++] = x[neighborIndex];
 			}
+			// boundary neighbors
 			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
 			{
 				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
@@ -341,13 +276,16 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 					p[counter++] = model->getPosition(pid, neighborIndex);
 				}
 			}
+			//////////////////////////////////////////////////////////////////////////
 			// helper functions
+			//////////////////////////////////////////////////////////////////////////
+			// constraint value
 			auto calculateC = [&]() -> Real
 			{
 				// Compute current density for particle i
 				Real density = model->getMass(i) * model->W_zero();
 				const Vector3r &xi = p[0];
-				int counter = 1;
+				unsigned int counter = 1;
 				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
 				{
 					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
@@ -369,21 +307,20 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 				// pressure clamping
 				return (C < 0) ? 0 : C;
 			};
-			auto calculateNablaC = [&]() -> VectorXr
+			// constraint gradient
+			auto calculateNablaC = [&]() -> std::vector<Vector3r>
 			{
-				VectorXr nablaC(3 * p.size());
-				nablaC.Vec3Block(0).setZero();
+				std::vector<Vector3r> nablaC(p.size());
+				nablaC[0].setZero();
 				const Vector3r &xi = p[0];
 
-
-
-				int counter = 1;
+				unsigned int counter = 1;
 				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
 				{
 					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
 					const auto& xj = p[counter];
-					nablaC.Vec3Block(counter) = (-density0_inv * model->getMass(neighborIndex)) * model->gradW(xi - xj);
-					nablaC.Vec3Block(0) -= nablaC.Vec3Block(counter);
+					nablaC[counter] = (-density0_inv * model->getMass(neighborIndex)) * model->gradW(xi - xj);
+					nablaC[0] -= nablaC[counter];
 					counter++;
 				}
 				for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
@@ -393,14 +330,16 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 						const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
 						const auto& xj = p[counter];
 						// Boundary: Akinci2012
-						nablaC.Vec3Block(counter) = (-density0_inv * model->getBoundaryPsi(pid, neighborIndex)) * model->gradW(xi - xj);
-						nablaC.Vec3Block(0) -= nablaC.Vec3Block(counter);
+						nablaC[counter] = (-density0_inv * model->getBoundaryPsi(pid, neighborIndex)) * model->gradW(xi - xj);
+						nablaC[0] -= nablaC[counter];
 						counter++;
 					}
 				}
 				return nablaC;
 			};
-			// projection
+			//////////////////////////////////////////////////////////////////////////
+			// constraint projection
+			//////////////////////////////////////////////////////////////////////////
 			const auto C_goal    = Real(1e-14);
 			const auto max_steps = 100u;
 			      auto it        = 0u;
@@ -408,19 +347,19 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			while ((std::abs(C) > C_goal) && it++ < max_steps)
 			{
 				const auto g = calculateNablaC();
-				const auto dg = g.squaredNorm();
+				const auto dg = [&g]() { Real s = 0;  for (const auto & x : g) { s += x.squaredNorm(); } return s; }();
 				if (dg == 0) break;	// found a minimum
 				const auto cdg = -C / (dg + 1e-6f); // add regularization factor
 
 				// move fluid particles along constraint gradient
-				p[0] += (cdg * m_simulationData.getNumFluidNeighbors(i)) * g.Vec3Block(0);
+				p[0] += (cdg * m_simulationData.getNumFluidNeighbors(i)) * g[0];
 
 				// only fluid particles are projected
 				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
 				{
-					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
+					const auto neighborIndex = model->getNeighbor(0, i, j);
 					const auto nfn = m_simulationData.getNumFluidNeighbors(neighborIndex);
-					p[j + 1] += (cdg * nfn) * g.Vec3Block(j + 1);
+					p[j + 1] += (cdg * nfn) * g[j + 1];
 				}
 
 				if (it + 1 < max_steps)
@@ -431,10 +370,9 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 			// update RHS
 			for (auto c = 0u; c < 3; c++)
 				addToAtomicReal(accumulator[3 * i + c]._a, p[0][c]);
-
 			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
 			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
+				const auto neighborIndex = model->getNeighbor(0, i, j);
 				for (auto c = 0u; c < 3; c++)
 					addToAtomicReal(accumulator[3 * neighborIndex + c]._a, p[j+1][c]);
 			}
@@ -459,6 +397,39 @@ void SPH::TimeStepPF::matrixFreeRHS(VectorXr & result)
 	}
 }
 
+void SPH::TimeStepPF::matrixVecProd(const Real* vec, Real *result, void *userData)
+{
+	TimeStepPF *timeStepPF = static_cast<TimeStepPF*>(userData);
+
+	FluidModel *model = Simulation::getCurrent()->getModel();
+	const auto numParticles = model->numActiveParticles();
+	const auto h = TimeManager::getCurrent()->getTimeStepSize();
+
+	AtomicRealVec accumulator(3 * numParticles);
+
+	// influence of pressure
+	#pragma omp parallel for schedule(static)  
+	for (int i = 0; i < (int)numParticles; i++)
+	{
+		const auto numNeighbors = model->numberOfNeighbors(0, i);
+		for (auto c = 0u; c < 3; c++)
+			addToAtomicReal(accumulator[3 * i + c]._a, vec[3 * i + c]);
+		for (auto j = 0u; j < numNeighbors; j++)
+		{
+			const auto neighborIndex = model->getNeighbor(0, i, j);
+			for (auto c = 0u; c < 3; c++)
+				addToAtomicReal(accumulator[3 * neighborIndex + c]._a, vec[3 * neighborIndex + c]);
+		}
+	}
+
+	// influence of momentum
+	const auto system_scale = h * h * timeStepPF->m_stiffness;
+	#pragma omp parallel for schedule(static)  
+	for (int i = 0; i < (int)numParticles; i++)
+		for (auto c = 0u; c < 3; c++)
+			result[3 * i + c] = system_scale * accumulator[3 * i + c]._a + model->getMass(i) * vec[3 * i + c];
+}
+
 void TimeStepPF::performNeighborhoodSearch()
 {
 	if (m_counter % 500 == 0)
@@ -475,7 +446,6 @@ void TimeStepPF::performNeighborhoodSearch()
 
 void TimeStepPF::emittedParticles(const unsigned int startIndex)
 {
-
 	m_simulationData.emittedParticles(startIndex);
 	Simulation::getCurrent()->emittedParticles(startIndex);
 }

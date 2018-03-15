@@ -1,14 +1,17 @@
 #include "Viscosity_Peer2016.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
+#include "Utilities/Counting.h"
 
 using namespace SPH;
 using namespace GenParam;
 
 int Viscosity_Peer2016::ITERATIONS_V = -1;
 int Viscosity_Peer2016::ITERATIONS_OMEGA = -1;
-int Viscosity_Peer2016::MAX_ITERATIONS = -1;
-int Viscosity_Peer2016::MAX_ERROR = -1;
+int Viscosity_Peer2016::MAX_ITERATIONS_V = -1;
+int Viscosity_Peer2016::MAX_ERROR_V = -1;
+int Viscosity_Peer2016::MAX_ITERATIONS_OMEGA = -1;
+int Viscosity_Peer2016::MAX_ERROR_OMEGA = -1;
 
 
 Viscosity_Peer2016::Viscosity_Peer2016(FluidModel *model) :
@@ -19,8 +22,10 @@ Viscosity_Peer2016::Viscosity_Peer2016(FluidModel *model) :
 
 	m_iterationsV = 0;
 	m_iterationsOmega = 0;
-	m_maxIter = 50;
-	m_maxError = 0.01;
+	m_maxIterV = 50;
+	m_maxErrorV = 0.01;
+	m_maxIterOmega = 50;
+	m_maxErrorOmega = 0.01;
 }
 
 Viscosity_Peer2016::~Viscosity_Peer2016(void)
@@ -43,15 +48,26 @@ void Viscosity_Peer2016::initParameters()
 	setDescription(ITERATIONS_OMEGA, "Iterations required by the viscosity solver.");
 	getParameter(ITERATIONS_OMEGA)->setReadOnly(true);
 
-	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
-	setGroup(MAX_ITERATIONS, "Viscosity");
-	setDescription(MAX_ITERATIONS, "Coefficient for the viscosity force computation");
-	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+	MAX_ITERATIONS_V = createNumericParameter("viscoMaxIter", "Max. iterations", &m_maxIterV);
+	setGroup(MAX_ITERATIONS_V, "Viscosity");
+	setDescription(MAX_ITERATIONS_V, "Max. iterations of the viscosity solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS_V))->setMinValue(1);
 
-	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
-	setGroup(MAX_ERROR, "Viscosity");
-	setDescription(MAX_ERROR, "Coefficient for the viscosity force computation");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	MAX_ERROR_V = createNumericParameter("viscoMaxError", "Max. error", &m_maxErrorV);
+	setGroup(MAX_ERROR_V, "Viscosity");
+	setDescription(MAX_ERROR_V, "Max. error of the viscosity solver.");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_V));
+	rparam->setMinValue(1e-6);
+
+	MAX_ITERATIONS_OMEGA = createNumericParameter("viscoMaxIterOmega", "Max. iterations (vorticity diffusion)", &m_maxIterOmega);
+	setGroup(MAX_ITERATIONS_OMEGA, "Viscosity");
+	setDescription(MAX_ITERATIONS_OMEGA, "Max. iterations of the vorticity diffusion solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS_OMEGA))->setMinValue(1);
+
+	MAX_ERROR_OMEGA = createNumericParameter("viscoMaxErrorOmega", "Max. vorticity diffusion error", &m_maxErrorOmega);
+	setGroup(MAX_ERROR_OMEGA, "Viscosity");
+	setDescription(MAX_ERROR_OMEGA, "Max. error of the vorticity diffusion solver.");
+	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_OMEGA));
 	rparam->setMinValue(1e-6);
 }
 
@@ -161,17 +177,15 @@ void Viscosity_Peer2016::step()
 	//////////////////////////////////////////////////////////////////////////
 	MatrixReplacement A(m_model->numActiveParticles(), matrixVecProdV, (void*)m_model);
 	m_solverV.preconditioner().init(m_model->numActiveParticles(), diagonalMatrixElementV, (void*)m_model);
-	m_solverV.setTolerance(m_maxError);
-	m_solverV.setMaxIterations(m_maxIter);
+	m_solverV.setTolerance(m_maxErrorV);
+	m_solverV.setMaxIterations(m_maxIterV);
 	m_solverV.compute(A);
-	m_iterationsV = static_cast<unsigned int>(m_solverV.iterations());
 
 	MatrixReplacement A2(m_model->numActiveParticles(), matrixVecProdOmega, (void*)m_model);
 	m_solverOmega.preconditioner().init(m_model->numActiveParticles(), diagonalMatrixElementOmega, (void*)m_model);
-	m_solverOmega.setTolerance(m_maxError);
-	m_solverOmega.setMaxIterations(m_maxIter);
+	m_solverOmega.setTolerance(m_maxErrorOmega);
+	m_solverOmega.setMaxIterations(m_maxIterOmega);
 	m_solverOmega.compute(A2);
-	m_iterationsOmega = static_cast<unsigned int>(m_solverOmega.iterations());
 
 	Eigen::VectorXd b0(numParticles);
 	Eigen::VectorXd b1(numParticles);
@@ -283,19 +297,26 @@ void Viscosity_Peer2016::step()
 	// Solve linear system 
 	//////////////////////////////////////////////////////////////////////////
 	START_TIMING("CG solve omega");
+	m_iterationsOmega = 0;
 	x0 = m_solverOmega.solveWithGuess(b0, g0);
-	//x0 = m_solver.solve(b0);
+	//x0 = m_solverOmega.solve(b0);
 	if (m_solverOmega.iterations() == 0)
 		x0 = g0;
+	m_iterationsOmega += (int)m_solverOmega.iterations();
+
 	x1 = m_solverOmega.solveWithGuess(b1, g1);
-	//x1 = m_solver.solve(b1);
+	//x1 = m_solverOmega.solve(b1);
 	if (m_solverOmega.iterations() == 0)
 		x1 = g1;
+	m_iterationsOmega += (int)m_solverOmega.iterations();
+
 	x2 = m_solverOmega.solveWithGuess(b2, g2);
-	//x2 = m_solver.solve(b2);
+	//x2 = m_solverOmega.solve(b2);
 	if (m_solverOmega.iterations() == 0)
 		x2 = g2;
+	m_iterationsOmega += (int)m_solverOmega.iterations();
 	STOP_TIMING_AVG;
+	INCREASE_COUNTER("Visco iterations - Omega", m_iterationsOmega);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Determine new spin tensor and add it to target nabla v
@@ -354,20 +375,21 @@ void Viscosity_Peer2016::step()
 	// Solve linear system 
 	//////////////////////////////////////////////////////////////////////////
 	START_TIMING("CG solve");
-	int iter = 0;
+	m_iterationsV = 0;
 	x0 = m_solverV.solveWithGuess(b0, g0);
 	if (m_solverV.iterations() == 0)
 		x0 = g0;
-	iter += (int)m_solverV.iterations();
+	m_iterationsV += (int)m_solverV.iterations();
 	x1 = m_solverV.solveWithGuess(b1, g1);
 	if (m_solverV.iterations() == 0)
 		x1 = g1;
-	iter += (int)m_solverV.iterations();
+	m_iterationsV += (int)m_solverV.iterations();
 	x2 = m_solverV.solveWithGuess(b2, g2);
 	if (m_solverV.iterations() == 0)
 		x2 = g2;
-	iter += (int)m_solverV.iterations();
+	m_iterationsV += (int)m_solverV.iterations();
 	STOP_TIMING_AVG;
+	INCREASE_COUNTER("Visco iterations - V", m_iterationsV);
 
 	#pragma omp parallel default(shared)
 	{

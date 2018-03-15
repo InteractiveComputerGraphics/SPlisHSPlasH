@@ -15,6 +15,7 @@
 #include "Utilities/Version.h"
 #include <fstream>
 #include "Utilities/Logger.h"
+#include "Utilities/Counting.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "Demos/Common/TweakBarParameters.h"
 
@@ -74,6 +75,9 @@ int main( int argc, char **argv )
 
 	Utilities::Timing::printAverageTimes();
 	Utilities::Timing::printTimeSums();
+
+	Utilities::Counting::printAverageCounts();
+	Utilities::Counting::printCounterSums();
 
 	delete Simulation::getCurrent();
 	delete base;
@@ -280,11 +284,6 @@ void initBoundaryData()
 		StaticRigidBody *rb = new StaticRigidBody();
 		TriangleMesh &geo = rb->getGeometry();
 		loadObj(meshFileName, geo, scene.boundaryModels[i]->scale);
-		for (unsigned int j = 0; j < geo.numVertices(); j++)
-			geo.getVertices()[j] = scene.boundaryModels[i]->rotation * geo.getVertices()[j] + scene.boundaryModels[i]->translation;
-
-		geo.updateNormals();
-		geo.updateVertexNormals();
 
 		if (scene.boundaryModels[i]->samplesFile == "")
 		{
@@ -293,7 +292,7 @@ void initBoundaryData()
 			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
 
 			const string resStr = to_string(scene.boundaryModels[i]->scale[0]) + "_" + to_string(scene.boundaryModels[i]->scale[1]) + "_" + to_string(scene.boundaryModels[i]->scale[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_" + std::to_string(i) + "_" + resStr + ".bgeo");
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sbd_" + std::to_string(scene.particleRadius) + "_" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
@@ -303,7 +302,7 @@ void initBoundaryData()
 
 			if (useCache && foundCacheFile && md5)
 			{
-				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
+				PartioReaderWriter::readParticles(particleFileName, scene.boundaryModels[i]->translation, scene.boundaryModels[i]->rotation, 1.0, boundaryParticles);
 				LOG_INFO << "Loaded cached boundary sampling: " << particleFileName;
 			}
 
@@ -322,9 +321,20 @@ void initBoundaryData()
 					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, scene.particleRadius);
 					FileSystem::writeMD5File(meshFileName, md5FileName);
 				}
+
+				// transform particles
+				for (unsigned int j = 0; j < (unsigned int)boundaryParticles.size(); j++)
+					boundaryParticles[j] = scene.boundaryModels[i]->rotation * boundaryParticles[j] + scene.boundaryModels[i]->translation;
 			}
 		}
 		Simulation::getCurrent()->getModel()->addRigidBodyObject(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
+
+		for (unsigned int j = 0; j < geo.numVertices(); j++)
+			geo.getVertices()[j] = scene.boundaryModels[i]->rotation * geo.getVertices()[j] + scene.boundaryModels[i]->translation;
+
+		geo.updateNormals();
+		geo.updateVertexNormals();
+
 	}
 }
 

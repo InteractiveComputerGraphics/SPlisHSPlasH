@@ -424,8 +424,8 @@ void SPH::FluidModel::setGradKernel(int val)
 
 void SPH::FluidModel::setKernel(int val)
 {
-	if (val == m_kernelMethod)
-		return;
+	const auto old_kernelMethod = m_kernelMethod;
+	const auto old_W_Zero = m_W_zero;
 
 	m_kernelMethod = val;
 	if (m_kernelMethod == 0)
@@ -448,7 +448,9 @@ void SPH::FluidModel::setKernel(int val)
 		m_W_zero = FluidModel::PrecomputedCubicKernel::W_zero();
 		m_kernelFct = FluidModel::PrecomputedCubicKernel::W;
 	}
-	updateBoundaryPsi();
+
+	if (old_kernelMethod != m_kernelMethod || old_W_Zero != m_W_zero)
+		updateBoundaryPsi();
 }
 
 void FluidModel::setNumActiveParticles(const unsigned int num)

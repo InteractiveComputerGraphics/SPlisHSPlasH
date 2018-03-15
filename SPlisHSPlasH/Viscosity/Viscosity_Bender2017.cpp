@@ -1,5 +1,6 @@
 #include "Viscosity_Bender2017.h"
 #include "SPlisHSPlasH/TimeManager.h"
+#include "Utilities/Counting.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -15,8 +16,7 @@ Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	m_targetStrainRate.resize(model->numParticles(), Vector6r::Zero());
 	m_viscosityFactor.resize(model->numParticles(), Matrix6r::Zero());
 	m_viscosityLambda.resize(model->numParticles(), Vector6r::Zero());
-	m_lastViscosityLambda.resize(model->numParticles(), Vector6r::Zero());
-
+	
 	m_iterations = 0;
 	m_maxIter = 50;
 	m_maxError = 0.01;
@@ -27,7 +27,6 @@ Viscosity_Bender2017::~Viscosity_Bender2017(void)
 	m_targetStrainRate.clear();
 	m_viscosityFactor.clear();
 	m_viscosityLambda.clear();
-	m_lastViscosityLambda.clear();
 }
 
 void Viscosity_Bender2017::initParameters()
@@ -164,6 +163,7 @@ void Viscosity_Bender2017::step()
 			break;
 		
 	}
+	INCREASE_COUNTER("Visco iterations", m_iterations);
 
 	// Compute viscosity forces (XSPH) with boundary to simulate simple friction
 	const Real invH = (1.0 / h);
@@ -345,6 +345,5 @@ void Viscosity_Bender2017::performNeighborhoodSearchSort()
 	d.sort_field(&m_targetStrainRate[0]);
 	d.sort_field(&m_viscosityFactor[0]);
 	d.sort_field(&m_viscosityLambda[0]);
-	d.sort_field(&m_lastViscosityLambda[0]);
 }
 

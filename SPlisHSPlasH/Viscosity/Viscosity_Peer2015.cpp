@@ -1,6 +1,7 @@
 #include "Viscosity_Peer2015.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
+#include "Utilities/Counting.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -138,7 +139,6 @@ void Viscosity_Peer2015::step()
 	m_solver.setTolerance(m_maxError);
 	m_solver.setMaxIterations(m_maxIter);
 	m_solver.compute(A);
-	m_iterations = static_cast<unsigned int>(m_solver.iterations());
 
 	Eigen::VectorXd b0(numParticles);
 	Eigen::VectorXd b1(numParticles);
@@ -188,20 +188,21 @@ void Viscosity_Peer2015::step()
 	// Solve linear system 
 	//////////////////////////////////////////////////////////////////////////
 	START_TIMING("CG solve");
-	int iter = 0;
+	m_iterations = 0;
 	x0 = m_solver.solveWithGuess(b0, g0);
 	if (m_solver.iterations() == 0)
 		x0 = g0;
-	iter += (int)m_solver.iterations();
+	m_iterations += (int)m_solver.iterations();
 	x1 = m_solver.solveWithGuess(b1, g1);
 	if (m_solver.iterations() == 0)
 		x1 = g1;
-	iter += (int)m_solver.iterations();
+	m_iterations += (int)m_solver.iterations();
 	x2 = m_solver.solveWithGuess(b2, g2);
 	if (m_solver.iterations() == 0)
 		x2 = g2;
-	iter += (int)m_solver.iterations();
+	m_iterations += (int)m_solver.iterations();
 	STOP_TIMING_AVG;
+	INCREASE_COUNTER("Visco iterations", m_iterations);
 
 	#pragma omp parallel default(shared)
 	{

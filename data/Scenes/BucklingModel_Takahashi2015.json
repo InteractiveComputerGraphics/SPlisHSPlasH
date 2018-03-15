@@ -1,0 +1,52 @@
+{
+	"Configuration": 
+	{
+		"timeStepSize": 0.001,
+		"numberOfStepsPerRenderUpdate": 2,
+		"particleRadius": 0.025, 
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"viscosity": 20000,
+		"viscosityMethod": 6,
+		"viscoMaxIter": 200, 
+		"viscoMaxError": 0.05,
+		"gravitation": [0.1,-9.81,0], 
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0,
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 1,
+		"enableDivergenceSolver": true
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,-0.25,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [3, 0.5, 3],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.1, 0.01, -0.4],
+			"end": [0.1, 6.0, 0.4],
+			"translation": [0, 0.0, 0.0],
+			"scale": [0.75,1,0.75]
+		}
+	]	
+}
+
+
+

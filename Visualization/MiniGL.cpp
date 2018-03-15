@@ -577,7 +577,7 @@ void MiniGL::initTweakBar()
 	// Create a tweak bar
 	m_tweakBar = TwNewBar("TweakBar");
 	TwDefine(" GLOBAL help='MiniGL TweakBar.' "); // Message added to the help bar.
-	TwDefine(" TweakBar size='300 600' valueswidth=120 position='5 5' color='96 200 224' text=dark "); // change default tweak bar size and color
+	TwDefine(" TweakBar size='300 900' valueswidth=120 position='5 5' color='96 200 224' text=dark "); // change default tweak bar size and color
 }
 
 void MiniGL::initTweakBarParameters()

@@ -4,6 +4,7 @@
 #include "SimulationDataDFSPH.h"
 #include <iostream>
 #include "Utilities/Timing.h"
+#include "Utilities/Counting.h"
 #include "SPlisHSPlasH/Simulation.h"
 
 using namespace SPH;
@@ -382,6 +383,7 @@ void TimeStepDFSPH::pressureSolve()
 		m_iterations++;
 	}
 
+	INCREASE_COUNTER("DFSPH - iterations", m_iterations);
 
 #ifdef USE_WARMSTART
 	//////////////////////////////////////////////////////////////////////////
@@ -582,6 +584,8 @@ void TimeStepDFSPH::divergenceSolve()
 		avg_density_err /= numParticles;
 		m_iterationsV++;
 	}
+
+	INCREASE_COUNTER("DFSPH - iterationsV", m_iterationsV);
 
 #ifdef USE_WARMSTART_V
 	//////////////////////////////////////////////////////////////////////////

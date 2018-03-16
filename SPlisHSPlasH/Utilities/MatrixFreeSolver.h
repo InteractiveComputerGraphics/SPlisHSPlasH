@@ -252,7 +252,7 @@ namespace SPH
 				#pragma omp for schedule(static) 
 				for (int i = 0; i < (int)m_dim; i++)
 				{
-					x.block<3, 1>(3 * i, 0) = m_invDiag[i] * b.block<3, 1>(3 * i, 0);
+					static_cast<VectorXr&>(x).block<3, 1>(3 * i, 0) = m_invDiag[i] * static_cast<const VectorXr&>(b).block<3, 1>(3 * i, 0);
 				}
 			}
 		}

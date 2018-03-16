@@ -37,6 +37,7 @@ using AlignedBox2r = Eigen::AlignedBox<Real, 2>;
 using AlignedBox3r = Eigen::AlignedBox<Real, 3>;
 using AngleAxisr = Eigen::AngleAxis<Real>;
 using Quaternionr = Eigen::Quaternion<Real>;
+using VectorXr = Eigen::Matrix<Real, -1, 1, 0, -1, 1>;
 
 //allocators to be used in STL collections containing Eigen structures
 using Alloc_Vector2r = Eigen::aligned_allocator<Vector2r>;

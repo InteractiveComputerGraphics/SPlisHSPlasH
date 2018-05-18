@@ -30,6 +30,7 @@ using namespace SPH;
 using namespace Eigen;
 using namespace std;
 using namespace Utilities;
+using namespace GenParam;
 
 void timeStep ();
 void initBoundaryData();
@@ -38,10 +39,11 @@ void renderBoundary();
 void reset();
 void initParameters();
 void loadObj(const std::string &filename, TriangleMesh &geo, const Vector3r &scale);
+void TW_CALL setCurrentFluidModel(const void *value, void *clientData);
+void TW_CALL getCurrentFluidModel(void *value, void *clientData);
 
 DemoBase *base;
-
-
+unsigned int currentFluidModel = 0;
 
 // main 
 int main( int argc, char **argv )
@@ -51,19 +53,32 @@ int main( int argc, char **argv )
 	base = new DemoBase();
 	base->init(argc, argv, "StaticBoundaryDemo");
 
-	initBoundaryData();
+	Simulation *sim = Simulation::getCurrent();
+	sim->init(base->getScene().particleRadius);
+	
 	base->buildModel();
 
-	Simulation *sim = Simulation::getCurrent();
-	sim->setDragMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getDragBase()); });
-	sim->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getSurfaceTensionBase()); });
-	sim->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getViscosityBase()); });
-	sim->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getVorticityBase()); });
+	initBoundaryData();
+	unsigned int nBoundaryParticles = 0;
+	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+		nBoundaryParticles += sim->getBoundaryModel(i)->numberOfParticles();
+
+	LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
+
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+		const std::string &key = model->getId();
+		model->setDragMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getDragBase()); });
+		model->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getSurfaceTensionBase()); });
+		model->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getViscosityBase()); });
+		model->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getVorticityBase()); });
+	}
 
 	initParameters();
 	base->readParameters();
 
-	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject(Simulation::getCurrent()->getTimeStep()); });
+	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
 
 	MiniGL::setClientIdleFunc(50, timeStep);
 	MiniGL::setKeyFunc(0, 'r', reset);
@@ -92,15 +107,39 @@ void initParameters()
 
 	MiniGL::initTweakBarParameters();
 
+	Simulation *sim = Simulation::getCurrent();
 	TweakBarParameters::createParameterGUI();
 	TweakBarParameters::createParameterObjectGUI(base);
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getModel());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getTimeStep());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getDragBase());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getSurfaceTensionBase());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getViscosityBase());
-	TweakBarParameters::createParameterObjectGUI(Simulation::getCurrent()->getVorticityBase());
+	TweakBarParameters::createParameterObjectGUI(sim);
+	TweakBarParameters::createParameterObjectGUI(sim->getTimeStep());
+
+	// Enum for all fluid models
+	if (sim->numberOfFluidModels() > 0)
+	{
+		TwType enumType = TwDefineEnum("CurrentFluidModelEnum", NULL, 0);
+		std::ostringstream oss;
+		oss << 0 << " {" << sim->getFluidModel(0)->getId().c_str() << "}";
+		for (unsigned int j = 1; j < sim->numberOfFluidModels(); j++)
+		{
+			oss << ", " << j << " {" << sim->getFluidModel(j)->getId().c_str() << "}";
+		}
+		std::string enumStr = " label='Current fluid model' enum='" + oss.str() + "' group='Fluid model'";
+		TwAddVarCB(MiniGL::getTweakBar(), "CurrentFluidModel", enumType, setCurrentFluidModel, getCurrentFluidModel, &currentFluidModel, enumStr.c_str());
+	}
+
+	// show GUI only for currently selected fluid model
+	unsigned int i = currentFluidModel;
+	FluidModel *model = sim->getFluidModel(currentFluidModel);
+	TweakBarParameters::createParameterObjectGUI(model);
+	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getDragBase());
+	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getSurfaceTensionBase());
+	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getViscosityBase());
+	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getVorticityBase());
+	TwDefine((std::string("TweakBar/FluidModel group='") + model->getId() + "'").c_str());
+	TwDefine((std::string("TweakBar/'Drag force' group='") + model->getId() + "'").c_str());
+	TwDefine((std::string("TweakBar/'Surface tension' group='") + model->getId() + "'").c_str());
+	TwDefine((std::string("TweakBar/Viscosity group='") + model->getId() + "'").c_str());
+	TwDefine((std::string("TweakBar/Vorticity group='") + model->getId() + "'").c_str());
 }
 
 void reset()
@@ -135,15 +174,27 @@ void timeStep ()
 
 void render()
 {
-	MiniGL::coordinateSystem();
+	float gridColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	MiniGL::drawGrid(gridColor);
 
-	base->renderFluid();
+	MiniGL::coordinateSystem();
+	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
+
+	Simulation *sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+
+		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
+		MiniGL::hsvToRgb(0.61f-0.1f*i, 0.66f, 0.9f, fluidColor);
+		base->renderFluid(model, fluidColor);
+	}
 	renderBoundary();
 }
 
 void renderBoundary()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
 	Shader &shader = base->getShader();
 	Shader &meshShader = base->getMeshShader();
 	SceneLoader::Scene &scene = base->getScene();
@@ -158,13 +209,13 @@ void renderBoundary()
 			shader.begin();
 			glUniform3fv(shader.getUniform("color"), 1, &wallColor[0]);
 			glEnableVertexAttribArray(0);
-			for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+			for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
-					glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(body + 1, 0));
-					glDrawArrays(GL_POINTS, 0, rb->numberOfParticles());
+					BoundaryModel *bm = sim->getBoundaryModel(body);
+					glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &bm->getPosition(0));
+					glDrawArrays(GL_POINTS, 0, bm->numberOfParticles());
 				}
 			}
 			glDisableVertexAttribArray(0);
@@ -176,15 +227,15 @@ void renderBoundary()
 			glPointSize(4.0f);
  
 			glBegin(GL_POINTS);
-			for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+			for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
-					for (unsigned int i = 0; i < rb->numberOfParticles(); i++)
+					BoundaryModel *bm = sim->getBoundaryModel(body);
+					for (unsigned int i = 0; i < bm->numberOfParticles(); i++)
 					{
 						glColor3fv(wallColor);
-						glVertex3v(&model->getPosition(body + 1, i)[0]);
+						glVertex3v(&bm->getPosition(i)[0]);
 					}
 				}
 			}
@@ -194,7 +245,7 @@ void renderBoundary()
 	}
 	else if ((renderWalls == 3) || (renderWalls == 4))
 	{
-		for (int body = model->numberOfRigidBodyParticleObjects() - 1; body >= 0; body--)
+		for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 		{
 			if ((renderWalls == 3) || (!scene.boundaryModels[body]->isWall))
 			{
@@ -211,8 +262,8 @@ void renderBoundary()
 
 				glUniform3fv(meshShader.getUniform("surface_color"), 1, wallColor);
 
-				FluidModel::RigidBodyParticleObject *rb = model->getRigidBodyParticleObject(body);
-				MiniGL::drawMesh(((StaticRigidBody*)rb->m_rigidBody)->getGeometry(), wallColor);
+				BoundaryModel *bm = sim->getBoundaryModel(body);
+				MiniGL::drawMesh(((StaticRigidBody*)bm->getRigidBodyObject())->getGeometry(), wallColor);
 
 				meshShader.end();
 			}
@@ -327,14 +378,26 @@ void initBoundaryData()
 					boundaryParticles[j] = scene.boundaryModels[i]->rotation * boundaryParticles[j] + scene.boundaryModels[i]->translation;
 			}
 		}
-		Simulation::getCurrent()->getModel()->addRigidBodyObject(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
-
 		for (unsigned int j = 0; j < geo.numVertices(); j++)
 			geo.getVertices()[j] = scene.boundaryModels[i]->rotation * geo.getVertices()[j] + scene.boundaryModels[i]->translation;
 
 		geo.updateNormals();
 		geo.updateVertexNormals();
 
+		Simulation::getCurrent()->addBoundaryModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}
+	Simulation::getCurrent()->updateBoundaryPsi();
 }
 
+void TW_CALL setCurrentFluidModel(const void *value, void *clientData)
+{
+	const unsigned int val = *(const unsigned int *)(value);
+	*((unsigned int*)clientData) = val;
+
+	initParameters();
+}
+
+void TW_CALL getCurrentFluidModel(void *value, void *clientData)
+{
+	*(unsigned int *)(value) = *((unsigned int*)clientData);
+}

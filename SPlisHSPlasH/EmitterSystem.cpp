@@ -9,8 +9,9 @@
 using namespace SPH;
 
 
-EmitterSystem::EmitterSystem()
+EmitterSystem::EmitterSystem(FluidModel *model)
 {	
+	m_model = model;
 	m_numReusedParticles = 0;
 	m_numberOfEmittedParticles = 0;
 	m_reuseParticles = false;
@@ -34,16 +35,15 @@ void EmitterSystem::reuseParticles()
 {
 	if (m_reuseParticles)
 	{
-		FluidModel *model = Simulation::getCurrent()->getModel();
 		m_reusedParticles.clear();
-		for (unsigned int i = 0; i < model->numActiveParticles(); i++)
+		for (unsigned int i = 0; i < m_model->numActiveParticles(); i++)
 		{
-			Vector3r &x = model->getPosition(0, i);
+			Vector3r &x = m_model->getPosition(i);
 			if ((x[0] < m_boxMin[0]) || (x[1] < m_boxMin[1]) || (x[2] < m_boxMin[2]) ||
 				(x[0] > m_boxMax[0]) || (x[1] > m_boxMax[1]) || (x[2] > m_boxMax[2]))
 			{
 				m_reusedParticles.push_back(i);
-				model->getVelocity(0, i) *= 0.95;	// make particles slow so that they don't influence
+				m_model->getVelocity(i) *= 0.95;	// make particles slow so that they don't influence
 													// the CFL condition
 													//model->getPosition(0, i) = Vector3r(1000 + i, 1000, 1000);
 			}
@@ -82,7 +82,7 @@ void EmitterSystem::addEmitter(const unsigned int width, const unsigned int heig
 	const Vector3r &pos, const Vector3r &dir, const Vector3r &initialVel,
 	const Real emitsPerSecond, const unsigned int type)
 {
-	m_emitters.push_back(new Emitter(width, height,
+	m_emitters.push_back(new Emitter(m_model, width, height,
 		pos, dir, initialVel, emitsPerSecond, type));
 }
 

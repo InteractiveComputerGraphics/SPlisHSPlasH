@@ -33,20 +33,21 @@ namespace SPH
 		Solver m_solver;
 		Real m_stiffness;
 		unsigned int m_counter;
+		unsigned int m_numActiveParticlesTotal;
 
-		void initialGuessForPositions();
+		void initialGuessForPositions(const unsigned int fluidModelIndex);
 		void solvePDConstraints();
-		void updatePositionsAndVelocity();
+		void updatePositionsAndVelocity(const VectorXr & x);
 		void addAccellerationToVelocity();
 
-		void matrixFreeRHS(VectorXr & result);
+		void matrixFreeRHS(const VectorXr & x, VectorXr & result);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex) override;
 
-		virtual void initParameters();
+		virtual void initParameters() override;
 
 	public:
 		static int STIFFNESS;
@@ -54,9 +55,9 @@ namespace SPH
 		TimeStepPF();
 		virtual ~TimeStepPF(void);
 
-		virtual void step();
-		virtual void reset();
-		virtual void resize();
+		virtual void step()   override;
+		virtual void reset()  override;
+		virtual void resize() override;
 
 		static void matrixVecProd(const Real* vec, Real *result, void *userData);
 	};

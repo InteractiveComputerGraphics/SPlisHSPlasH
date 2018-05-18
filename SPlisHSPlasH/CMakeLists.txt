@@ -146,6 +146,9 @@ include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
 
 add_library(SPlisHSPlasH
 	Common.h
+	
+	BoundaryModel.cpp
+	BoundaryModel.h
 	Emitter.cpp
 	Emitter.h
 	EmitterSystem.cpp

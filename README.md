@@ -30,6 +30,7 @@ SPlisHSPlasH implements:
 * explicit and implicit viscosity methods
 * current surface tension approaches
 * different vorticity methods
+* support for multi-phase simulations
 * fluid emitters
 * a json-based scene file importer
 * automatic surface sampling
@@ -91,6 +92,12 @@ The SPlisHSPlasH library implements the drag force computation of the following 
 
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
 
+## Multi-Phase Fluid Simulation
+
+The SPlisHSPlasH library implements the following publication to realize multi-phase simulations: 
+
+* B. Solenthaler and R. Pajarola. Density Contrast SPH Interfaces. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2008.
+
 
 ## Documentation
 
@@ -111,8 +118,8 @@ The following videos were generated using the SPlisHSPlasH library:
 [![Video](https://img.youtube.com/vi/fsvDbzEui3w/0.jpg)](https://www.youtube.com/watch?v=fsvDbzEui3w) | [![Video](https://img.youtube.com/vi/P82qmTAahg0/0.jpg)](https://www.youtube.com/watch?v=P82qmTAahg0)
 *Divergence-Free Smoothed Particle Hydrodynamics* | *Divergence-Free SPH for Incompressible and Viscous Fluids*
 [![Video](https://img.youtube.com/vi/POnmzzhc5E0/0.jpg)](https://www.youtube.com/watch?v=POnmzzhc5E0) | [![Video](https://img.youtube.com/vi/tl4mx0TtaAc/0.jpg)](https://www.youtube.com/watch?v=tl4mx0TtaAc)
-*A Physically Consistent Implicit Viscosity Solver for SPH Fluids* | 
-[![Video](https://img.youtube.com/vi/D_nEhix1G-w/0.jpg)](https://www.youtube.com/watch?v=D_nEhix1G-w) | 
+*A Physically Consistent Implicit Viscosity Solver for SPH Fluids* | *Turbulent Micropolar SPH Fluids with Foam*
+[![Video](https://img.youtube.com/vi/D_nEhix1G-w/0.jpg)](https://www.youtube.com/watch?v=D_nEhix1G-w) | [![Video](https://img.youtube.com/vi/elZieJNBYqk/0.jpg)](https://www.youtube.com/watch?v=elZieJNBYqk)
 
 
 ## References
@@ -148,6 +155,8 @@ The following videos were generated using the SPlisHSPlasH library:
 * Andreas Peer and Matthias Teschner. Prescribed Velocity Gradients for Highly Viscous SPH Fluids with Vorticity Diffusion. IEEE Transactions on Visualization and Computer Graphics, 2016.
 
 * Hagit Schechter and Robert Bridson. Ghost sph for animating water. ACM Trans. Graph., 31(4):61:1–61:8, July 2012. 
+
+* B. Solenthaler and R. Pajarola. Density Contrast SPH Interfaces. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2008.
 
 * B. Solenthaler and R. Pajarola. Predictive-corrective incompressible SPH. ACM Trans. Graph., 28(3):40:1–40:6, July 2009. 
 

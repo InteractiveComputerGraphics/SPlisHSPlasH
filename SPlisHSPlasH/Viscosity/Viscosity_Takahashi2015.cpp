@@ -2,6 +2,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -72,54 +73,56 @@ void Viscosity_Takahashi2015::matrixVecProd(const Real* vec, Real *result, void 
 
 void Viscosity_Takahashi2015::computeViscosityAcceleration(Viscosity_Takahashi2015 *visco, const Real* v)
 {
+	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = visco->getModel();
 	const unsigned int numParticles = model->numActiveParticles();
-
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(0, i);
+			const Vector3r &xi = model->getPosition(i);
 			const Vector3r &vi = Eigen::Map<const Vector3r>(&v[3*i]);
 			const Real density_i = model->getDensity(i);
 
 			Matrix3r nablaV;
 			nablaV.setZero();
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
 
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
 				const Vector3r &vj = Eigen::Map<const Vector3r>(&v[3 * neighborIndex]);
-				const Vector3r gradW = model->gradW(xi - xj);
+				const Vector3r gradW = sim->gradW(xi - xj);
 
 				const Matrix3r dyad = (vj - vi) * gradW.transpose();
 
 				nablaV += (model->getMass(neighborIndex) / model->getDensity(neighborIndex)) * dyad;
-			}
+			)
 			visco->getViscousStress(i) = visco->m_viscosity * (nablaV + nablaV.transpose());
 		}
 
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(0, i);
+			const Vector3r &xi = model->getPosition(i);
 			Vector3r &ai = visco->getAccel(i);
 			ai.setZero();
 			const Real density_i = model->getDensity(i);
 			const Real density_i_2 = density_i*density_i;
 
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
 				const Real density_j = model->getDensity(neighborIndex);
 				const Real density_j_2 = density_j*density_j;
-				const Vector3r gradW = model->gradW(xi - xj);
+				const Vector3r gradW = sim->gradW(xi - xj);
 
 				ai += model->getMass(neighborIndex) * (visco->getViscousStress(i) / density_i_2 + visco->getViscousStress(neighborIndex) / density_j_2) * gradW;
-			}
+			)
 		}
 	}
 }
@@ -127,9 +130,12 @@ void Viscosity_Takahashi2015::computeViscosityAcceleration(Viscosity_Takahashi20
 
 void Viscosity_Takahashi2015::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
 	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Init linear system solver and preconditioner
@@ -152,7 +158,7 @@ void Viscosity_Takahashi2015::step()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			b[3*i] = vi[0];
 			b[3*i+1] = vi[1];
 			b[3*i+2] = vi[2];
@@ -175,7 +181,7 @@ void Viscosity_Takahashi2015::step()
 		{
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Vector3r newV(x[3 * i], x[3 * i + 1], x[3 * i + 2]);
-			ai += (1.0 / h) * (newV - m_model->getVelocity(0, i));
+			ai += (1.0 / h) * (newV - m_model->getVelocity(i));
 		}
 	}
 
@@ -186,22 +192,23 @@ void Viscosity_Takahashi2015::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real density_i = m_model->getDensity(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
+			for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
 			{
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
+				BoundaryModel *bm_neighbor = sim->getBoundaryModelFromPointSet(pid);
+				for (unsigned int j = 0; j < sim->numberOfNeighbors(fluidModelIndex, pid, i); j++)
 				{
-					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
-					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
-					const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
-					ai -= invH * 0.1 * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi - vj)* m_model->W(xi - xj);
+					const unsigned int neighborIndex = sim->getNeighbor(fluidModelIndex, pid, i, j);
+					const Vector3r &xj = bm_neighbor->getPosition(neighborIndex);
+					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+					ai -= invH * 0.1 * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
 				}
 			}
 		}

@@ -3,22 +3,26 @@
 	{
 		"particleRadius": 0.025,
 		"simulationMethod": 4,
-		"viscosity": 0.02,
-		"viscosityMethod": 2,
-		"gravitation": [0,-9.81,0], 
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0,
+		"numberOfStepsPerRenderUpdate": 2,
+		"gravitation": [0,-9.81,0],
 		"cflMethod": 1, 
-		"cflFactor": 0.5,
+		"cflFactor": 1.0,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
-		"stiffness": 50000,
+		"stiffness": 5000,
 		"exponent": 7,
-		"velocityUpdateMethod": 1,
+		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true
+	},
+	"Fluid":
+	{
+		"viscosity": 0.01,
+		"viscosityMethod": 1,		
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0
 	},
 	"RigidBodies": [
 		{

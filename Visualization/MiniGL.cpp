@@ -395,6 +395,35 @@ void MiniGL::drawTetrahedron(const Vector3r &a, const Vector3r &b, const Vector3
 	drawTriangle(b, c, d, normal4, color);
 }
 
+void MiniGL::drawGrid(float *color)
+{
+	float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, speccolor);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0);
+
+	const int size = 5;
+
+	glBegin(GL_LINES);
+	for (int i = -size; i <= size; i++)
+	{
+		glVertex3f((float) i, 0.0f, (float) -size);
+		glVertex3f((float) i, 0.0f, (float) size);
+		glVertex3f((float) -size, 0.0f, (float) i);
+		glVertex3f((float) size, 0.0f, (float) i);
+	}
+	glEnd();
+
+	glLineWidth(3.0f);
+	glBegin(GL_LINES);
+	glVertex3f((float)-size, 0.0f, 0.0f);
+	glVertex3f((float)size, 0.0f, 0.0f);
+	glVertex3f(0.0f, 0.0f, (float) -size);
+	glVertex3f(0.0f, 0.0f, (float) size);
+	glEnd();
+}
+
 void MiniGL::setViewport(float pfovy, float pznear, float pzfar, const Vector3r &peyepoint, const Vector3r &plookat)
 {
 	fovy = pfovy;
@@ -508,7 +537,8 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 	glEnable (GL_BLEND); 
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor (0.95f, 0.95f, 1.0f, 1.0f);
+	//glClearColor (0.95f, 0.95f, 1.0f, 1.0f);
+	glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 
 	glutReshapeFunc (reshape);
 	glutKeyboardFunc (keyboard);
@@ -577,20 +607,20 @@ void MiniGL::initTweakBar()
 	// Create a tweak bar
 	m_tweakBar = TwNewBar("TweakBar");
 	TwDefine(" GLOBAL help='MiniGL TweakBar.' "); // Message added to the help bar.
-	TwDefine(" TweakBar size='300 900' valueswidth=120 position='5 5' color='96 200 224' text=dark "); // change default tweak bar size and color
+	//TwDefine(" TweakBar size='300 900' valueswidth=120 position='5 5' color='96 200 224' text=dark "); // change default tweak bar size and color
+	TwDefine(" TweakBar size='300 900' valueswidth=120 position='5 5'"); // change default tweak bar size and color
 }
 
 void MiniGL::initTweakBarParameters()
 {
-	TwAddVarRO(m_tweakBar, "Time", TW_TYPE_REAL, &m_time, " label='Time' precision=5");
-
-	TwAddVarCB(m_tweakBar, "Rotation", TW_TYPE_QUAT4F, setRotationCB, getRotationCB, &m_quat,
-		" label='Rotation' open help='Change the rotation.' ");
+	TwAddVarRO(m_tweakBar, "Time", TW_TYPE_REAL, &m_time, " label='Time' precision=5 group='General'");
 
 	// Add callback to toggle auto-rotate mode (callback functions are defined above).
 	TwAddVarCB(m_tweakBar, "Wireframe", TW_TYPE_BOOL32, setWireframeCB, getWireframeCB, NULL,
-		" label='Wireframe' key=w help='Toggle wireframe mode.' ");
+		" label='Wireframe' key=w help='Toggle wireframe mode.' group='Visualization' ");
 
+	TwAddVarCB(m_tweakBar, "Rotation", TW_TYPE_QUAT4F, setRotationCB, getRotationCB, &m_quat,
+		" label='Rotation' open help='Change the rotation.' group='Visualization' ");
 }
 
 void TW_CALL MiniGL::setWireframeCB(const void *value, void *clientData)
@@ -847,7 +877,7 @@ void MiniGL::rotateX(Real x)
 {
 	AngleAxisr angleAxis(x, Vector3r(1,0,0));
 	Quaternionr quat(angleAxis);
-	m_rotation = m_rotation*quat;
+	m_rotation = quat*m_rotation;
 }
 
 void MiniGL::mousePress (int button, int state, int x, int y)

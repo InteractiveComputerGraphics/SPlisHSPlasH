@@ -17,10 +17,10 @@ namespace SPH
 			virtual ~SimulationDataPBF();
 
 		protected:	
-			std::vector<Real> m_lambda;		
-			std::vector<Vector3r> m_deltaX;
-			std::vector<Vector3r> m_oldX;
-			std::vector<Vector3r> m_lastX;
+			std::vector<std::vector<Real>> m_lambda;		
+			std::vector<std::vector<Vector3r>> m_deltaX;
+			std::vector<std::vector<Vector3r>> m_oldX;
+			std::vector<std::vector<Vector3r>> m_lastX;
 
 		public:
 			/** Initialize the arrays containing the particle data.
@@ -40,66 +40,66 @@ namespace SPH
 			*/
 			void performNeighborhoodSearchSort();
 
-			void emittedParticles(const unsigned int startIndex);
+			void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-			FORCE_INLINE const Real& getLambda(const unsigned int i) const
+			FORCE_INLINE const Real& getLambda(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_lambda[i];
+				return m_lambda[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getLambda(const unsigned int i)
+			FORCE_INLINE Real& getLambda(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_lambda[i];
+				return m_lambda[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setLambda(const unsigned int i, const Real &val)
+			FORCE_INLINE void setLambda(const unsigned int fluidIndex, const unsigned int i, const Real &val)
 			{
-				m_lambda[i] = val;
+				m_lambda[fluidIndex][i] = val;
 			}
 
-			FORCE_INLINE Vector3r &getDeltaX(const unsigned int i)
+			FORCE_INLINE Vector3r &getDeltaX(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_deltaX[i];
+				return m_deltaX[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getDeltaX(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getDeltaX(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_deltaX[i];
+				return m_deltaX[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setDeltaX(const unsigned int i, const Vector3r &val)
+			FORCE_INLINE void setDeltaX(const unsigned int fluidIndex, const unsigned int i, const Vector3r &val)
 			{
-				m_deltaX[i] = val;
+				m_deltaX[fluidIndex][i] = val;
 			}
 
-			FORCE_INLINE Vector3r &getLastPosition(const unsigned int i)
+			FORCE_INLINE Vector3r &getLastPosition(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_lastX[i];
+				return m_lastX[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getLastPosition(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getLastPosition(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_lastX[i];
+				return m_lastX[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setLastPosition(const unsigned int i, const Vector3r &pos)
+			FORCE_INLINE void setLastPosition(const unsigned int fluidIndex, const unsigned int i, const Vector3r &pos)
 			{
-				m_lastX[i] = pos;
+				m_lastX[fluidIndex][i] = pos;
 			}
 
-			FORCE_INLINE Vector3r &getOldPosition(const unsigned int i)
+			FORCE_INLINE Vector3r &getOldPosition(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_oldX[i];
+				return m_oldX[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getOldPosition(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getOldPosition(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_oldX[i];
+				return m_oldX[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setOldPosition(const unsigned int i, const Vector3r &pos)
+			FORCE_INLINE void setOldPosition(const unsigned int fluidIndex, const unsigned int i, const Vector3r &pos)
 			{
-				m_oldX[i] = pos;
+				m_oldX[fluidIndex][i] = pos;
 			}
 
 	};

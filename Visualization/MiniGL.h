@@ -126,6 +126,7 @@ namespace SPH
 		*/
 		static void drawTetrahedron(const Vector3r &a, const Vector3r &b, const Vector3r &c, const Vector3r &d, float *color);
 		static void drawTriangle (const Vector3r &a, const Vector3r &b, const Vector3r &c, const Vector3r &norm, float *color);
+		static void drawGrid(float *color);
 		static void drawBitmapText (float x, float y, const char *str, int strLength, float *color);
 		static void drawStrokeText(const Real x, const Real y, const Real z, float scale, const char *str, int strLength, float *color);
 		static void drawStrokeText (const Vector3r &pos, float scale, const char *str, int strLength, float *color);

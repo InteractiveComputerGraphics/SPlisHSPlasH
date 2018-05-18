@@ -18,13 +18,13 @@ namespace SPH
 
 		protected:	
 			/** \brief factor \f$\alpha_i\f$ \cite Bender:2015 */
-			std::vector<Real> m_factor;
+			std::vector<std::vector<Real>> m_factor;
 			/** \brief stores \f$\kappa\f$ value of last time step for a warm start of the pressure solver */
-			std::vector<Real> m_kappa;
+			std::vector<std::vector<Real>> m_kappa;
 			/** \brief stores \f$\kappa^v\f$ value of last time step for a warm start of the divergence solver */
-			std::vector<Real> m_kappaV;
+			std::vector<std::vector<Real>> m_kappaV;
 			/** \brief advected density */
-			std::vector<Real> m_density_adv;
+			std::vector<std::vector<Real>> m_density_adv;
 
 		public:
 
@@ -44,66 +44,66 @@ namespace SPH
 			 * to call the z_sort of the neighborhood search.
 			 */
 			void performNeighborhoodSearchSort();
-			void emittedParticles(const unsigned int startIndex);
+			void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-			FORCE_INLINE const Real getFactor(const unsigned int i) const
+			FORCE_INLINE const Real getFactor(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_factor[i];
+				return m_factor[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getFactor(const unsigned int i)
+			FORCE_INLINE Real& getFactor(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_factor[i];
+				return m_factor[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setFactor(const unsigned int i, const Real p)
+			FORCE_INLINE void setFactor(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
-				m_factor[i] = p;
+				m_factor[fluidIndex][i] = p;
 			}
 
-			FORCE_INLINE const Real getKappa(const unsigned int i) const
+			FORCE_INLINE const Real getKappa(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_kappa[i];
+				return m_kappa[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getKappa(const unsigned int i)
+			FORCE_INLINE Real& getKappa(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_kappa[i];
+				return m_kappa[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setKappa(const unsigned int i, const Real p)
+			FORCE_INLINE void setKappa(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
-				m_kappa[i] = p;
+				m_kappa[fluidIndex][i] = p;
 			}
 
-			FORCE_INLINE const Real getKappaV(const unsigned int i) const
+			FORCE_INLINE const Real getKappaV(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_kappaV[i];
+				return m_kappaV[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getKappaV(const unsigned int i)
+			FORCE_INLINE Real& getKappaV(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_kappaV[i];
+				return m_kappaV[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setKappaV(const unsigned int i, const Real p)
+			FORCE_INLINE void setKappaV(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
-				m_kappaV[i] = p;
+				m_kappaV[fluidIndex][i] = p;
 			}
 
-			FORCE_INLINE const Real getDensityAdv(const unsigned int i) const
+			FORCE_INLINE const Real getDensityAdv(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_density_adv[i];
+				return m_density_adv[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getDensityAdv(const unsigned int i)
+			FORCE_INLINE Real& getDensityAdv(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_density_adv[i];
+				return m_density_adv[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setDensityAdv(const unsigned int i, const Real d)
+			FORCE_INLINE void setDensityAdv(const unsigned int fluidIndex, const unsigned int i, const Real d)
 			{
-				m_density_adv[i] = d;
+				m_density_adv[fluidIndex][i] = d;
 			}
 	};
 }

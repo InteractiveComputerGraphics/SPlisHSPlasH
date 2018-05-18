@@ -6,6 +6,9 @@
 #include "SimulationDataDFSPH.h"
 #include "SPlisHSPlasH/SPHKernels.h"
 
+#define USE_WARMSTART
+#define USE_WARMSTART_V
+
 namespace SPH
 {
 	class SimulationDataDFSPH;
@@ -24,16 +27,25 @@ namespace SPH
 		Real m_maxErrorV;
 		unsigned int m_maxIterationsV;
 
-		void computeDFSPHFactor();
+		void computeDFSPHFactor(const unsigned int fluidModelIndex);
 		void pressureSolve();
+		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 		void divergenceSolve();
-		void computeDensityAdv(const unsigned int index, const int numParticles, const Real h, const Real density0);
-		void computeDensityChange(const unsigned int index, const Real h, const Real density0);
+		void divergenceSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
+		void computeDensityAdv(const unsigned int fluidModelIndex, const unsigned int index, const int numParticles, const Real h, const Real density0);
+		void computeDensityChange(const unsigned int fluidModelIndex, const unsigned int index, const Real h);
+
+#ifdef USE_WARMSTART_V
+		void warmstartDivergenceSolve(const unsigned int fluidModelIndex);
+#endif
+#ifdef USE_WARMSTART
+		void warmstartPressureSolve(const unsigned int fluidModelIndex);
+#endif
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 		virtual void initParameters();
 

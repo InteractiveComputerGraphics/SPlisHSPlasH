@@ -9,10 +9,11 @@
 using namespace SPH;
 
 
-Emitter::Emitter(const unsigned int width, const unsigned int height,
+Emitter::Emitter(FluidModel *model, const unsigned int width, const unsigned int height,
 	const Vector3r &pos, const Vector3r &dir, const Vector3r &initialVel, 
 	const Real emitsPerSecond, const unsigned int type)
 {	
+	m_model = model;
 	m_width = width;
 	m_height = height;
 	m_x = pos;
@@ -64,18 +65,18 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 	Vector3r d = m_dir;
 	getOrthogonalVectors(d, axis1, axis2);
 
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
 
-	const Real radius = model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Real diam = 2.0*radius;
 
 	const Real startX = -0.5*m_width*diam;
 	const Real startZ = -0.5*m_height*diam;
 
-	if ((model->numActiveParticles() < model->numParticles()) ||
+	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
 		(reusedParticles.size() > 0))
 	{
-		unsigned int indexNotReuse = model->numActiveParticles();
+		unsigned int indexNotReuse = m_model->numActiveParticles();
 		for (unsigned int i = 0; i < m_width; i++)
 		{
 			for (unsigned int j = 0; j < m_height; j++)
@@ -92,10 +93,10 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 					index = indexNotReuse;
 				}
 
-				if (index < model->numParticles())
+				if (index < m_model->numParticles())
 				{
-					model->getPosition(0, index) = (i*diam + startX)*axis1 + (j*diam + startZ)*axis2 + m_x;
-					model->getVelocity(0, index) = m_v;
+					m_model->getPosition(index) = (i*diam + startX)*axis1 + (j*diam + startZ)*axis2 + m_x;
+					m_model->getVelocity(index) = m_v;
 
 					if (reused)
 					{
@@ -113,32 +114,34 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 
 		if (numEmittedParticles != 0)
 		{
-			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
-			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
+			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
+			Simulation *sim = Simulation::getCurrent();
+			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
+			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 	else
 	{
-		if (model->numActiveParticles() < model->numParticles())
+		if (m_model->numActiveParticles() < m_model->numParticles())
 		{
-			unsigned int index = model->numActiveParticles();
+			unsigned int index = m_model->numActiveParticles();
 			for (unsigned int i = 0; i < m_width; i++)
 			{
 				for (unsigned int j = 0; j < m_height; j++)
 				{
-					if (index < model->numParticles())
+					if (index < m_model->numParticles())
 					{
-						model->getPosition(0, index) = (i*diam + startX)*axis1 + (j*diam + startZ)*axis2 + m_x;
-						model->getVelocity(0, index) = m_v;
+						m_model->getPosition(index) = (i*diam + startX)*axis1 + (j*diam + startZ)*axis2 + m_x;
+						m_model->getVelocity(index) = m_v;
 						numEmittedParticles++;
 					}
 					index++;
 				}
 			}
-			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
-			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
+			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
+			Simulation *sim = Simulation::getCurrent();
+			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
+			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 
@@ -157,8 +160,8 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 	Vector3r d = m_dir;
 	getOrthogonalVectors(d, axis1, axis2);
 
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const Real r = model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	Simulation *sim = Simulation::getCurrent();
+	const Real r = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Real diam = 2.0*r;
 
 	const Real radius = (0.5 * (Real)m_width * diam);
@@ -167,10 +170,10 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 	const Real startX = -0.5*(m_width - 1)*diam;
 	const Real startZ = -0.5*(m_width - 1)*diam;
 
-	if ((model->numActiveParticles() < model->numParticles()) ||
+	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
 		(reusedParticles.size() > 0))
 	{
-		unsigned int indexNotReuse = model->numActiveParticles();
+		unsigned int indexNotReuse = m_model->numActiveParticles();
 		for (unsigned int i = 0; i < m_width; i++)
 		{
 			for (unsigned int j = 0; j < m_width; j++)
@@ -190,10 +193,10 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 					index = indexNotReuse;
 				}
 
-				if ((index < model->numParticles()) && (x*x + y*y <= radius2))
+				if ((index < m_model->numParticles()) && (x*x + y*y <= radius2))
 				{
-					model->getPosition(0, index) = x*axis1 + y*axis2 + m_x;
-					model->getVelocity(0, index) = m_v;
+					m_model->getPosition(index) = x*axis1 + y*axis2 + m_x;
+					m_model->getVelocity(index) = m_v;
 
 					if (reused)
 					{
@@ -211,34 +214,36 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 
 		if (numEmittedParticles != 0)
 		{
-			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
-			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
+			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
+			Simulation *sim = Simulation::getCurrent();
+			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
+			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 	else
 	{
-		if (model->numActiveParticles() < model->numParticles())
+		if (m_model->numActiveParticles() < m_model->numParticles())
 		{
-			unsigned int index = model->numActiveParticles();
+			unsigned int index = m_model->numActiveParticles();
 			for (unsigned int i = 0; i < m_width; i++)
 			{
 				for (unsigned int j = 0; j < m_width; j++)
 				{
 					const Real x = (i*diam + startX);
 					const Real y = (j*diam + startZ);
-					if ((index < model->numParticles()) && (x*x + y*y <= radius2))
+					if ((index < m_model->numParticles()) && (x*x + y*y <= radius2))
 					{
-						model->getPosition(0, index) = x*axis1 + y*axis2 + m_x;
-						model->getVelocity(0, index) = m_v;
+						m_model->getPosition(index) = x*axis1 + y*axis2 + m_x;
+						m_model->getVelocity(index) = m_v;
 						numEmittedParticles++;
 						index++;
 					}
 				}
 			}
-			model->setNumActiveParticles(model->numActiveParticles() + numEmittedParticles);
-			Simulation::getCurrent()->emittedParticles(model->numActiveParticles() - numEmittedParticles);
-			model->getNeighborhoodSearch()->resize_point_set(0, &model->getPosition(0, 0)[0], model->numActiveParticles());
+			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
+			Simulation *sim = Simulation::getCurrent();
+			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
+			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 

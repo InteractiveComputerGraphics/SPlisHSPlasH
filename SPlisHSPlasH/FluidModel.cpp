@@ -4,177 +4,220 @@
 #include "TimeManager.h"
 #include "TimeStep.h"
 #include "Utilities/Logger.h"
+#include "CompactNSearch.h"
+#include "Simulation.h"
+#include "EmitterSystem.h"
+#include "Viscosity/ViscosityBase.h"
+#include "SurfaceTension/SurfaceTensionBase.h"
+#include "Vorticity/VorticityBase.h"
+#include "Drag/DragBase.h"
+#include "SurfaceTension/SurfaceTension_Becker2007.h"
+#include "SurfaceTension/SurfaceTension_Akinci2013.h"
+#include "SurfaceTension/SurfaceTension_He2014.h"
+#include "Viscosity/Viscosity_XSPH.h"
+#include "Viscosity/Viscosity_Standard.h"
+#include "Viscosity/Viscosity_Bender2017.h"
+#include "Viscosity/Viscosity_Peer2015.h"
+#include "Viscosity/Viscosity_Peer2016.h"
+#include "Viscosity/Viscosity_Takahashi2015.h"
+#include "Viscosity/Viscosity_Weiler2018.h"
+#include "Vorticity/VorticityConfinement.h"
+#include "Vorticity/MicropolarModel_Bender2017.h"
+#include "Drag/DragForce_Gissler2017.h"
+#include "Drag/DragForce_Macklin2014.h"
+
 
 using namespace SPH;
 using namespace GenParam;
 
-int FluidModel::KERNEL_METHOD = -1;
-int FluidModel::GRAD_KERNEL_METHOD = -1;
 int FluidModel::NUM_PARTICLES = -1;
 int FluidModel::NUM_REUSED_PARTICLES = -1;
-int FluidModel::PARTICLE_RADIUS = -1;
 int FluidModel::DENSITY0 = -1;
-int FluidModel::ENUM_KERNEL_CUBIC = -1;
-int FluidModel::ENUM_KERNEL_POLY6 = -1;
-int FluidModel::ENUM_KERNEL_SPIKY = -1;
-int FluidModel::ENUM_KERNEL_PRECOMPUTED_CUBIC = -1;
-int FluidModel::ENUM_GRADKERNEL_CUBIC = -1;
-int FluidModel::ENUM_GRADKERNEL_POLY6 = -1;
-int FluidModel::ENUM_GRADKERNEL_SPIKY = -1;
-int FluidModel::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC = -1;
+int FluidModel::DRAG_METHOD = -1;
+int FluidModel::SURFACE_TENSION_METHOD = -1;
+int FluidModel::VISCOSITY_METHOD = -1;
+int FluidModel::VORTICITY_METHOD = -1;
+int FluidModel::ENUM_DRAG_NONE = -1;
+int FluidModel::ENUM_DRAG_MACKLIN2014 = -1;
+int FluidModel::ENUM_DRAG_GISSLER2017 = -1;
+int FluidModel::ENUM_SURFACETENSION_NONE = -1;
+int FluidModel::ENUM_SURFACETENSION_BECKER2007 = -1;
+int FluidModel::ENUM_SURFACETENSION_AKINCI2013 = -1;
+int FluidModel::ENUM_SURFACETENSION_HE2014 = -1;
+int FluidModel::ENUM_VISCOSITY_NONE = -1;
+int FluidModel::ENUM_VISCOSITY_STANDARD = -1;
+int FluidModel::ENUM_VISCOSITY_XSPH = -1;
+int FluidModel::ENUM_VISCOSITY_BENDER2017 = -1;
+int FluidModel::ENUM_VISCOSITY_PEER2015 = -1;
+int FluidModel::ENUM_VISCOSITY_PEER2016 = -1;
+int FluidModel::ENUM_VISCOSITY_TAKAHASHI2015 = -1;
+int FluidModel::ENUM_VISCOSITY_WEILER2018 = -1;
+int FluidModel::ENUM_VORTICITY_NONE = -1;
+int FluidModel::ENUM_VORTICITY_MICROPOLAR = -1;
+int FluidModel::ENUM_VORTICITY_VC = -1;
 
 
 FluidModel::FluidModel() :
-	m_particleObjects(),
 	m_masses(),
 	m_a(),
 	m_v0(),
+	m_x0(),
+	m_x(),
+	m_v(),
 	m_density()
-{	
-	m_emitterSystem = new EmitterSystem();
+{		
 	m_density0 = 1000.0;
-	setParticleRadius(0.025);
-	m_neighborhoodSearch = NULL;	
+	m_pointSetIndex = 0;
 
-	ParticleObject *fluidParticles = new ParticleObject();
-	m_particleObjects.push_back(fluidParticles);
-
-	m_kernelMethod = -1;
-	m_gradKernelMethod = -1;
+	m_emitterSystem = new EmitterSystem(this);
+	m_viscosity = nullptr;
+	m_viscosityMethod = ViscosityMethods::None;
+	m_surfaceTension = nullptr;
+	m_surfaceTensionMethod = SurfaceTensionMethods::None;
+	m_vorticityMethod = VorticityMethods::None;
+	m_vorticity = nullptr;
+	m_dragMethod = DragMethods::None;
+	m_drag = nullptr;
+	m_dragMethodChanged = nullptr;
+	m_surfaceTensionMethodChanged = nullptr;
+	m_viscosityMethodChanged = nullptr;
+	m_vorticityMethodChanged = nullptr;
 }
 
 FluidModel::~FluidModel(void)
 {
-	cleanupModel();
-}
-
-void FluidModel::cleanupModel()
-{
-	releaseFluidParticles();
-	for (unsigned int i = 0; i < m_particleObjects.size(); i++)
-	{
-		if (i > 0)
-		{
-			RigidBodyParticleObject *rbpo = ((RigidBodyParticleObject*)m_particleObjects[i]);
-			rbpo->m_boundaryPsi.clear();
-			rbpo->m_f.clear();
-			delete rbpo->m_rigidBody;
-			delete rbpo;
-		}
-		else
-			delete m_particleObjects[i];
-	}
-	m_particleObjects.clear();
-
-	m_v0.clear();
-	m_a.clear();
-	m_masses.clear();
-	m_density.clear();
-	delete m_neighborhoodSearch;
 	delete m_emitterSystem;
+	delete m_surfaceTension;
+	delete m_drag;
+	delete m_vorticity;
+	delete m_viscosity;
+
+	releaseFluidParticles();
 }
 
 void FluidModel::init()
 {
 	initParameters();
+
+	setViscosityMethod(static_cast<int>(ViscosityMethods::Standard));
 }
 
 void FluidModel::initParameters()
 {
+	std::string groupName = "FluidModel";
 	ParameterObject::initParameters();
-
-	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&FluidModel::getParticleRadius, this);
-	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&FluidModel::setParticleRadius, this, std::placeholders::_1);
-	PARTICLE_RADIUS = createNumericParameter("particleRadius", "Particle radius", getRadiusFct, setRadiusFct);
-	setGroup(PARTICLE_RADIUS, "Simulation");
-	setDescription(PARTICLE_RADIUS, "Radius of the fluid particles.");
-	getParameter(PARTICLE_RADIUS)->setReadOnly(true);
 
 	ParameterBase::GetFunc<Real> getDensity0Fct = std::bind(&FluidModel::getDensity0, this);
 	ParameterBase::SetFunc<Real> setDensity0Fct = std::bind(&FluidModel::setDensity0, this, std::placeholders::_1);
 	DENSITY0 = createNumericParameter("density0", "Rest density", getDensity0Fct, setDensity0Fct);
-	setGroup(DENSITY0, "Simulation");
+	setGroup(DENSITY0, groupName);
 	setDescription(DENSITY0, "Rest density of the fluid.");
 	getParameter(DENSITY0)->setReadOnly(true);
 
 	NUM_PARTICLES = createNumericParameter("numParticles", "# active particles", &m_numActiveParticles);
-	setGroup(NUM_PARTICLES, "Simulation");
+	setGroup(NUM_PARTICLES, groupName);
 	setDescription(NUM_PARTICLES, "Number of active fluids particles in the simulation.");
 	getParameter(NUM_PARTICLES)->setReadOnly(true);
 
 	NUM_REUSED_PARTICLES = createNumericParameter<unsigned int>("numReusedParticles", "# reused particles", [&]() { return m_emitterSystem->numReusedParticles(); });
-	setGroup(NUM_REUSED_PARTICLES, "Simulation");
-	setDescription(NUM_REUSED_PARTICLES, "Number of reused fluids particles in the simulation.");
+	setGroup(NUM_REUSED_PARTICLES, groupName);
+	setDescription(NUM_REUSED_PARTICLES, "Number of reused fluid particles in the simulation.");
 	getParameter(NUM_REUSED_PARTICLES)->setReadOnly(true);
 
-	ParameterBase::GetFunc<int> getKernelFct = std::bind(&FluidModel::getKernel, this);
-	ParameterBase::SetFunc<int> setKernelFct = std::bind(&FluidModel::setKernel, this, std::placeholders::_1);
-	KERNEL_METHOD = createEnumParameter("kernel", "Kernel", getKernelFct, setKernelFct);
-	setGroup(KERNEL_METHOD, "Kernel");
-	setDescription(KERNEL_METHOD, "Kernel function used in the SPH model.");
-	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
-	enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
-	enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
-	enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
-	enumParam->addEnumValue("Precomputed cubic spline", ENUM_KERNEL_PRECOMPUTED_CUBIC);
+	ParameterBase::GetFunc<int> getDragFct = std::bind(&FluidModel::getDragMethod, this);
+	ParameterBase::SetFunc<int> setDragFct = std::bind(&FluidModel::setDragMethod, this, std::placeholders::_1);
+	DRAG_METHOD = createEnumParameter("dragMethod", "Drag method", getDragFct, setDragFct);
+	setGroup(DRAG_METHOD, "Drag force");
+	setDescription(DRAG_METHOD, "Method to compute drag forces.");
+	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(DRAG_METHOD));
+	enumParam->addEnumValue("None", ENUM_DRAG_NONE);
+	enumParam->addEnumValue("Macklin et al. 2014", ENUM_DRAG_MACKLIN2014);
+	enumParam->addEnumValue("Gissler et al. 2017", ENUM_DRAG_GISSLER2017);
 
-	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&FluidModel::getGradKernel, this);
-	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&FluidModel::setGradKernel, this, std::placeholders::_1);
-	GRAD_KERNEL_METHOD = createEnumParameter("gradKernel", "Gradient of kernel", getGradKernelFct, setGradKernelFct);
-	setGroup(GRAD_KERNEL_METHOD, "Kernel");
-	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the SPH model.");
-	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
-	enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
-	enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
-	enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
-	enumParam->addEnumValue("Precomputed cubic spline", ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+
+	ParameterBase::GetFunc<int> getSurfaceTensionFct = std::bind(&FluidModel::getSurfaceTensionMethod, this);
+	ParameterBase::SetFunc<int> setSurfaceTensionFct = std::bind(&FluidModel::setSurfaceTensionMethod, this, std::placeholders::_1);
+	SURFACE_TENSION_METHOD = createEnumParameter("surfaceTensionMethod", "Surface tension", getSurfaceTensionFct, setSurfaceTensionFct);
+	setGroup(SURFACE_TENSION_METHOD, "Surface tension");
+	setDescription(SURFACE_TENSION_METHOD, "Method to compute surface tension forces.");
+	enumParam = static_cast<EnumParameter*>(getParameter(SURFACE_TENSION_METHOD));
+	enumParam->addEnumValue("None", ENUM_SURFACETENSION_NONE);
+	enumParam->addEnumValue("Becker & Teschner 2007", ENUM_SURFACETENSION_BECKER2007);
+	enumParam->addEnumValue("Akinci et al. 2013", ENUM_SURFACETENSION_AKINCI2013);
+	enumParam->addEnumValue("He et al. 2014", ENUM_SURFACETENSION_HE2014);
+
+
+	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&FluidModel::getViscosityMethod, this);
+	ParameterBase::SetFunc<int> setViscosityFct = std::bind(&FluidModel::setViscosityMethod, this, std::placeholders::_1);
+	VISCOSITY_METHOD = createEnumParameter("viscosityMethod", "Viscosity", getViscosityFct, setViscosityFct);
+	setGroup(VISCOSITY_METHOD, "Viscosity");
+	setDescription(VISCOSITY_METHOD, "Method to compute viscosity forces.");
+	enumParam = static_cast<EnumParameter*>(getParameter(VISCOSITY_METHOD));
+	enumParam->addEnumValue("None", ENUM_VISCOSITY_NONE);
+	enumParam->addEnumValue("Standard", ENUM_VISCOSITY_STANDARD);
+	enumParam->addEnumValue("XSPH", ENUM_VISCOSITY_XSPH);
+	enumParam->addEnumValue("Bender and Koschier 2017", ENUM_VISCOSITY_BENDER2017);
+	enumParam->addEnumValue("Peer et al. 2015", ENUM_VISCOSITY_PEER2015);
+	enumParam->addEnumValue("Peer et al. 2016", ENUM_VISCOSITY_PEER2016);
+	enumParam->addEnumValue("Takahashi et al. 2015 (improved)", ENUM_VISCOSITY_TAKAHASHI2015);
+	enumParam->addEnumValue("Weiler et al. 2018", ENUM_VISCOSITY_WEILER2018);
+
+	ParameterBase::GetFunc<int> getVorticityFct = std::bind(&FluidModel::getVorticityMethod, this);
+	ParameterBase::SetFunc<int> setVorticityFct = std::bind(&FluidModel::setVorticityMethod, this, std::placeholders::_1);
+	VORTICITY_METHOD = createEnumParameter("vorticityMethod", "Vorticity", getVorticityFct, setVorticityFct);
+	setGroup(VORTICITY_METHOD, "Vorticity");
+	setDescription(VORTICITY_METHOD, "Method to compute vorticity forces.");
+	enumParam = static_cast<EnumParameter*>(getParameter(VORTICITY_METHOD));
+	enumParam->addEnumValue("None", ENUM_VORTICITY_NONE);
+	enumParam->addEnumValue("Micropolar model", ENUM_VORTICITY_MICROPOLAR);
+	enumParam->addEnumValue("Vorticity confinement", ENUM_VORTICITY_VC);
 }
 
 
 void FluidModel::reset()
 {
-	m_emitterSystem->reset();
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
-
-	// reset velocities and accelerations
-	for (unsigned int i = 1; i < m_particleObjects.size(); i++)
-	{
-		for (int j = 0; j < (int)m_particleObjects[i]->m_x.size(); j++)
-		{
-			RigidBodyParticleObject *rbpo = ((RigidBodyParticleObject*)m_particleObjects[i]);
-			rbpo->m_f[j].setZero();
-			rbpo->m_v[j].setZero();
-		}
-	}
-	
-	if (m_neighborhoodSearch->point_set(0).n_points() != nPoints)
-		m_neighborhoodSearch->resize_point_set(0, &getPosition(0, 0)[0], nPoints);
 
 	// Fluid
 	for (unsigned int i = 0; i < nPoints; i++)
 	{
-		const Vector3r& x0 = getPosition0(0, i);
-		getPosition(0, i) = x0;
-		getVelocity(0, i) = getVelocity0(i);
+		const Vector3r& x0 = getPosition0(i);
+		getPosition(i) = x0;
+		getVelocity(i) = getVelocity0(i);
 		getAcceleration(i).setZero();
 		m_density[i] = 0.0;
 	}
 
-	updateBoundaryPsi();
+	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	if (neighborhoodSearch->point_set(m_pointSetIndex).n_points() != nPoints)
+		neighborhoodSearch->resize_point_set(m_pointSetIndex, &getPosition(0)[0], nPoints);
+
+	if (m_surfaceTension)
+		m_surfaceTension->reset();
+	if (m_viscosity)
+		m_viscosity->reset();
+	if (m_vorticity)
+		m_vorticity->reset();
+	if (m_drag)
+		m_drag->reset();
+
+	m_emitterSystem->reset();
 }
 
 void FluidModel::initMasses()
 {
+	const Real particleRadius = Simulation::getCurrent()->getParticleRadius();
 	const int nParticles = (int) numParticles();
-	const Real diam = 2.0*m_particleRadius;
+	const Real diam = 2.0*particleRadius;
+	m_V = 0.8 * diam*diam*diam;
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < nParticles; i++)
 		{
-			setMass(i, 0.8 * diam*diam*diam * m_density0);		// each particle represents a cube with a side length of r		
+			setMass(i, m_V * m_density0);						// each particle represents a cube with a side length of r		
 																// mass is slightly reduced to prevent pressure at the beginning of the simulation
 		}
 	}
@@ -182,9 +225,9 @@ void FluidModel::initMasses()
 
 void FluidModel::resizeFluidParticles(const unsigned int newSize)
 {
-	m_particleObjects[0]->m_x0.resize(newSize);
-	m_particleObjects[0]->m_x.resize(newSize);
-	m_particleObjects[0]->m_v.resize(newSize);
+	m_x0.resize(newSize);
+	m_x.resize(newSize);
+	m_v.resize(newSize);
 	m_v0.resize(newSize);
 	m_a.resize(newSize);
 	m_masses.resize(newSize);
@@ -193,25 +236,21 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 
 void FluidModel::releaseFluidParticles()
 {
-	m_particleObjects[0]->m_x0.clear();
-	m_particleObjects[0]->m_x.clear();
-	m_particleObjects[0]->m_v.clear();
+	m_x0.clear();
+	m_x.clear();
+	m_v.clear();
 	m_v0.clear();
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
 }
 
-void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
+void FluidModel::initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
 {
+	m_id = id;
+	init();
 	releaseFluidParticles();
 	resizeFluidParticles(nFluidParticles + nMaxEmitterParticles);
-
-	// init kernel
-	setParticleRadius(m_particleRadius);
-
-	// make sure that m_W_zero is set correctly for the new particle radius
-	setKernel(getKernel());
 
 	// copy fluid positions
 	#pragma omp parallel default(shared)
@@ -219,140 +258,26 @@ void FluidModel::initModel(const unsigned int nFluidParticles, Vector3r* fluidPa
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)nFluidParticles; i++)
 		{
-			getPosition0(0, i) = fluidParticles[i];
+			getPosition0(i) = fluidParticles[i];
+			getPosition(i) = fluidParticles[i];
 			getVelocity0(i) = fluidVelocities[i];
+			getVelocity(i) = fluidVelocities[i];
+			getAcceleration(i).setZero();
+			m_density[i] = 0.0;
 		}
 	}
 
 	// initialize masses
 	initMasses();
 
-	// Initialize neighborhood search
-	if (m_neighborhoodSearch == NULL)
-		m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
-	m_neighborhoodSearch->set_radius(m_supportRadius);
-
 	// Fluids 
-	m_neighborhoodSearch->add_point_set(&getPosition(0, 0)[0], nFluidParticles, true, true);
-
-	// Boundary
-	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
-	{
-		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i);
-		m_neighborhoodSearch->add_point_set(&rb->m_x[0][0], rb->m_x.size(), rb->m_rigidBody->isDynamic(), false);
-	}
+	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	m_pointSetIndex = neighborhoodSearch->add_point_set(&getPosition(0)[0], nFluidParticles, true, true, true, this);
 
 	m_numActiveParticles0 = nFluidParticles;
 	m_numActiveParticles = m_numActiveParticles0;
-
-	reset();
 }
 
-void FluidModel::updateBoundaryPsi()
-{
-	if (m_neighborhoodSearch == nullptr)
-		return; 
-
-	//////////////////////////////////////////////////////////////////////////
-	// Compute value psi for boundary particles (boundary handling)
-	// (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012
-	//////////////////////////////////////////////////////////////////////////
-
-	// Search boundary neighborhood
-
-	// Activate only static boundaries
-	LOG_INFO << "Initialize boundary psi";
-	m_neighborhoodSearch->set_active(false);
-	for (unsigned int i = 0; i < numberOfRigidBodyParticleObjects(); i++)
-	{
-		if (!getRigidBodyParticleObject(i)->m_rigidBody->isDynamic())
-			m_neighborhoodSearch->set_active(i + 1, true, true);
-	}
-
-	m_neighborhoodSearch->find_neighbors();
-
-	// Boundary objects
-	for (unsigned int body = 0; body < numberOfRigidBodyParticleObjects(); body++)
-	{
-		if (!getRigidBodyParticleObject(body)->m_rigidBody->isDynamic())
-			computeBoundaryPsi(body);
-	}
-
-	////////////////////////////////////////////////////////////////////////// 
-	// Compute boundary psi for all dynamic bodies
-	//////////////////////////////////////////////////////////////////////////
-	for (unsigned int body = 0; body < numberOfRigidBodyParticleObjects(); body++)
-	{
-		// Deactivate all
-		m_neighborhoodSearch->set_active(false);
-
-		// Only activate next dynamic body
-		if (getRigidBodyParticleObject(body)->m_rigidBody->isDynamic())
-		{
-			m_neighborhoodSearch->set_active(body + 1, true, true);
-			m_neighborhoodSearch->find_neighbors();
-			computeBoundaryPsi(body);
-		}
-	}
-
-	// Activate only fluids 	
-	m_neighborhoodSearch->set_active(false); 	
-	m_neighborhoodSearch->set_active(0u, 0u, true); 	
-	for (unsigned int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++) 		
-		m_neighborhoodSearch->set_active(0u, i, true);
-}
-
-void FluidModel::computeBoundaryPsi(const unsigned int body)
-{
-	const Real density0 = getDensity0();
-	
-	RigidBodyParticleObject *rb = getRigidBodyParticleObject(body);
-	const unsigned int numBoundaryParticles = rb->numberOfParticles();
-
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)numBoundaryParticles; i++)
-		{
-			Real delta = m_W_zero;
-			for (unsigned int pid = 1; pid < numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < m_neighborhoodSearch->point_set(body + 1).n_neighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = m_neighborhoodSearch->point_set(body + 1).neighbor(pid, i, j);
-					delta += W(getPosition(body + 1, i) - getPosition(pid, neighborIndex));
-				}
-			}
-			const Real volume = 1.0 / delta;
-			rb->m_boundaryPsi[i] = density0 * volume; 
-		}
-	}
-}
-
-void FluidModel::addRigidBodyObject(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles)
-{
-	RigidBodyParticleObject *rb = new RigidBodyParticleObject();
-	m_particleObjects.push_back(rb);
-
-	rb->m_x0.resize(numBoundaryParticles);
-	rb->m_x.resize(numBoundaryParticles);
-	rb->m_v.resize(numBoundaryParticles);
-	rb->m_f.resize(numBoundaryParticles);
-	rb->m_boundaryPsi.resize(numBoundaryParticles);
-
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int) numBoundaryParticles; i++)
-		{
-			rb->m_x0[i] = boundaryParticles[i];
-			rb->m_x[i] = boundaryParticles[i];
-			rb->m_v[i].setZero();
-			rb->m_f[i].setZero();
-		}
-	}
-	rb->m_rigidBody = rbo;
-}
 
 void FluidModel::performNeighborhoodSearchSort()
 {
@@ -360,98 +285,32 @@ void FluidModel::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	m_neighborhoodSearch->z_sort();
+	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 
-	auto const& d = m_neighborhoodSearch->point_set(0);
-	d.sort_field(&m_particleObjects[0]->m_x[0]);
-	d.sort_field(&m_particleObjects[0]->m_v[0]);
+	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);
+	d.sort_field(&m_x[0]);
+	d.sort_field(&m_v[0]);
 	d.sort_field(&m_a[0]);
 	d.sort_field(&m_masses[0]);
 	d.sort_field(&m_density[0]);
 
-
-	//////////////////////////////////////////////////////////////////////////
-	// Boundary
-	//////////////////////////////////////////////////////////////////////////
-	for (unsigned int i = 1; i < m_neighborhoodSearch->point_sets().size(); i++)
-	{
-		RigidBodyParticleObject *rb = getRigidBodyParticleObject(i - 1);
-		if (rb->m_rigidBody->isDynamic())			// sort only dynamic boundaries
-		{
-			auto const& d = m_neighborhoodSearch->point_set(i);
-			d.sort_field(&rb->m_x[0]);
-			d.sort_field(&rb->m_v[0]);
-			d.sort_field(&rb->m_f[0]);
-			d.sort_field(&rb->m_boundaryPsi[0]);
-		}
-	}
+	if (m_viscosity)
+		m_viscosity->performNeighborhoodSearchSort();
+	if (m_surfaceTension)
+		m_surfaceTension->performNeighborhoodSearchSort();
+	if (m_vorticity)
+		m_vorticity->performNeighborhoodSearchSort();
+	if (m_drag)
+		m_drag->performNeighborhoodSearchSort();
 }
 
 void SPH::FluidModel::setDensity0(const Real v)
 {
 	m_density0 = v; 
 	initMasses(); 
-	updateBoundaryPsi();
+	Simulation::getCurrent()->updateBoundaryPsi();
 }
 
-void FluidModel::setParticleRadius(Real val)
-{
-	m_particleRadius = val; 
-	m_supportRadius = 4.0*m_particleRadius;
-
-	// init kernel
-	Poly6Kernel::setRadius(m_supportRadius);
-	SpikyKernel::setRadius(m_supportRadius);
-	CubicKernel::setRadius(m_supportRadius);
-	PrecomputedCubicKernel::setRadius(m_supportRadius);
-	CohesionKernel::setRadius(m_supportRadius);
-	AdhesionKernel::setRadius(m_supportRadius);
-}
-
-
-void SPH::FluidModel::setGradKernel(int val)
-{
-	m_gradKernelMethod = val;
-	if (m_gradKernelMethod == 0)
-		m_gradKernelFct = CubicKernel::gradW;
-	else if (m_gradKernelMethod == 1)
-		m_gradKernelFct = Poly6Kernel::gradW;
-	else if (m_gradKernelMethod == 2)
-		m_gradKernelFct = SpikyKernel::gradW;
-	else if (m_gradKernelMethod == 3)
-		m_gradKernelFct = FluidModel::PrecomputedCubicKernel::gradW;
-}
-
-void SPH::FluidModel::setKernel(int val)
-{
-	const auto old_kernelMethod = m_kernelMethod;
-	const auto old_W_Zero = m_W_zero;
-
-	m_kernelMethod = val;
-	if (m_kernelMethod == 0)
-	{
-		m_W_zero = CubicKernel::W_zero();
-		m_kernelFct = CubicKernel::W;
-	}
-	else if (m_kernelMethod == 1)
-	{
-		m_W_zero = Poly6Kernel::W_zero();
-		m_kernelFct = Poly6Kernel::W;
-	}
-	else if (m_kernelMethod == 2)
-	{
-		m_W_zero = SpikyKernel::W_zero();
-		m_kernelFct = SpikyKernel::W;
-	}
-	else if (m_kernelMethod == 3)
-	{
-		m_W_zero = FluidModel::PrecomputedCubicKernel::W_zero();
-		m_kernelFct = FluidModel::PrecomputedCubicKernel::W;
-	}
-
-	if (old_kernelMethod != m_kernelMethod || old_W_Zero != m_W_zero)
-		updateBoundaryPsi();
-}
 
 void FluidModel::setNumActiveParticles(const unsigned int num)
 {
@@ -461,4 +320,175 @@ void FluidModel::setNumActiveParticles(const unsigned int num)
 unsigned int FluidModel::numActiveParticles() const
 {
 	return m_numActiveParticles;
+}
+
+void FluidModel::setDragMethodChangedCallback(std::function<void()> const& callBackFct)
+{
+	m_dragMethodChanged = callBackFct;
+}
+
+void FluidModel::setSurfaceMethodChangedCallback(std::function<void()> const& callBackFct)
+{
+	m_surfaceTensionMethodChanged = callBackFct;
+}
+
+void FluidModel::setViscosityMethodChangedCallback(std::function<void()> const& callBackFct)
+{
+	m_viscosityMethodChanged = callBackFct;
+}
+
+void FluidModel::setVorticityMethodChangedCallback(std::function<void()> const& callBackFct)
+{
+	m_vorticityMethodChanged = callBackFct;
+}
+
+void FluidModel::computeSurfaceTension()
+{
+	if (m_surfaceTension)
+		m_surfaceTension->step();
+}
+
+void FluidModel::computeViscosity()
+{
+	if (m_viscosity)
+		m_viscosity->step();
+}
+
+void FluidModel::computeVorticity()
+{
+	if (m_vorticity)
+		m_vorticity->step();
+}
+
+void FluidModel::computeDragForce()
+{
+	if (m_drag)
+		m_drag->step();
+}
+
+void FluidModel::emittedParticles(const unsigned int startIndex)
+{
+	if (m_viscosity)
+		m_viscosity->emittedParticles(startIndex);
+	if (m_surfaceTension)
+		m_surfaceTension->emittedParticles(startIndex);
+	if (m_vorticity)
+		m_vorticity->emittedParticles(startIndex);
+	if (m_drag)
+		m_drag->emittedParticles(startIndex);
+}
+
+void FluidModel::setSurfaceTensionMethod(const int val)
+{
+	SurfaceTensionMethods stm = static_cast<SurfaceTensionMethods>(val);
+	if ((stm < SurfaceTensionMethods::None) || (stm >= SurfaceTensionMethods::NumSurfaceTensionMethods))
+		stm = SurfaceTensionMethods::None;
+	if (stm == m_surfaceTensionMethod)
+		return;
+
+	delete m_surfaceTension;
+	m_surfaceTension = nullptr;
+
+	m_surfaceTensionMethod = stm;
+	if (m_surfaceTensionMethod == SurfaceTensionMethods::Becker2007)
+		m_surfaceTension = new SurfaceTension_Becker2007(this);
+	else if (m_surfaceTensionMethod == SurfaceTensionMethods::Akinci2013)
+		m_surfaceTension = new SurfaceTension_Akinci2013(this);
+	else if (m_surfaceTensionMethod == SurfaceTensionMethods::He2014)
+		m_surfaceTension = new SurfaceTension_He2014(this);
+
+	if (m_surfaceTension != nullptr)
+		m_surfaceTension->init();
+
+	if (m_surfaceTensionMethodChanged != nullptr)
+		m_surfaceTensionMethodChanged();
+}
+
+void FluidModel::setViscosityMethod(const int val)
+{
+	ViscosityMethods vm = static_cast<ViscosityMethods>(val);
+	if ((vm < ViscosityMethods::None) || (vm >= ViscosityMethods::NumViscosityMethods))
+		vm = ViscosityMethods::XSPH;
+
+	if (vm == m_viscosityMethod)
+		return;
+
+	delete m_viscosity;
+	m_viscosity = nullptr;
+
+	m_viscosityMethod = vm;
+
+	if (m_viscosityMethod == ViscosityMethods::Standard)
+		m_viscosity = new Viscosity_Standard(this);
+	else if (m_viscosityMethod == ViscosityMethods::XSPH)
+		m_viscosity = new Viscosity_XSPH(this);
+	else if (m_viscosityMethod == ViscosityMethods::Bender2017)
+		m_viscosity = new Viscosity_Bender2017(this);
+	else if (m_viscosityMethod == ViscosityMethods::Peer2015)
+		m_viscosity = new Viscosity_Peer2015(this);
+	else if (m_viscosityMethod == ViscosityMethods::Peer2016)
+		m_viscosity = new Viscosity_Peer2016(this);
+	else if (m_viscosityMethod == ViscosityMethods::Takahashi2015)
+		m_viscosity = new Viscosity_Takahashi2015(this);
+	else if (m_viscosityMethod == ViscosityMethods::Weiler2018)
+		m_viscosity = new Viscosity_Weiler2018(this);
+
+	if (m_viscosity != nullptr)
+		m_viscosity->init();
+
+	if (m_viscosityMethodChanged != nullptr)
+		m_viscosityMethodChanged();
+}
+
+
+void FluidModel::setVorticityMethod(const int val)
+{
+	VorticityMethods vm = static_cast<VorticityMethods>(val);
+	if ((vm < VorticityMethods::None) || (vm >= VorticityMethods::NumVorticityMethods))
+		vm = VorticityMethods::None;
+
+	if (vm == m_vorticityMethod)
+		return;
+
+	delete m_vorticity;
+	m_vorticity = nullptr;
+
+	m_vorticityMethod = vm;
+
+	if (m_vorticityMethod == VorticityMethods::Micropolar)
+		m_vorticity = new MicropolarModel_Bender2017(this);
+	else if (m_vorticityMethod == VorticityMethods::VorticityConfinement)
+		m_vorticity = new VorticityConfinement(this);
+
+	if (m_vorticity != nullptr)
+		m_vorticity->init();
+
+	if (m_vorticityMethodChanged != nullptr)
+		m_vorticityMethodChanged();
+}
+
+void FluidModel::setDragMethod(const int val)
+{
+	DragMethods dm = static_cast<DragMethods>(val);
+	if ((dm < DragMethods::None) || (dm >= DragMethods::NumDragMethods))
+		dm = DragMethods::None;
+
+	if (dm == m_dragMethod)
+		return;
+
+	delete m_drag;
+	m_drag = nullptr;
+
+	m_dragMethod = dm;
+
+	if (m_dragMethod == DragMethods::Gissler2017)
+		m_drag = new DragForce_Gissler2017(this);
+	else if (m_dragMethod == DragMethods::Macklin2014)
+		m_drag = new DragForce_Macklin2014(this);
+
+	if (m_drag != nullptr)
+		m_drag->init();
+
+	if (m_dragMethodChanged != nullptr)
+		m_dragMethodChanged();
 }

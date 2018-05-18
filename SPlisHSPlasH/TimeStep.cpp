@@ -51,10 +51,10 @@ void TimeStep::initParameters()
 	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(1e-6);
 }
 
-void TimeStep::clearAccelerations()
+void TimeStep::clearAccelerations(const unsigned int fluidModelIndex)
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int count = model->numActiveParticles();
 	const Vector3r grav(sim->getVecValue<Real>(Simulation::GRAVITATION));
 	for (unsigned int i=0; i < count; i++)
@@ -68,11 +68,13 @@ void TimeStep::clearAccelerations()
 	}
 }
 
-void TimeStep::computeDensities()
+void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
+	const Real density0 = model->getDensity0();
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
 	
 	#pragma omp parallel default(shared)
 	{
@@ -82,33 +84,25 @@ void TimeStep::computeDensities()
 			Real &density = model->getDensity(i);
 
 			// Compute current density for particle i
-			density = model->getMass(i) * model->W_zero();
-			const Vector3r &xi = model->getPosition(0, i);
+			density = model->getVolume(i) * sim->W_zero();
+			const Vector3r &xi = model->getPosition(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-				density += model->getMass(neighborIndex) * model->W(xi - xj);
-			}
+			forall_fluid_neighbors(
+				density += fm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid=1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-					
-					// Boundary: Akinci2012
-					density += model->getBoundaryPsi(pid, neighborIndex) * model->W(xi - xj);
-				}
-			}
+			forall_boundary_neighbors(				
+				// Boundary: Akinci2012
+				density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+			)
+
+			density *= density0;
 		}
 	}
 }

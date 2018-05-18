@@ -15,18 +15,44 @@ SimulationDataIISPH::~SimulationDataIISPH(void)
 
 void SimulationDataIISPH::init()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	m_aii.resize(model->numParticles(), 0.0);
-	m_dii.resize(model->numParticles(), Vector3r::Zero());
-	m_dij_pj.resize(model->numParticles(), Vector3r::Zero());
-	m_density_adv.resize(model->numParticles(), 0.0);
-	m_pressure.resize(model->numParticles(), 0.0);
-	m_lastPressure.resize(model->numParticles(), 0.0);
-	m_pressureAccel.resize(model->numParticles(), Vector3r::Zero());
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+
+	m_aii.resize(nModels);
+	m_dii.resize(nModels);
+	m_dij_pj.resize(nModels);
+	m_density_adv.resize(nModels);
+	m_pressure.resize(nModels);
+	m_lastPressure.resize(nModels);
+	m_pressureAccel.resize(nModels);
+	for (unsigned int i = 0; i < nModels; i++)
+	{
+		FluidModel *fm = sim->getFluidModel(i);
+		m_aii[i].resize(fm->numParticles(), 0.0);
+		m_dii[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_dij_pj[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_density_adv[i].resize(fm->numParticles(), 0.0);
+		m_pressure[i].resize(fm->numParticles(), 0.0);
+		m_lastPressure[i].resize(fm->numParticles(), 0.0);
+		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
+	}
 }
 
 void SimulationDataIISPH::cleanup()
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+
+	for (unsigned int i = 0; i < nModels; i++)
+	{
+		m_aii[i].clear();
+		m_dii[i].clear();
+		m_dij_pj[i].clear();
+		m_density_adv[i].clear();
+		m_pressure[i].clear();
+		m_lastPressure[i].clear();
+		m_pressureAccel[i].clear();
+	}
 	m_aii.clear();
 	m_dii.clear();
 	m_dij_pj.clear();
@@ -38,36 +64,49 @@ void SimulationDataIISPH::cleanup()
 
 void SimulationDataIISPH::reset()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	for(unsigned int i=0; i < model->numActiveParticles(); i++)
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+
+	for (unsigned int i = 0; i < nModels; i++)
 	{
-		m_lastPressure[i] = 0.0;
+		FluidModel *fm = sim->getFluidModel(i);
+		for (unsigned int j = 0; j < fm->numActiveParticles(); j++)
+		{
+			m_lastPressure[i][j] = 0.0;
+		}
 	}
 }
 
 void SimulationDataIISPH::performNeighborhoodSearchSort()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const unsigned int numPart = model->numActiveParticles();
-	if (numPart == 0)
-		return;
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
 
-	auto const& d = model->getNeighborhoodSearch()->point_set(0);
-	d.sort_field(&m_aii[0]);
-	d.sort_field(&m_dii[0]);
-	d.sort_field(&m_dij_pj[0]);
-	d.sort_field(&m_density_adv[0]);
-	d.sort_field(&m_pressure[0]);
-	d.sort_field(&m_lastPressure[0]);
-	d.sort_field(&m_pressureAccel[0]);
+	for (unsigned int i = 0; i < nModels; i++)
+	{
+		FluidModel *fm = sim->getFluidModel(i);
+		const unsigned int numPart = fm->numActiveParticles();
+		if (numPart != 0)
+		{
+			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
+			d.sort_field(&m_aii[i][0]);
+			d.sort_field(&m_dii[i][0]);
+			d.sort_field(&m_dij_pj[i][0]);
+			d.sort_field(&m_density_adv[i][0]);
+			d.sort_field(&m_pressure[i][0]);
+			d.sort_field(&m_lastPressure[i][0]);
+			d.sort_field(&m_pressureAccel[i][0]);
+		}
+	}
 }
 
-void SimulationDataIISPH::emittedParticles(const unsigned int startIndex)
+void SimulationDataIISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
 	// initialize last pressure values for new particles
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	for (unsigned int i = startIndex; i < model->numActiveParticles(); i++)
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	for (unsigned int j = startIndex; j < model->numActiveParticles(); j++)
 	{
-		m_lastPressure[i] = 0.0;
+		m_lastPressure[fluidModelIndex][j] = 0.0;
 	}
 }

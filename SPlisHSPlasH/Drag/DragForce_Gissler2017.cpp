@@ -3,6 +3,7 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include "../Simulation.h"
 
 using namespace SPH;
 
@@ -21,11 +22,16 @@ DragForce_Gissler2017::~DragForce_Gissler2017(void)
 
 void DragForce_Gissler2017::step()
 {
-	const Real supportRadius = m_model->getSupportRadius();
-	const Real radius = m_model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	Simulation *sim = Simulation::getCurrent();
+	const Real supportRadius = sim->getSupportRadius();
+	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Real diam = 2.0*radius;
 	static const Real pi = static_cast<Real>(M_PI);
 	const Real rho_l = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
+
 
 	// Air velocity.
 	const Vector3r va(0, 0, 0);
@@ -63,7 +69,7 @@ void DragForce_Gissler2017::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			Vector3r v_i_rel = va - vi;
 			const Real vi_rel_square = v_i_rel.squaredNorm();
 			const Real vi_rel_norm = sqrt(vi_rel_square);
@@ -89,9 +95,9 @@ void DragForce_Gissler2017::step()
 			// Equation (9)
 			const Real C_Di_Liu = C_Di_sphere * (1.0 + 2.632 * y_i_max);
 
-			unsigned int numNeighbors = m_model->numberOfNeighbors(0, i);
-			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
-				numNeighbors += m_model->numberOfNeighbors(pid, i);
+			unsigned int numNeighbors = sim->numberOfNeighbors(0, i);
+			for (unsigned int pid = 1; pid < sim->numberOfPointSets(); pid++)
+				numNeighbors += sim->numberOfNeighbors(pid, i);
 
 			// Equation (10)
 			Real C_Di;
@@ -112,16 +118,13 @@ void DragForce_Gissler2017::step()
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			Real max_v_x = 0.0;
-			const Vector3r &xi = m_model->getPosition(0, i);
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+			const Vector3r &xi = m_model->getPosition(i);
+			forall_fluid_neighbors_in_same_phase(
 				Vector3r xixj = xi - xj;
 				xixj.normalize();
 				const Real x_v = v_i_rel_n.dot(xixj);
 				max_v_x = std::max(max_v_x, x_v);
-			}
+			)
 			// Equation (15)
 			const Real w_i = std::max(0.0, std::min(1.0, 1.0 - max_v_x));
 

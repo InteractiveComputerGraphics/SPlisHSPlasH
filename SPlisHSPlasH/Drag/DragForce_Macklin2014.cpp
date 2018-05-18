@@ -24,7 +24,7 @@ void DragForce_Macklin2014::step()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			Vector3r &ai = m_model->getAcceleration(i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			ai -= m_dragCoefficient * static_cast<Real>(1.0) / m_model->getMass(i) * vi * (1.0 - m_model->getDensity(i) / density0);
 		}
 	}

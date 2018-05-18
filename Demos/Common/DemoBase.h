@@ -42,7 +42,7 @@ namespace SPH
 		bool m_renderTemperatures;
 		Real m_renderMaxVelocity;
 		Vector3r m_oldMousePos;
-		std::vector<unsigned int> m_selectedParticles;
+		std::vector<std::vector<unsigned int>> m_selectedParticles;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
 		unsigned int m_frameCounter;
@@ -51,8 +51,9 @@ namespace SPH
 		virtual void initParameters();
 
 		void initShaders();
-		void initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
-		void createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities);
+		void initFluidData();
+		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities);
+		void createEmitters();
 
 		static void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData);
 		static void mouseMove(int x, int y, void *clientData);
@@ -80,7 +81,7 @@ namespace SPH
 		void buildModel();
 		void cleanup();
 
-		void renderFluid();
+		void renderFluid(FluidModel *model, float *fluidColor);
 
 		void readParameters();
 		void partioExport();
@@ -103,7 +104,7 @@ namespace SPH
 		void pointShaderEnd();
 		Utilities::SceneLoader::Scene& getScene() { return m_scene; }
 
-		std::vector<unsigned int>& getSelectedParticles() { return m_selectedParticles; }
+		std::vector<std::vector<unsigned int>>& getSelectedParticles() { return m_selectedParticles; }
 		bool getUseParticleCaching() const { return m_useParticleCaching; }
 		void setUseParticleCaching(bool val) { m_useParticleCaching = val; }
 	};

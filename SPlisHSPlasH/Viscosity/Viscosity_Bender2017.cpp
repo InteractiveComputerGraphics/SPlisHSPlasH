@@ -1,6 +1,7 @@
 #include "Viscosity_Bender2017.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Counting.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -16,7 +17,7 @@ Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	m_targetStrainRate.resize(model->numParticles(), Vector6r::Zero());
 	m_viscosityFactor.resize(model->numParticles(), Matrix6r::Zero());
 	m_viscosityLambda.resize(model->numParticles(), Vector6r::Zero());
-	
+
 	m_iterations = 0;
 	m_maxIter = 50;
 	m_maxError = 0.01;
@@ -52,7 +53,11 @@ void Viscosity_Bender2017::initParameters()
 
 void Viscosity_Bender2017::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	const unsigned int maxIter = m_maxIter;
 	const Real maxError = m_maxError;	
 	const Real maxError2 = maxError*maxError;
@@ -72,20 +77,19 @@ void Viscosity_Bender2017::step()
 			#pragma omp for schedule(static) nowait 
 			for (int i = 0; i < numParticles; i++)
 			{
-				const Vector3r &xi = m_model->getPosition(0, i);
-				const Vector3r &vi = m_model->getVelocity(0, i);
+				const Vector3r &xi = m_model->getPosition(i);
+				const Vector3r &vi = m_model->getVelocity(i);
 				const Real density_i = m_model->getDensity(i);
 
 				Vector6r viscosityC;
 				viscosityC.setZero();
 
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-
-					const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-					const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
-					const Vector3r gradW = m_model->gradW(xi - xj);
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				forall_fluid_neighbors_in_same_phase(
+					const Vector3r &vj = m_model->getVelocity(neighborIndex);
+					const Vector3r gradW = sim->gradW(xi - xj);
 					const Vector3r vji = vj - vi;
 
 					const Real m = m_model->getMass(neighborIndex);
@@ -96,7 +100,7 @@ void Viscosity_Bender2017::step()
 					viscosityC[3] += m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
 					viscosityC[4] += m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
 					viscosityC[5] += m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
-				}
+				)
 
 				viscosityC = (0.5 / density_i) * viscosityC - getTargetStrainRate(i);
  
@@ -127,34 +131,35 @@ void Viscosity_Bender2017::step()
 			#pragma omp for schedule(static) nowait 
 			for (int i = 0; i < numParticles; i++)
 			{
-				const Vector3r &xi = m_model->getPosition(0, i);
-				Vector3r &vi = m_model->getVelocity(0, i);
+				const Vector3r &xi = m_model->getPosition(i);
+				Vector3r &vi = m_model->getVelocity(i);
 				const Real density_i = m_model->getDensity(i);
 
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-					const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-					const Vector3r gradW = m_model->gradW(xi - xj);
+
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				Eigen::Matrix<Real, 3, 6> gradT;
+				forall_fluid_neighbors_in_same_phase(
+					const Vector3r gradW = sim->gradW(xi - xj);
 					const Real density_j = m_model->getDensity(neighborIndex);
 
-					Eigen::Matrix<Real, 3, 6> gradT;
-					gradT.setZero();
-					gradT(0,0) = 2.0 * gradW[0];
-					gradT(0,3) = gradW[1];
-					gradT(0,4) = gradW[2];
-
-					gradT(1,1) = 2.0 * gradW[1];
-					gradT(1,3) = gradW[0];
-					gradT(1,5) = gradW[2];
-
-					gradT(2,2) = 2.0 * gradW[2];
-					gradT(2,4) = gradW[0];
-					gradT(2,5) = gradW[1];
-
-					vi -= m_model->getMass(neighborIndex)* 0.5 * gradT * ((m_model->getMass(neighborIndex) / (density_i*density_i)) * getViscosityLambda(i) +
-						(m_model->getMass(neighborIndex) / (density_j*density_j)) * getViscosityLambda(neighborIndex));
-				}
+ 					gradT.setZero();
+ 					gradT(0,0) = 2.0 * gradW[0];
+ 					gradT(0,3) = gradW[1];
+ 					gradT(0,4) = gradW[2];
+ 
+ 					gradT(1,1) = 2.0 * gradW[1];
+ 					gradT(1,3) = gradW[0];
+ 					gradT(1,5) = gradW[2];
+ 
+ 					gradT(2,2) = 2.0 * gradW[2];
+ 					gradT(2,4) = gradW[0];
+ 					gradT(2,5) = gradW[1];
+ 
+ 					vi -= m_model->getMass(neighborIndex)* 0.5 * gradT * ((m_model->getMass(neighborIndex) / (density_i*density_i)) * getViscosityLambda(i) +
+ 						(m_model->getMass(neighborIndex) / (density_j*density_j)) * getViscosityLambda(neighborIndex));
+				)
 			}
 		}
 		m_iterations++;
@@ -172,24 +177,18 @@ void Viscosity_Bender2017::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real density_i = m_model->getDensity(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
-					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
-					const Vector3r &vj = m_model->getVelocity(pid, neighborIndex);
-					ai -= invH * 0.1 * m_viscosity * (m_model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi - vj)* m_model->W(xi - xj);
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+				ai -= invH * 0.1 * m_viscosity * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
+			)
 		}
 	}
 }
@@ -206,7 +205,11 @@ void Viscosity_Bender2017::computeViscosityFactor()
 	// Init parameters
 	//////////////////////////////////////////////////////////////////////////
 
+	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const FluidModel *model = m_model;
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
 
 	#pragma omp parallel default(shared)
 	{
@@ -220,7 +223,7 @@ void Viscosity_Bender2017::computeViscosityFactor()
 			//////////////////////////////////////////////////////////////////////////
 			// Compute viscosity matrix
 			//////////////////////////////////////////////////////////////////////////
-			const Vector3r &xi = m_model->getPosition(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
 			const Real density_i = m_model->getDensity(i);
 			Matrix6r &Kinv = getViscosityFactor(i);
 			Matrix6r K;
@@ -229,13 +232,13 @@ void Viscosity_Bender2017::computeViscosityFactor()
 			Eigen::Matrix<Real, 6, 3> grad_i;
 			grad_i.setZero();
 
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-				const Vector3r gradW = m_model->gradW(xi - xj);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			Eigen::Matrix<Real, 6, 3> grad_j;
+			forall_fluid_neighbors_in_same_phase(
+				const Vector3r gradW = sim->gradW(xi - xj);
 
-				Eigen::Matrix<Real, 6, 3> grad_j;
 				grad_j.setZero();
 				grad_j(0,0) = 2.0 * gradW[0];
 				grad_j(3,0) = gradW[1];
@@ -255,7 +258,7 @@ void Viscosity_Bender2017::computeViscosityFactor()
 				Matrix6r Klocal;
 				viscoGradientMultTransposeRightOpt((1.0 / m_model->getDensity(i)) * grad_j, grad_j, Klocal);
 				K += Klocal;
-			}
+			)
 
 
 			Matrix6r Klocal;
@@ -298,7 +301,11 @@ void Viscosity_Bender2017::computeViscosityFactor()
 
 void Viscosity_Bender2017::computeTargetStrainRate()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 		
 	// Compute target strain rate
 	#pragma omp parallel default(shared)
@@ -306,20 +313,20 @@ void Viscosity_Bender2017::computeTargetStrainRate()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			const Real density_i = m_model->getDensity(i);
 
 			Vector6r &strainRate = getTargetStrainRate(i);
 			strainRate.setZero();
 
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-				const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
+				const Vector3r &vj = m_model->getVelocity(neighborIndex);
 
-				const Vector3r gradW = m_model->gradW(xi - xj);
+				const Vector3r gradW = sim->gradW(xi - xj);
 				const Vector3r vji = vj - vi;
 				const Real m = m_model->getMass(neighborIndex);
 				const Real m2 = m * 2.0;
@@ -329,7 +336,7 @@ void Viscosity_Bender2017::computeTargetStrainRate()
 				strainRate[3] += (1.0-m_viscosity) * m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
 				strainRate[4] += (1.0-m_viscosity) * m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
 				strainRate[5] += (1.0-m_viscosity) * m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
-			}
+			)
 			strainRate = (0.5 / density_i) * strainRate;
 		}
 	}
@@ -341,7 +348,8 @@ void Viscosity_Bender2017::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	Simulation *sim = Simulation::getCurrent();
+	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
 	d.sort_field(&m_targetStrainRate[0]);
 	d.sort_field(&m_viscosityFactor[0]);
 	d.sort_field(&m_viscosityLambda[0]);

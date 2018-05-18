@@ -43,21 +43,25 @@ void TimeStepPBF::initParameters()
 void TimeStepPBF::step()
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
+	const unsigned int nModels = sim->numberOfFluidModels();
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
 
-	clearAccelerations();
-
-	// Time integration
-	#pragma omp parallel default(shared)
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int) model->numActiveParticles(); i++)
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		clearAccelerations(fluidModelIndex);
+
+		// Time integration
+		#pragma omp parallel default(shared)
 		{
-			m_simulationData.getLastPosition(i) = m_simulationData.getOldPosition(i);
-			m_simulationData.getOldPosition(i) = model->getPosition(0, i);
-			TimeIntegration::semiImplicitEuler(h, model->getMass(i), model->getPosition(0, i), model->getVelocity(0, i), model->getAcceleration(i));
+			#pragma omp for schedule(static)  
+			for (int i = 0; i < (int) model->numActiveParticles(); i++)
+			{
+				m_simulationData.getLastPosition(fluidModelIndex, i) = m_simulationData.getOldPosition(fluidModelIndex, i);
+				m_simulationData.getOldPosition(fluidModelIndex, i) = model->getPosition(i);
+				TimeIntegration::semiImplicitEuler(h, model->getMass(i), model->getPosition(i), model->getVelocity(i), model->getAcceleration(i));
+			}
 		}
 	}
 
@@ -70,39 +74,49 @@ void TimeStepPBF::step()
 	STOP_TIMING_AVG;
 
 	// Update velocities	
-	if (m_velocityUpdateMethod == ENUM_PBF_FIRST_ORDER)
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
-		#pragma omp parallel default(shared)
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		if (m_velocityUpdateMethod == ENUM_PBF_FIRST_ORDER)
 		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) model->numActiveParticles(); i++)
+			#pragma omp parallel default(shared)
 			{
-				TimeIntegration::velocityUpdateFirstOrder(h, model->getMass(i), model->getPosition(0, i), m_simulationData.getOldPosition(i), model->getVelocity(0, i));
-				model->getAcceleration(i).setZero();
+				#pragma omp for schedule(static)  
+				for (int i = 0; i < (int)model->numActiveParticles(); i++)
+				{
+					TimeIntegration::velocityUpdateFirstOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), model->getVelocity(i));
+					model->getAcceleration(i).setZero();
+				}
+			}
+		}
+		else
+		{
+			#pragma omp parallel default(shared)
+			{
+				#pragma omp for schedule(static)  
+				for (int i = 0; i < (int)model->numActiveParticles(); i++)
+				{
+					TimeIntegration::velocityUpdateSecondOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), m_simulationData.getLastPosition(fluidModelIndex, i), model->getVelocity(i));
+					model->getAcceleration(i).setZero();
+				}
 			}
 		}
 	}
-	else
+
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		computeDensities(fluidModelIndex);
+	sim->computeNonPressureForces();
+
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)model->numActiveParticles(); i++)
 			{
-				TimeIntegration::velocityUpdateSecondOrder(h, model->getMass(i), model->getPosition(0, i), m_simulationData.getOldPosition(i), m_simulationData.getLastPosition(i), model->getVelocity(0, i));
-				model->getAcceleration(i).setZero();
+				model->getVelocity(i) += h * model->getAcceleration(i);
 			}
-		}
-	}
-
-	sim->computeNonPressureForces();
-
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int)model->numActiveParticles(); i++)
-		{
-			model->getVelocity(0, i) += h * model->getAcceleration(i);
 		}
 	}
 
@@ -125,165 +139,156 @@ void TimeStepPBF::reset()
 
 void TimeStepPBF::pressureSolve()
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+
+	Real avg_density_err = 0;
 	m_iterations = 0;
-	const Real eps = 1.0e-6;
+	bool chk = false;
 
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const unsigned int numParticles = model->numActiveParticles();
-	const Real invH = 1.0 / TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH2 = invH*invH;
-
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
-
-	const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
-
-	Real avg_density_err = 0.0;
-	while (((avg_density_err > eta) || (m_iterations < 2)) && (m_iterations < m_maxIterations))
+	while ((!chk || (m_iterations < 2)) && (m_iterations < m_maxIterations))
 	{
-		avg_density_err = 0.0;
-
-		#pragma omp parallel default(shared)
+		chk = true;
+		for (unsigned int i = 0; i < nFluids; i++)
 		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) numParticles; i++)
-			{
-				Real &density = model->getDensity(i);				
+			FluidModel *model = sim->getFluidModel(i);
+			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 
-				// Compute current density for particle i
-				density = model->getMass(i) * model->W_zero();
-				const Vector3r &xi = model->getPosition(0, i);
+			avg_density_err = 0.0;
+			pressureSolveIteration(i, avg_density_err);
 
-				//////////////////////////////////////////////////////////////////////////
-				// Fluid
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-					const Vector3r &xj = model->getPosition(0, neighborIndex);
-					density += model->getMass(neighborIndex) * model->W(xi - xj);
-				}
-
-				//////////////////////////////////////////////////////////////////////////
-				// Boundary
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-				{
-					for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-					{
-						const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-						const Vector3r &xj = model->getPosition(pid, neighborIndex);
-						// Boundary: Akinci2012
-						density += model->getBoundaryPsi(pid, neighborIndex) * model->W(xi - xj);
-					}
-				}
-
-				const Real density_err = max(density, density0) - density0;
-				#pragma omp atomic
-				avg_density_err += density_err;
-
-				// Evaluate constraint function
-				const Real C = std::max(density / density0 - 1.0, 0.0);			// clamp to prevent particle clumping at surface
-
-				if (C != 0.0)
-				{
-					// Compute gradients dC/dx_j 
-					Real sum_grad_C2 = 0.0;
-					Vector3r gradC_i(0.0, 0.0, 0.0);
-
-					//////////////////////////////////////////////////////////////////////////
-					// Fluid
-					//////////////////////////////////////////////////////////////////////////
-					for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-					{
-						const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-						const Vector3r &xj = model->getPosition(0, neighborIndex);
-						const Vector3r gradC_j = -model->getMass(neighborIndex) / density0 * model->gradW(xi - xj);
-						sum_grad_C2 += gradC_j.squaredNorm();
-						gradC_i -= gradC_j;
-					}
-
-					//////////////////////////////////////////////////////////////////////////
-					// Boundary
-					//////////////////////////////////////////////////////////////////////////
-					for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-					{
-						for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-						{
-							const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-							const Vector3r &xj = model->getPosition(pid, neighborIndex);
-							
-							// Boundary: Akinci2012
-							const Vector3r gradC_j = -model->getBoundaryPsi(pid, neighborIndex) / density0 * model->gradW(xi - xj);
-							sum_grad_C2 += gradC_j.squaredNorm();
-							gradC_i -= gradC_j;
-						}
-					}
-
-					sum_grad_C2 += gradC_i.squaredNorm();
-
-					// Compute lambda
-					Real &lambda = m_simulationData.getLambda(i);
-					lambda = -C / (sum_grad_C2 + eps);
-				}
-				else
-					m_simulationData.getLambda(i) = 0.0;
-			}
-		}
-
-		avg_density_err /= numParticles;
-
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)numParticles; i++)
-			{
-				Vector3r &corr = m_simulationData.getDeltaX(i);
-
-				// Compute position correction
-				corr.setZero();
-				const Vector3r &xi = model->getPosition(0, i);
-
-				//////////////////////////////////////////////////////////////////////////
-				// Fluid
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-					const Vector3r &xj = model->getPosition(0, neighborIndex);
-					const Vector3r gradC_j = -model->getMass(neighborIndex) / density0 * model->gradW(xi - xj);
-					corr -= (m_simulationData.getLambda(i) + m_simulationData.getLambda(neighborIndex)) * gradC_j;
-				}
-
-				//////////////////////////////////////////////////////////////////////////
-				// Boundary
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-				{
-					for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-					{
-						const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-						const Vector3r &xj = model->getPosition(pid, neighborIndex);
-						// Boundary: Akinci2012
-						const Vector3r gradC_j = -model->getBoundaryPsi(pid, neighborIndex) / density0 * model->gradW(xi - xj);
-						const Vector3r dx = 2.0 * m_simulationData.getLambda(i) * gradC_j;
-						corr -= dx;
-
-						model->getForce(pid, neighborIndex) += model->getMass(i) * dx * invH2;
-					}
-				}
-			}
-		}
-		
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)numParticles; i++)
-			{
-				model->getPosition(0, i) += m_simulationData.getDeltaX(i);
-			}
+			// Maximal allowed density fluctuation
+			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			chk = chk && (avg_density_err <= eta);
 		}
 
 		m_iterations++;
+	}
+}
+
+void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err)
+{
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
+	const unsigned int numParticles = model->numActiveParticles();
+	const Real invH = 1.0 / TimeManager::getCurrent()->getTimeStepSize();
+	const Real invH2 = invH*invH;
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const Real eps = 1.0e-6;
+
+	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int) numParticles; i++)
+		{
+			Real &density = model->getDensity(i);				
+
+			// Compute current density for particle i
+			density = model->getVolume(i) * sim->W_zero();
+			const Vector3r &xi = model->getPosition(i);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors(
+				density += fm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+			)
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			forall_boundary_neighbors(
+				// Boundary: Akinci2012
+				density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+			)
+
+			const Real density_err = density0 * (max(density, 1.0) - 1.0);
+			#pragma omp atomic
+			avg_density_err += density_err;
+
+			// Evaluate constraint function
+			const Real C = std::max(density - 1.0, 0.0);			// clamp to prevent particle clumping at surface
+
+			if (C != 0.0)
+			{
+				// Compute gradients dC/dx_j 
+				Real sum_grad_C2 = 0.0;
+				Vector3r gradC_i(0.0, 0.0, 0.0);
+
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				forall_fluid_neighbors(
+					const Vector3r gradC_j = -fm_neighbor->getVolume(neighborIndex) * sim->gradW(xi - xj);
+					sum_grad_C2 += gradC_j.squaredNorm();
+					gradC_i -= gradC_j;
+				)
+
+				//////////////////////////////////////////////////////////////////////////
+				// Boundary
+				//////////////////////////////////////////////////////////////////////////
+				forall_boundary_neighbors(
+					// Boundary: Akinci2012
+					const Vector3r gradC_j = -bm_neighbor->getVolume(neighborIndex) * sim->gradW(xi - xj);
+					sum_grad_C2 += gradC_j.squaredNorm();
+					gradC_i -= gradC_j;
+				)
+
+				sum_grad_C2 += gradC_i.squaredNorm();
+
+				// Compute lambda
+				Real &lambda = m_simulationData.getLambda(fluidModelIndex, i);
+				lambda = -C / (sum_grad_C2 + eps);
+			}
+			else
+				m_simulationData.getLambda(fluidModelIndex, i) = 0.0;
+		}
+	}
+
+	avg_density_err /= numParticles;
+
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			Vector3r &corr = m_simulationData.getDeltaX(fluidModelIndex, i);
+
+			// Compute position correction
+			corr.setZero();
+			const Vector3r &xi = model->getPosition(i);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors(
+				const Vector3r gradC_j = -fm_neighbor->getVolume(neighborIndex) * sim->gradW(xi - xj);
+				corr -= (m_simulationData.getLambda(fluidModelIndex, i) + (fm_neighbor->getDensity0() / density0) * m_simulationData.getLambda(pid, neighborIndex)) * gradC_j;
+			)
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			forall_boundary_neighbors(
+				// Boundary: Akinci2012
+				const Vector3r gradC_j = -bm_neighbor->getVolume(neighborIndex) * sim->gradW(xi - xj);
+				const Vector3r dx = 2.0 * m_simulationData.getLambda(fluidModelIndex, i) * gradC_j;
+				corr -= dx;
+
+				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * dx * invH2;
+			)
+		}
+	}
+		
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			model->getPosition(i) += m_simulationData.getDeltaX(fluidModelIndex, i);
+		}
 	}
 }
 
@@ -291,21 +296,17 @@ void TimeStepPBF::performNeighborhoodSearch()
 {
 	if (m_counter % 500 == 0)
 	{
-		FluidModel *model = Simulation::getCurrent()->getModel();
-		model->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
 		Simulation::getCurrent()->performNeighborhoodSearchSort();
+		m_simulationData.performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }
 
-void TimeStepPBF::emittedParticles(const unsigned int startIndex)
+void TimeStepPBF::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
-
-	m_simulationData.emittedParticles(startIndex);
-	Simulation::getCurrent()->emittedParticles(startIndex);
+	m_simulationData.emittedParticles(model, startIndex);
 }
 
 void TimeStepPBF::resize()

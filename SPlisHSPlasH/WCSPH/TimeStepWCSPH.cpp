@@ -20,7 +20,7 @@ TimeStepWCSPH::TimeStepWCSPH() :
 	m_simulationData.init();
 	m_counter = 0;
 
-	m_stiffness = 50000.0;
+	m_stiffness = 50.0;
 	m_exponent = 7.0;
 }
 
@@ -47,45 +47,56 @@ void TimeStepWCSPH::initParameters()
 void TimeStepWCSPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
+	const unsigned int nModels = sim->numberOfFluidModels();
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
 
 	performNeighborhoodSearch();
 
 	// Compute accelerations: a(t)
-	clearAccelerations();
-	computeDensities();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		clearAccelerations(fluidModelIndex);
+		computeDensities(fluidModelIndex);
+	}
 	sim->computeNonPressureForces();
 
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 
-	#pragma omp parallel default(shared)
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < (int) model->numActiveParticles(); i++)
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+		#pragma omp parallel default(shared)
 		{
-			Real &density = model->getDensity(i);
-			density = max(density, density0);
-			m_simulationData.getPressure(i) = m_stiffness * (pow(density/density0, m_exponent) - 1.0);
+			#pragma omp for schedule(static)  
+			for (int i = 0; i < (int)model->numActiveParticles(); i++)
+			{
+				Real &density = model->getDensity(i);
+				density = max(density, density0) / density0;
+				m_simulationData.getPressure(fluidModelIndex, i) = m_stiffness * (pow(density / 1.0, m_exponent) - 1.0);
+			}
 		}
-	}
 
-	computePressureAccels();
+		computePressureAccels(fluidModelIndex);
+	}
 
 	sim->updateTimeStepSize();
 
-	#pragma omp parallel default(shared)
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
-		#pragma omp for schedule(static) 
-		for (int i = 0; i < (int)model->numActiveParticles(); i++)
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		#pragma omp parallel default(shared)
 		{
-			Vector3r &pos = model->getPosition(0, i);
-			Vector3r &vel = model->getVelocity(0, i);
-			Vector3r &accel = model->getAcceleration(i);
-			accel += m_simulationData.getPressureAccel(i);
-			vel += accel * h;
-			pos += vel * h;
+			#pragma omp for schedule(static) 
+			for (int i = 0; i < (int)model->numActiveParticles(); i++)
+			{
+				Vector3r &pos = model->getPosition(i);
+				Vector3r &vel = model->getVelocity(i);
+				Vector3r &accel = model->getAcceleration(i);
+				accel += m_simulationData.getPressureAccel(fluidModelIndex, i);
+				vel += accel * h;
+				pos += vel * h;
+			}
 		}
 	}
 
@@ -103,11 +114,13 @@ void TimeStepWCSPH::reset()
 	m_counter = 0;
 }
 
-void TimeStepWCSPH::computePressureAccels()
+void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
+	const Real density0 = model->getDensity0();
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
 
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
@@ -115,68 +128,50 @@ void TimeStepWCSPH::computePressureAccels()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(0, i);
+			const Vector3r &xi = model->getPosition(i);
 			const Real &density_i = model->getDensity(i);
 
-			Vector3r &ai = m_simulationData.getPressureAccel(i);
+			Vector3r &ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
 			ai.setZero();
 
-			const Real dpi = m_simulationData.getPressure(i) / (density_i*density_i);
+			const Real dpi = m_simulationData.getPressure(fluidModelIndex, i) / (density_i*density_i);
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-#
+			forall_fluid_neighbors(
 				// Pressure 
-				const Real &density_j = model->getDensity(neighborIndex);
-				const Real dpj = m_simulationData.getPressure(neighborIndex) / (density_j*density_j);
-				ai -= model->getMass(neighborIndex) * (dpi + dpj) * model->gradW(xi - xj);
-			}
+				const Real &density_j = fm_neighbor->getDensity(neighborIndex);
+				const Real dpj = m_simulationData.getPressure(pid, neighborIndex) / (density_j*density_j);
+				ai -= fm_neighbor->getVolume(neighborIndex) * (dpi + (fm_neighbor->getDensity0() / density0) * dpj) * sim->gradW(xi - xj);
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-
-					const Vector3r a = model->getBoundaryPsi(pid, neighborIndex) * (dpi)* model->gradW(xi - xj);
-					ai -= a;
-
-					model->getForce(pid, neighborIndex) += model->getMass(i) * a;
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r a = bm_neighbor->getVolume(neighborIndex) * (dpi)* sim->gradW(xi - xj);
+				ai -= a;
+				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * a;
+			)
 		}
 	}
 }
 
 void TimeStepWCSPH::performNeighborhoodSearch()
 {
-	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
-	const unsigned int numParticles = model->numActiveParticles();
-
 	if (m_counter % 500 == 0)
 	{
-		model->performNeighborhoodSearchSort();
+		Simulation::getCurrent()->performNeighborhoodSearchSort();
 		m_simulationData.performNeighborhoodSearchSort();
-		sim->performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
-	sim->performNeighborhoodSearch();
+	Simulation::getCurrent()->performNeighborhoodSearch();
 }
 
-void TimeStepWCSPH::emittedParticles(const unsigned int startIndex)
+void TimeStepWCSPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
-	m_simulationData.emittedParticles(startIndex);
-	Simulation::getCurrent()->emittedParticles(startIndex);
+	m_simulationData.emittedParticles(model, startIndex);
 }
 
 void TimeStepWCSPH::resize()

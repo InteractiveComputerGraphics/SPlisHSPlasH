@@ -6,16 +6,8 @@
 		"particleRadius": 0.02,
 		"renderMaxVelocity": 2.0,
 		"density0": 1000, 
-		"simulationMethod": 4,
-		"vorticityMethod": 1,
-		"viscosity": 0.002,
-		"vorticity": 0.15,
-		"viscosityOmega": 0.1,
-		"inertiaInverse": 0.5,
-		"viscosityMethod": 1,
-		"gravitation": [0,-9.81,0], 
-		"surfaceTension": 0.234,
-		"surfaceTensionMethod": 0,
+		"simulationMethod": 4,		
+		"gravitation": [0,-9.81,0], 		
 		"cflMethod": 1, 
 		"cflFactor": 0.7,
 		"cflMaxTimeStepSize": 0.005,
@@ -25,8 +17,19 @@
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
-		"velocityUpdateMethod": 1,
+		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true
+	},
+	"Fluid":
+	{
+		"vorticityMethod": 1,
+		"viscosity": 0.01,
+		"vorticity": 0.15,
+		"viscosityOmega": 0.1,
+		"inertiaInverse": 0.5,
+		"viscosityMethod": 1,
+		"surfaceTension": 0.02,
+		"surfaceTensionMethod": 0
 	},
 	"RigidBodies": [
 		{

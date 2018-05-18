@@ -3,6 +3,7 @@
 
 #include "Common.h"
 #include "ParameterObject.h"
+#include "FluidModel.h"
 
 namespace SPH
 {
@@ -22,11 +23,11 @@ namespace SPH
 
 		/** Clear accelerations and add gravitation.
 		*/
-		void clearAccelerations();
+		void clearAccelerations(const unsigned int fluidModelIndex);
 
 		/** Determine densities of all fluid particles.
 		*/
-		void computeDensities();
+		void computeDensities(const unsigned int fluidModelIndex);
 
 		virtual void initParameters();
 
@@ -39,6 +40,8 @@ namespace SPH
 
 		virtual void init();
 		virtual void resize() = 0;
+
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex) {};
 	};
 }
 

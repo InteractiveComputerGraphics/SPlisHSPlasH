@@ -6,14 +6,7 @@
 		"particleRadius": 0.025, 
 		"density0": 1000, 
 		"simulationMethod": 4,
-		"viscosity": 5000,
-		"viscosityBoundary": 5000,
-		"viscosityMethod": 7,
-		"viscoMaxIter": 200, 
-		"viscoMaxError": 0.05,
 		"gravitation": [0.1,-9.81,0], 
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0,
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
@@ -23,8 +16,18 @@
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
-		"velocityUpdateMethod": 1,
+		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true
+	},
+	"Fluid":
+	{
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0,
+		"viscosity": 5000,
+		"viscosityBoundary": 5000,
+		"viscosityMethod": 7,
+		"viscoMaxIter": 200, 
+		"viscoMaxError": 0.05
 	},
 	"RigidBodies": [
 		{

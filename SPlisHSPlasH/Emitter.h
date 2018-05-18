@@ -3,6 +3,7 @@
 
 #include "Common.h"
 #include <vector>
+#include "FluidModel.h"
 
 
 namespace SPH 
@@ -10,12 +11,13 @@ namespace SPH
 	class Emitter 
 	{
 		public:
-			Emitter(const unsigned int width, const unsigned int height,
+			Emitter(FluidModel *model, const unsigned int width, const unsigned int height,
 				const Vector3r &pos, const Vector3r &dir, const Vector3r &initialVel,
 				const Real emitsPerSecond, const unsigned int type = 0);
 			virtual ~Emitter();
 
-	protected:
+		protected:
+			FluidModel *m_model;
 			unsigned int m_width; 
 			unsigned int m_height;
 			Vector3r m_x;

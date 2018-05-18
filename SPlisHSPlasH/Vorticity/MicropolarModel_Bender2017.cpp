@@ -1,6 +1,7 @@
 #include "MicropolarModel_Bender2017.h"
 #include <iostream>
 #include "../TimeManager.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -45,7 +46,11 @@ void MicropolarModel_Bender2017::initParameters()
 
 void MicropolarModel_Bender2017::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH = 1.0 / h;
@@ -58,8 +63,8 @@ void MicropolarModel_Bender2017::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			const Vector3r &omegai = m_omega[i];
 			Vector3r &ai = m_model->getAcceleration(i);
 			Vector3r &angAcceli = m_angularAcceleration[i];
@@ -70,11 +75,8 @@ void MicropolarModel_Bender2017::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-				const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
+			forall_fluid_neighbors_in_same_phase(
+				const Vector3r &vj = m_model->getVelocity(neighborIndex);
 				const Vector3r &omegaj = m_omega[neighborIndex];
 
 				// Viscosity
@@ -82,15 +84,15 @@ void MicropolarModel_Bender2017::step()
 				const Real density_j2 = density_j *density_j;
 				const Vector3r xij = xi - xj;
 				const Vector3r omegaij = omegai - omegaj;
-				const Vector3r gradW = m_model->gradW(xij);
+				const Vector3r gradW = sim->gradW(xij);
 
 				// XSPH for angular velocity field
-				angAcceli -= invH * m_inertiaInverse * zeta * (m_model->getMass(neighborIndex) / density_j) * omegaij * m_model->W(xij);
+				angAcceli -= invH * m_inertiaInverse * zeta * (m_model->getMass(neighborIndex) / density_j) * omegaij * sim->W(xij);
 
 				// symmetric curl 
 				ai -= nu_t * density_i * m_model->getMass(neighborIndex) * ((omegai / density_i2 + omegaj / density_j2).cross(gradW));
 				angAcceli -= nu_t * density_i * m_inertiaInverse * (m_model->getMass(neighborIndex) * (vi / density_i2 + vj / density_j2).cross(gradW));
-			}
+			)
 			angAcceli -= 2.0 * m_inertiaInverse * nu_t * omegai;
 		}
 	}
@@ -118,7 +120,8 @@ void SPH::MicropolarModel_Bender2017::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	Simulation *sim = Simulation::getCurrent();
+	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
 	d.sort_field(&m_omega[0]);
 }
 

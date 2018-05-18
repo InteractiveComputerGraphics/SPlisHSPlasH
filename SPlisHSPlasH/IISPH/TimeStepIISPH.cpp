@@ -23,15 +23,17 @@ TimeStepIISPH::~TimeStepIISPH(void)
 void TimeStepIISPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
+	const unsigned int nModels = sim->numberOfFluidModels();
 
-	clearAccelerations();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		clearAccelerations(fluidModelIndex);
 
 	performNeighborhoodSearch();
 
-	computeDensities();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		computeDensities(fluidModelIndex);
 
 	sim->computeNonPressureForces();
 
@@ -39,14 +41,16 @@ void TimeStepIISPH::step()
 
 	// Solve density constraint	
 	START_TIMING("predictAdvection");
-	predictAdvection();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		predictAdvection(fluidModelIndex);
 	STOP_TIMING_AVG;
 
 	START_TIMING("pressureSolve");
 	pressureSolve();
 	STOP_TIMING_AVG;
 
-	integration();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		integration(fluidModelIndex);
 
 	sim->emitParticles();
 
@@ -62,10 +66,13 @@ void TimeStepIISPH::reset()
 	m_counter = 0;
 }
 
-void TimeStepIISPH::predictAdvection()
+void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const Real density0 = model->getDensity0();
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -75,39 +82,31 @@ void TimeStepIISPH::predictAdvection()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			Vector3r &vel = model->getVelocity(0, i);
+			Vector3r &vel = model->getVelocity(i);
 			const Vector3r &accel = model->getAcceleration(i);
-			Vector3r &dii = m_simulationData.getDii(i);
+			Vector3r &dii = m_simulationData.getDii(fluidModelIndex, i);
 
 			vel += h * accel;
 
 			// Compute d_ii
 			dii.setZero();
-			const Real density2 = model->getDensity(i)*model->getDensity(i);
-			const Vector3r &xi = model->getPosition(0, i);
+			const Real density = model->getDensity(i) / density0;
+			const Real density2 = density*density;
+			const Vector3r &xi = model->getPosition(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-				dii -= model->getMass(neighborIndex) / density2 * model->gradW(xi - xj);
-			}
+			forall_fluid_neighbors(
+				dii -= fm_neighbor->getVolume(neighborIndex) / density2 * sim->gradW(xi - xj);
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-					dii -= model->getBoundaryPsi(pid, neighborIndex) / density2 * model->gradW(xi - xj);
-				}
-			}
+			forall_boundary_neighbors(
+				dii -= bm_neighbor->getVolume(neighborIndex) / density2 * sim->gradW(xi - xj);
+			)
 		}
 	}
 
@@ -117,212 +116,200 @@ void TimeStepIISPH::predictAdvection()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Real &density = model->getDensity(i);
-			Real &densityAdv = m_simulationData.getDensityAdv(i);
+			const Real density = model->getDensity(i) / density0;
+			Real &densityAdv = m_simulationData.getDensityAdv(fluidModelIndex, i);
 			densityAdv = density;
-			const Vector3r &xi = model->getPosition(0, i);
-			const Vector3r &vi = model->getVelocity(0, i);
+			const Vector3r &xi = model->getPosition(i);
+			const Vector3r &vi = model->getVelocity(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-				const Vector3r &vj = model->getVelocity(0, neighborIndex);
-				densityAdv += h*model->getMass(neighborIndex) * (vi - vj).dot(model->gradW(xi - xj));
-			}
+			forall_fluid_neighbors(
+				const Vector3r &vj = fm_neighbor->getVelocity(neighborIndex);
+				densityAdv += h*fm_neighbor->getVolume(neighborIndex) * (vi - vj).dot(sim->gradW(xi - xj));
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-					const Vector3r &vj = model->getVelocity(pid, neighborIndex);
-					densityAdv += h*model->getBoundaryPsi(pid, neighborIndex) * (vi - vj).dot(model->gradW(xi - xj));
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+				densityAdv += h*bm_neighbor->getVolume(neighborIndex) * (vi - vj).dot(sim->gradW(xi - xj));
+			)
 
-			const Real &pressure = m_simulationData.getPressure(i);
-			Real &lastPressure = m_simulationData.getLastPressure(i);
+			const Real &pressure = m_simulationData.getPressure(fluidModelIndex, i);
+			Real &lastPressure = m_simulationData.getLastPressure(fluidModelIndex, i);
 			lastPressure = 0.5*pressure;
 
 			// Compute a_ii
-			Real &aii = m_simulationData.getAii(i);
+			Real &aii = m_simulationData.getAii(fluidModelIndex, i);
 			aii = 0.0;
-			const Vector3r &dii = m_simulationData.getDii(i);
+			const Vector3r &dii = m_simulationData.getDii(fluidModelIndex, i);
 
-			const Real dpi = model->getMass(i) / (density*density);
+			const Real density2 = density * density;
+			const Real dpi = model->getVolume(i) / density2;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-
+			forall_fluid_neighbors(
 				// Compute d_ji
-				const Vector3r kernel = model->gradW(xi - xj);
+				const Vector3r kernel = sim->gradW(xi - xj);
 				const Vector3r dji = dpi * kernel;			
-				aii += model->getMass(neighborIndex) * (dii - dji).dot(kernel);
-			}
+				aii += fm_neighbor->getVolume(neighborIndex) * (dii - dji).dot(kernel);
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex); 
-					const Vector3r kernel = model->gradW(xi - xj);
-					const Vector3r dji = dpi * kernel;			
-					aii += model->getBoundaryPsi(pid, neighborIndex) * (dii - dji).dot(kernel);
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r kernel = sim->gradW(xi - xj);
+				const Vector3r dji = dpi * kernel;			
+				aii += bm_neighbor->getVolume(neighborIndex) * (dii - dji).dot(kernel);
+			)
 		}
 	}
 }
 
 void TimeStepIISPH::pressureSolve()
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
-	const unsigned int numParticles = model->numActiveParticles();
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
 
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
-	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real h2 = h*h;
-
+	Real avg_density_err = 0;
 	m_iterations = 0;
-	const Real omega = 0.5;
+	bool chk = false;
 
-	const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
-
-	Real avg_density = 0.0;
-	while ((((avg_density - density0) > eta) || (m_iterations < 2)) && (m_iterations < m_maxIterations))
+	while ((!chk || (m_iterations < 2)) && (m_iterations < m_maxIterations))
 	{
-		avg_density = 0.0;
-
-		// Compute dij_pj
-		#pragma omp parallel default(shared)
+		chk = true;
+		for (unsigned int i = 0; i < nFluids; i++)
 		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) numParticles; i++)
-			{
-				Vector3r &dij_pj = m_simulationData.getDij_pj(i);
-				dij_pj.setZero();
-				const Vector3r &xi = model->getPosition(0, i);
+			FluidModel *model = sim->getFluidModel(i);
+			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 
-				//////////////////////////////////////////////////////////////////////////
-				// Fluid
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-					const Vector3r &xj = model->getPosition(0, neighborIndex);
-					const Real &densityj = model->getDensity(neighborIndex);
-					dij_pj -= model->getMass(neighborIndex) / (densityj*densityj) * m_simulationData.getLastPressure(neighborIndex) * model->gradW(xi - xj);
-				}
-			}
+			avg_density_err = 0.0;
+			pressureSolveIteration(i, avg_density_err);
+
+			// Maximal allowed density fluctuation
+			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			chk = chk && (avg_density_err <= eta);
 		}
-
-		// Compute new pressure
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) numParticles; i++)
-			{
-				const Real &aii = m_simulationData.getAii(i);
-				const Real density = model->getDensity(i);
-				const Vector3r &xi = model->getPosition(0, i);
-				const Real dpi = model->getMass(i) / (density*density);
-				Real sum = 0.0;
-
-				//////////////////////////////////////////////////////////////////////////
-				// Fluid
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-					const Vector3r &xj = model->getPosition(0, neighborIndex);
-
-					const Vector3r &d_jk_pk = m_simulationData.getDij_pj(neighborIndex);
-
-					// Compute \sum_{k \neq i} djk*pk
-					// Compute d_ji
-					const Vector3r kernel = model->gradW(xi - xj);
-					const Vector3r dji = dpi * kernel;
-					const Vector3r d_ji_pi = dji * m_simulationData.getLastPressure(i);
-
-					// \sum ( mj * (\sum dij*pj - djj*pj - \sum_{k \neq i} djk*pk) * model->gradW)
-					sum += model->getMass(neighborIndex) * (m_simulationData.getDij_pj(i) - m_simulationData.getDii(neighborIndex)*m_simulationData.getLastPressure(neighborIndex) - (d_jk_pk - d_ji_pi)).dot(kernel);
-				}
-
-				//////////////////////////////////////////////////////////////////////////
-				// Boundary
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-				{
-					for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-					{
-						const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-						const Vector3r &xj = model->getPosition(pid, neighborIndex);
-						sum += model->getBoundaryPsi(pid, neighborIndex) * m_simulationData.getDij_pj(i).dot(model->gradW(xi - xj));
-					}
-				}
-
-				const Real b = density0 - m_simulationData.getDensityAdv(i);
-			
-				Real &pi = m_simulationData.getPressure(i);
-				const Real &lastPi = m_simulationData.getLastPressure(i);
-				const Real denom = aii*h2;
-				if (fabs(denom) > 1.0e-9)
-					pi = max((1.0 - omega)*lastPi + omega / denom * (b - h2*sum), 0.0);
-				else
-					pi = 0.0;
- 
-				if (pi != 0.0)
-				{					
-					const Real newDensity = (aii*pi + sum)*h2 - b + density0;
-
-					#pragma omp atomic
-					avg_density += newDensity;
-				}
-				else
-				{
-					#pragma omp atomic
-					avg_density += density0;
-				}
-			}
-		}
-
-		for (int i = 0; i < (int)numParticles; i++)
-		{
-			const Real &pi = m_simulationData.getPressure(i);
-			Real &lastPi = m_simulationData.getLastPressure(i);
-			lastPi = pi;
-		}
-		
-		avg_density /= numParticles;
 
 		m_iterations++;
 	}
 }
 
-void TimeStepIISPH::integration()
+void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err)
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
+	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+
+	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real h = TimeManager::getCurrent()->getTimeStepSize();
+	const Real h2 = h*h;
+	const Real omega = 0.5;
+
+	// Compute dij_pj
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			Vector3r &dij_pj = m_simulationData.getDij_pj(fluidModelIndex, i);
+			dij_pj.setZero();
+			const Vector3r &xi = model->getPosition(i);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors(
+				const Real densityj = fm_neighbor->getDensity(neighborIndex) / fm_neighbor->getDensity0();
+				const Real densityj2 = densityj*densityj;
+
+				dij_pj -= fm_neighbor->getVolume(neighborIndex) / densityj2 * m_simulationData.getLastPressure(pid, neighborIndex) * sim->gradW(xi - xj);
+			)
+		}
+	}
+
+	// Compute new pressure
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			const Real &aii = m_simulationData.getAii(fluidModelIndex, i);
+			const Real density = model->getDensity(i) / density0;
+			const Vector3r &xi = model->getPosition(i);
+
+			const Real density2 = density*density;
+			const Real dpi = model->getVolume(i) / density2;
+			Real sum = 0.0;
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors(
+				const Vector3r &d_jk_pk = m_simulationData.getDij_pj(pid, neighborIndex);
+
+				// Compute \sum_{k \neq i} djk*pk
+				// Compute d_ji
+				const Vector3r kernel = sim->gradW(xi - xj);
+				const Vector3r dji = dpi * kernel;
+				const Vector3r d_ji_pi = dji * m_simulationData.getLastPressure(fluidModelIndex, i);
+
+				// \sum ( mj * (\sum dij*pj - djj*pj - \sum_{k \neq i} djk*pk) * sim->gradW)
+				sum += fm_neighbor->getVolume(neighborIndex) * (m_simulationData.getDij_pj(fluidModelIndex, i) - m_simulationData.getDii(pid, neighborIndex)*m_simulationData.getLastPressure(pid, neighborIndex) - (d_jk_pk - d_ji_pi)).dot(kernel);
+			)
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			forall_boundary_neighbors(
+				sum += bm_neighbor->getVolume(neighborIndex) * m_simulationData.getDij_pj(fluidModelIndex, i).dot(sim->gradW(xi - xj));
+			)
+
+			const Real b = 1.0 - m_simulationData.getDensityAdv(fluidModelIndex, i);
+
+			Real &pi = m_simulationData.getPressure(fluidModelIndex, i);
+			const Real &lastPi = m_simulationData.getLastPressure(fluidModelIndex, i);
+			const Real denom = aii*h2;
+			if (fabs(denom) > 1.0e-9)
+				pi = max((1.0 - omega)*lastPi + omega / denom * (b - h2*sum), 0.0);
+			else
+				pi = 0.0;
+
+			if (pi != 0.0)
+			{
+				const Real newDensity = density0 * ((aii*pi + sum)*h2 - b) + density0;
+
+				#pragma omp atomic
+				avg_density_err += newDensity - density0;
+			}
+		}
+	}
+
+	for (int i = 0; i < (int)numParticles; i++)
+	{
+		const Real &pi = m_simulationData.getPressure(fluidModelIndex, i);
+		Real &lastPi = m_simulationData.getLastPressure(fluidModelIndex, i);
+		lastPi = pi;
+	}
+
+	avg_density_err /= numParticles;
+}
+
+void TimeStepIISPH::integration(const unsigned int fluidModelIndex)
+{
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int numParticles = model->numActiveParticles();
 
 	// Compute pressure forces
-	computePressureAccels();
+	computePressureAccels(fluidModelIndex);
 
 	Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -331,18 +318,21 @@ void TimeStepIISPH::integration()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) numParticles; i++)
 		{
-			Vector3r &pos = model->getPosition(0, i);
-			Vector3r &vel = model->getVelocity(0, i);
-			vel += m_simulationData.getPressureAccel(i) * h;
+			Vector3r &pos = model->getPosition(i);
+			Vector3r &vel = model->getVelocity(i);
+			vel += m_simulationData.getPressureAccel(fluidModelIndex, i) * h;
 			pos += vel * h;
 		}
 	}
 }
 
-void TimeStepIISPH::computePressureAccels()
+void TimeStepIISPH::computePressureAccels(const unsigned int fluidModelIndex)
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const Real density0 = model->getDensity0();
 
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
@@ -350,42 +340,34 @@ void TimeStepIISPH::computePressureAccels()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(0, i);
-			const Real &density_i = model->getDensity(i);
+			const Vector3r &xi = model->getPosition(i);
+			const Real density_i = model->getDensity(i) / density0;
 
-			Vector3r &ai = m_simulationData.getPressureAccel(i);
+			Vector3r &ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
 			ai.setZero();
 
-			const Real dpi = m_simulationData.getPressure(i) / (density_i*density_i);
+			const Real density2 = density_i*density_i;
+			const Real dpi = m_simulationData.getPressure(fluidModelIndex, i) / density2;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-
+			forall_fluid_neighbors(
 				// Pressure 
-				const Real &density_j = model->getDensity(neighborIndex);
-				const Real dpj = m_simulationData.getPressure(neighborIndex) / (density_j*density_j);
-				ai -= model->getMass(neighborIndex) * (dpi + dpj) * model->gradW(xi - xj);
-			}
+				const Real density_j = fm_neighbor->getDensity(neighborIndex) / fm_neighbor->getDensity0();
+				const Real densityj2 = density_j*density_j;
+				const Real dpj = m_simulationData.getPressure(pid, neighborIndex) / densityj2;
+				ai -= fm_neighbor->getVolume(neighborIndex) * (dpi + fm_neighbor->getDensity0() / density0 * dpj) * sim->gradW(xi - xj);
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-					const Vector3r a = model->getBoundaryPsi(pid, neighborIndex) * (dpi)* model->gradW(xi - xj);
-					ai -= a;
-					model->getForce(pid, neighborIndex) += model->getMass(i) * a;
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r a = bm_neighbor->getVolume(neighborIndex) * (dpi)* sim->gradW(xi - xj);
+				ai -= a;
+				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * a;
+			)
 		}
 	}
 }
@@ -394,21 +376,17 @@ void TimeStepIISPH::performNeighborhoodSearch()
 {
 	if (m_counter % 500 == 0)
 	{
-		FluidModel *model = Simulation::getCurrent()->getModel();
-		model->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
 		Simulation::getCurrent()->performNeighborhoodSearchSort();
+		m_simulationData.performNeighborhoodSearchSort();
 	}
 	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }
 
-void TimeStepIISPH::emittedParticles(const unsigned int startIndex)
+void TimeStepIISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
-
-	m_simulationData.emittedParticles(startIndex);
-	Simulation::getCurrent()->emittedParticles(startIndex);
+	m_simulationData.emittedParticles(model, startIndex);
 }
 
 void TimeStepIISPH::resize()

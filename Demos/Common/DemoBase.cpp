@@ -7,6 +7,7 @@
 #include "Visualization/Selection.h"
 #include "GL/glut.h"
 #include "SPlisHSPlasH/Emitter.h"
+#include "SPlisHSPlasH/EmitterSystem.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/Vorticity/MicropolarModel_Bender2017.h"
 #include "NumericParameter.h"
@@ -68,21 +69,13 @@ void DemoBase::initParameters()
 	ParameterObject::initParameters();
 
 	PAUSE = createBoolParameter("pause", "Pause", &m_doPause);
-	setGroup(PAUSE, "Simulation");
+	setGroup(PAUSE, "General");
 	setDescription(PAUSE, "Pause simulation.");
 	setHotKey(PAUSE, "space");
 
 	PAUSE_AT = createNumericParameter("pauseAt", "Pause simulation at", &m_pauseAt);
-	setGroup(PAUSE_AT, "Simulation");
+	setGroup(PAUSE_AT, "General");
 	setDescription(PAUSE_AT, "Pause simulation at the given time. When the value is negative, the simulation is not paused.");
-
-	PARTIO_EXPORT = createBoolParameter("enablePartioExport", "Partio export", &m_enablePartioExport);
-	setGroup(PARTIO_EXPORT, "Export");
-	setDescription(PARTIO_EXPORT, "Enable/disable partio export.");
-
-	PARTIO_EXPORT_FPS = createNumericParameter("partioFPS", "Export FPS", &m_framesPerSecond);
-	setGroup(PARTIO_EXPORT_FPS, "Export");
-	setDescription(PARTIO_EXPORT_FPS, "Frame rate of partio export.");
 
 	NUM_STEPS_PER_RENDER = createNumericParameter("numberOfStepsPerRenderUpdate", "# time steps / update", &m_numberOfStepsPerRenderUpdate);
 	setGroup(NUM_STEPS_PER_RENDER, "Visualization");
@@ -107,6 +100,14 @@ void DemoBase::initParameters()
 	enumParam->addEnumValue("Particles (no walls)", ENUM_WALLS_PARTICLES_NO_WALLS);
 	enumParam->addEnumValue("Geometry (all)", ENUM_WALLS_GEOMETRY_ALL);
 	enumParam->addEnumValue("Geometry (no walls)", ENUM_WALLS_GEOMETRY_NO_WALLS);
+
+	PARTIO_EXPORT = createBoolParameter("enablePartioExport", "Partio export", &m_enablePartioExport);
+	setGroup(PARTIO_EXPORT, "Export");
+	setDescription(PARTIO_EXPORT, "Enable/disable partio export.");
+
+	PARTIO_EXPORT_FPS = createNumericParameter("partioFPS", "Export FPS", &m_framesPerSecond);
+	setGroup(PARTIO_EXPORT_FPS, "Export");
+	setDescription(PARTIO_EXPORT_FPS, "Frame rate of partio export.");
 }
 
 void DemoBase::init(int argc, char **argv, const char *demoName)
@@ -181,6 +182,10 @@ void DemoBase::cleanup()
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 		delete m_scene.fluidBlocks[i];
 	m_scene.fluidBlocks.clear();
+
+	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
+		delete m_scene.emitters[i];
+	m_scene.emitters.clear();
 }
 
 void DemoBase::initShaders()
@@ -241,7 +246,7 @@ void DemoBase::pointShaderBegin(const float *col)
 
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
-	const Real radius = Simulation::getCurrent()->getModel()->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real radius = Simulation::getCurrent()->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	glUniform1f(m_shader.getUniform("viewport_width"), (float)viewport[2]);
 	glUniform1f(m_shader.getUniform("radius"), (float)radius);
 	glUniform1f(m_shader.getUniform("max_velocity"), (GLfloat) m_renderMaxVelocity);
@@ -270,14 +275,21 @@ void DemoBase::pointShaderEnd()
 
 void DemoBase::readParameters()
 {
-	m_sceneLoader->readParameterObject(this);
-	m_sceneLoader->readParameterObject(Simulation::getCurrent());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getModel());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getTimeStep());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getDragBase());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getSurfaceTensionBase());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getViscosityBase());
-	m_sceneLoader->readParameterObject(Simulation::getCurrent()->getVorticityBase());
+	m_sceneLoader->readParameterObject("Configuration", this);
+	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent());
+	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+
+	Simulation *sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+		const std::string &key = model->getId();
+		m_sceneLoader->readParameterObject(model->getId(), model);
+		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getDragBase());
+		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
+		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getViscosityBase());
+		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getVorticityBase());
+	}
 }
 
 
@@ -285,46 +297,53 @@ void DemoBase::buildModel()
 {
 	TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
 
-	std::vector<Vector3r> fluidParticles;
-	std::vector<Vector3r> fluidVelocities;
-	initFluidData(fluidParticles, fluidVelocities);
+	initFluidData();
+
+	createEmitters();
 
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = sim->getModel();
-	model->setValue(FluidModel::PARTICLE_RADIUS, m_scene.particleRadius);
 
-	model->initModel((unsigned int)fluidParticles.size(), fluidParticles.data(), fluidVelocities.data(), m_scene.maxEmitterParticles);
 	sim->getTimeStep()->resize();
 
-	LOG_INFO << "Number of fluid particles: " << fluidParticles.size();
-
-	unsigned int nBoundaryParticles = 0;
-	for (unsigned int i = 0; i < model->numberOfRigidBodyParticleObjects(); i++)
-		nBoundaryParticles += model->getRigidBodyParticleObject(i)->numberOfParticles();
-
-	LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
-
-	//////////////////////////////////////////////////////////////////////////
-	// emitters
-	//////////////////////////////////////////////////////////////////////////
-	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
-	{
-		SceneLoader::EmitterData *ed = m_scene.emitters[i];
-		model->getEmitterSystem()->addEmitter(ed->width, ed->height,
-			ed->x, ed->dir, ed->v, ed->emitsPerSecond, ed->type);
-	}
-	if (m_scene.emitterReuseParticles)
-		model->getEmitterSystem()->enableReuseParticles(m_scene.emitterBoxMin, m_scene.emitterBoxMax);
-
-	model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_PRECOMPUTED_CUBIC);
-	model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+	sim->setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
+	sim->setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 }
 
 
-void DemoBase::initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities)
+void DemoBase::initFluidData()
 {
 	LOG_INFO << "Initialize fluid particles";
-	createFluidBlocks(fluidParticles, fluidVelocities);
+
+	Simulation *sim = Simulation::getCurrent();
+
+	//////////////////////////////////////////////////////////////////////////
+	// Determine number of different fluid IDs
+	//////////////////////////////////////////////////////////////////////////
+	std::map<std::string, unsigned int> fluidIDs;
+	unsigned int index = 0;
+	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
+	{ 
+		if (fluidIDs.find(m_scene.fluidBlocks[i]->id) == fluidIDs.end())
+			fluidIDs[m_scene.fluidBlocks[i]->id] = index++;
+	}
+	for (unsigned int i = 0; i < m_scene.fluidModels.size(); i++)
+	{
+		if (fluidIDs.find(m_scene.fluidModels[i]->id) == fluidIDs.end())
+			fluidIDs[m_scene.fluidModels[i]->id] = index++;
+	}
+	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
+	{
+		if (fluidIDs.find(m_scene.emitters[i]->id) == fluidIDs.end())
+			fluidIDs[m_scene.emitters[i]->id] = index++;
+	}
+	const unsigned int numberOfFluidModels = static_cast<unsigned int>(fluidIDs.size());
+
+	std::vector<std::vector<Vector3r>> fluidParticles;
+	std::vector<std::vector<Vector3r>> fluidVelocities;
+	fluidParticles.resize(numberOfFluidModels);
+	fluidVelocities.resize(numberOfFluidModels);
+
+	createFluidBlocks(fluidIDs, fluidParticles, fluidVelocities);
 
 	std::string base_path = FileSystem::getFilePath(m_sceneFile);
 
@@ -332,22 +351,83 @@ void DemoBase::initFluidData(std::vector<Vector3r> &fluidParticles, std::vector<
 	unsigned int endIndex = 0;
 	for (unsigned int i = 0; i < m_scene.fluidModels.size(); i++)
 	{
+		const unsigned int fluidIndex = fluidIDs[m_scene.fluidModels[i]->id];
+
 		std::string fileName;
 		if (FileSystem::isRelativePath(m_scene.fluidModels[i]->samplesFile))
 			fileName = base_path + "/" + m_scene.fluidModels[i]->samplesFile;
 		else
 			fileName = m_scene.fluidModels[i]->samplesFile;
 
-		PartioReaderWriter::readParticles(fileName, m_scene.fluidModels[i]->translation, m_scene.fluidModels[i]->rotation, m_scene.fluidModels[i]->scale, fluidParticles, fluidVelocities);
-		Simulation::getCurrent()->getModel()->setValue(FluidModel::PARTICLE_RADIUS, m_scene.particleRadius);
+		PartioReaderWriter::readParticles(fileName, m_scene.fluidModels[i]->translation, m_scene.fluidModels[i]->rotation, m_scene.fluidModels[i]->scale, fluidParticles[fluidIndex], fluidVelocities[fluidIndex]);
+		Simulation::getCurrent()->setValue(Simulation::PARTICLE_RADIUS, m_scene.particleRadius);
+	}
+
+	unsigned int nParticles = 0;
+	for (auto it = fluidIDs.begin(); it != fluidIDs.end(); it++)
+	{
+		const unsigned int index = it->second;
+
+		unsigned int maxEmitterParticles = 1000;
+		m_sceneLoader->readValue(it->first, "maxEmitterParticles", maxEmitterParticles);
+		sim->addFluidModel(it->first, (unsigned int)fluidParticles[index].size(), fluidParticles[index].data(), fluidVelocities[index].data(), maxEmitterParticles);
+		nParticles += (unsigned int)fluidParticles[index].size();
+	}
+
+	LOG_INFO << "Number of fluid particles: " << nParticles;
+}
+
+void DemoBase::createEmitters()
+{
+	Simulation *sim = Simulation::getCurrent();
+
+	//////////////////////////////////////////////////////////////////////////
+	// emitters
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
+	{
+		SceneLoader::EmitterData *ed = m_scene.emitters[i];
+
+		FluidModel *model = nullptr;
+		unsigned int j;
+		for (j = 0; j < sim->numberOfFluidModels(); j++)
+		{
+			model = sim->getFluidModel(j);
+			if (model->getId() == ed->id)
+				break;
+		}
+
+		if (j < sim->numberOfFluidModels())
+		{
+			model->getEmitterSystem()->addEmitter(ed->width, ed->height,
+				ed->x, ed->dir, ed->v, ed->emitsPerSecond, ed->type);
+
+			// reuse particles if they are outside of a bounding box
+			bool emitterReuseParticles = false;
+			m_sceneLoader->readValue(model->getId(), "emitterReuseParticles", emitterReuseParticles);
+
+			if (emitterReuseParticles)
+			{
+				// boxMin
+				Vector3r emitterBoxMin(-1.0, -1.0, -1.0);
+				m_sceneLoader->readVector(model->getId(), "emitterBoxMin", emitterBoxMin);
+
+				// boxMax
+				Vector3r emitterBoxMax(1.0, 1.0, 1.0);
+				m_sceneLoader->readVector(model->getId(), "emitterBoxMax", emitterBoxMax);
+
+				model->getEmitterSystem()->enableReuseParticles(emitterBoxMin, emitterBoxMax);
+			}
+		}
 	}
 }
 
 
-void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vector<Vector3r> &fluidVelocities)
+void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities)
 {
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 	{
+		const unsigned int fluidIndex = fluidIDs[m_scene.fluidBlocks[i]->id];
 		const Real diam = 2.0*m_scene.particleRadius;
 
 		Real xshift = diam;
@@ -378,8 +458,8 @@ void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vec
 		const int stepsZ = (int)round(diff[2] / diam) - 1;
 
 		Vector3r start = m_scene.fluidBlocks[i]->box.m_minX + 2.0*m_scene.particleRadius*Vector3r::Ones();
-		fluidParticles.reserve(fluidParticles.size() + stepsX*stepsY*stepsZ);
-		fluidVelocities.resize(fluidParticles.size() + stepsX*stepsY*stepsZ, m_scene.fluidBlocks[i]->initialVelocity);
+		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + stepsX*stepsY*stepsZ);
+		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + stepsX*stepsY*stepsZ, m_scene.fluidBlocks[i]->initialVelocity);
 		for (int j = 0; j < stepsX; j++)
 		{
 			for (int k = 0; k < stepsY; k++)
@@ -409,18 +489,16 @@ void DemoBase::createFluidBlocks(std::vector<Vector3r> &fluidParticles, std::vec
 						}
 						currPos += shift_vec;
 					}
-					fluidParticles.push_back(currPos);
+					fluidParticles[fluidIndex].push_back(currPos);
 				}
 			}
 		}
 	}
 }
 
-void DemoBase::renderFluid()
+void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 {
 	// Draw simulation model
-	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
-	FluidModel *model = Simulation::getCurrent()->getModel();
 	const unsigned int nParticles = model->numActiveParticles();
 	if (nParticles == 0)
 		return;
@@ -433,29 +511,28 @@ void DemoBase::renderFluid()
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0);
 	glColor3fv(surfaceColor);
 
-
-	const Real supportRadius = model->getSupportRadius();
+	Simulation *sim = Simulation::getCurrent();
+	const Real supportRadius = sim->getSupportRadius();
 	Real vmax = 0.4*2.0*supportRadius / TimeManager::getCurrent()->getTimeStepSize();
 	Real vmin = 0.0;
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
 		float fluidColor2[4] = { 0.3f, 0.9f, 0.5f, 1.0f };
 		pointShaderBegin(&fluidColor[0]);
 
 		if (model->numActiveParticles() > 0)
 		{
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0, 0));
+			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0));
 			glEnableVertexAttribArray(1);
-			if (m_renderAngularVelocities && ((VorticityMethods)Simulation::getCurrent()->getVorticityMethod() == VorticityMethods::Micropolar))
+			if (m_renderAngularVelocities && ((VorticityMethods)model->getVorticityMethod() == VorticityMethods::Micropolar))
 			{
 				glUniform3fv(m_shader.getUniform("color"), 1, fluidColor2);
-				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &((MicropolarModel_Bender2017*)Simulation::getCurrent()->getVorticityBase())->getAngularVelocity(0)[0]);
+				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &((MicropolarModel_Bender2017*)model->getVorticityBase())->getAngularVelocity(0)[0]);
 			}
 			else
-				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0, 0));
+				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0));
 
 			glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
 			glDisableVertexAttribArray(0);
@@ -471,14 +548,14 @@ void DemoBase::renderFluid()
 		glBegin(GL_POINTS);
 		for (unsigned int i = 0; i < nParticles; i++)
 		{
-			Real v = model->getVelocity(0, i).norm();
+			Real v = model->getVelocity(i).norm();
 			v = 0.5*((v - vmin) / (vmax - vmin));
 			v = min(128.0*v*v, 0.5);
 			float fluidColor[4] = { 0.2f, 0.2f, 0.2f, 1.0 };
 			MiniGL::hsvToRgb(0.55f, 1.0f, 0.5f + (float)v, fluidColor);
 
 			glColor3fv(fluidColor);
-			glVertex3v(&model->getPosition(0, i)[0]);
+			glVertex3v(&model->getPosition(i)[0]);
 		}
 		glEnd();
 		glEnable(GL_LIGHTING);
@@ -486,18 +563,19 @@ void DemoBase::renderFluid()
 
 
 	float red[4] = { 0.8f, 0.0f, 0.0f, 1 };
+	const unsigned int fluidIndex = model->getPointSetIndex();
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
 		pointShaderBegin(&red[0]);
-		if (getSelectedParticles().size() > 0)
+		if ((getSelectedParticles().size() > 0) && ((getSelectedParticles()[fluidIndex].size() > 0)))
 		{
-			const Real radius = model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+			const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 			glUniform1f(m_shader.getUniform("radius"), (float)radius*1.05f);
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0, 0));
+			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0));
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0, 0));
-			glDrawElements(GL_POINTS, (GLsizei) getSelectedParticles().size(), GL_UNSIGNED_INT, getSelectedParticles().data());
+			glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0));
+			glDrawElements(GL_POINTS, (GLsizei) getSelectedParticles()[fluidIndex].size(), GL_UNSIGNED_INT, getSelectedParticles()[fluidIndex].data());
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
 		}
@@ -505,16 +583,19 @@ void DemoBase::renderFluid()
 	}
 	else
 	{
-		glPointSize(4.0);
-		glDisable(GL_LIGHTING);
-		glBegin(GL_POINTS);
-		for (unsigned int i = 0; i < getSelectedParticles().size(); i++)
-		{			
-			glColor3fv(red);
-			glVertex3v(&model->getPosition(0, getSelectedParticles()[i])[0]);
+		if (getSelectedParticles().size() > 0)
+		{
+			glPointSize(4.0);
+			glDisable(GL_LIGHTING);
+			glBegin(GL_POINTS);
+			for (unsigned int i = 0; i < getSelectedParticles()[fluidIndex].size(); i++)
+			{
+				glColor3fv(red);
+				glVertex3v(&model->getPosition(getSelectedParticles()[fluidIndex][i])[0]);
+			}
+			glEnd();
+			glEnable(GL_LIGHTING);
 		}
-		glEnd();
-		glEnable(GL_LIGHTING);
 	}
 
 }
@@ -522,7 +603,7 @@ void DemoBase::renderFluid()
 void DemoBase::mouseMove(int x, int y, void *clientData)
 {
 	DemoBase *base = (DemoBase*)clientData;
-	FluidModel *model = Simulation::getCurrent()->getModel();
+	Simulation *sim = Simulation::getCurrent();
 
 	Vector3r mousePos;
 	MiniGL::unproject(x, y, mousePos);
@@ -531,27 +612,40 @@ void DemoBase::mouseMove(int x, int y, void *clientData)
 	TimeManager *tm = TimeManager::getCurrent();
 	const Real h = tm->getTimeStepSize();
 
-	for (unsigned int j = 0; j < base->m_selectedParticles.size(); j++)
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 	{
-		model->getVelocity(0, base->m_selectedParticles[j]) += 5.0*diff / h;
+		FluidModel *model = sim->getFluidModel(i);
+		for (unsigned int j = 0; j < base->m_selectedParticles[i].size(); j++)
+		{
+			model->getVelocity(base->m_selectedParticles[i][j]) += 5.0*diff / h;
+		}
 	}
 	base->m_oldMousePos = mousePos;
 }
 
 void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
 {
-	FluidModel *model = Simulation::getCurrent()->getModel();
 	DemoBase *base = (DemoBase*)clientData;
-	const unsigned int nParticles = model->numActiveParticles();
-	if (nParticles == 0)
-		return;
+	Simulation *sim = Simulation::getCurrent();
+	base->m_selectedParticles.resize(sim->numberOfFluidModels());
+	bool selected = false;
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
 
-	std::vector<unsigned int> hits;
-	base->m_selectedParticles.clear();
-	Selection::selectRect(start, end, &model->getPosition(0, 0),
-		&model->getPosition(0, model->numActiveParticles() - 1),
-		base->m_selectedParticles);
-	if (base->m_selectedParticles.size() > 0)
+		const unsigned int nParticles = model->numActiveParticles();
+ 		if (nParticles != 0)
+ 		{
+ 			std::vector<unsigned int> hits;
+ 			base->m_selectedParticles[i].clear();
+ 			Selection::selectRect(start, end, &model->getPosition(0),
+ 				&model->getPosition(model->numActiveParticles() - 1),
+ 				base->m_selectedParticles[i]);
+			if (base->m_selectedParticles[i].size() > 0)
+				selected = true;
+ 		}
+	}
+	if (selected)
 		MiniGL::setMouseMoveFunc(GLUT_MIDDLE_BUTTON, mouseMove);
 	else
 		MiniGL::setMouseMoveFunc(-1, NULL);
@@ -560,16 +654,20 @@ void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &en
 }
 
 void DemoBase::partioExport()
-{
-	FluidModel *model = Simulation::getCurrent()->getModel();
+{	
 	std::string exportPath = FileSystem::normalizePath(m_outputPath + "/partio");
 	FileSystem::makeDirs(exportPath);
 
-	std::string fileName = "ParticleData";
-	fileName = fileName + std::to_string(m_frameCounter) + ".bgeo";
-	std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
+	Simulation *sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+		std::string fileName = "ParticleData";
+		fileName = fileName + "_" + model->getId() + "_" + std::to_string(m_frameCounter) + ".bgeo";
+		std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
 
-	PartioReaderWriter::writeParticles(exportFileName, model->numActiveParticles(), &model->getPosition(0, 0), &model->getVelocity(0, 0), 0.0);
+		PartioReaderWriter::writeParticles(exportFileName, model->numActiveParticles(), &model->getPosition(0), &model->getVelocity(0), 0.0);
+	}
 }
 
 void DemoBase::step()

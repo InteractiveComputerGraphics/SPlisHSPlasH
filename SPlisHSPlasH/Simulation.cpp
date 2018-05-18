@@ -1,21 +1,8 @@
 #include "Simulation.h"
-#include "SurfaceTension/SurfaceTension_Becker2007.h"
-#include "SurfaceTension/SurfaceTension_Akinci2013.h"
-#include "SurfaceTension/SurfaceTension_He2014.h"
-#include "Viscosity/Viscosity_XSPH.h"
-#include "Viscosity/Viscosity_Standard.h"
-#include "Viscosity/Viscosity_Bender2017.h"
-#include "Viscosity/Viscosity_Peer2015.h"
-#include "Viscosity/Viscosity_Peer2016.h"
-#include "Viscosity/Viscosity_Takahashi2015.h"
-#include "Viscosity/Viscosity_Weiler2018.h"
-#include "Vorticity/VorticityConfinement.h"
-#include "Drag/DragForce_Gissler2017.h"
-#include "Drag/DragForce_Macklin2014.h"
 #include "TimeManager.h"
 #include "Utilities/Timing.h"
-#include "Vorticity/MicropolarModel_Bender2017.h"
 #include "TimeStep.h"
+#include "EmitterSystem.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
 #include "SPlisHSPlasH/PCISPH/TimeStepPCISPH.h"
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
@@ -30,36 +17,25 @@ using namespace std;
 using namespace GenParam;
 
 Simulation* Simulation::current = nullptr;
+int Simulation::PARTICLE_RADIUS = -1;
 int Simulation::GRAVITATION = -1;
 int Simulation::CFL_METHOD = -1;
 int Simulation::CFL_FACTOR = -1;
 int Simulation::CFL_MAX_TIMESTEPSIZE = -1;
+int Simulation::KERNEL_METHOD = -1;
+int Simulation::GRAD_KERNEL_METHOD = -1;
+int Simulation::ENUM_KERNEL_CUBIC = -1;
+int Simulation::ENUM_KERNEL_POLY6 = -1;
+int Simulation::ENUM_KERNEL_SPIKY = -1;
+int Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC = -1;
+int Simulation::ENUM_GRADKERNEL_CUBIC = -1;
+int Simulation::ENUM_GRADKERNEL_POLY6 = -1;
+int Simulation::ENUM_GRADKERNEL_SPIKY = -1;
+int Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC = -1;
 int Simulation::SIMULATION_METHOD = -1;
-int Simulation::DRAG_METHOD = -1;
-int Simulation::SURFACE_TENSION_METHOD = -1;
-int Simulation::VISCOSITY_METHOD = -1;
-int Simulation::VORTICITY_METHOD = -1;
 int Simulation::ENUM_CFL_NONE = -1;
 int Simulation::ENUM_CFL_STANDARD = -1;
 int Simulation::ENUM_CFL_ITER = -1;
-int Simulation::ENUM_DRAG_NONE = -1;
-int Simulation::ENUM_DRAG_MACKLIN2014 = -1;
-int Simulation::ENUM_DRAG_GISSLER2017 = -1;
-int Simulation::ENUM_SURFACETENSION_NONE = -1;
-int Simulation::ENUM_SURFACETENSION_BECKER2007 = -1;
-int Simulation::ENUM_SURFACETENSION_AKINCI2013 = -1;
-int Simulation::ENUM_SURFACETENSION_HE2014 = -1;
-int Simulation::ENUM_VISCOSITY_NONE = -1;
-int Simulation::ENUM_VISCOSITY_STANDARD = -1;
-int Simulation::ENUM_VISCOSITY_XSPH = -1;
-int Simulation::ENUM_VISCOSITY_BENDER2017 = -1;
-int Simulation::ENUM_VISCOSITY_PEER2015 = -1;
-int Simulation::ENUM_VISCOSITY_PEER2016 = -1;
-int Simulation::ENUM_VISCOSITY_TAKAHASHI2015 = -1;
-int Simulation::ENUM_VISCOSITY_WEILER2018 = -1;
-int Simulation::ENUM_VORTICITY_NONE = -1;
-int Simulation::ENUM_VORTICITY_MICROPOLAR = -1;
-int Simulation::ENUM_VORTICITY_VC = -1;
 int Simulation::ENUM_SIMULATION_WCSPH = -1;
 int Simulation::ENUM_SIMULATION_PCISPH = -1;
 int Simulation::ENUM_SIMULATION_PBF = -1;
@@ -75,33 +51,29 @@ Simulation::Simulation ()
 	m_cflMaxTimeStepSize = 0.005;
 	m_gravitation = Vector3r(0.0, -9.81, 0.0);
 
+	m_kernelMethod = -1;
+	m_gradKernelMethod = -1;
+
+	m_neighborhoodSearch = nullptr;
 	m_timeStep = nullptr;
 	m_simulationMethod = SimulationMethods::WCSPH;
-	m_viscosity = nullptr;
-	m_viscosityMethod = ViscosityMethods::None;
-	m_surfaceTension = nullptr;
-	m_surfaceTensionMethod = SurfaceTensionMethods::None;
-	m_vorticityMethod = VorticityMethods::None;
-	m_vorticity = nullptr;
-	m_dragMethod = DragMethods::None;
-	m_drag = nullptr;
-	m_dragMethodChanged = nullptr;
-	m_surfaceTensionMethodChanged = nullptr;
-	m_viscosityMethodChanged = nullptr;
-	m_vorticityMethodChanged = nullptr;
 	m_simulationMethodChanged = NULL;
 
 }
 
 Simulation::~Simulation () 
 {
-	delete m_surfaceTension;
-	delete m_drag;
-	delete m_vorticity;
-	delete m_viscosity;
-	delete m_model;
 	delete m_timeStep;
+	delete m_neighborhoodSearch;
 	delete TimeManager::getCurrent();
+
+	for (unsigned int i = 0; i < m_fluidModels.size(); i++)
+		delete m_fluidModels[i];
+	m_fluidModels.clear();
+
+	for (unsigned int i = 0; i < m_boundaryModels.size(); i++)
+		delete m_boundaryModels[i];
+	m_boundaryModels.clear();
 
 	current = nullptr;
 }
@@ -111,7 +83,6 @@ Simulation* Simulation::getCurrent ()
 	if (current == nullptr)
 	{
 		current = new Simulation ();
-		current->init();
 	}
 	return current;
 }
@@ -126,19 +97,31 @@ bool Simulation::hasCurrent()
 	return (current != nullptr);
 }
 
-void Simulation::init()
+void Simulation::init(const Real particleRadius)
 {
 	initParameters();
 
-	m_model = new FluidModel();
-	m_model->init();
+	// init kernel
+	setParticleRadius(particleRadius);
+
 	setSimulationMethod(static_cast<int>(SimulationMethods::DFSPH));
-	setViscosityMethod(static_cast<int>(ViscosityMethods::Standard));
+
+	// Initialize neighborhood search
+	if (m_neighborhoodSearch == NULL)
+		m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
+	m_neighborhoodSearch->set_radius(m_supportRadius);
 }
 
 void Simulation::initParameters()
 {
 	ParameterObject::initParameters();
+
+	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&Simulation::getParticleRadius, this);
+	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&Simulation::setParticleRadius, this, std::placeholders::_1);
+	PARTICLE_RADIUS = createNumericParameter("particleRadius", "Particle radius", getRadiusFct, setRadiusFct);
+	setGroup(PARTICLE_RADIUS, "Simulation");
+	setDescription(PARTICLE_RADIUS, "Radius of the fluid particles.");
+	getParameter(PARTICLE_RADIUS)->setReadOnly(true);
 
  	GRAVITATION = createVectorParameter("gravitation", "Gravitation", 3u, m_gravitation.data());
  	setGroup(GRAVITATION, "Simulation");
@@ -162,6 +145,28 @@ void Simulation::initParameters()
 	setDescription(CFL_MAX_TIMESTEPSIZE, "Max. time step size.");
 	static_cast<RealParameter*>(getParameter(CFL_MAX_TIMESTEPSIZE))->setMinValue(1e-6);
 
+	ParameterBase::GetFunc<int> getKernelFct = std::bind(&Simulation::getKernel, this);
+	ParameterBase::SetFunc<int> setKernelFct = std::bind(&Simulation::setKernel, this, std::placeholders::_1);
+	KERNEL_METHOD = createEnumParameter("kernel", "Kernel", getKernelFct, setKernelFct);
+	setGroup(KERNEL_METHOD, "Kernel");
+	setDescription(KERNEL_METHOD, "Kernel function used in the SPH model.");
+	enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
+	enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
+	enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
+	enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
+	enumParam->addEnumValue("Precomputed cubic spline", ENUM_KERNEL_PRECOMPUTED_CUBIC);
+
+	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&Simulation::getGradKernel, this);
+	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&Simulation::setGradKernel, this, std::placeholders::_1);
+	GRAD_KERNEL_METHOD = createEnumParameter("gradKernel", "Gradient of kernel", getGradKernelFct, setGradKernelFct);
+	setGroup(GRAD_KERNEL_METHOD, "Kernel");
+	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the SPH model.");
+	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
+	enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
+	enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
+	enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
+	enumParam->addEnumValue("Precomputed cubic spline", ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+
 	ParameterBase::GetFunc<int> getSimulationFct = std::bind(&Simulation::getSimulationMethod, this);
 	ParameterBase::SetFunc<int> setSimulationFct = std::bind(&Simulation::setSimulationMethod, this, std::placeholders::_1);
 	SIMULATION_METHOD = createEnumParameter("simulationMethod", "Simulation method", getSimulationFct, setSimulationFct);
@@ -174,55 +179,63 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("IISPH", ENUM_SIMULATION_IISPH);
 	enumParam->addEnumValue("DFSPH", ENUM_SIMULATION_DFSPH);
 	enumParam->addEnumValue("Projective Fluids", ENUM_SIMULATION_PF);
-
-	ParameterBase::GetFunc<int> getDragFct = std::bind(&Simulation::getDragMethod, this);
-	ParameterBase::SetFunc<int> setDragFct = std::bind(&Simulation::setDragMethod, this, std::placeholders::_1);
-	DRAG_METHOD = createEnumParameter("dragMethod", "Drag method", getDragFct, setDragFct);
-	setGroup(DRAG_METHOD, "Drag force");
-	setDescription(DRAG_METHOD, "Method to compute drag forces.");
-	enumParam = static_cast<EnumParameter*>(getParameter(DRAG_METHOD));
-	enumParam->addEnumValue("None", ENUM_DRAG_NONE);
-	enumParam->addEnumValue("Macklin et al. 2014", ENUM_DRAG_MACKLIN2014);
-	enumParam->addEnumValue("Gissler et al. 2017", ENUM_DRAG_GISSLER2017);
+}
 
 
-	ParameterBase::GetFunc<int> getSurfaceTensionFct = std::bind(&Simulation::getSurfaceTensionMethod, this);
-	ParameterBase::SetFunc<int> setSurfaceTensionFct = std::bind(&Simulation::setSurfaceTensionMethod, this, std::placeholders::_1);
-	SURFACE_TENSION_METHOD = createEnumParameter("surfaceTensionMethod", "Surface tension", getSurfaceTensionFct, setSurfaceTensionFct);
-	setGroup(SURFACE_TENSION_METHOD, "Surface tension");
-	setDescription(SURFACE_TENSION_METHOD, "Method to compute surface tension forces.");
-	enumParam = static_cast<EnumParameter*>(getParameter(SURFACE_TENSION_METHOD));
-	enumParam->addEnumValue("None", ENUM_SURFACETENSION_NONE);
-	enumParam->addEnumValue("Becker & Teschner 2007", ENUM_SURFACETENSION_BECKER2007);
-	enumParam->addEnumValue("Akinci et al. 2013", ENUM_SURFACETENSION_AKINCI2013);
-	enumParam->addEnumValue("He et al. 2014", ENUM_SURFACETENSION_HE2014);
+void Simulation::setParticleRadius(Real val)
+{
+	m_particleRadius = val;
+	m_supportRadius = 4.0*m_particleRadius;
 
+	// init kernel
+	Poly6Kernel::setRadius(m_supportRadius);
+	SpikyKernel::setRadius(m_supportRadius);
+	CubicKernel::setRadius(m_supportRadius);
+	PrecomputedCubicKernel::setRadius(m_supportRadius);
+	CohesionKernel::setRadius(m_supportRadius);
+	AdhesionKernel::setRadius(m_supportRadius);
+}
 
-	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&Simulation::getViscosityMethod, this);
-	ParameterBase::SetFunc<int> setViscosityFct = std::bind(&Simulation::setViscosityMethod, this, std::placeholders::_1);
-	VISCOSITY_METHOD = createEnumParameter("viscosityMethod", "Viscosity", getViscosityFct, setViscosityFct);
-	setGroup(VISCOSITY_METHOD, "Viscosity");
-	setDescription(VISCOSITY_METHOD, "Method to compute viscosity forces.");
-	enumParam = static_cast<EnumParameter*>(getParameter(VISCOSITY_METHOD));
-	enumParam->addEnumValue("None", ENUM_VISCOSITY_NONE);
-	enumParam->addEnumValue("Standard", ENUM_VISCOSITY_STANDARD);
-	enumParam->addEnumValue("XSPH", ENUM_VISCOSITY_XSPH);
-	enumParam->addEnumValue("Bender and Koschier 2017", ENUM_VISCOSITY_BENDER2017);
-	enumParam->addEnumValue("Peer et al. 2015", ENUM_VISCOSITY_PEER2015);
-	enumParam->addEnumValue("Peer et al. 2016", ENUM_VISCOSITY_PEER2016);
-	enumParam->addEnumValue("Takahashi et al. 2015 (improved)", ENUM_VISCOSITY_TAKAHASHI2015);
-	enumParam->addEnumValue("Weiler et al. 2018", ENUM_VISCOSITY_WEILER2018);
+void Simulation::setGradKernel(int val)
+{
+	m_gradKernelMethod = val;
+	if (m_gradKernelMethod == 0)
+		m_gradKernelFct = CubicKernel::gradW;
+	else if (m_gradKernelMethod == 1)
+		m_gradKernelFct = Poly6Kernel::gradW;
+	else if (m_gradKernelMethod == 2)
+		m_gradKernelFct = SpikyKernel::gradW;
+	else if (m_gradKernelMethod == 3)
+		m_gradKernelFct = Simulation::PrecomputedCubicKernel::gradW;
+}
 
+void Simulation::setKernel(int val)
+{
+	if (val == m_kernelMethod)
+		return;
 
-	ParameterBase::GetFunc<int> getVorticityFct = std::bind(&Simulation::getVorticityMethod, this);
-	ParameterBase::SetFunc<int> setVorticityFct = std::bind(&Simulation::setVorticityMethod, this, std::placeholders::_1);
-	VORTICITY_METHOD = createEnumParameter("vorticityMethod", "Vorticity", getVorticityFct, setVorticityFct);
-	setGroup(VORTICITY_METHOD, "Vorticity");
-	setDescription(VORTICITY_METHOD, "Method to compute vorticity forces.");
-	enumParam = static_cast<EnumParameter*>(getParameter(VORTICITY_METHOD));
-	enumParam->addEnumValue("None", ENUM_VORTICITY_NONE);
-	enumParam->addEnumValue("Micropolar model", ENUM_VORTICITY_MICROPOLAR);
-	enumParam->addEnumValue("Vorticity confinement", ENUM_VORTICITY_VC);
+	m_kernelMethod = val;
+	if (m_kernelMethod == 0)
+	{
+		m_W_zero = CubicKernel::W_zero();
+		m_kernelFct = CubicKernel::W;
+	}
+	else if (m_kernelMethod == 1)
+	{
+		m_W_zero = Poly6Kernel::W_zero();
+		m_kernelFct = Poly6Kernel::W;
+	}
+	else if (m_kernelMethod == 2)
+	{
+		m_W_zero = SpikyKernel::W_zero();
+		m_kernelFct = SpikyKernel::W;
+	}
+	else if (m_kernelMethod == 3)
+	{
+		m_W_zero = Simulation::PrecomputedCubicKernel::W_zero();
+		m_kernelFct = Simulation::PrecomputedCubicKernel::W;
+	}
+	updateBoundaryPsi();
 }
 
 void Simulation::updateTimeStepSize()
@@ -245,31 +258,37 @@ void Simulation::updateTimeStepSize()
 
 void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 {
-	const Real radius = m_model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real radius = m_particleRadius;
 	Real h = TimeManager::getCurrent()->getTimeStepSize();
 
 	// Approximate max. position change due to current velocities
 	Real maxVel = 0.1;
-	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real diameter = 2.0*radius;
-	for (unsigned int i = 0; i < numParticles; i++)
+
+	// fluid particles
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
 	{
-		const Vector3r &vel = m_model->getVelocity(0, i);
-		const Vector3r &accel = m_model->getAcceleration(i);
-		const Real velMag = (vel + accel*h).squaredNorm();
-		if (velMag > maxVel)
-			maxVel = velMag;
+		FluidModel *fm = getFluidModel(i);
+		const unsigned int numParticles = fm->numActiveParticles();
+		for (unsigned int i = 0; i < numParticles; i++)
+		{
+			const Vector3r &vel = fm->getVelocity(i);
+			const Vector3r &accel = fm->getAcceleration(i);
+			const Real velMag = (vel + accel*h).squaredNorm();
+			if (velMag > maxVel)
+				maxVel = velMag;
+		}
 	}
 
 	// boundary particles
-	for (unsigned int i = 0; i < m_model->numberOfRigidBodyParticleObjects(); i++)
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 	{
-		FluidModel::RigidBodyParticleObject *rbpo = m_model->getRigidBodyParticleObject(i);
-		if (rbpo->m_rigidBody->isDynamic())
+		BoundaryModel *bm = getBoundaryModel(i);
+		if (bm->getRigidBodyObject()->isDynamic())
 		{
-			for (unsigned int j = 0; j < rbpo->numberOfParticles(); j++)
+			for (unsigned int j = 0; j < bm->numberOfParticles(); j++)
 			{
-				const Vector3r &vel = rbpo->m_v[j];
+				const Vector3r &vel = bm->getVelocity(j);
 				const Real velMag = vel.squaredNorm();
 				if (velMag > maxVel)
 					maxVel = velMag;
@@ -289,50 +308,32 @@ void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 void Simulation::computeNonPressureForces()
 {
 	START_TIMING("computeNonPressureForces")
-	computeSurfaceTension();
-	computeViscosity();
-	computeVorticity();
-	computeDragForce();
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	{
+		FluidModel *fm = getFluidModel(i);
+		fm->computeSurfaceTension();
+		fm->computeViscosity();
+		fm->computeVorticity();
+		fm->computeDragForce();
+	}
 	STOP_TIMING_AVG
-}
-
-void Simulation::computeSurfaceTension()
-{
-	if (m_surfaceTension)
-		m_surfaceTension->step();
-}
-
-void Simulation::computeViscosity()
-{
-	if (m_viscosity)
-		m_viscosity->step();
-}
-
-void Simulation::computeVorticity()
-{
-	if (m_vorticity)
-		m_vorticity->step();
-}
-
-void Simulation::computeDragForce()
-{
-	if (m_drag)
-		m_drag->step();
 }
 
 void Simulation::reset()
 {
-	m_model->reset();
+	// reset fluid models
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+		getFluidModel(i)->reset();
+
+	// reset boundary models
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+		getBoundaryModel(i)->reset();
+	updateBoundaryPsi();
+
 	if (m_timeStep)
 		m_timeStep->reset();
-	if (m_surfaceTension)
-		m_surfaceTension->reset();
-	if (m_viscosity)
-		m_viscosity->reset();
-	if (m_vorticity)
-		m_vorticity->reset();
-	if (m_drag)
-		m_drag->reset();
+
+	performNeighborhoodSearchSort();
 
 	TimeManager::getCurrent()->setTime(0.0);
 	TimeManager::getCurrent()->setTimeStepSize(0.001);
@@ -357,202 +358,73 @@ void Simulation::setSimulationMethod(const int val)
 		m_timeStep = new TimeStepWCSPH();
 		m_timeStep->init();
 		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_NONE);
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_CUBIC);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_CUBIC);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
 		TimeManager::getCurrent()->setTimeStepSize(0.001);
 	}
 	else if (method == SimulationMethods::PCISPH)
 	{
 		m_timeStep = new TimeStepPCISPH();
 		m_timeStep->init();
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_CUBIC);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_CUBIC);
+		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
 	}
 	else if (method == SimulationMethods::PBF)
 	{
 		m_timeStep = new TimeStepPBF();
 		m_timeStep->init();
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_POLY6);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_SPIKY);
+		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_POLY6);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_SPIKY);
 	}
 	else if (method == SimulationMethods::IISPH)
 	{
 		m_timeStep = new TimeStepIISPH();
 		m_timeStep->init();
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_CUBIC);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_CUBIC);
+		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
 	}
 	else if (method == SimulationMethods::DFSPH)
 	{
 		m_timeStep = new TimeStepDFSPH();
 		m_timeStep->init();
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_PRECOMPUTED_CUBIC);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 	}
 	else if (method == SimulationMethods::PF)
 	{
 		m_timeStep = new TimeStepPF();
 		m_timeStep->init();
-		m_model->setValue(FluidModel::KERNEL_METHOD, FluidModel::ENUM_KERNEL_PRECOMPUTED_CUBIC);
-		m_model->setValue(FluidModel::GRAD_KERNEL_METHOD, FluidModel::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 	}
 
 	if (m_simulationMethodChanged != nullptr)
 		m_simulationMethodChanged();
 }
 
-void Simulation::setSurfaceTensionMethod(const int val)
-{
-	SurfaceTensionMethods stm = static_cast<SurfaceTensionMethods>(val);
-	if ((stm < SurfaceTensionMethods::None) || (stm >= SurfaceTensionMethods::NumSurfaceTensionMethods))
-		stm = SurfaceTensionMethods::None;
-	if (stm == m_surfaceTensionMethod)
-		return;
 
-	delete m_surfaceTension;
-	m_surfaceTension = nullptr;
-
-	m_surfaceTensionMethod = stm;
-	if (m_surfaceTensionMethod == SurfaceTensionMethods::Becker2007)
-		m_surfaceTension = new SurfaceTension_Becker2007(m_model);
-	else if (m_surfaceTensionMethod == SurfaceTensionMethods::Akinci2013)
-		m_surfaceTension = new SurfaceTension_Akinci2013(m_model);
-	else if (m_surfaceTensionMethod == SurfaceTensionMethods::He2014)
-		m_surfaceTension = new SurfaceTension_He2014(m_model);
-
-	if (m_surfaceTension != nullptr)
-		m_surfaceTension->init();
-
-	if (m_surfaceTensionMethodChanged != nullptr)
-		m_surfaceTensionMethodChanged();
-}
-
-void Simulation::setViscosityMethod(const int val)
-{
-	ViscosityMethods vm = static_cast<ViscosityMethods>(val);
-	if ((vm < ViscosityMethods::None) || (vm >= ViscosityMethods::NumViscosityMethods))
-		vm = ViscosityMethods::XSPH;
-
-	if (vm == m_viscosityMethod)
-		return;
-
-	delete m_viscosity;
-	m_viscosity = nullptr;
-
-	m_viscosityMethod = vm;
-
-	if (m_viscosityMethod == ViscosityMethods::Standard)
-		m_viscosity = new Viscosity_Standard(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::XSPH)
-		m_viscosity = new Viscosity_XSPH(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::Bender2017)
-		m_viscosity = new Viscosity_Bender2017(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::Peer2015)
-		m_viscosity = new Viscosity_Peer2015(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::Peer2016)
-		m_viscosity = new Viscosity_Peer2016(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::Takahashi2015)
-		m_viscosity = new Viscosity_Takahashi2015(m_model);
-	else if (m_viscosityMethod == ViscosityMethods::Weiler2018)
-		m_viscosity = new Viscosity_Weiler2018(m_model);
-
-	if (m_viscosity != nullptr)
-		m_viscosity->init();
-
-	if (m_viscosityMethodChanged != nullptr)
-		m_viscosityMethodChanged();
-}
-
-
-void Simulation::setVorticityMethod(const int val)
-{
-	VorticityMethods vm = static_cast<VorticityMethods>(val);
-	if ((vm < VorticityMethods::None) || (vm >= VorticityMethods::NumVorticityMethods))
-		vm = VorticityMethods::None;
-
-	if (vm == m_vorticityMethod)
-		return;
-
-	delete m_vorticity;
-	m_vorticity = nullptr;
-
-	m_vorticityMethod = vm;
-
-	if (m_vorticityMethod == VorticityMethods::Micropolar)
-		m_vorticity = new MicropolarModel_Bender2017(m_model);
-	else if (m_vorticityMethod == VorticityMethods::VorticityConfinement)
-		m_vorticity = new VorticityConfinement(m_model);
-
-	if (m_vorticity != nullptr)
-		m_vorticity->init();
-
-	if (m_vorticityMethodChanged != nullptr)
-		m_vorticityMethodChanged();
-}
-
-void Simulation::setDragMethod(const int val)
-{
-	DragMethods dm = static_cast<DragMethods>(val);
-	if ((dm < DragMethods::None) || (dm >= DragMethods::NumDragMethods))
-		dm = DragMethods::None;
-
-	if (dm == m_dragMethod)
-		return;
-
-	delete m_drag;
-	m_drag = nullptr;
-
-	m_dragMethod = dm;
-
-	if (m_dragMethod == DragMethods::Gissler2017)
-		m_drag = new DragForce_Gissler2017(m_model);
-	else if (m_dragMethod == DragMethods::Macklin2014)
-		m_drag = new DragForce_Macklin2014(m_model);
-
-	if (m_drag != nullptr)
-		m_drag->init();
-
-	if (m_dragMethodChanged != nullptr)
-		m_dragMethodChanged();
-}
 
 void Simulation::performNeighborhoodSearch()
 {
 	START_TIMING("neighborhood_search");
-	m_model->getNeighborhoodSearch()->find_neighbors();
+	m_neighborhoodSearch->find_neighbors();
 	STOP_TIMING_AVG;
 }
 
 void Simulation::performNeighborhoodSearchSort()
 {
-	if (m_viscosity)
-		m_viscosity->performNeighborhoodSearchSort();
-	if (m_surfaceTension)
-		m_surfaceTension->performNeighborhoodSearchSort();
-	if (m_vorticity)
-		m_vorticity->performNeighborhoodSearchSort();
-	if (m_drag)
-		m_drag->performNeighborhoodSearchSort();
-}
+	m_neighborhoodSearch->z_sort();
 
-void Simulation::setDragMethodChangedCallback(std::function<void()> const& callBackFct)
-{
-	m_dragMethodChanged = callBackFct;
-}
-
-void Simulation::setSurfaceMethodChangedCallback(std::function<void()> const& callBackFct)
-{
-	m_surfaceTensionMethodChanged = callBackFct;
-}
-
-void Simulation::setViscosityMethodChangedCallback(std::function<void()> const& callBackFct)
-{
-	m_viscosityMethodChanged = callBackFct;
-}
-
-void Simulation::setVorticityMethodChangedCallback(std::function<void()> const& callBackFct)
-{
-	m_vorticityMethodChanged = callBackFct;
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	{
+		FluidModel *fm = getFluidModel(i);
+		fm->performNeighborhoodSearchSort();
+	}
 }
 
 void Simulation::setSimulationMethodChangedCallback(std::function<void()> const& callBackFct)
@@ -560,19 +432,96 @@ void Simulation::setSimulationMethodChangedCallback(std::function<void()> const&
 	m_simulationMethodChanged = callBackFct;
 }
 
-void Simulation::emittedParticles(const unsigned int startIndex)
+void Simulation::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
-	if (m_viscosity)
-		m_viscosity->emittedParticles(startIndex);
-	if (m_surfaceTension)
-		m_surfaceTension->emittedParticles(startIndex);
-	if (m_vorticity)
-		m_vorticity->emittedParticles(startIndex);
-	if (m_drag)
-		m_drag->emittedParticles(startIndex);
+	model->emittedParticles(startIndex);
+	m_timeStep->emittedParticles(model, startIndex);
 }
 
 void Simulation::emitParticles()
 {
-	getModel()->getEmitterSystem()->step();
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	{
+		FluidModel *fm = getFluidModel(i);
+		fm->getEmitterSystem()->step();
+	}
+}
+
+void Simulation::addBoundaryModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles)
+{
+	BoundaryModel *bm = new BoundaryModel();
+	bm->initModel(rbo, numBoundaryParticles, boundaryParticles);
+	m_boundaryModels.push_back(bm);
+}
+
+void Simulation::addFluidModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
+{
+	FluidModel *fm = new FluidModel();
+	fm->initModel(id, nFluidParticles, fluidParticles, fluidVelocities, nMaxEmitterParticles);
+	m_fluidModels.push_back(fm);
+}
+
+
+void Simulation::updateBoundaryPsi()
+{
+	if (m_neighborhoodSearch == nullptr)
+		return;
+
+	// ToDo
+	const Real density0 = 1000.0;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+
+	//////////////////////////////////////////////////////////////////////////
+	// Compute value psi for boundary particles (boundary handling)
+	// (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012
+	//////////////////////////////////////////////////////////////////////////
+
+	// Search boundary neighborhood
+
+	// Activate only static boundaries
+	LOG_INFO << "Initialize boundary psi";
+	m_neighborhoodSearch->set_active(false);
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+	{
+		if (!getBoundaryModel(i)->getRigidBodyObject()->isDynamic())
+			m_neighborhoodSearch->set_active(i + nFluids, true, true);
+	}
+
+	m_neighborhoodSearch->find_neighbors();
+
+	// Boundary objects
+	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
+	{
+		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
+			getBoundaryModel(body)->computeBoundaryPsi(density0);
+	}
+
+	////////////////////////////////////////////////////////////////////////// 
+	// Compute boundary psi for all dynamic bodies
+	//////////////////////////////////////////////////////////////////////////
+	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
+	{
+		// Deactivate all
+		m_neighborhoodSearch->set_active(false);
+
+		// Only activate next dynamic body
+		if (getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
+		{
+			m_neighborhoodSearch->set_active(body + nFluids, true, true);
+			m_neighborhoodSearch->find_neighbors();
+			getBoundaryModel(body)->computeBoundaryPsi(density0);
+		}
+	}
+
+	// Activate only fluids 
+	m_neighborhoodSearch->set_active(false);
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	{
+		for (unsigned int j = 0; j < numberOfFluidModels(); j++)
+			m_neighborhoodSearch->set_active(i, j, true);
+		for (unsigned int j = numberOfFluidModels(); j < m_neighborhoodSearch->point_sets().size(); j++)
+			m_neighborhoodSearch->set_active(i, j, true);
+	}
 }

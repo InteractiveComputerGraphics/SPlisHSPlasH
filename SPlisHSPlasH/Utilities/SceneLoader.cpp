@@ -44,21 +44,6 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.particleRadius = 0.025;
 		readValue(config["particleRadius"], scene.particleRadius);
-
-		scene.maxEmitterParticles = 1000;
-		readValue(config["maxEmitterParticles"], scene.maxEmitterParticles);
-
-		// reuse particles if they are outside of a bounding box
-		scene.emitterReuseParticles = false;
-		readValue(config["emitterReuseParticles"], scene.emitterReuseParticles);
-
-		// boxMin
-		scene.emitterBoxMin = Vector3r(-1.0, -1.0, -1.0);
-		readVector(config["emitterBoxMin"], scene.emitterBoxMin);
-
-		// boxMax
-		scene.emitterBoxMax = Vector3r(1.0, 1.0, 1.0);
-		readVector(config["emitterBoxMax"], scene.emitterBoxMax);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -125,6 +110,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				FluidData *data = new FluidData();
 				data->samplesFile = particleFile;
 
+				// id
+				data->id = "Fluid";
+				readValue(fluidModel["id"], data->id);
+
 				// translation
 				data->translation = Vector3r::Zero();
 				readVector(fluidModel["translation"], data->translation);
@@ -174,6 +163,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				block->box.m_maxX[1] = scale[1] * maxX[1] + translation[1];
 				block->box.m_maxX[2] = scale[2] * maxX[2] + translation[2];
 
+				// id
+				block->id = "Fluid";
+				readValue(fluidBlock["id"], block->id);
+
 				readValue(fluidBlock["denseMode"], block->mode);
 
 				// velocity
@@ -194,6 +187,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		for (auto& emitter : emitters)
 		{
 			EmitterData *data = new EmitterData();
+
+			// id
+			data->id = "Fluid";
+			readValue(emitter["id"], data->id);
 
 			// width
 			data->width = 5;
@@ -245,7 +242,7 @@ bool SceneLoader::readValue(const nlohmann::json &j, bool &v)
 	return true;
 }
 
-void SceneLoader::readParameterObject(ParameterObject *paramObj)
+void SceneLoader::readParameterObject(const std::string &key, ParameterObject *paramObj)
 {
 	if (paramObj == nullptr)
 		return;
@@ -256,9 +253,9 @@ void SceneLoader::readParameterObject(ParameterObject *paramObj)
 	//////////////////////////////////////////////////////////////////////////
 	// read configuration 
 	//////////////////////////////////////////////////////////////////////////
-	if (m_jsonData.find("Configuration") != m_jsonData.end())
+	if (m_jsonData.find(key) != m_jsonData.end())
 	{
-		nlohmann::json config = m_jsonData["Configuration"];
+		nlohmann::json config = m_jsonData[key];
 		std::vector<std::string> newParamList;
 
 		for (unsigned int i = 0; i < numParams; i++)

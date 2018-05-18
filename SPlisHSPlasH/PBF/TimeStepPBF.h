@@ -25,12 +25,13 @@ namespace SPH
 		*  \f$C(\mathbf{x}) = \left (\frac{\rho_i}{\rho_0} - 1 \right )= 0\f$\n
 		*/
 		void pressureSolve();
+		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 
 		/** Perform the neighborhood search for all fluid particles. 
 		*/
 		void performNeighborhoodSearch();
 
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 		virtual void initParameters();
 

@@ -1,0 +1,110 @@
+{
+	"Configuration": 
+	{
+		"timeStepSize": 0.001,
+		"numberOfStepsPerRenderUpdate": 2,
+		"particleRadius": 0.025, 
+		"simulationMethod": 4,
+		"gravitation": [0.0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 5000,
+		"exponent": 1,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true
+	},
+	"first_fluid":
+	{
+		"density0": 1000, 
+		"viscosity": 0.01,
+		"viscosityBoundary": 5000,
+		"viscosityMethod": 1,
+		"viscoMaxIter": 200, 
+		"viscoMaxError": 0.05,
+		"maxEmitterParticles": 6000
+	},
+	"second_fluid":
+	{
+		"density0": 100, 
+		"viscosity": 0.01,
+		"viscosityMethod": 1
+	},
+	"third_fluid":
+	{
+		"density0": 50, 
+		"viscosity": 0.015,
+		"maxEmitterParticles": 1000,
+		"emitterReuseParticles": false,
+		"emitterBoxMin": [-4.0,-1.0,-4.0],
+		"emitterBoxMax": [0.0,4,4.0]
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2.1, 4, 2.1],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true,
+			"restitution" : 0.6,
+			"friction" : 0.0,
+			"collisionObjectType": 2,
+			"collisionObjectScale": [2.1, 4, 2.1],	
+			"invertSDF": true
+		}
+	],
+	"Comment": [
+		{
+			"id": 1,
+			"geometryFile": "../models/torus.obj",
+			"isDynamic": 1, 
+			"density": 50, 
+			"translation": [0.4,1.0,0.0],
+			"rotationAxis": [0, 0, 1],
+			"rotationAngle": 1.0,
+			"scale": [0.2, 0.2, 0.2],
+			"restitution" : 0.6,
+			"friction" : 0.2,
+			"color": [0.5, 0.2, 0.6, 1.0], 
+			"collisionObjectType": 4,
+			"collisionObjectScale": [0.2, 0.1, 0.2]	
+		}
+	],
+	"FluidBlocks": [
+		{
+			"id": "first_fluid",
+			"denseMode": 0,
+			"start": [-1.0, 0.0, -1.0],
+			"end": [-0.3, 0.75, -0.3]
+		}, 
+		{
+			"id": "second_fluid",
+			"denseMode": 0,
+			"start": [0.3, 0.0, 0.3],
+			"end": [1.0, 1.75, 1.0]
+		}
+	],
+	"Emitters": [
+		{
+			"id": "third_fluid",
+			"width": 8, 
+			"height": 3, 
+			"translation": [-0.2,0.75,0.0],
+			"direction": [1, 0, 0],
+			"velocity": [2, 0, 0.0],	
+			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
+			"emitsPerSecond": 40,
+			"type": 0
+		}
+	]
+}
+
+
+

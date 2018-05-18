@@ -1,3 +1,6 @@
+2.2.0
+	- added support for multi-phase simulations
+
 2.1.0	
 	- added implicit viscosity computation of Weiler et al. 2018
 	- added implicit viscosity computation of Takahashi et al. 2015

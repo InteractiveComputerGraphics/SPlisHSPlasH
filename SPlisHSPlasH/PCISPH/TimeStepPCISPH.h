@@ -19,12 +19,13 @@ namespace SPH
 		unsigned int m_counter;
 
 		void pressureSolve();
+		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
 
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 	public:
 		TimeStepPCISPH();

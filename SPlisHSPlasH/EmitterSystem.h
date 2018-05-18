@@ -13,10 +13,11 @@ namespace SPH
 	class EmitterSystem
 	{
 		public:
-			EmitterSystem();
+			EmitterSystem(FluidModel *model);
 			virtual ~EmitterSystem();
 
-	protected:
+		protected:
+			FluidModel *m_model;
 			static const unsigned int m_maxParticlesToReusePerStep = 50000;
 			bool m_reuseParticles;
 			Vector3r m_boxMin;

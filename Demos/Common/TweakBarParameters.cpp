@@ -15,7 +15,7 @@ void TweakBarParameters::createParameterGUI()
 {
 	// Add callback for the time step size
 	TwAddVarCB(MiniGL::getTweakBar(), "TimeStepSize", TW_TYPE_DOUBLE, setTimeStepSizeCB, getTimeStepSizeCB, NULL,
-		" label='Time step size' min=0.000001 max=0.1 step=0.0001 precision=5 help='Set time step size' group=Simulation ");
+		" label='Time step size' min=0.000001 max=0.1 step=0.0001 precision=5 help='Set time step size' group=General ");
 
 }
 

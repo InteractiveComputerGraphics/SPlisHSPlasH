@@ -19,19 +19,18 @@ namespace SPH
 
 	protected:
 		/** \brief particle position from last timestep */
-		std::vector<Vector3r> m_old_position;
+		std::vector<std::vector<Vector3r>> m_old_position;
 
 		/** \brief number of neighbors that are fluid particles */
-		std::vector<unsigned int> m_num_fluid_neighbors;
-
-		/** \brief variables for optimization */
-		std::vector<Vector3r> m_x;
+		std::vector<std::vector<unsigned int>> m_num_fluid_neighbors;
 
 		/** \brief positions predicted from momentum */
-		std::vector<Vector3r> m_s;
+		std::vector<std::vector<Vector3r>> m_s;
 
 		/** \brief diagonal of system matrix, used by preconditioner*/
-		std::vector<Vector3r> m_mat_diag;
+		std::vector<std::vector<Vector3r>> m_mat_diag;
+
+		std::vector<unsigned int> m_particleOffset;
 
 	public:
 
@@ -52,76 +51,71 @@ namespace SPH
 		 */
 		void performNeighborhoodSearchSort();
 
-		void emittedParticles(const unsigned int startIndex);
+		void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-		FORCE_INLINE const Vector3r getOldPosition(const unsigned int i) const
+		FORCE_INLINE const Vector3r getOldPosition(const unsigned int fluidIndex, const unsigned int i) const
 		{
-			return m_old_position[i];
+			return m_old_position[fluidIndex][i];
 		}
 
-		FORCE_INLINE Vector3r& getOldPosition(const unsigned int i)
+		FORCE_INLINE Vector3r& getOldPosition(const unsigned int fluidIndex, const unsigned int i)
 		{
-			return m_old_position[i];
+			return m_old_position[fluidIndex][i];
 		}
 
-		FORCE_INLINE void setOldPosition(const unsigned int i, const Vector3r p)
+		FORCE_INLINE void setOldPosition(const unsigned int fluidIndex, const unsigned int i, const Vector3r p)
 		{
-			m_old_position[i] = p;
+			m_old_position[fluidIndex][i] = p;
 		}
 
-		FORCE_INLINE const unsigned int getNumFluidNeighbors(const unsigned int i) const
+		FORCE_INLINE const unsigned int getNumFluidNeighbors(const unsigned int fluidIndex, const unsigned int i) const
 		{
-			return m_num_fluid_neighbors[i];
+			return m_num_fluid_neighbors[fluidIndex][i];
 		}
 
-		FORCE_INLINE unsigned int& getNumFluidNeighbors(const unsigned int i)
+		FORCE_INLINE unsigned int& getNumFluidNeighbors(const unsigned int fluidIndex, const unsigned int i)
 		{
-			return m_num_fluid_neighbors[i];
+			return m_num_fluid_neighbors[fluidIndex][i];
 		}
 
-		FORCE_INLINE void setNumFluidNeighbors(const unsigned int i, const unsigned int n)
+		FORCE_INLINE void setNumFluidNeighbors(const unsigned int fluidIndex, const unsigned int i, const unsigned int n)
 		{
-			m_num_fluid_neighbors[i] = n;
+			m_num_fluid_neighbors[fluidIndex][i] = n;
 		}
 
-		FORCE_INLINE const std::vector<Vector3r>& getX() const
+		FORCE_INLINE const Vector3r& getS(const unsigned int fluidIndex, const unsigned int i) const
 		{
-			return m_x;
+			return m_s[fluidIndex][i];
 		}
 
-		FORCE_INLINE std::vector<Vector3r>& getX()
+		FORCE_INLINE Vector3r& getS(const unsigned int fluidIndex, const unsigned int i)
 		{
-			return m_x;
+			return m_s[fluidIndex][i];
 		}
 
-		FORCE_INLINE const Vector3r& getS(const unsigned int i) const
+		FORCE_INLINE void setS(const unsigned int fluidIndex, const unsigned int i, const Vector3r & s)
 		{
-			return m_s[i];
+			m_s[fluidIndex][i] = s;
 		}
 
-		FORCE_INLINE Vector3r& getS(const unsigned int i)
+		FORCE_INLINE const Vector3r& getDiag(const unsigned int fluidIndex, const unsigned int i) const
 		{
-			return m_s[i];
+			return m_mat_diag[fluidIndex][i];
 		}
 
-		FORCE_INLINE void setS(const unsigned int i, const Vector3r & s)
+		FORCE_INLINE Vector3r& getDiag(const unsigned int fluidIndex, const unsigned int i)
 		{
-			m_s[i] = s;
+			return m_mat_diag[fluidIndex][i];
 		}
 
-		FORCE_INLINE const Vector3r& getDiag(const unsigned int i) const
+		FORCE_INLINE void setDiag(const unsigned int fluidIndex, const unsigned int i, const Vector3r & s)
 		{
-			return m_mat_diag[i];
+			m_mat_diag[fluidIndex][i] = s;
 		}
 
-		FORCE_INLINE Vector3r& getDiag(const unsigned int i)
+		FORCE_INLINE const unsigned int & getParticleOffset(const unsigned int fluidIndex) const
 		{
-			return m_mat_diag[i];
-		}
-
-		FORCE_INLINE void setDiag(const unsigned int i, const Vector3r & s)
-		{
-			m_mat_diag[i] = s;
+			return m_particleOffset[fluidIndex];
 		}
 	};
 }

@@ -59,7 +59,7 @@ void main(void)
 	vec3 hsv = rgb2hsv(color);
 	float v = length(In.velocity);
 	v = min((1.0/max_velocity)*v*v, 1.0);
-	vec3 fluidColor = hsv2rgb(vec3(hsv.x, max(1.0 - v, 0.0), 1.0));
+	vec3 fluidColor = hsv2rgb(vec3(hsv.x, max(0.8 - 0.8*v, 0.0), 1.0));
 
 	// compute final color
 	vec3 color_ = 0.25 * fluidColor;

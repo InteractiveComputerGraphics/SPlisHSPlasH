@@ -1,5 +1,6 @@
 #include "SurfaceTension_Akinci2013.h"
 #include <iostream>
+#include "../Simulation.h"
 
 using namespace SPH;
 
@@ -17,8 +18,12 @@ SurfaceTension_Akinci2013::~SurfaceTension_Akinci2013(void)
 
 void SurfaceTension_Akinci2013::computeNormals()
 {
-	const Real supportRadius = m_model->getSupportRadius();
+	Simulation *sim = Simulation::getCurrent();
+	const Real supportRadius = sim->getSupportRadius();
 	const unsigned int numParticles = m_model->numActiveParticles();
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 
 	// Compute normals
 	#pragma omp parallel default(shared)
@@ -26,20 +31,17 @@ void SurfaceTension_Akinci2013::computeNormals()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
 			Vector3r &ni = getNormal(i);
 			ni.setZero();
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+			forall_fluid_neighbors_in_same_phase(
 				const Real density_j = m_model->getDensity(neighborIndex);
-				ni += m_model->getMass(neighborIndex) / density_j * m_model->gradW(xi - xj);
-			}
+				ni += m_model->getMass(neighborIndex) / density_j * sim->gradW(xi - xj);
+			)
 			ni = supportRadius*ni;
 		}
 	}
@@ -48,10 +50,14 @@ void SurfaceTension_Akinci2013::computeNormals()
 
 void SurfaceTension_Akinci2013::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
-	const Real supportRadius = m_model->getSupportRadius();
+	const Real supportRadius = sim->getSupportRadius();
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_surfaceTension;
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 
 	computeNormals();
 
@@ -61,7 +67,7 @@ void SurfaceTension_Akinci2013::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
 			const Vector3r &ni = getNormal(i);
 			const Real &rhoi = m_model->getDensity(i);
 			Vector3r &ai = m_model->getAcceleration(i);
@@ -69,10 +75,7 @@ void SurfaceTension_Akinci2013::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+			forall_fluid_neighbors_in_same_phase(
 				const Real &rhoj = m_model->getDensity(neighborIndex);
 				const Real K_ij = 2.0*density0 / (rhoi + rhoj);
 
@@ -93,28 +96,21 @@ void SurfaceTension_Akinci2013::step()
 				accel -= k * supportRadius* (ni - nj);
 
 				ai += K_ij * accel;
-			}
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
-					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
-
+			forall_boundary_neighbors(
 					// adhesion force					
 					Vector3r xixj = (xi - xj);
 					const Real length2 = xixj.squaredNorm();
 					if (length2 > 1.0e-9)
 					{
 						xixj = ((Real) 1.0 / sqrt(length2)) * xixj;
-						ai -= k * m_model->getBoundaryPsi(pid, neighborIndex) * xixj * AdhesionKernel::W(xi - xj);
+						ai -= k * bm_neighbor->getBoundaryPsi(neighborIndex) * xixj * AdhesionKernel::W(xi - xj);
 					}
-				}
-			}
+			)
 		}
 	}
 }
@@ -130,7 +126,8 @@ void SurfaceTension_Akinci2013::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	auto const& d = m_model->getNeighborhoodSearch()->point_set(0);
+	Simulation *sim = Simulation::getCurrent();
+	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
 	d.sort_field(&m_normals[0]);
 }
 

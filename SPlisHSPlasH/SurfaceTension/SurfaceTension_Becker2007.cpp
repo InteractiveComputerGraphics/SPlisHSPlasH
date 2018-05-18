@@ -1,5 +1,6 @@
 #include "SurfaceTension_Becker2007.h"
 #include <iostream>
+#include "../Simulation.h"
 
 using namespace SPH;
 
@@ -14,11 +15,15 @@ SurfaceTension_Becker2007::~SurfaceTension_Becker2007(void)
 
 void SurfaceTension_Becker2007::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_surfaceTension;
-	const Real radius = m_model->getValue<Real>(FluidModel::PARTICLE_RADIUS);
+	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Real diameter = 2.0 * radius;
 	const Real diameter2 = diameter*diameter;
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 
 	// Compute forces
 	#pragma omp parallel default(shared)
@@ -26,41 +31,32 @@ void SurfaceTension_Becker2007::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
 			Vector3r &ai = m_model->getAcceleration(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
+			forall_fluid_neighbors_in_same_phase(
 				const Vector3r xixj = xi - xj;
 				const Real r2 = xixj.dot(xixj);
 				if (r2 > diameter2)
-					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(xi - xj);
+					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * sim->W(xi - xj);
 				else
-					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
-			}
+					ai -= k / m_model->getMass(i) * m_model->getMass(neighborIndex) * (xi - xj) * sim->W(Vector3r(diameter, 0.0, 0.0));
+			)
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 1; pid < m_model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < m_model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = m_model->getNeighbor(pid, i, j);
-					const Vector3r &xj = m_model->getPosition(pid, neighborIndex);
-					const Vector3r xixj = xi - xj;
-					const Real r2 = xixj.dot(xixj);
-					if (r2 > diameter2)
-						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(pid, neighborIndex) * (xi - xj) * m_model->W(xi - xj);
-					else
-						ai -= k / m_model->getMass(i) * m_model->getBoundaryPsi(pid, neighborIndex) * (xi - xj) * m_model->W(Vector3r(diameter, 0.0, 0.0));
-				}
-			}
+			forall_boundary_neighbors(
+				const Vector3r xixj = xi - xj;
+				const Real r2 = xixj.dot(xixj);
+				if (r2 > diameter2)
+					ai -= k / m_model->getMass(i) * bm_neighbor->getBoundaryPsi(neighborIndex) * (xi - xj) * sim->W(xi - xj);
+				else
+					ai -= k / m_model->getMass(i) * bm_neighbor->getBoundaryPsi(neighborIndex) * (xi - xj) * sim->W(Vector3r(diameter, 0.0, 0.0));
+			)
 		}
 	}
 }

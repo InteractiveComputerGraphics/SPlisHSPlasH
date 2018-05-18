@@ -2,6 +2,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -17,6 +18,7 @@ Viscosity_Weiler2018::Viscosity_Weiler2018(FluidModel *model) :
 	m_maxIter = 100;
 	m_maxError = 0.01;
 	m_iterations = 0;
+	m_boundaryViscosity = 0.0;
 
 	m_vDiff.resize(model->numParticles(), Vector3r::Zero());
 }
@@ -55,11 +57,14 @@ void Viscosity_Weiler2018::initParameters()
 
 void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *userData)
 {
+	Simulation *sim = Simulation::getCurrent();
 	Viscosity_Weiler2018 *visco = (Viscosity_Weiler2018*)userData;
 	FluidModel *model = visco->getModel();
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
 
-	const Real h = model->getSupportRadius();
+	const Real h = sim->getSupportRadius();
 	const Real h2 = h*h;
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
@@ -70,37 +75,35 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(0, i);
+			const Vector3r &xi = model->getPosition(i);
 			Vector3r ai;
 			ai.setZero();
 			const Real density_i = model->getDensity(i);
 			const Vector3r &vi = Eigen::Map<const Vector3r>(&vec[3 * i]);
 
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
 				const Real density_j = model->getDensity(neighborIndex);
-				const Vector3r gradW = model->gradW(xi - xj);
+				const Vector3r gradW = sim->gradW(xi - xj);
 
 				const Vector3r &vj = Eigen::Map<const Vector3r>(&vec[3 * neighborIndex]);
 				const Vector3r xixj = xi - xj;
 
 				ai += 10.0 * mu * (model->getMass(neighborIndex) / density_j) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
-			}
-			for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-			{
-				for (unsigned int j = 0; j < model->numberOfNeighbors(pid, i); j++)
-				{
-					const unsigned int neighborIndex = model->getNeighbor(pid, i, j);
-					const Vector3r &xj = model->getPosition(pid, neighborIndex);
-					const Vector3r &vj = model->getVelocity(pid, neighborIndex);
-					const Vector3r gradW = model->gradW(xi - xj);
+			)
 
-					const Vector3r xixj = xi - xj;
-					ai += 10.0 * mub * (model->getBoundaryPsi(pid, neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
-				}
-			}
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			forall_boundary_neighbors(
+				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+				const Vector3r gradW = sim->gradW(xi - xj);
+
+				const Vector3r xixj = xi - xj;
+				ai += 10.0 * mub * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
+			)
 
 			result[3 * i] = vec[3 * i] - dt / density_i*ai[0];
 			result[3 * i + 1] = vec[3 * i + 1] - dt / density_i*ai[1];
@@ -110,51 +113,54 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 }
 
 #ifdef USE_BLOCKDIAGONAL_PRECONDITIONER
-void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int row, Matrix3r &result, void *userData)
+void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r &result, void *userData)
 {
 	// Diagonal element
+	Simulation *sim = Simulation::getCurrent();
 	Viscosity_Weiler2018 *visco = (Viscosity_Weiler2018*)userData;
 	FluidModel *model = visco->getModel();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
 
-	const Real h = model->getSupportRadius();
+
+	const Real h = sim->getSupportRadius();
 	const Real h2 = h*h;
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
 	const Real mub = visco->m_boundaryViscosity;
 
-	const Real density_i = model->getDensity(row);
+	const Real density_i = model->getDensity(i);
 
 	result.setZero();
 	
-	const Vector3r &xi = model->getPosition(0, row);
-	for (unsigned int j = 0; j < model->numberOfNeighbors(0, row); j++)
-	{
-		const unsigned int neighborIndex = model->getNeighbor(0, row, j);
-		const Vector3r &xj = model->getPosition(0, neighborIndex);
+	const Vector3r &xi = model->getPosition(i);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Fluid
+	//////////////////////////////////////////////////////////////////////////
+	forall_fluid_neighbors_in_same_phase(
 		const Real density_j = model->getDensity(neighborIndex);
-		const Vector3r gradW = model->gradW(xi - xj);
+		const Vector3r gradW = sim->gradW(xi - xj);
 		const Vector3r xixj = xi - xj;
 		result += 10.0 * mu * (model->getMass(neighborIndex) / density_j) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-	}
-	for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-	{
-		for (unsigned int j = 0; j < model->numberOfNeighbors(pid, row); j++)
-		{
-			const unsigned int neighborIndex = model->getNeighbor(pid, row, j);
-			const Vector3r &xj = model->getPosition(pid, neighborIndex);
-			const Vector3r &vj = model->getVelocity(pid, neighborIndex);
-			const Vector3r gradW = model->gradW(xi - xj);
+	)
 
-			const Vector3r xixj = xi - xj;
-			result += 10.0 * mub * (model->getBoundaryPsi(pid, neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-		}
-	}
+	//////////////////////////////////////////////////////////////////////////
+	// Boundary
+	//////////////////////////////////////////////////////////////////////////
+	forall_boundary_neighbors(
+		const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+		const Vector3r gradW = sim->gradW(xi - xj);
+
+		const Vector3r xixj = xi - xj;
+		result += 10.0 * mub * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
+	)
 	result = Matrix3r::Identity() - (dt / density_i) * result;
 }
 
 #else
 
-void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int row, Vector3r &result, void *userData)
+void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r &result, void *userData)
 {
 	// Diagonal element
 	Viscosity_Weiler2018 *visco = (Viscosity_Weiler2018*)userData;
@@ -165,36 +171,38 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int row, Vector3
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
 	const Real mub = visco->m_boundaryViscosity;
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 
-	const Real density_i = model->getDensity(row);
+
+	const Real density_i = model->getDensity(i);
 
 	result.setZero();
 
-	const Vector3r &xi = model->getPosition(0, row);
-	for (unsigned int j = 0; j < model->numberOfNeighbors(0, row); j++)
-	{
-		const unsigned int neighborIndex = model->getNeighbor(0, row, j);
-		const Vector3r &xj = model->getPosition(0, neighborIndex);
+	const Vector3r &xi = model->getPosition(0, i);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Fluid
+	//////////////////////////////////////////////////////////////////////////
+	forall_fluid_neighbors_in_same_phase(
 		const Real density_j = model->getDensity(neighborIndex);
 		const Vector3r gradW = model->gradW(xi - xj);
 		const Vector3r xixj = xi - xj;
 		Matrix3r r = 10.0 * mu * (model->getMass(neighborIndex) / density_j) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
 		result += r.diagonal();
-	}
-	for (unsigned int pid = 1; pid < model->numberOfPointSets(); pid++)
-	{
-		for (unsigned int j = 0; j < model->numberOfNeighbors(pid, row); j++)
-		{
-			const unsigned int neighborIndex = model->getNeighbor(pid, row, j);
-			const Vector3r &xj = model->getPosition(pid, neighborIndex);
-			const Vector3r &vj = model->getVelocity(pid, neighborIndex);
-			const Vector3r gradW = model->gradW(xi - xj);
+	)
 
-			const Vector3r xixj = xi - xj;
-			Matrix3r r = 10.0 * mub * (model->getBoundaryPsi(pid, neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-			result += r.diagonal();
-		}
-	}
+	//////////////////////////////////////////////////////////////////////////
+	// Boundary
+	//////////////////////////////////////////////////////////////////////////
+	forall_boundary_neighbors(
+		const Vector3r &vj = model->getVelocity(pid, neighborIndex);
+		const Vector3r gradW = model->gradW(xi - xj);
+
+		const Vector3r xixj = xi - xj;
+		Matrix3r r = 10.0 * mub * (model->getBoundaryPsi(pid, neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
+		result += r.diagonal();
+	)
 	result = Vector3r::Ones() - (dt / density_i) * result;
 }
 
@@ -232,7 +240,7 @@ void Viscosity_Weiler2018::step()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			b[3*i] = vi[0];
 			b[3*i+1] = vi[1];
 			b[3*i+2] = vi[2];
@@ -260,8 +268,8 @@ void Viscosity_Weiler2018::step()
 		{
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Vector3r newV(x[3 * i], x[3 * i + 1], x[3 * i + 2]);
-			ai += (1.0 / h) * (newV - m_model->getVelocity(0, i));
-			m_vDiff[i] = (newV - m_model->getVelocity(0, i));
+			ai += (1.0 / h) * (newV - m_model->getVelocity(i));
+			m_vDiff[i] = (newV - m_model->getVelocity(i));
 		}
 	}
 }

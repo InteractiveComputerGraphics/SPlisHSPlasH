@@ -23,13 +23,13 @@ namespace SPH
 		unsigned int m_counter;
 
 		/** Determine the pressure accelerations when the pressure is already known. */
-		void computePressureAccels();
+		void computePressureAccels(const unsigned int fluidModelIndex);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
 
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 		virtual void initParameters();
 
 	public:

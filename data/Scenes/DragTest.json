@@ -2,15 +2,27 @@
 	"Configuration":
 	{
 		"timeStepSize": 0.001,
-		"particleRadius": 0.025,
-		"maxEmitterParticles": 5000,
-		"viscosity": 0.05,
-		"dragMethod": 2,
-		"drag": 10.0,
 		"numberOfStepsPerRenderUpdate": 2,
-		"emitterReuseParticles": true,
-		"emitterBoxMin": [-2.0,-2.5,-2.0],
-		"emitterBoxMax": [1.0,4,2.0]
+		"particleRadius": 0.025, 
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true		
+	},
+	"Fluid":
+	{
+		"dragMethod": 2,
+		"drag": 10.0
 	},
     "FluidBlocks": [
         {

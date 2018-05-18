@@ -19,18 +19,19 @@ namespace SPH
 		SimulationDataIISPH m_simulationData;
 		unsigned int m_counter;
 
-		void predictAdvection();
+		void predictAdvection(const unsigned int fluidModelIndex);
 		void pressureSolve();
-		void integration();
+		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
+		void integration(const unsigned int fluidModelIndex);
 
 		/** Determine the pressure accelerations when the pressure is already known. */
-		void computePressureAccels();
+		void computePressureAccels(const unsigned int fluidModelIndex);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
 
-		virtual void emittedParticles(const unsigned int startIndex);
+		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 	public:
 		TimeStepIISPH();

@@ -4,85 +4,99 @@
 #include "Common.h"
 #include <vector>
 
-#include "CompactNSearch.h"
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
-#include "EmitterSystem.h"
 #include "ParameterObject.h"
 
 namespace SPH 
 {	
 	class TimeStep;
+	class ViscosityBase;
+	class SurfaceTensionBase;
+	class VorticityBase;
+	class DragBase;
+	class EmitterSystem;
+
+	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, NumSurfaceTensionMethods };
+	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, Takahashi2015, Weiler2018, NumViscosityMethods };
+	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement, NumVorticityMethods };
+	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
 
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
 	class FluidModel : public GenParam::ParameterObject
 	{
 		public:
-			static int KERNEL_METHOD;
-			static int GRAD_KERNEL_METHOD;
 			static int NUM_PARTICLES;
 			static int NUM_REUSED_PARTICLES;
-			static int PARTICLE_RADIUS;
 			static int DENSITY0;
-			static int ENUM_KERNEL_CUBIC;
-			static int ENUM_KERNEL_POLY6;
-			static int ENUM_KERNEL_SPIKY;
-			static int ENUM_KERNEL_PRECOMPUTED_CUBIC;
-			static int ENUM_GRADKERNEL_CUBIC;
-			static int ENUM_GRADKERNEL_POLY6;
-			static int ENUM_GRADKERNEL_SPIKY;
-			static int ENUM_GRADKERNEL_PRECOMPUTED_CUBIC;
+
+			static int DRAG_METHOD;
+			static int SURFACE_TENSION_METHOD;
+			static int VISCOSITY_METHOD;
+			static int VORTICITY_METHOD;
+
+			static int ENUM_DRAG_NONE;
+			static int ENUM_DRAG_MACKLIN2014;
+			static int ENUM_DRAG_GISSLER2017;
+
+			static int ENUM_SURFACETENSION_NONE;
+			static int ENUM_SURFACETENSION_BECKER2007;
+			static int ENUM_SURFACETENSION_AKINCI2013;
+			static int ENUM_SURFACETENSION_HE2014;
+
+			static int ENUM_VISCOSITY_NONE;
+			static int ENUM_VISCOSITY_STANDARD;
+			static int ENUM_VISCOSITY_XSPH;
+			static int ENUM_VISCOSITY_BENDER2017;
+			static int ENUM_VISCOSITY_PEER2015;
+			static int ENUM_VISCOSITY_PEER2016;
+			static int ENUM_VISCOSITY_TAKAHASHI2015;
+			static int ENUM_VISCOSITY_WEILER2018;
+
+			static int ENUM_VORTICITY_NONE;
+			static int ENUM_VORTICITY_MICROPOLAR;
+			static int ENUM_VORTICITY_VC;
+
 
 			FluidModel();
 			virtual ~FluidModel();
 
 			void init();
 
-			/** \brief Struct to store the state of a particle object (x0, x, v).
-			*/
-			struct ParticleObject
-			{
-				std::vector<Vector3r> m_x0;
-				std::vector<Vector3r> m_x;
-				std::vector<Vector3r> m_v;				
-				unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
-			};
+			std::string getId() const { return m_id; }
 
-			/** \brief Struct to store the pseudo masses and forces of the sampling of a rigid body object.
-			*/
-			struct RigidBodyParticleObject : public ParticleObject
-			{
-				RigidBodyObject *m_rigidBody;
-				std::vector<Real> m_boundaryPsi;
-				std::vector<Vector3r> m_f;
-			};
-
-			typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
-
-	protected:
+		protected:
+			std::string m_id;
 			EmitterSystem *m_emitterSystem;
-			int m_kernelMethod;
-			int m_gradKernelMethod;
-			Real m_W_zero;
-			Real(*m_kernelFct)(const Vector3r &);
-			Vector3r(*m_gradKernelFct)(const Vector3r &r);
-
-			std::vector<ParticleObject*> m_particleObjects;
 
 			// Mass
 			// If the mass is zero, the particle is static
 			std::vector<Real> m_masses;
 			std::vector<Vector3r> m_a;
 			std::vector<Vector3r> m_v0;
-
-			// initial position
+			std::vector<Vector3r> m_x0;
+			std::vector<Vector3r> m_x;
+			std::vector<Vector3r> m_v;
 			std::vector<Real> m_density;
+			Real m_V;
+
+			SurfaceTensionMethods m_surfaceTensionMethod;
+			SurfaceTensionBase *m_surfaceTension;
+			ViscosityMethods m_viscosityMethod;
+			ViscosityBase *m_viscosity;
+			VorticityMethods m_vorticityMethod;
+			VorticityBase *m_vorticity;
+			DragMethods m_dragMethod;
+			DragBase *m_drag;
+
+			std::function<void()> m_dragMethodChanged;
+			std::function<void()> m_surfaceTensionMethodChanged;
+			std::function<void()> m_viscosityMethodChanged;
+			std::function<void()> m_vorticityMethodChanged;
 
 			Real m_density0;
-			Real m_particleRadius;
-			Real m_supportRadius;
-			CompactNSearch::NeighborhoodSearch *m_neighborhoodSearch;
+			unsigned int m_pointSetIndex;
 
 			unsigned int m_numActiveParticles;
 			unsigned int m_numActiveParticles0;
@@ -90,7 +104,6 @@ namespace SPH
 			virtual void initParameters();
 
 			void initMasses();
-			void computeBoundaryPsi(const unsigned int body);
 
 			/** Resize the arrays containing the particle data.
 			*/
@@ -100,106 +113,100 @@ namespace SPH
 			*/
 			virtual void releaseFluidParticles();
 
-			int getKernel() const { return m_kernelMethod; }
-			void setKernel(int val);
-			int getGradKernel() const { return m_gradKernelMethod; }
-			void setGradKernel(int val);
 
-			void setParticleRadius(Real val);
-			Real getParticleRadius() const { return m_particleRadius; }
-
+		public:
 			FORCE_INLINE Real getDensity0() const { return m_density0; }
 			void setDensity0(const Real v);
 
-		public:
-			void setNumActiveParticles(const unsigned int num);
+			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
 
-			virtual void cleanupModel();
+			void setNumActiveParticles(const unsigned int num);
+			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
+
+			EmitterSystem* getEmitterSystem() { return m_emitterSystem; }
+
 			virtual void reset();
 
-			void updateBoundaryPsi();
+			void performNeighborhoodSearchSort();
 
-			void initModel(const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles);
-			void addRigidBodyObject(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
+			void initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles);
 			
-			RigidBodyParticleObject *getRigidBodyParticleObject(const unsigned int index) { return (FluidModel::RigidBodyParticleObject*) m_particleObjects[index + 1]; }
 			const unsigned int numParticles() const { return static_cast<unsigned int>(m_masses.size()); }
 			unsigned int numActiveParticles() const;
-			const unsigned int numberOfRigidBodyParticleObjects() const { return static_cast<unsigned int>(m_particleObjects.size()-1); }
-
-			Real getSupportRadius() const { return m_supportRadius; }			
 
 			unsigned int getNumActiveParticles0() const { return m_numActiveParticles0; }
 			void setNumActiveParticles0(unsigned int val) { m_numActiveParticles0 = val; }
 
-			SPH::EmitterSystem* getEmitterSystem() { return m_emitterSystem; }
+			void emittedParticles(const unsigned int startIndex);
+
+			int getSurfaceTensionMethod() const { return static_cast<int>(m_surfaceTensionMethod); }
+			void setSurfaceTensionMethod(const int val);
+			int getViscosityMethod() const { return static_cast<int>(m_viscosityMethod); }
+			void setViscosityMethod(const int val);
+			int getVorticityMethod() const { return static_cast<int>(m_vorticityMethod); }
+			void setVorticityMethod(const int val);
+			int getDragMethod() const { return static_cast<int>(m_dragMethod); }
+			void setDragMethod(const int val);
+
+			SurfaceTensionBase *getSurfaceTensionBase() { return m_surfaceTension; }
+			ViscosityBase *getViscosityBase() { return m_viscosity; }
+			VorticityBase *getVorticityBase() { return m_vorticity; }
+			DragBase *getDragBase() { return m_drag; }
+
+			void setDragMethodChangedCallback(std::function<void()> const& callBackFct);
+			void setSurfaceMethodChangedCallback(std::function<void()> const& callBackFct);
+			void setViscosityMethodChangedCallback(std::function<void()> const& callBackFct);
+			void setVorticityMethodChangedCallback(std::function<void()> const& callBackFct);
+
+			void computeSurfaceTension();
+			void computeViscosity();
+			void computeVorticity();
+			void computeDragForce();
 
 
-			FORCE_INLINE Real W_zero() const { return m_W_zero; }
-			FORCE_INLINE Real W(const Vector3r &r) const { return m_kernelFct(r); }
-			FORCE_INLINE Vector3r gradW(const Vector3r &r) { return m_gradKernelFct(r); }
-	
-			CompactNSearch::NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
-			void performNeighborhoodSearchSort();
-
-			FORCE_INLINE unsigned int numberOfPointSets() const
+			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{
-				return static_cast<unsigned int>(m_neighborhoodSearch->n_point_sets());
+				return m_x0[i];
 			}
 
-			FORCE_INLINE unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index) const
+			FORCE_INLINE const Vector3r &getPosition0(const unsigned int i) const
 			{
-				return static_cast<unsigned int>(m_neighborhoodSearch->point_set(0).n_neighbors(pointSetIndex, index));
+				return m_x0[i];
 			}
 
-			FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int k) const
+			FORCE_INLINE void setPosition0(const unsigned int i, const Vector3r &pos)
 			{
-				return m_neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
+				m_x0[i] = pos;
 			}
 
-			FORCE_INLINE Vector3r &getPosition0(const unsigned int objectIndex, const unsigned int i)
+			FORCE_INLINE Vector3r &getPosition(const unsigned int i)
 			{
-				return m_particleObjects[objectIndex]->m_x0[i];
+				return m_x[i];
 			}
 
-			FORCE_INLINE const Vector3r &getPosition0(const unsigned int objectIndex, const unsigned int i) const
+			FORCE_INLINE const Vector3r &getPosition(const unsigned int i) const
 			{
-				return m_particleObjects[objectIndex]->m_x0[i];
+				return m_x[i];
 			}
 
-			FORCE_INLINE void setPosition0(const unsigned int objectIndex, const unsigned int i, const Vector3r &pos)
+			FORCE_INLINE void setPosition(const unsigned int i, const Vector3r &pos)
 			{
-				m_particleObjects[objectIndex]->m_x0[i] = pos;
+				m_x[i] = pos;
 			}
 
-			FORCE_INLINE Vector3r &getPosition(const unsigned int objectIndex, const unsigned int i)
+			FORCE_INLINE Vector3r &getVelocity(const unsigned int i)
 			{
-				return m_particleObjects[objectIndex]->m_x[i];
+				return m_v[i];
 			}
 
-			FORCE_INLINE const Vector3r &getPosition(const unsigned int objectIndex, const unsigned int i) const
+			FORCE_INLINE const Vector3r &getVelocity(const unsigned int i) const
 			{
-				return m_particleObjects[objectIndex]->m_x[i];
+				return m_v[i];
 			}
 
-			FORCE_INLINE void setPosition(const unsigned int objectIndex, const unsigned int i, const Vector3r &pos)
+			FORCE_INLINE void setVelocity(const unsigned int i, const Vector3r &vel)
 			{
-				m_particleObjects[objectIndex]->m_x[i] = pos;
-			}
-
-			FORCE_INLINE Vector3r &getVelocity(const unsigned int objectIndex, const unsigned int i)
-			{
-				return m_particleObjects[objectIndex]->m_v[i];
-			}
-
-			FORCE_INLINE const Vector3r &getVelocity(const unsigned int objectIndex, const unsigned int i) const
-			{
-				return m_particleObjects[objectIndex]->m_v[i];
-			}
-
-			FORCE_INLINE void setVelocity(const unsigned int objectIndex, const unsigned int i, const Vector3r &vel)
-			{
-				m_particleObjects[objectIndex]->m_v[i] = vel;
+				m_v[i] = vel;
 			}
 
 			FORCE_INLINE Vector3r &getVelocity0(const unsigned int i)
@@ -232,21 +239,6 @@ namespace SPH
 				m_a[i] = accel;
 			}
 
-			FORCE_INLINE Vector3r &getForce(const unsigned int objectIndex, const unsigned int i)
-			{
-				return static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_f[i];
-			}
-
-			FORCE_INLINE const Vector3r &getForce(const unsigned int objectIndex, const unsigned int i) const
-			{
-				return static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_f[i];
-			}
-
-			FORCE_INLINE void setForce(const unsigned int objectIndex, const unsigned int i, const Vector3r &f)
-			{
-				static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_f[i] = f;
-			}
-
 			FORCE_INLINE const Real getMass(const unsigned int i) const
 			{
 				return m_masses[i];
@@ -262,21 +254,6 @@ namespace SPH
 				m_masses[i] = mass;
 			}
 
-			FORCE_INLINE const Real& getBoundaryPsi(const unsigned int objectIndex, const unsigned int i) const
-			{
-				return static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_boundaryPsi[i];
-			}
-
-			FORCE_INLINE Real& getBoundaryPsi(const unsigned int objectIndex, const unsigned int i)
-			{
-				return static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_boundaryPsi[i];
-			}
-
-			FORCE_INLINE void setBoundaryPsi(const unsigned int objectIndex, const unsigned int i, const Real &val)
-			{
-				static_cast<RigidBodyParticleObject*>(m_particleObjects[objectIndex])->m_boundaryPsi[i] = val;
-			}
-
 			FORCE_INLINE const Real& getDensity(const unsigned int i) const
 			{
 				return m_density[i];
@@ -290,6 +267,16 @@ namespace SPH
 			FORCE_INLINE void setDensity(const unsigned int i, const Real &val)
 			{
 				m_density[i] = val;
+			}
+
+			FORCE_INLINE const Real getVolume(const unsigned int i) const
+			{
+				return m_V;
+			}
+
+			FORCE_INLINE Real& getVolume(const unsigned int i)
+			{
+				return m_V;
 			}
 	};
 }

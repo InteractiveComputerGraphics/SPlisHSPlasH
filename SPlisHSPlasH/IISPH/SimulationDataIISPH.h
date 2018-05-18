@@ -17,13 +17,13 @@ namespace SPH
 			virtual ~SimulationDataIISPH();
 
 		protected:	
-			std::vector<Real> m_aii;
-			std::vector<Vector3r> m_dii;
-			std::vector<Vector3r> m_dij_pj;
-			std::vector<Real> m_density_adv;
-			std::vector<Real> m_pressure;
-			std::vector<Real> m_lastPressure;
-			std::vector<Vector3r> m_pressureAccel;
+			std::vector<std::vector<Real>> m_aii;
+			std::vector<std::vector<Vector3r>> m_dii;
+			std::vector<std::vector<Vector3r>> m_dij_pj;
+			std::vector<std::vector<Real>> m_density_adv;
+			std::vector<std::vector<Real>> m_pressure;
+			std::vector<std::vector<Real>> m_lastPressure;
+			std::vector<std::vector<Vector3r>> m_pressureAccel;
 
 		public:
 			/** Initialize the arrays containing the particle data.
@@ -43,111 +43,111 @@ namespace SPH
 			 */
 			void performNeighborhoodSearchSort();
 
-			void emittedParticles(const unsigned int startIndex);
+			void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-			FORCE_INLINE const Real getAii(const unsigned int i) const
+			FORCE_INLINE const Real getAii(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_aii[i];
+				return m_aii[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getAii(const unsigned int i)
+			FORCE_INLINE Real& getAii(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_aii[i];
+				return m_aii[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setAii(const unsigned int i, const Real aii)
+			FORCE_INLINE void setAii(const unsigned int fluidIndex, const unsigned int i, const Real aii)
 			{
-				m_aii[i] = aii;
+				m_aii[fluidIndex][i] = aii;
 			}
 
-			FORCE_INLINE Vector3r &getDii(const unsigned int i)
+			FORCE_INLINE Vector3r &getDii(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_dii[i];
+				return m_dii[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getDii(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getDii(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_dii[i];
+				return m_dii[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setDii(const unsigned int i, const Vector3r &val)
+			FORCE_INLINE void setDii(const unsigned int fluidIndex, const unsigned int i, const Vector3r &val)
 			{
-				m_dii[i] = val;
+				m_dii[fluidIndex][i] = val;
 			}
 
-			FORCE_INLINE Vector3r &getDij_pj(const unsigned int i)
+			FORCE_INLINE Vector3r &getDij_pj(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_dij_pj[i];
+				return m_dij_pj[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getDij_pj(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getDij_pj(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_dij_pj[i];
+				return m_dij_pj[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setDij_pj(const unsigned int i, const Vector3r &val)
+			FORCE_INLINE void setDij_pj(const unsigned int fluidIndex, const unsigned int i, const Vector3r &val)
 			{
-				m_dij_pj[i] = val;
+				m_dij_pj[fluidIndex][i] = val;
 			}
 
-			FORCE_INLINE const Real getDensityAdv(const unsigned int i) const
+			FORCE_INLINE const Real getDensityAdv(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_density_adv[i];
+				return m_density_adv[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getDensityAdv(const unsigned int i)
+			FORCE_INLINE Real& getDensityAdv(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_density_adv[i];
+				return m_density_adv[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setDensityAdv(const unsigned int i, const Real d)
+			FORCE_INLINE void setDensityAdv(const unsigned int fluidIndex, const unsigned int i, const Real d)
 			{
-				m_density_adv[i] = d;
+				m_density_adv[fluidIndex][i] = d;
 			}
 
-			FORCE_INLINE const Real getPressure(const unsigned int i) const
+			FORCE_INLINE const Real getPressure(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_pressure[i];
+				return m_pressure[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getPressure(const unsigned int i)
+			FORCE_INLINE Real& getPressure(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_pressure[i];
+				return m_pressure[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setPressure(const unsigned int i, const Real p)
+			FORCE_INLINE void setPressure(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
-				m_pressure[i] = p;
+				m_pressure[fluidIndex][i] = p;
 			}
 
-			FORCE_INLINE const Real getLastPressure(const unsigned int i) const
+			FORCE_INLINE const Real getLastPressure(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_lastPressure[i];
+				return m_lastPressure[fluidIndex][i];
 			}
 
-			FORCE_INLINE Real& getLastPressure(const unsigned int i)
+			FORCE_INLINE Real& getLastPressure(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_lastPressure[i];
+				return m_lastPressure[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setLastPressure(const unsigned int i, const Real p)
+			FORCE_INLINE void setLastPressure(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
-				m_lastPressure[i] = p;
+				m_lastPressure[fluidIndex][i] = p;
 			}
 
-			FORCE_INLINE Vector3r &getPressureAccel(const unsigned int i)
+			FORCE_INLINE Vector3r &getPressureAccel(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_pressureAccel[i];
+				return m_pressureAccel[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getPressureAccel(const unsigned int i) const
+			FORCE_INLINE const Vector3r &getPressureAccel(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_pressureAccel[i];
+				return m_pressureAccel[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setPressureAccel(const unsigned int i, const Vector3r &val)
+			FORCE_INLINE void setPressureAccel(const unsigned int fluidIndex, const unsigned int i, const Vector3r &val)
 			{
-				m_pressureAccel[i] = val;
+				m_pressureAccel[fluidIndex][i] = val;
 			}
 
 	};

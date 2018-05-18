@@ -9,7 +9,7 @@ int ViscosityBase::VISCOSITY_COEFFICIENT = -1;
 ViscosityBase::ViscosityBase(FluidModel *model) :
 	NonPressureForceBase(model)
 {
-	m_viscosity = 0.02;
+	m_viscosity = 0.01;
 }
 
 ViscosityBase::~ViscosityBase(void)

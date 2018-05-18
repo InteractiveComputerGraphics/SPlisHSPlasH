@@ -9,10 +9,10 @@
 
 namespace Utilities
 {
-	#define INCREASE_COUNTER(counterName, increaseBy) \
+#define INCREASE_COUNTER(counterName, increaseBy) \
 		Utilities::Counting::increaseCounter(counterName, increaseBy);
 
-	#define INIT_COUNTING \
+#define INIT_COUNTING \
 		std::unordered_map<std::string, Utilities::AverageCount> Utilities::Counting::m_averageCounts; 
 
 	struct AverageCount
@@ -48,7 +48,7 @@ namespace Utilities
 				Counting::m_averageCounts[name] = ac;
 			}
 		}
-	
+
 		FORCE_INLINE static void printAverageCounts()
 		{
 			std::unordered_map <std::string, AverageCount>::iterator iter;
@@ -60,7 +60,7 @@ namespace Utilities
 			}
 			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
-	
+
 		FORCE_INLINE static void printCounterSums()
 		{
 			std::unordered_map <std::string, AverageCount>::iterator iter;

@@ -2,6 +2,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
+#include "../Simulation.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -49,8 +50,11 @@ void Viscosity_Peer2015::initParameters()
 
 void Viscosity_Peer2015::matrixVecProd(const Real* vec, Real *result, void *userData)
 {
+	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = (FluidModel*)userData;
 	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
 
 	#pragma omp parallel default(shared)
 	{
@@ -58,15 +62,15 @@ void Viscosity_Peer2015::matrixVecProd(const Real* vec, Real *result, void *user
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			// Diagonal element
-			const Vector3r &xi = model->getPosition(0, i);
-			result[i] = (model->getDensity(i) - model->getMass(i) * model->W_zero()) * vec[i];
+			const Vector3r &xi = model->getPosition(i);
+			result[i] = (model->getDensity(i) - model->getMass(i) * sim->W_zero()) * vec[i];
 
-			for (unsigned int j = 0; j < model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = model->getNeighbor(0, i, j);
-				const Vector3r &xj = model->getPosition(0, neighborIndex);
-				result[i] -= model->getMass(neighborIndex) * model->W(xi - xj) * vec[neighborIndex];
-			}
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
+				result[i] -= model->getMass(neighborIndex) * sim->W(xi - xj) * vec[neighborIndex];
+			)
 		}
 	}
 }
@@ -75,14 +79,19 @@ void Viscosity_Peer2015::diagonalMatrixElement(const unsigned int row, Real &res
 {
 	// Diagonal element
 	FluidModel *model = (FluidModel*)userData;
-	result = model->getDensity(row) - model->getMass(row) * model->W_zero();
+	Simulation *sim = Simulation::getCurrent();
+	result = model->getDensity(row) - model->getMass(row) * sim->W_zero();
 }
 
 void Viscosity_Peer2015::step()
 {
+	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
 	const Real viscosity = 1.0 - m_viscosity;
 	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	FluidModel *model = m_model;
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -92,24 +101,24 @@ void Viscosity_Peer2015::step()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			const Real density_i = m_model->getDensity(i);
 
 			Matrix3r nablaV;
 			nablaV.setZero();
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
 
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
-				const Vector3r &vj = m_model->getVelocity(0, neighborIndex);
-				const Vector3r gradW = m_model->gradW(xi - xj);
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
+				const Vector3r &vj = m_model->getVelocity(neighborIndex);
+				const Vector3r gradW = sim->gradW(xi - xj);
 
 				Matrix3r dyad = (vj - vi) * gradW.transpose();
 
 				nablaV += (1.0 / density_i) * m_model->getMass(neighborIndex) * dyad;
-			}
+			)
 
 			Matrix3r &target = getTargetNablaV(i);
 			const Matrix3r R = 0.5 * (nablaV - nablaV.transpose());
@@ -158,23 +167,22 @@ void Viscosity_Peer2015::step()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_model->getPosition(0, i);
+			const Vector3r &xi = m_model->getPosition(i);
 			Vector3r rhs;
 			rhs.setZero();
 
-			for (unsigned int j = 0; j < m_model->numberOfNeighbors(0, i); j++)
-			{
-				const unsigned int neighborIndex = m_model->getNeighbor(0, i, j);
-
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_in_same_phase(
 				const Real m = m_model->getMass(neighborIndex);
-				const Vector3r &xj = m_model->getPosition(0, neighborIndex);
 				const Vector3r xij = xi - xj;
-				const Real W = m_model->W(xij);
+				const Real W = sim->W(xij);
 
 				rhs += m * 0.5 * (getTargetNablaV(i) + getTargetNablaV(neighborIndex)) * xij * W;
-			}
+			)
 
-			const Vector3r &vi = m_model->getVelocity(0, i);
+			const Vector3r &vi = m_model->getVelocity(i);
 			g0[i] = vi[0];
 			g1[i] = vi[1];
 			g2[i] = vi[2];
@@ -209,7 +217,7 @@ void Viscosity_Peer2015::step()
 		#pragma omp for schedule(static) nowait 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			Vector3r &vi = m_model->getVelocity(0, i);
+			Vector3r &vi = m_model->getVelocity(i);
 			vi[0] = x0[i];
 			vi[1] = x1[i];
 			vi[2] = x2[i];

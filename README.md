@@ -7,9 +7,9 @@ The library uses the following external libraries: [Eigen](http://eigen.tuxfamil
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
-- [Discregrid] (https://github.com/InteractiveComputerGraphics/Discregrid) to detect collisions between rigid bodies
+- [Discregrid](https://github.com/InteractiveComputerGraphics/Discregrid) to detect collisions between rigid bodies
 - [CompactNSearch](https://github.com/InteractiveComputerGraphics/CompactNSearch) to perform the neighborhood search 
-- [GenericParameters] (https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
+- [GenericParameters](https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
 
 **Author**: [Jan Bender](http://www.interactive-graphics.de), **License**: MIT

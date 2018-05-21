@@ -26,8 +26,6 @@ add_library(Utilities
 	SystemInfo.h
 	Timing.h
 	Version.h
-	
-	CMakeLists.txt
 )
 
 add_dependencies(Utilities partio)

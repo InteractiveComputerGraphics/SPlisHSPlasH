@@ -76,8 +76,6 @@ add_executable(DynamicBoundaryDemo
 
 	${PBDWRAPPER_SOURCE_FILES}
 	${PBDWRAPPER_HEADER_FILES}
-  
-	CMakeLists.txt
 )
 
 if(DL_OUTPUT)

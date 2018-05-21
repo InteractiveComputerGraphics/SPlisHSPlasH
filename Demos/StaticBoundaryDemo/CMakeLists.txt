@@ -44,8 +44,6 @@ add_executable(StaticBoundaryDemo
 	${PROJECT_PATH}/Demos/Common/TweakBarParameters.h
   
 	${VIS_FILES}          
-  
-	CMakeLists.txt
 )
 
 if(DL_OUTPUT)

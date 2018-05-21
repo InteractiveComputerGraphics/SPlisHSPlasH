@@ -55,8 +55,6 @@ add_library(freeglut SHARED
 	../include/GL/freeglut_ext.h
 	../include/GL/freeglut_std.h
 	../include/GL/glut.h
-	  
-	CMakeLists.txt
 )
 
 add_definitions(-DFREEGLUT_EXPORTS)         

@@ -23,8 +23,6 @@ add_executable(PartioViewer
 	main.cpp
 	
 	${VIS_FILES}
-
-	CMakeLists.txt
 )
 
 add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)

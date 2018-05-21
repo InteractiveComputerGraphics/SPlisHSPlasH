@@ -5,8 +5,6 @@ add_executable(VolumeSampling
 	main.cpp
 	WindingNumbers.cpp
 	WindingNumbers.h
-	
-	CMakeLists.txt
 )
 
 set_target_properties(VolumeSampling PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})

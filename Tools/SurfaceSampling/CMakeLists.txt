@@ -3,8 +3,6 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 add_executable(SurfaceSampling
 	main.cpp
-
-	CMakeLists.txt
 )
 
 set_target_properties(SurfaceSampling PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})

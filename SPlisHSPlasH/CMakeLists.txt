@@ -202,8 +202,6 @@ add_library(SPlisHSPlasH
 
 	${UTILS_HEADER_FILES}
 	${UTILS_SOURCE_FILES}
-	
-	CMakeLists.txt
 )
 
 add_dependencies(SPlisHSPlasH ExternalProject_CompactNSearch)

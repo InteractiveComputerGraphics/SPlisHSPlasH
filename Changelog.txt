@@ -1,3 +1,5 @@
+	- updated PositionBasedDynamics
+
 2.2.0
 	- added support for multi-phase simulations
 

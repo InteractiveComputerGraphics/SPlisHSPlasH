@@ -73,7 +73,7 @@ void SurfaceTension_He2014::step()
 				const Real &density_j = m_model->getDensity(neighborIndex);
 				gradC_i += m_model->getMass(neighborIndex) / density_j * getColor(neighborIndex) * sim->gradW(xi - xj);
 			)
-			gradC_i *= (1.0 / getColor(i));
+			gradC_i *= (static_cast<Real>(1.0) / getColor(i));
 			Real &gradC2_i = getGradC2(i);
 			gradC2_i = gradC_i.squaredNorm();
 		}
@@ -89,7 +89,7 @@ void SurfaceTension_He2014::step()
 			const Real &gradC2_i = getGradC2(i);
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real &density_i = m_model->getDensity(i);
-			const Real factor = 0.25*k / density_i;
+			const Real factor = static_cast<Real>(0.25)*k / density_i;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid

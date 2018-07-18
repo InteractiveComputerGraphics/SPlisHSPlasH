@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/RigidBodyObject.h"
-#include "Demos/Simulation/RigidBody.h"
+#include "Simulation/RigidBody.h"
 #include "SPlisHSPlasH/TimeManager.h"
 
 namespace SPH 

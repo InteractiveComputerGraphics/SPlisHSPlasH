@@ -3,16 +3,19 @@
 #include "GL/glut.h"
 #include "Common/Common.h"
 #include <iostream>
-#include "Demos/Utils/OBJLoader.h"
-#include "Demos/Utils/SceneLoader.h"
-#include "Demos/Utils/TetGenLoader.h"
+#include "Utils/OBJLoader.h"
+#include "Utils/SceneLoader.h"
+#include "Utils/TetGenLoader.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
 #include "Utilities/FileSystem.h"
 #include "GL/freeglut_ext.h"
 #include "Demos/Visualization/Shader.h"
-#include "Demos/Simulation/TimeManager.h"
+#include "Simulation/TimeManager.h"
+#include "Simulation/Simulation.h"
 #include "Demos/Visualization/Visualization.h"
+#include "Simulation/TimeStepController.h"
+
 
 #define _USE_MATH_DEFINES
 #include "math.h"
@@ -37,12 +40,16 @@ PBDWrapper::PBDWrapper()
 	m_drawStaticBodies = true;
 	m_drawDistanceFields = -1;
 	m_drawBVHDepth = -1;
+	m_timeStep = new PBD::TimeStepController();
+	m_timeStep->init();
+	m_model.init();
 }
 
 PBDWrapper::~PBDWrapper()
 {
 	delete m_shader;
 	delete PBD::TimeManager::getCurrent();
+	delete m_timeStep;
 }
 
 void PBDWrapper::initGUI()
@@ -53,9 +60,9 @@ void PBDWrapper::initGUI()
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderDistanceFields", TW_TYPE_INT32, &m_drawDistanceFields, " label='Render distance fields' step=1 group=PBD ");
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "DampingCoeff", TW_TYPE_REAL, &m_dampingCoeff, " label='Damping' group=PBD ");
 	TwType enumType = TwDefineEnum("VelocityUpdateMethodType", NULL, 0);
-	TwAddVarCB(SPH::MiniGL::getTweakBar(), "VelocityUpdateMethod", enumType, setVelocityUpdateMethod, getVelocityUpdateMethod, &m_sim, " label='Velocity update method' enum='0 {First Order Update}, 1 {Second Order Update}' group=PBD");
-	TwAddVarCB(SPH::MiniGL::getTweakBar(), "MaxIter", TW_TYPE_UINT32, setMaxIterations, getMaxIterations, &m_sim, " label='Max. iterations'  min=1 step=1 group=PBD ");
-	TwAddVarCB(SPH::MiniGL::getTweakBar(), "MaxIterV", TW_TYPE_UINT32, setMaxIterationsV, getMaxIterationsV, &m_sim, " label='Max. iterations Vel.'  min=1 step=1 group=PBD ");
+	TwAddVarCB(SPH::MiniGL::getTweakBar(), "VelocityUpdateMethod", enumType, setVelocityUpdateMethod, getVelocityUpdateMethod, m_timeStep, " label='Velocity update method' enum='0 {First Order Update}, 1 {Second Order Update}' group=PBD");
+	TwAddVarCB(SPH::MiniGL::getTweakBar(), "MaxIter", TW_TYPE_UINT32, setMaxIterations, getMaxIterations, m_timeStep, " label='Max. iterations'  min=1 step=1 group=PBD ");
+	TwAddVarCB(SPH::MiniGL::getTweakBar(), "MaxIterV", TW_TYPE_UINT32, setMaxIterationsV, getMaxIterationsV, m_timeStep, " label='Max. iterations Vel.'  min=1 step=1 group=PBD ");
 	TwAddVarCB(SPH::MiniGL::getTweakBar(), "ContactTolerance", TW_TYPE_REAL, setContactTolerance, getContactTolerance, &m_cd, " label='Contact tolerance'  step=0.001 precision=3 group=PBD ");
 	TwAddVarCB(SPH::MiniGL::getTweakBar(), "ContactStiffnessRigidBody", TW_TYPE_REAL, setContactStiffnessRigidBody, getContactStiffnessRigidBody, &m_model, " label='Contact stiffness RB'  min=0.0 step=0.1 precision=2 group=PBD ");
 	TwAddVarCB(SPH::MiniGL::getTweakBar(), "ContactStiffnessParticleRigidBody", TW_TYPE_REAL, setContactStiffnessParticleRigidBody, getContactStiffnessParticleRigidBody, &m_model, " label='Contact stiffness Particle-RB'  min=0.0 step=0.1 precision=2 group=PBD ");
@@ -120,7 +127,7 @@ void PBDWrapper::initShader()
  void PBDWrapper::reset()
  {
 	m_model.reset();
-	m_sim.reset();
+	m_timeStep->reset();
  }
  
 
@@ -131,16 +138,16 @@ void PBDWrapper::initShader()
 	PBD::SimulationModel::RigidBodyVector &rb = m_model.getRigidBodies();
 	PBD::TimeManager::getCurrent()->setTimeStepSize(SPH::TimeManager::getCurrent()->getTimeStepSize());
 
-	m_sim.step(m_model);
+	m_timeStep->step(m_model);
 
 	for (unsigned int i = 0; i < pd.size(); i++)
 	{
-		pd.getVelocity(i) *= (1.0 - m_dampingCoeff);
+		pd.getVelocity(i) *= (static_cast<Real>(1.0) - m_dampingCoeff);
 	}
 	for (unsigned int i = 0; i < rb.size(); i++)
 	{
-		rb[i]->getVelocity() *= (1.0 - m_dampingCoeff);
-		rb[i]->getAngularVelocity() *= (1.0 - m_dampingCoeff);
+		rb[i]->getVelocity() *= (static_cast<Real>(1.0) - m_dampingCoeff);
+		rb[i]->getAngularVelocity() *= (static_cast<Real>(1.0) - m_dampingCoeff);
 	}
 }
  
@@ -227,10 +234,11 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	
 	m_sceneName = data.m_sceneName;
 
-	m_sim.setGravity(data.m_gravity);
-	m_sim.setMaxIterations(data.m_maxIter);
-	m_sim.setMaxIterationsV(data.m_maxIterVel);
-	m_sim.setVelocityUpdateMethod(data.m_velocityUpdateMethod);
+	PBD::Simulation *sim = PBD::Simulation::getCurrent();
+	sim->setVecValue<Real>(PBD::Simulation::GRAVITATION, &data.m_gravity[0]);
+	m_timeStep->setValue(PBD::TimeStepController::MAX_ITERATIONS, data.m_maxIter);
+	m_timeStep->setValue(PBD::TimeStepController::MAX_ITERATIONS_V, data.m_maxIterVel);
+	m_timeStep->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, data.m_velocityUpdateMethod);
 	if (data.m_triangleModelSimulationMethod != -1)
 		m_clothSimulationMethod = data.m_triangleModelSimulationMethod;
 	if (data.m_tetModelSimulationMethod != -1)
@@ -241,15 +249,15 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	m_model.setContactStiffnessRigidBody(data.m_contactStiffnessRigidBody);
 	m_model.setContactStiffnessParticleRigidBody(data.m_contactStiffnessParticleRigidBody);
 
-	m_model.setClothStiffness(data.m_cloth_stiffness);
-	m_model.setClothBendingStiffness(data.m_cloth_bendingStiffness);
-	m_model.setClothXXStiffness(data.m_cloth_xxStiffness);
-	m_model.setClothYYStiffness(data.m_cloth_yyStiffness);
-	m_model.setClothXYStiffness(data.m_cloth_xyStiffness);
-	m_model.setClothXYPoissonRatio(data.m_cloth_xyPoissonRatio);
-	m_model.setClothYXPoissonRatio(data.m_cloth_yxPoissonRatio);
-	m_model.setClothNormalizeStretch(data.m_cloth_normalizeStretch);
-	m_model.setClothNormalizeShear(data.m_cloth_normalizeShear);
+	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS, data.m_cloth_stiffness);
+	m_model.setValue(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS, data.m_cloth_bendingStiffness);
+	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XX, data.m_cloth_xxStiffness);
+	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_YY, data.m_cloth_yyStiffness);
+	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XY, data.m_cloth_xyStiffness);
+	m_model.setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY, data.m_cloth_xyPoissonRatio);
+	m_model.setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX, data.m_cloth_yxPoissonRatio);
+	m_model.setValue(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH, data.m_cloth_normalizeStretch);
+	m_model.setValue(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR, data.m_cloth_normalizeShear);
 
 	//////////////////////////////////////////////////////////////////////////
 	// rigid bodies
@@ -286,7 +294,7 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 		if (distanceFields.find(sdfKey) == distanceFields.end())
 		{
 			// Generate SDF
-			if (rbd.m_collisionObjectType == Utilities::SceneLoader::RigidBodyData::SDF)
+			if (rbd.m_collisionObjectType == Utilities::SceneLoader::SDF)
 			{
 				if (rbd.m_collisionObjectFileName == "")
 				{
@@ -314,7 +322,17 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 						std::vector<unsigned int> &faces = mesh.getFaces();
 						const unsigned int nFaces = mesh.numFaces();
 
+#ifdef USE_DOUBLE
 						Discregrid::TriangleMesh sdfMesh(&vd.getPosition(0)[0], faces.data(), vd.size(), nFaces);
+#else
+						// if type is float, copy vector to double vector
+						std::vector<double> doubleVec;
+						doubleVec.resize(3 * vd.size());
+						for (unsigned int i = 0; i < vd.size(); i++)
+							for (unsigned int j = 0; j < 3; j++)
+								doubleVec[3 * i + j] = vd.getPosition(i)[j];
+						Discregrid::TriangleMesh sdfMesh(&doubleVec[0], faces.data(), vd.size(), nFaces);
+#endif
 						Discregrid::MeshDistance md(sdfMesh);
 						Eigen::AlignedBox3d domain;
 						for (auto const& x : sdfMesh.vertices())
@@ -405,26 +423,26 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 
 		switch (rbd.m_collisionObjectType)
 		{
-		case Utilities::SceneLoader::RigidBodyData::No_Collision_Object: break;
-		case Utilities::SceneLoader::RigidBodyData::Sphere:
+		case Utilities::SceneLoader::No_Collision_Object: break;
+		case Utilities::SceneLoader::Sphere:
 			m_cd.addCollisionSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale[0], rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::Box:
+		case Utilities::SceneLoader::Box:
 			m_cd.addCollisionBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::Cylinder:
+		case Utilities::SceneLoader::Cylinder:
 			m_cd.addCollisionCylinder(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::Torus:
+		case Utilities::SceneLoader::Torus:
 			m_cd.addCollisionTorus(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::HollowSphere:
+		case Utilities::SceneLoader::HollowSphere:
 			m_cd.addCollisionHollowSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale[0], rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::HollowBox:
+		case Utilities::SceneLoader::HollowBox:
 			m_cd.addCollisionHollowBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale, rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
-		case Utilities::SceneLoader::RigidBodyData::SDF:
+		case Utilities::SceneLoader::SDF:
 		{
 			if (rbd.m_collisionObjectFileName == "")
 			{
@@ -589,7 +607,7 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 		PBD::TriangleModel *tm = triModels[i];
 		unsigned int offset = tm->getIndexOffset();
 		const unsigned int nVert = tm->getParticleMesh().numVertices();
-		m_cd.addCollisionObjectWithoutGeometry(i, PBD::CollisionDetection::CollisionObject::TriangleModelCollisionObjectType, &pd.getPosition(offset), nVert);
+		m_cd.addCollisionObjectWithoutGeometry(i, PBD::CollisionDetection::CollisionObject::TriangleModelCollisionObjectType, &pd.getPosition(offset), nVert, true);
 
 	}
 	for (unsigned int i = 0; i < data.m_tetModelData.size(); i++)
@@ -597,7 +615,7 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 		PBD::TetModel *tm = tetModels[i];
 		unsigned int offset = tm->getIndexOffset();
 		const unsigned int nVert = tm->getParticleMesh().numVertices();
-		m_cd.addCollisionObjectWithoutGeometry(i, PBD::CollisionDetection::CollisionObject::TetModelCollisionObjectType, &pd.getPosition(offset), nVert);
+		m_cd.addCollisionObjectWithoutGeometry(i, PBD::CollisionDetection::CollisionObject::TetModelCollisionObjectType, &pd.getPosition(offset), nVert, true);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -675,7 +693,12 @@ void PBDWrapper::initModel (const Real timeStepSize)
 {
 	PBD::TimeManager::getCurrent ()->setTimeStepSize(timeStepSize);
  
-	m_sim.setCollisionDetection(m_model, &m_cd);
+	m_timeStep->setCollisionDetection(m_model, &m_cd);
+}
+
+PBD::TimeStepController & PBDWrapper::getTimeStepController()
+{
+	return *m_timeStep;
 }
 
 void PBDWrapper::shaderBegin(const float *col)
@@ -938,7 +961,7 @@ void PBDWrapper::renderBVH()
 		float staticColor[4] = { 0.5f, 0.5f, 0.5f, 0.3f };
 
 		PBD::SimulationModel::RigidBodyVector &rb = m_model.getRigidBodies();
-		Utilities::ObjectArray<PBD::CollisionDetection::CollisionObject*> &collisionObjects = m_cd.getCollisionObjects();
+		std::vector<PBD::CollisionDetection::CollisionObject*> &collisionObjects = m_cd.getCollisionObjects();
 		for (unsigned int k = 0; k < collisionObjects.size(); k++)
 		{
 			if (m_drawAABB)
@@ -1151,34 +1174,34 @@ void PBDWrapper::renderBVH()
 void TW_CALL PBDWrapper::setVelocityUpdateMethod(const void *value, void *clientData)
 {
 	const short val = *(const short *)(value);
-	((PBD::TimeStepController*)clientData)->setVelocityUpdateMethod((unsigned int)val);
+	((PBD::TimeStepController*)clientData)->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, (unsigned int) val);
 }
 
 void TW_CALL PBDWrapper::getVelocityUpdateMethod(void *value, void *clientData)
 {
-	*(short *)(value) = (short)((PBD::TimeStepController*)clientData)->getVelocityUpdateMethod();
+	*(short *)(value) = (short)((PBD::TimeStepController*)clientData)->getValue<unsigned int>(PBD::TimeStepController::VELOCITY_UPDATE_METHOD);
 }
 
 void TW_CALL PBDWrapper::setMaxIterations(const void *value, void *clientData)
 {
 	const unsigned int val = *(const unsigned int *)(value);
-	((PBD::TimeStepController*)clientData)->setMaxIterations(val);
+	((PBD::TimeStepController*)clientData)->setValue(PBD::TimeStepController::MAX_ITERATIONS, val);
 }
 
 void TW_CALL PBDWrapper::getMaxIterations(void *value, void *clientData)
 {
-	*(unsigned int *)(value) = ((PBD::TimeStepController*)clientData)->getMaxIterations();
+	*(unsigned int *)(value) = ((PBD::TimeStepController*)clientData)->getValue<unsigned int>(PBD::TimeStepController::MAX_ITERATIONS);
 }
 
 void TW_CALL PBDWrapper::setMaxIterationsV(const void *value, void *clientData)
 {
 	const unsigned int val = *(const unsigned int *)(value);
-	((PBD::TimeStepController*)clientData)->setMaxIterationsV(val);
+	((PBD::TimeStepController*)clientData)->setValue(PBD::TimeStepController::MAX_ITERATIONS_V, val);
 }
 
 void TW_CALL PBDWrapper::getMaxIterationsV(void *value, void *clientData)
 {
-	*(unsigned int *)(value) = ((PBD::TimeStepController*)clientData)->getMaxIterationsV();
+	*(unsigned int *)(value) = ((PBD::TimeStepController*)clientData)->getValue<unsigned int>(PBD::TimeStepController::MAX_ITERATIONS_V);
 }
 
 void TW_CALL PBDWrapper::setContactTolerance(const void *value, void *clientData)
@@ -1217,100 +1240,100 @@ void TW_CALL PBDWrapper::getContactStiffnessParticleRigidBody(void *value, void 
 void TW_CALL PBDWrapper::setStiffness(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothStiffness(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_STIFFNESS, val);
 }
 
 void TW_CALL PBDWrapper::getStiffness(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothStiffness();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS);
 }
 
 void TW_CALL PBDWrapper::setXXStiffness(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothXXStiffness(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XX, val);
 }
 
 void TW_CALL PBDWrapper::getXXStiffness(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothXXStiffness();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XX);
 }
 
 void TW_CALL PBDWrapper::setYYStiffness(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothYYStiffness(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_STIFFNESS_YY, val);
 }
 
 void TW_CALL PBDWrapper::getYYStiffness(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothYYStiffness();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_YY);
 }
 
 void TW_CALL PBDWrapper::setXYStiffness(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothXYStiffness(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XY, val);
 }
 
 void TW_CALL PBDWrapper::getXYStiffness(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothXYStiffness();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XY);
 }
 
 void TW_CALL PBDWrapper::setYXPoissonRatio(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothYXPoissonRatio(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX, val);
 }
 
 void TW_CALL PBDWrapper::getYXPoissonRatio(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothYXPoissonRatio();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX);
 }
 
 void TW_CALL PBDWrapper::setXYPoissonRatio(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothXYPoissonRatio(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY, val);
 }
 
 void TW_CALL PBDWrapper::getXYPoissonRatio(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothXYPoissonRatio();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY);
 }
 
 void TW_CALL PBDWrapper::setNormalizeStretch(const void *value, void *clientData)
 {
 	const bool val = *(const bool *)(value);
-	((PBD::SimulationModel*)clientData)->setClothNormalizeStretch(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH, val);
 }
 
 void TW_CALL PBDWrapper::getNormalizeStretch(void *value, void *clientData)
 {
-	*(bool *)(value) = ((PBD::SimulationModel*)clientData)->getClothNormalizeStretch();
+	*(bool *)(value) = ((PBD::SimulationModel*)clientData)->getValue<unsigned int>(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH);
 }
 
 void TW_CALL PBDWrapper::setNormalizeShear(const void *value, void *clientData)
 {
 	const bool val = *(const bool *)(value);
-	((PBD::SimulationModel*)clientData)->setClothNormalizeShear(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR, val);
 }
 
 void TW_CALL PBDWrapper::getNormalizeShear(void *value, void *clientData)
 {
-	*(bool *)(value) = ((PBD::SimulationModel*)clientData)->getClothNormalizeShear();
+	*(bool *)(value) = ((PBD::SimulationModel*)clientData)->getValue<unsigned int>(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR);
 }
 
 void TW_CALL PBDWrapper::setBendingStiffness(const void *value, void *clientData)
 {
 	const Real val = *(const Real *)(value);
-	((PBD::SimulationModel*)clientData)->setClothBendingStiffness(val);
+	((PBD::SimulationModel*)clientData)->setValue(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS, val);
 }
 
 void TW_CALL PBDWrapper::getBendingStiffness(void *value, void *clientData)
 {
-	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getClothBendingStiffness();
+	*(Real *)(value) = ((PBD::SimulationModel*)clientData)->getValue<Real>(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS);
 }
 
 void TW_CALL PBDWrapper::setBendingMethod(const void *value, void *clientData)

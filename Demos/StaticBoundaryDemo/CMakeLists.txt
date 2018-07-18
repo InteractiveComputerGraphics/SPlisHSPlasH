@@ -22,7 +22,7 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 # CompactNSearch
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_CompactNSearch)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_CompactNSearch)
 set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
 	optimized CompactNSearch 
 	debug CompactNSearch_d)
@@ -32,7 +32,7 @@ link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
 # GenericParameters
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_GenericParameters)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_GenericParameters)
 
 
 add_executable(StaticBoundaryDemo

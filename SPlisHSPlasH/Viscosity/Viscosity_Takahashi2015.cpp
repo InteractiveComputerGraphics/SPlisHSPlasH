@@ -146,8 +146,8 @@ void Viscosity_Takahashi2015::step()
 	m_solver.setMaxIterations(m_maxIter);
 	m_solver.compute(A);
 
-	Eigen::VectorXd b(3*numParticles);
-	Eigen::VectorXd x(3*numParticles);
+	VectorXr b(3*numParticles);
+	VectorXr x(3*numParticles);
 	x.setZero();
 
 	//////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ void Viscosity_Takahashi2015::step()
 	x = m_solver.solve(b);
 	m_iterations = (int)m_solver.iterations();
 	STOP_TIMING_AVG;
-	INCREASE_COUNTER("Visco iterations", m_iterations);
+	INCREASE_COUNTER("Visco iterations", static_cast<Real>(m_iterations));
 
 	#pragma omp parallel default(shared)
 	{
@@ -186,7 +186,7 @@ void Viscosity_Takahashi2015::step()
 	}
 
 	// Compute viscosity forces (XSPH) with boundary to simulate simple friction
-	const Real invH = (1.0 / h);
+	const Real invH = (static_cast<Real>(1.0) / h);
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  

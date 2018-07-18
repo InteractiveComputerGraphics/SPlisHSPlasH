@@ -192,7 +192,7 @@ void TimeStepDFSPH::computeDFSPHFactor(const unsigned int fluidModelIndex)
 			Real &factor = m_simulationData.getFactor(fluidModelIndex, i);
 
 			sum_grad_p_k = max(sum_grad_p_k, m_eps);
-			factor = -1.0 / (sum_grad_p_k);
+			factor = -static_cast<Real>(1.0) / (sum_grad_p_k);
 		}
 	}
 }
@@ -202,8 +202,8 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 {
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
-	const Real invH = 1.0 / h;
-	const Real invH2 = 1.0 / h2;
+	const Real invH = static_cast<Real>(1.0) / h;
+	const Real invH2 = static_cast<Real>(1.0) / h2;
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
@@ -220,7 +220,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -0.5);
+			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5));
 			//computeDensityAdv(i, numParticles, h, density0);
 		}
 
@@ -274,8 +274,8 @@ void TimeStepDFSPH::pressureSolve()
 {
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
-	const Real invH = 1.0 / h;
-	const Real invH2 = 1.0/h2;
+	const Real invH = static_cast<Real>(1.0) / h;
+	const Real invH2 = static_cast<Real>(1.0) / h2;
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
@@ -328,14 +328,14 @@ void TimeStepDFSPH::pressureSolve()
 			pressureSolveIteration(i, avg_density_err);
 
 			// Maximal allowed density fluctuation
-			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			const Real eta = m_maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
 			chk = chk && (avg_density_err <= eta);
 		}
 
 		m_iterations++;
 	}
 
-	INCREASE_COUNTER("DFSPH - iterations", m_iterations);
+	INCREASE_COUNTER("DFSPH - iterations", static_cast<Real>(m_iterations));
 
 #ifdef USE_WARMSTART
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
@@ -362,7 +362,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = 1.0 / h;
+	const Real invH = static_cast<Real>(1.0) / h;
 	Real density_error = 0.0;
 
 	#pragma omp parallel default(shared)
@@ -376,7 +376,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			//////////////////////////////////////////////////////////////////////////
 			// Evaluate rhs
 			//////////////////////////////////////////////////////////////////////////
-			const Real b_i = m_simulationData.getDensityAdv(fluidModelIndex, i) - 1.0;
+			const Real b_i = m_simulationData.getDensityAdv(fluidModelIndex, i) - static_cast<Real>(1.0);
 			const Real ki = b_i*m_simulationData.getFactor(fluidModelIndex, i);
 #ifdef USE_WARMSTART
 			m_simulationData.getKappa(fluidModelIndex, i) += ki;
@@ -389,7 +389,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors(				
-				const Real b_j = m_simulationData.getDensityAdv(pid, neighborIndex) - 1.0;
+				const Real b_j = m_simulationData.getDensityAdv(pid, neighborIndex) - static_cast<Real>(1.0);
 				const Real kj = b_j*m_simulationData.getFactor(pid, neighborIndex);
 				const Real kSum = ki + fm_neighbor->getDensity0()/density0 * kj;
 				if (fabs(kSum) > m_eps)
@@ -438,7 +438,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 {
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = 1.0 / h;
+	const Real invH = static_cast<Real>(1.0) / h;
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
@@ -456,7 +456,7 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			m_simulationData.getKappaV(fluidModelIndex, i) = 0.5*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -0.5);
+			m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5));
 			computeDensityChange(fluidModelIndex, i, h);
 		}
 
@@ -510,7 +510,7 @@ void TimeStepDFSPH::divergenceSolve()
 	//////////////////////////////////////////////////////////////////////////
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = 1.0 / h;
+	const Real invH = static_cast<Real>(1.0) / h;
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int maxIter = m_maxIterationsV;
 	const Real maxError = m_maxErrorV;
@@ -567,13 +567,13 @@ void TimeStepDFSPH::divergenceSolve()
 
 			// Maximal allowed density fluctuation
 			// use maximal density error divided by time step size
-			const Real eta = (1.0 / h) * maxError * 0.01 * density0;  // maxError is given in percent
+			const Real eta = (static_cast<Real>(1.0) / h) * maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
 			chk = chk && (avg_density_err <= eta);
 		}
 		m_iterationsV++;
 	}
 
-	INCREASE_COUNTER("DFSPH - iterationsV", m_iterationsV);
+	INCREASE_COUNTER("DFSPH - iterationsV", static_cast<Real>(m_iterationsV));
 
 	//////////////////////////////////////////////////////////////////////////
 	// Multiply by h, the time step size has to be removed 
@@ -605,7 +605,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = 1.0 / h;
+	const Real invH = static_cast<Real>(1.0) / h;
 	Real density_error = 0.0;
 
 	//////////////////////////////////////////////////////////////////////////
@@ -703,7 +703,7 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const 
 	)
 
 	densityAdv = density / density0 + h*delta;
-	densityAdv = max(densityAdv, 1.0);
+	densityAdv = max(densityAdv, static_cast<Real>(1.0));
 }
 
 void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, const unsigned int i, const Real h)
@@ -734,7 +734,7 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 	)
 
 	// only correct positive divergence
-	densityAdv = max(densityAdv, 0.0);
+	densityAdv = max(densityAdv, static_cast<Real>(0.0));
 
 	for (unsigned int pid = 0; pid < sim->numberOfPointSets(); pid++)
 		numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);

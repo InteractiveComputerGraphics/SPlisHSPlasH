@@ -1,3 +1,4 @@
+	- fixed single precision build
 	- updated PositionBasedDynamics
 
 2.2.0

@@ -19,7 +19,7 @@ void SurfaceTension_Becker2007::step()
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_surfaceTension;
 	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-	const Real diameter = 2.0 * radius;
+	const Real diameter = static_cast<Real>(2.0) * radius;
 	const Real diameter2 = diameter*diameter;
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();

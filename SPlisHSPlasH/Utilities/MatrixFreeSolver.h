@@ -102,7 +102,7 @@ namespace SPH
 				{
 					Real res;
 					m_diagonalElementFct(i, res, m_userData);
-					m_invDiag[i] = 1.0 / res;
+					m_invDiag[i] = static_cast<Real>(1.0) / res;
 				}
 			}
 			return *this; 
@@ -125,7 +125,7 @@ namespace SPH
 		/** diagonal matrix element callback */
 		DiagonalMatrixElementFct m_diagonalElementFct;
 		void *m_userData;
-		Eigen::VectorXd m_invDiag;
+		VectorXr m_invDiag;
 	};
 
 	/** Matrix-free Jacobi preconditioner  */
@@ -169,9 +169,9 @@ namespace SPH
 				{
 					Vector3r res;
 					m_diagonalElementFct(i, res, m_userData);
-					m_invDiag[3*i] = 1.0 / res[0];
-					m_invDiag[3*i+1] = 1.0 / res[1];
-					m_invDiag[3*i+2] = 1.0 / res[2];
+					m_invDiag[3*i] = static_cast<Real>(1.0) / res[0];
+					m_invDiag[3*i+1] = static_cast<Real>(1.0) / res[1];
+					m_invDiag[3*i+2] = static_cast<Real>(1.0) / res[2];
 				}
 			}
 			return *this;
@@ -194,7 +194,7 @@ namespace SPH
 		/** diagonal matrix element callback */
 		DiagonalMatrixElementFct m_diagonalElementFct;
 		void *m_userData;
-		Eigen::VectorXd m_invDiag;
+		VectorXr m_invDiag;
 	};
 
 	/** Matrix-free 3x3 block Jacobi preconditioner  */

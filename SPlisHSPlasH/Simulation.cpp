@@ -185,7 +185,7 @@ void Simulation::initParameters()
 void Simulation::setParticleRadius(Real val)
 {
 	m_particleRadius = val;
-	m_supportRadius = 4.0*m_particleRadius;
+	m_supportRadius = static_cast<Real>(4.0)*m_particleRadius;
 
 	// init kernel
 	Poly6Kernel::setRadius(m_supportRadius);
@@ -263,7 +263,7 @@ void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 
 	// Approximate max. position change due to current velocities
 	Real maxVel = 0.1;
-	const Real diameter = 2.0*radius;
+	const Real diameter = static_cast<Real>(2.0)*radius;
 
 	// fluid particles
 	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
@@ -297,7 +297,7 @@ void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 	}
 
 	// Approximate max. time step size 		
-	h = m_cflFactor * .4 * (diameter / (sqrt(maxVel)));
+	h = m_cflFactor * static_cast<Real>(0.4) * (diameter / (sqrt(maxVel)));
 
 	h = min(h, m_cflMaxTimeStepSize);
 	h = max(h, minTimeStepSize);

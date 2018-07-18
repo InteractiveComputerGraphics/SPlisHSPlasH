@@ -76,9 +76,8 @@ int main( int argc, char **argv )
 	}
 
 	initParameters();
-	base->readParameters();
-
 	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
+	base->readParameters();
 
 	MiniGL::setClientIdleFunc(50, timeStep);
 	MiniGL::setKeyFunc(0, 'r', reset);
@@ -148,6 +147,7 @@ void reset()
 	Utilities::Timing::reset();
 
 	Simulation::getCurrent()->reset();
+	base->reset();
 	base->getSelectedParticles().clear();
 }
 
@@ -214,7 +214,7 @@ void renderBoundary()
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
 					BoundaryModel *bm = sim->getBoundaryModel(body);
-					glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &bm->getPosition(0));
+					glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &bm->getPosition(0));
 					glDrawArrays(GL_POINTS, 0, bm->numberOfParticles());
 				}
 			}

@@ -5,11 +5,15 @@
 #include <string>
 #include "Visualization/Shader.h"
 #include "extern/AntTweakBar/include/AntTweakBar.h"
-#include "Demos/Simulation/SimulationModel.h"
-#include "Demos/Simulation/TimeStepController.h"
+#include "Simulation/SimulationModel.h"
 #include "Visualization/MiniGL.h"
-#include "Demos/Simulation/CubicSDFCollisionDetection.h"
+#include "Simulation/CubicSDFCollisionDetection.h"
 
+
+namespace PBD
+{
+	class TimeStepController;
+}
 
 class PBDWrapper
 {
@@ -17,7 +21,7 @@ protected:
 	SPH::Shader *m_shader;
 	PBD::SimulationModel m_model;
 	PBD::CubicSDFCollisionDetection m_cd;
-	PBD::TimeStepController m_sim;
+	PBD::TimeStepController *m_timeStep;
 
 	short m_clothSimulationMethod = 2;
 	short m_solidSimulationMethod = 2;
@@ -56,7 +60,7 @@ public:
 
 	PBD::SimulationModel &getSimulationModel() { return m_model; }
 	PBD::DistanceFieldCollisionDetection &getCollisionDetection() { return m_cd; }
-	PBD::TimeStepController &getTimeStepController() { return m_sim; }
+	PBD::TimeStepController &getTimeStepController();
 
 	void shaderBegin(const float *col);
 	void shaderEnd();

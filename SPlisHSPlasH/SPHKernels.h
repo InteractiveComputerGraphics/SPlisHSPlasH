@@ -25,8 +25,8 @@ namespace SPH
 			static const Real pi = static_cast<Real>(M_PI);
 
 			const Real h3 = m_radius*m_radius*m_radius;
-			m_k = 8.0 / (pi*h3);
-			m_l = 48.0 / (pi*h3);
+			m_k = static_cast<Real>(8.0) / (pi*h3);
+			m_l = static_cast<Real>(48.0) / (pi*h3);
 			m_W_zero = W(Vector3r::Zero());
 		}
 
@@ -41,11 +41,11 @@ namespace SPH
 				{
 					const Real q2 = q*q;
 					const Real q3 = q2*q;
-					res = m_k * (6.0*q3 - 6.0*q2 + 1.0);
+					res = m_k * (static_cast<Real>(6.0)*q3 - static_cast<Real>(6.0)*q2 + static_cast<Real>(1.0));
 				}
 				else
 				{
-					res = m_k * (2.0*pow(1.0 - q, 3));
+					res = m_k * (static_cast<Real>(2.0)*pow(static_cast<Real>(1.0) - q, 3));
 				}
 			}
 			return res;
@@ -65,14 +65,14 @@ namespace SPH
 			{
 				if (rl > 1.0e-6)
 				{
-					const Vector3r gradq = r * ((Real) 1.0 / (rl*m_radius));
+					const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
 					if (q <= 0.5)
 					{
-						res = m_l*q*((Real) 3.0*q - (Real) 2.0)*gradq;
+						res = m_l*q*((Real) 3.0*q - static_cast<Real>(2.0))*gradq;
 					}
 					else
 					{
-						const Real factor = 1.0 - q;
+						const Real factor = static_cast<Real>(1.0) - q;
 						res = m_l*(-factor*factor)*gradq;
 					}
 				}
@@ -105,8 +105,8 @@ namespace SPH
 		{
 			m_radius = val;
 			static const Real pi = static_cast<Real>(M_PI);
-			m_k = 315.0 / (64.0*pi*pow(m_radius, 9));
-			m_l = -945.0 / (32.0*pi*pow(m_radius, 9));
+			m_k = static_cast<Real>(315.0) / (static_cast<Real>(64.0)*pi*pow(m_radius, 9));
+			m_l = -static_cast<Real>(945.0) / (static_cast<Real>(32.0)*pi*pow(m_radius, 9));
 			m_m = m_l;
 			m_W_zero = W(Vector3r::Zero());
 		}
@@ -205,8 +205,8 @@ namespace SPH
 			m_radius = val;
 			const Real radius6 = pow(m_radius, 6);
 			static const Real pi = static_cast<Real>(M_PI);
-			m_k = 15.0 / (pi*radius6);
-			m_l = -45.0 / (pi*radius6);
+			m_k = static_cast<Real>(15.0) / (pi*radius6);
+			m_l = -static_cast<Real>(45.0) / (pi*radius6);
 			m_W_zero = W(Vector3r::Zero());
 		}
 
@@ -284,8 +284,8 @@ namespace SPH
 		{
 			m_radius = val;
 			static const Real pi = static_cast<Real>(M_PI);
-			m_k = 32. / (pi*pow(m_radius, 9));
-			m_c = pow(m_radius, 6) / 64.0;
+			m_k = static_cast<Real>(32.0) / (pi*pow(m_radius, 9));
+			m_c = pow(m_radius, 6) / static_cast<Real>(64.0);
 			m_W_zero = W(Vector3r::Zero());
 		}
 
@@ -307,7 +307,7 @@ namespace SPH
 				if (r1 > 0.5*m_radius)
 					res = m_k*pow(m_radius - r1, 3)*r3;
 				else
-					res = m_k*2.0*pow(m_radius - r1, 3)*r3 - m_c;
+					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, 3)*r3 - m_c;
 
 			}
 			return res;
@@ -325,7 +325,7 @@ namespace SPH
 				if (r1 > 0.5*m_radius)
 					res = m_k*pow(m_radius - r1, 3)*r3;
 				else
-					res = m_k*2.0*pow(m_radius - r1, 3)*r3 - m_c;
+					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, 3)*r3 - m_c;
 
 			}
 			return res;
@@ -350,7 +350,7 @@ namespace SPH
 		static void setRadius(Real val)
 		{
 			m_radius = val;
-			m_k = 0.007 / pow(m_radius, 3.25);
+			m_k = static_cast<Real>(0.007) / pow(m_radius, static_cast<Real>(3.25));
 			m_W_zero = W(Vector3r::Zero());
 		}
 
@@ -368,7 +368,7 @@ namespace SPH
 			{
 				const Real r = sqrt(r2);
 				if (r > 0.5*m_radius)
-					res = m_k*pow(-4.0*r2 / m_radius + 6.0*r - 2.0*m_radius, 0.25);
+					res = m_k*pow(-static_cast<Real>(4.0)*r2 / m_radius + static_cast<Real>(6.0)*r - static_cast<Real>(2.0)*m_radius, static_cast<Real>(0.25));
 			}
 			return res;
 		}
@@ -382,7 +382,7 @@ namespace SPH
 			{
 				const Real r = sqrt(r2);
 				if (r > 0.5*m_radius)
-					res = m_k*pow(-4.0*r2 / m_radius + 6.0*r - 2.0*m_radius, 0.25);
+					res = m_k*pow(-static_cast<Real>(4.0)*r2 / m_radius + static_cast<Real>(6.0)*r - static_cast<Real>(2.0)*m_radius, static_cast<Real>(0.25));
 			}
 			return res;
 		}
@@ -414,7 +414,7 @@ namespace SPH
 			m_radius = val;
 			KernelType::setRadius(val);
 			const Real stepSize = m_radius / (Real)resolution;
-			m_invStepSize = 1.0 / stepSize;
+			m_invStepSize = static_cast<Real>(1.0) / stepSize;
 			for (unsigned int i = 0; i < resolution; i++)
 			{
 				const Real posX = stepSize * (Real)i;		// Store kernel values in the middle of an interval

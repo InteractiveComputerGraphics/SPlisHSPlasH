@@ -53,7 +53,7 @@ void MicropolarModel_Bender2017::step()
 	FluidModel *model = m_model;
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = 1.0 / h;
+	const Real invH = static_cast<Real>(1.0) / h;
 
 	const Real nu_t = m_vorticityCoeff;
 	const Real zeta = m_viscosityOmega;

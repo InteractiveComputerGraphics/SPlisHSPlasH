@@ -21,7 +21,7 @@ void Viscosity_XSPH::step()
 	const unsigned int numParticles = m_model->numActiveParticles();
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
-	const Real invH = (1.0 / h);
+	const Real invH = (static_cast<Real>(1.0) / h);
 
 	// Compute viscosity forces (XSPH)
 	#pragma omp parallel default(shared)

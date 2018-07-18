@@ -87,7 +87,7 @@ void Viscosity_Peer2015::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
-	const Real viscosity = 1.0 - m_viscosity;
+	const Real viscosity = static_cast<Real>(1.0) - m_viscosity;
 	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
@@ -149,15 +149,15 @@ void Viscosity_Peer2015::step()
 	m_solver.setMaxIterations(m_maxIter);
 	m_solver.compute(A);
 
-	Eigen::VectorXd b0(numParticles);
-	Eigen::VectorXd b1(numParticles);
-	Eigen::VectorXd b2(numParticles);
-	Eigen::VectorXd x0(numParticles);
-	Eigen::VectorXd x1(numParticles);
-	Eigen::VectorXd x2(numParticles);
-	Eigen::VectorXd g0(numParticles);
-	Eigen::VectorXd g1(numParticles);
-	Eigen::VectorXd g2(numParticles);
+	VectorXr b0(numParticles);
+	VectorXr b1(numParticles);
+	VectorXr b2(numParticles);
+	VectorXr x0(numParticles);
+	VectorXr x1(numParticles);
+	VectorXr x2(numParticles);
+	VectorXr g0(numParticles);
+	VectorXr g1(numParticles);
+	VectorXr g2(numParticles);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Compute RHS
@@ -210,7 +210,7 @@ void Viscosity_Peer2015::step()
 		x2 = g2;
 	m_iterations += (int)m_solver.iterations();
 	STOP_TIMING_AVG;
-	INCREASE_COUNTER("Visco iterations", m_iterations);
+	INCREASE_COUNTER("Visco iterations", static_cast<Real>(m_iterations));
 
 	#pragma omp parallel default(shared)
 	{

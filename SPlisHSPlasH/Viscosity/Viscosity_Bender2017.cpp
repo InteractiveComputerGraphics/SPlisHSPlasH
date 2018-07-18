@@ -93,7 +93,7 @@ void Viscosity_Bender2017::step()
 					const Vector3r vji = vj - vi;
 
 					const Real m = m_model->getMass(neighborIndex);
-					const Real m2 = m * 2.0;
+					const Real m2 = m * static_cast<Real>(2.0);
 					viscosityC[0] += m2 * vji[0] * gradW[0];
 					viscosityC[1] += m2 * vji[1] * gradW[1];
 					viscosityC[2] += m2 * vji[2] * gradW[2];
@@ -112,7 +112,7 @@ void Viscosity_Bender2017::step()
 		for (int i = 0; i < (int)numParticles; i++)
 			for (unsigned int j = 0; j < 6; j++)
 				avgStrainRateError += fabs(getViscosityLambda(i)[j]);
-		avgStrainRateError = (1.0 / (6.0 *(Real)numParticles)) * avgStrainRateError;
+		avgStrainRateError = (static_cast<Real>(1.0) / (static_cast<Real>(6.0) *(Real)numParticles)) * avgStrainRateError;
 
 		// Compute viscosity constraint value
 		#pragma omp parallel default(shared)
@@ -145,15 +145,15 @@ void Viscosity_Bender2017::step()
 					const Real density_j = m_model->getDensity(neighborIndex);
 
  					gradT.setZero();
- 					gradT(0,0) = 2.0 * gradW[0];
+ 					gradT(0,0) = static_cast<Real>(2.0) * gradW[0];
  					gradT(0,3) = gradW[1];
  					gradT(0,4) = gradW[2];
  
- 					gradT(1,1) = 2.0 * gradW[1];
+ 					gradT(1,1) = static_cast<Real>(2.0) * gradW[1];
  					gradT(1,3) = gradW[0];
  					gradT(1,5) = gradW[2];
  
- 					gradT(2,2) = 2.0 * gradW[2];
+ 					gradT(2,2) = static_cast<Real>(2.0) * gradW[2];
  					gradT(2,4) = gradW[0];
  					gradT(2,5) = gradW[1];
  
@@ -168,10 +168,10 @@ void Viscosity_Bender2017::step()
 			break;
 		
 	}
-	INCREASE_COUNTER("Visco iterations", m_iterations);
+	INCREASE_COUNTER("Visco iterations", static_cast<Real>(m_iterations));
 
 	// Compute viscosity forces (XSPH) with boundary to simulate simple friction
-	const Real invH = (1.0 / h);
+	const Real invH = (static_cast<Real>(1.0) / h);
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
@@ -240,15 +240,15 @@ void Viscosity_Bender2017::computeViscosityFactor()
 				const Vector3r gradW = sim->gradW(xi - xj);
 
 				grad_j.setZero();
-				grad_j(0,0) = 2.0 * gradW[0];
+				grad_j(0,0) = static_cast<Real>(2.0) * gradW[0];
 				grad_j(3,0) = gradW[1];
 				grad_j(4,0) = gradW[2];
 
-				grad_j(1,1) = 2.0 * gradW[1];
+				grad_j(1,1) = static_cast<Real>(2.0) * gradW[1];
 				grad_j(3,1) = gradW[0];
 				grad_j(5,1) = gradW[2];
 
-				grad_j(2,2) = 2.0 * gradW[2];
+				grad_j(2,2) = static_cast<Real>(2.0) * gradW[2];
 				grad_j(4,2) = gradW[0];
 				grad_j(5,2) = gradW[1];
 
@@ -272,7 +272,7 @@ void Viscosity_Bender2017::computeViscosityFactor()
 				if (fabs(K(l,l)) < 1.0e-6)
 					Kdiag_inv[l] = 1.0;
 				else
-					Kdiag_inv[l] = 1.0 / K(l,l);
+					Kdiag_inv[l] = static_cast<Real>(1.0) / K(l,l);
 			}
 			Matrix6r precondK;
 			for (unsigned k = 0; k < 6; k++)
@@ -329,15 +329,15 @@ void Viscosity_Bender2017::computeTargetStrainRate()
 				const Vector3r gradW = sim->gradW(xi - xj);
 				const Vector3r vji = vj - vi;
 				const Real m = m_model->getMass(neighborIndex);
-				const Real m2 = m * 2.0;
-				strainRate[0] += (1.0-m_viscosity) * m2 * vji[0] * gradW[0];
-				strainRate[1] += (1.0-m_viscosity) * m2 * vji[1] * gradW[1];
-				strainRate[2] += (1.0-m_viscosity) * m2 * vji[2] * gradW[2];
-				strainRate[3] += (1.0-m_viscosity) * m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
-				strainRate[4] += (1.0-m_viscosity) * m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
-				strainRate[5] += (1.0-m_viscosity) * m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
+				const Real m2 = m * static_cast<Real>(2.0);
+				strainRate[0] += (static_cast<Real>(1.0)-m_viscosity) * m2 * vji[0] * gradW[0];
+				strainRate[1] += (static_cast<Real>(1.0)-m_viscosity) * m2 * vji[1] * gradW[1];
+				strainRate[2] += (static_cast<Real>(1.0)-m_viscosity) * m2 * vji[2] * gradW[2];
+				strainRate[3] += (static_cast<Real>(1.0)-m_viscosity) * m * (vji[0] * gradW[1] + vji[1] * gradW[0]);
+				strainRate[4] += (static_cast<Real>(1.0)-m_viscosity) * m * (vji[0] * gradW[2] + vji[2] * gradW[0]);
+				strainRate[5] += (static_cast<Real>(1.0)-m_viscosity) * m * (vji[1] * gradW[2] + vji[2] * gradW[1]);
 			)
-			strainRate = (0.5 / density_i) * strainRate;
+			strainRate = (static_cast<Real>(0.5) / density_i) * strainRate;
 		}
 	}
 }

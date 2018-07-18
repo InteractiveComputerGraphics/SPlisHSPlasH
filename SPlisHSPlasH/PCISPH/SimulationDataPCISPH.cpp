@@ -23,7 +23,6 @@ void SimulationDataPCISPH::init()
 
 	m_lastX.resize(nModels);
 	m_lastV.resize(nModels);
-	m_pressureAccel.resize(nModels);
 	m_densityAdv.resize(nModels);
 	m_pressure.resize(nModels);
 	m_pressureAccel.resize(nModels);
@@ -33,7 +32,6 @@ void SimulationDataPCISPH::init()
 		FluidModel *fm = sim->getFluidModel(i);
 		m_lastX[i].resize(fm->numParticles(), Vector3r::Zero());
 		m_lastV[i].resize(fm->numParticles(), Vector3r::Zero());
-		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
 		m_densityAdv[i].resize(fm->numParticles(), 0.0);
 		m_pressure[i].resize(fm->numParticles(), 0.0);
 		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
@@ -77,8 +75,8 @@ void SimulationDataPCISPH::init()
 			sumGradW2 += gradW.squaredNorm();
 		}
 
-		const Real beta = 2.0 * model->getVolume(index)*model->getVolume(index);
-		m_pcisph_factor[fluidModelIndex] = 1.0 / (beta * (sumGradW.squaredNorm() + sumGradW2));
+		const Real beta = static_cast<Real>(2.0) * model->getVolume(index)*model->getVolume(index);
+		m_pcisph_factor[fluidModelIndex] = static_cast<Real>(1.0) / (beta * (sumGradW.squaredNorm() + sumGradW2));
 	}
 }
 

@@ -209,8 +209,8 @@ void FluidModel::initMasses()
 {
 	const Real particleRadius = Simulation::getCurrent()->getParticleRadius();
 	const int nParticles = (int) numParticles();
-	const Real diam = 2.0*particleRadius;
-	m_V = 0.8 * diam*diam*diam;
+	const Real diam = static_cast<Real>(2.0)*particleRadius;
+	m_V = static_cast<Real>(0.8) * diam*diam*diam;
 
 	#pragma omp parallel default(shared)
 	{

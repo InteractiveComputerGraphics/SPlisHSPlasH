@@ -158,7 +158,7 @@ void TimeStepPBF::pressureSolve()
 			pressureSolveIteration(i, avg_density_err);
 
 			// Maximal allowed density fluctuation
-			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			const Real eta = m_maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
 			chk = chk && (avg_density_err <= eta);
 		}
 
@@ -171,7 +171,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int numParticles = model->numActiveParticles();
-	const Real invH = 1.0 / TimeManager::getCurrent()->getTimeStepSize();
+	const Real invH = static_cast<Real>(1.0) / TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH2 = invH*invH;
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real eps = 1.0e-6;
@@ -204,12 +204,12 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 				density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 			)
 
-			const Real density_err = density0 * (max(density, 1.0) - 1.0);
+			const Real density_err = density0 * (max(density, static_cast<Real>(1.0)) - static_cast<Real>(1.0));
 			#pragma omp atomic
 			avg_density_err += density_err;
 
 			// Evaluate constraint function
-			const Real C = std::max(density - 1.0, 0.0);			// clamp to prevent particle clumping at surface
+			const Real C = std::max(density - static_cast<Real>(1.0), static_cast<Real>(0.0));			// clamp to prevent particle clumping at surface
 
 			if (C != 0.0)
 			{

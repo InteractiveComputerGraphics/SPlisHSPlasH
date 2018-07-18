@@ -25,7 +25,7 @@ void DragForce_Gissler2017::step()
 	Simulation *sim = Simulation::getCurrent();
 	const Real supportRadius = sim->getSupportRadius();
 	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-	const Real diam = 2.0*radius;
+	const Real diam = static_cast<Real>(2.0)*radius;
 	static const Real pi = static_cast<Real>(M_PI);
 	const Real rho_l = m_model->getValue<Real>(FluidModel::DENSITY0);
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
@@ -36,23 +36,23 @@ void DragForce_Gissler2017::step()
 	// Air velocity.
 	const Vector3r va(0, 0, 0);
 
-	const Real L = cbrt(0.75 / pi) * diam;
+	const Real L = cbrt(static_cast<Real>(0.75) / pi) * diam;
 
-	const Real inv_td = 0.5*C_d * mu_l / (rho_l * L*L);
-	const Real td = 1.0 / inv_td;
+	const Real inv_td = static_cast<Real>(0.5)*C_d * mu_l / (rho_l * L*L);
+	const Real td = static_cast<Real>(1.0) / inv_td;
 	Real omegaSquare = C_k * sigma / (rho_l * L*L*L) - inv_td*inv_td;
-	std::max(omegaSquare, 0.0);
+	std::max(omegaSquare, static_cast<Real>(0.0));
 	const Real omega = sqrt(omegaSquare);
 
 	// Equation (6)
 	Real val = td*td*omegaSquare;
-	val = sqrt(val+1.0) + td*omega;
-	val = std::max(val, -0.5 * pi);
-	val = std::min(val, 0.5 * pi);
-	const Real t_max = -2.0 * (atan(val) - pi) / omega;
+	val = sqrt(val+ static_cast<Real>(1.0)) + td*omega;
+	val = std::max(val, -static_cast<Real>(0.5) * pi);
+	val = std::min(val, static_cast<Real>(0.5) * pi);
+	const Real t_max = -static_cast<Real>(2.0) * (atan(val) - pi) / omega;
 
 	// Equation (7)
-	const Real c_def = 1.0 - exp(-t_max / td) * (cos(omega * t_max) + 1.0/(omega*td) * sin(omega * t_max));
+	const Real c_def = static_cast<Real>(1.0) - exp(-t_max / td) * (cos(omega * t_max) + static_cast<Real>(1.0)/(omega*td) * sin(omega * t_max));
 
 	// Weber number without velocity
 	const Real We_i_wo_v = rho_a * L / sigma;
@@ -82,18 +82,18 @@ void DragForce_Gissler2017::step()
 			v_i_rel_n = v_i_rel_n * (1.0 / vi_rel_norm);
  
 			// Equation (8)
-			const Real y_i_max = std::min(vi_rel_square * y_coeff, 1.0);
+			const Real y_i_max = std::min(vi_rel_square * y_coeff, static_cast<Real>(1.0));
 
-			const Real Re_i = 2.0*std::max((rho_a * vi_rel_norm * L) / mu_a, 0.1);
+			const Real Re_i = static_cast<Real>(2.0)*std::max((rho_a * vi_rel_norm * L) / mu_a, static_cast<Real>(0.1));
 
 			Real C_Di_sphere;
 			if (Re_i <= 1000.0)
-				C_Di_sphere = 24.0 / Re_i * (1.0 + 1.0/6.0 * pow(Re_i, 2.0/3.0));
+				C_Di_sphere = static_cast<Real>(24.0) / Re_i * (static_cast<Real>(1.0) + static_cast<Real>(1.0/6.0) * pow(Re_i, static_cast<Real>(2.0/3.0)));
 			else
-				C_Di_sphere = 0.424;
+				C_Di_sphere = static_cast<Real>(0.424);
 
 			// Equation (9)
-			const Real C_Di_Liu = C_Di_sphere * (1.0 + 2.632 * y_i_max);
+			const Real C_Di_Liu = C_Di_sphere * (static_cast<Real>(1.0) + static_cast<Real>(2.632) * y_i_max);
 
 			unsigned int numNeighbors = sim->numberOfNeighbors(0, i);
 			for (unsigned int pid = 1; pid < sim->numberOfPointSets(); pid++)
@@ -105,14 +105,14 @@ void DragForce_Gissler2017::step()
 			if (numNeighbors == 0)
 				C_Di = C_Di_Liu;
 			else
-				C_Di = (1.0 - factor_n) * C_Di_Liu + factor_n;
+				C_Di = (static_cast<Real>(1.0) - factor_n) * C_Di_Liu + factor_n;
 
 			// Equation (12)
 			const Real h1 = (L + C_b*L*y_i_max);
 			const Real A_i_droplet = pi * h1*h1;
 
 			// Equation (13)
-			const Real A_i_unoccluded = (1.0 - factor_n) * A_i_droplet + factor_n * diam*diam;
+			const Real A_i_unoccluded = (static_cast<Real>(1.0) - factor_n) * A_i_droplet + factor_n * diam*diam;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
@@ -126,7 +126,7 @@ void DragForce_Gissler2017::step()
 				max_v_x = std::max(max_v_x, x_v);
 			)
 			// Equation (15)
-			const Real w_i = std::max(0.0, std::min(1.0, 1.0 - max_v_x));
+			const Real w_i = std::max(static_cast<Real>(0.0), std::min(static_cast<Real>(1.0), static_cast<Real>(1.0) - max_v_x));
 
 			// Equation (14)
 			const Real A_i = w_i * A_i_unoccluded;

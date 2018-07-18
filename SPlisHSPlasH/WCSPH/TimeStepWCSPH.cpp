@@ -73,7 +73,7 @@ void TimeStepWCSPH::step()
 			{
 				Real &density = model->getDensity(i);
 				density = max(density, density0) / density0;
-				m_simulationData.getPressure(fluidModelIndex, i) = m_stiffness * (pow(density / 1.0, m_exponent) - 1.0);
+				m_simulationData.getPressure(fluidModelIndex, i) = m_stiffness * (pow(density / static_cast<Real>(1.0), m_exponent) - static_cast<Real>(1.0));
 			}
 		}
 

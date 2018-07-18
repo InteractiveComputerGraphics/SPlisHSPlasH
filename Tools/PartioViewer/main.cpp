@@ -208,9 +208,9 @@ void render()
 			glUniform1f(shader.getUniform("max_velocity"), (GLfloat) maxVel);
 
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, x.data());
+			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, x.data());
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, v.data());
+			glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, v.data());
 			glDrawArrays(GL_POINTS, 0, nParticles);
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);

@@ -77,7 +77,7 @@ void SurfaceTension_Akinci2013::step()
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors_in_same_phase(
 				const Real &rhoj = m_model->getDensity(neighborIndex);
-				const Real K_ij = 2.0*density0 / (rhoi + rhoj);
+				const Real K_ij = static_cast<Real>(2.0)*density0 / (rhoi + rhoj);
 
 				Vector3r accel;
 				accel.setZero();
@@ -87,7 +87,7 @@ void SurfaceTension_Akinci2013::step()
 				const Real length2 = xixj.squaredNorm();
 				if (length2 > 1.0e-9)
 				{
-					xixj = ((Real) 1.0 / sqrt(length2)) * xixj;
+					xixj = (static_cast<Real>(1.0) / sqrt(length2)) * xixj;
 					accel -= k * m_model->getMass(neighborIndex) * xixj * CohesionKernel::W(xi - xj);
 				}
 

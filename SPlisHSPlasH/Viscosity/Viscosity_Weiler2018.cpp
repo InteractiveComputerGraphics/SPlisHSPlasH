@@ -228,9 +228,9 @@ void Viscosity_Weiler2018::step()
 	m_solver.setMaxIterations(m_maxIter);
 	m_solver.compute(A);
 
-	Eigen::VectorXd b(3*numParticles);
-	Eigen::VectorXd x(3*numParticles);
-	Eigen::VectorXd g(3*numParticles);
+	VectorXr b(3*numParticles);
+	VectorXr x(3*numParticles);
+	VectorXr g(3*numParticles);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Compute RHS
@@ -259,7 +259,7 @@ void Viscosity_Weiler2018::step()
 	x = m_solver.solveWithGuess(b, g);
 	m_iterations = (int)m_solver.iterations();
 	STOP_TIMING_AVG;
-	INCREASE_COUNTER("Visco iterations", m_iterations);
+	INCREASE_COUNTER("Visco iterations", static_cast<Real>(m_iterations));
 
 	#pragma omp parallel default(shared)
 	{

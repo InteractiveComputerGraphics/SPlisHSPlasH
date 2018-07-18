@@ -27,7 +27,7 @@ void PoissonDiskSampling::sampleMesh(const unsigned int numVertices, const Vecto
 	m_numTrials = numTrials;
 	m_distanceNorm = distanceNorm;
 
-	m_cellSize = m_r / sqrt(3.0);
+	m_cellSize = m_r / sqrt(static_cast<Real>(3.0));
 
 	// Init sampling
 	m_maxArea = numeric_limits<Real>::min();
@@ -35,7 +35,7 @@ void PoissonDiskSampling::sampleMesh(const unsigned int numVertices, const Vecto
 
 	determineTriangleAreas(numVertices, vertices, numFaces, faces);
 
-	const Real circleArea = M_PI * minRadius * minRadius;
+	const Real circleArea = static_cast<Real>(M_PI) * minRadius * minRadius;
 	const unsigned int numInitialPoints = (unsigned int) (40.0 * (m_totalArea / circleArea)); 
 	//cout << "# Initial points: " << numInitialPoints << endl;
 
@@ -50,7 +50,7 @@ void PoissonDiskSampling::sampleMesh(const unsigned int numVertices, const Vecto
 	// Find minimal coordinates of object
 
 	// Calculate CellIndices
-	const Real factor = 1.0 / m_cellSize;
+	const Real factor = static_cast<Real>(1.0) / m_cellSize;
 
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < (int)m_initialInfoVec.size(); i++)
@@ -97,7 +97,7 @@ void PoissonDiskSampling::determineTriangleAreas(const unsigned int numVertices,
 			const Vector3r d1 = b - a;
 			const Vector3r d2 = c - a;
 
-			const Real area = (d1.cross(d2)).norm() / 2.0;
+			const Real area = (d1.cross(d2)).norm() / static_cast<Real>(2.0);
 			m_areas[i] = area;
 			totalArea += area;
 			//tmpMaxArea = max(area, tmpMaxArea);
@@ -128,9 +128,9 @@ void PoissonDiskSampling::generateInitialPointSet(const unsigned int numVertices
 		{
 			// Drawing random barycentric coordinates
 			Real rn1 = sqrt(m_uniform_distribution1(m_generator));
-			Real bc1 = 1.0 - rn1;
+			Real bc1 = static_cast<Real>(1.0) - rn1;
 			Real bc2 = m_uniform_distribution1(m_generator)*rn1;
-			Real bc3 = 1.0 - bc1 - bc2;
+			Real bc3 = static_cast<Real>(1.0) - bc1 - bc2;
 
 			// Triangle selection with probability proportional to area
 			const unsigned int randIndex = getAreaIndex(m_areas, m_totalArea);
@@ -312,7 +312,7 @@ bool PoissonDiskSampling::checkCell(const unordered_map<CellPos, HashEntry, Cell
 				if (fabs(c1 - c2) > 0.00001f)
 					dist *= (asin(c1) - asin(c2)) / (c1 - c2);
 				else
-					dist /= (sqrt(1.0 - c1*c1));
+					dist /= (sqrt(static_cast<Real>(1.0) - c1*c1));
 			}
 			else
 			{

@@ -107,7 +107,7 @@ void TimeStepPCISPH::pressureSolve()
 			pressureSolveIteration(i, avg_density_err);
 
 			// Maximal allowed density fluctuation
-			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			const Real eta = m_maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
 			chk = chk && (avg_density_err <= eta);
 		}
 
@@ -123,7 +123,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
-	const Real invH2 = 1.0 / h2;
+	const Real invH2 = static_cast<Real>(1.0) / h2;
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
 	#pragma omp parallel default(shared)
@@ -166,10 +166,10 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 				densityAdv += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 			)
 
-			densityAdv = max(densityAdv, 1.0);
-			const Real density_err = density0 * (densityAdv - 1.0);
+			densityAdv = max(densityAdv, static_cast<Real>(1.0));
+			const Real density_err = density0 * (densityAdv - static_cast<Real>(1.0));
 			Real &pressure = m_simulationData.getPressure(fluidModelIndex, i);
-			pressure += invH2 * m_simulationData.getPCISPH_ScalingFactor(fluidModelIndex) * (densityAdv - 1.0);
+			pressure += invH2 * m_simulationData.getPCISPH_ScalingFactor(fluidModelIndex) * (densityAdv - static_cast<Real>(1.0));
 
 			#pragma omp atomic
 			avg_density_err += density_err;

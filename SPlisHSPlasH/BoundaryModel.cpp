@@ -68,7 +68,7 @@ void BoundaryModel::computeBoundaryPsi(const Real density0)
 					delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
 				}
 			}
-			const Real volume = 1.0 / delta;
+			const Real volume = static_cast<Real>(1.0) / delta;
 			m_V[i] = volume;
 			m_boundaryPsi[i] = density0 * volume; 
 		}

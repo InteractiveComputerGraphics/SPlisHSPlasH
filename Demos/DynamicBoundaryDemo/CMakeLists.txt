@@ -25,14 +25,14 @@ include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
 set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
 	optimized CompactNSearch 
 	debug CompactNSearch_d)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_CompactNSearch)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_CompactNSearch)
 link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
 
 ############################################################
 # GenericParameters
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} ExternalProject_GenericParameters)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_GenericParameters)
 
 ############################################################
 # PBD
@@ -61,7 +61,7 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 	optimized PositionBasedDynamics debug PositionBasedDynamics_d 
 	optimized Utils debug Utils_d)
 
-set(SIMULATION_DEPENDENCIES ExternalProject_PositionBasedDynamics ${SIMULATION_DEPENDENCIES})
+set(SIMULATION_DEPENDENCIES Ext_PBD ${SIMULATION_DEPENDENCIES})
 link_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/lib)
 
 add_executable(DynamicBoundaryDemo

@@ -68,10 +68,10 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 	Simulation *sim = Simulation::getCurrent();
 
 	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-	const Real diam = 2.0*radius;
+	const Real diam = static_cast<Real>(2.0)*radius;
 
-	const Real startX = -0.5*m_width*diam;
-	const Real startZ = -0.5*m_height*diam;
+	const Real startX = -static_cast<Real>(0.5)*m_width*diam;
+	const Real startZ = -static_cast<Real>(0.5)*m_height*diam;
 
 	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
 		(reusedParticles.size() > 0))
@@ -145,7 +145,7 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 		}
 	}
 
-	m_nextEmitTime += 1.0 / m_emitsPerSecond;
+	m_nextEmitTime += static_cast<Real>(1.0) / m_emitsPerSecond;
 	m_emitCounter++;
 }
 
@@ -162,13 +162,13 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 
 	Simulation *sim = Simulation::getCurrent();
 	const Real r = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-	const Real diam = 2.0*r;
+	const Real diam = static_cast<Real>(2.0)*r;
 
-	const Real radius = (0.5 * (Real)m_width * diam);
+	const Real radius = (static_cast<Real>(0.5) * (Real)m_width * diam);
 	const Real radius2 = radius*radius;
 
-	const Real startX = -0.5*(m_width - 1)*diam;
-	const Real startZ = -0.5*(m_width - 1)*diam;
+	const Real startX = -static_cast<Real>(0.5)*(m_width - 1)*diam;
+	const Real startZ = -static_cast<Real>(0.5)*(m_width - 1)*diam;
 
 	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
 		(reusedParticles.size() > 0))
@@ -247,7 +247,7 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 		}
 	}
 
-	m_nextEmitTime += 1.0 / m_emitsPerSecond;
+	m_nextEmitTime += static_cast<Real>(1.0) / m_emitsPerSecond;
 	m_emitCounter++;
 }
 

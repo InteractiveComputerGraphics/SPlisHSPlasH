@@ -204,8 +204,8 @@ add_library(SPlisHSPlasH
 	${UTILS_SOURCE_FILES}
 )
 
-add_dependencies(SPlisHSPlasH ExternalProject_CompactNSearch)
-add_dependencies(SPlisHSPlasH ExternalProject_GenericParameters)
+add_dependencies(SPlisHSPlasH Ext_CompactNSearch)
+add_dependencies(SPlisHSPlasH Ext_GenericParameters)
 
 source_group("Header Files\\WCSPH" FILES ${WCSPH_HEADER_FILES})
 source_group("Source Files\\WCSPH" FILES ${WCSPH_SOURCE_FILES})

@@ -140,7 +140,7 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 
 			const Real &pressure = m_simulationData.getPressure(fluidModelIndex, i);
 			Real &lastPressure = m_simulationData.getLastPressure(fluidModelIndex, i);
-			lastPressure = 0.5*pressure;
+			lastPressure = static_cast<Real>(0.5)*pressure;
 
 			// Compute a_ii
 			Real &aii = m_simulationData.getAii(fluidModelIndex, i);
@@ -193,7 +193,7 @@ void TimeStepIISPH::pressureSolve()
 			pressureSolveIteration(i, avg_density_err);
 
 			// Maximal allowed density fluctuation
-			const Real eta = m_maxError * 0.01 * density0;  // maxError is given in percent
+			const Real eta = m_maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
 			chk = chk && (avg_density_err <= eta);
 		}
 
@@ -272,13 +272,13 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 				sum += bm_neighbor->getVolume(neighborIndex) * m_simulationData.getDij_pj(fluidModelIndex, i).dot(sim->gradW(xi - xj));
 			)
 
-			const Real b = 1.0 - m_simulationData.getDensityAdv(fluidModelIndex, i);
+			const Real b = static_cast<Real>(1.0) - m_simulationData.getDensityAdv(fluidModelIndex, i);
 
 			Real &pi = m_simulationData.getPressure(fluidModelIndex, i);
 			const Real &lastPi = m_simulationData.getLastPressure(fluidModelIndex, i);
 			const Real denom = aii*h2;
 			if (fabs(denom) > 1.0e-9)
-				pi = max((1.0 - omega)*lastPi + omega / denom * (b - h2*sum), 0.0);
+				pi = max((static_cast<Real>(1.0) - omega)*lastPi + omega / denom * (b - h2*sum), static_cast<Real>(0.0));
 			else
 				pi = 0.0;
 

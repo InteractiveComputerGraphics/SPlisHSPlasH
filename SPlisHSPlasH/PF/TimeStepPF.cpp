@@ -181,7 +181,7 @@ void TimeStepPF::solvePDConstraints()
 #ifdef PD_USE_DIAGONAL_PRECONDITIONER
 		// hack to make the solver perform at least min_iter CG iterations for stability
 		constexpr unsigned int min_iter = 1;
-		m_solver.setTolerance(m_iterations < min_iter ? 1e-32 : 1e-10);
+		m_solver.setTolerance(m_iterations < min_iter ? static_cast<Real>(1e-32) : static_cast<Real>(1e-10));
 #endif
 		x = m_solver.solveWithGuess(b, x);
 		if (m_solver.iterations() == 0)

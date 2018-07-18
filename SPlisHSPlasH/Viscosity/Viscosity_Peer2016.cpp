@@ -173,7 +173,7 @@ void Viscosity_Peer2016::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
-	const Real viscosity = 1.0 - m_viscosity;
+	const Real viscosity = static_cast<Real>(1.0) - m_viscosity;
 	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
@@ -196,15 +196,15 @@ void Viscosity_Peer2016::step()
 	m_solverOmega.setMaxIterations(m_maxIterOmega);
 	m_solverOmega.compute(A2);
 
-	Eigen::VectorXd b0(numParticles);
-	Eigen::VectorXd b1(numParticles);
-	Eigen::VectorXd b2(numParticles);
-	Eigen::VectorXd x0(numParticles);
-	Eigen::VectorXd x1(numParticles);
-	Eigen::VectorXd x2(numParticles);
-	Eigen::VectorXd g0(numParticles);
-	Eigen::VectorXd g1(numParticles);
-	Eigen::VectorXd g2(numParticles);
+	VectorXr b0(numParticles);
+	VectorXr b1(numParticles);
+	VectorXr b2(numParticles);
+	VectorXr x0(numParticles);
+	VectorXr x1(numParticles);
+	VectorXr x2(numParticles);
+	VectorXr g0(numParticles);
+	VectorXr g1(numParticles);
+	VectorXr g2(numParticles);
 
 
 	#pragma omp parallel default(shared)
@@ -247,9 +247,9 @@ void Viscosity_Peer2016::step()
 			// extract omega
 			//////////////////////////////////////////////////////////////////////////
 			Vector3r &omega = getOmega(i);
-			omega[0] = 2.0 * R(2, 1);
-			omega[1] = 2.0 * R(0, 2);
-			omega[2] = 2.0 * R(1, 0);
+			omega[0] = static_cast<Real>(2.0) * R(2, 1);
+			omega[1] = static_cast<Real>(2.0) * R(0, 2);
+			omega[2] = static_cast<Real>(2.0) * R(1, 0);
 
 			//////////////////////////////////////////////////////////////////////////
 			// compute target nabla v without spin tensor
@@ -324,7 +324,7 @@ void Viscosity_Peer2016::step()
 		x2 = g2;
 	m_iterationsOmega += (int)m_solverOmega.iterations();
 	STOP_TIMING_AVG;
-	INCREASE_COUNTER("Visco iterations - Omega", m_iterationsOmega);
+	INCREASE_COUNTER("Visco iterations - Omega", static_cast<Real>(m_iterationsOmega));
 
 	//////////////////////////////////////////////////////////////////////////
 	// Determine new spin tensor and add it to target nabla v
@@ -335,9 +335,9 @@ void Viscosity_Peer2016::step()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			Matrix3r R;
-			R << 0.0, -0.5*x2[i], 0.5*x1[i],
-				0.5*x2[i], 0.0, -0.5*x0[i],
-				-0.5*x1[i], 0.5*x0[i], 0.0;
+			R << static_cast<Real>(0.0), -static_cast<Real>(0.5)*x2[i], static_cast<Real>(0.5)*x1[i],
+				static_cast<Real>(0.5)*x2[i], 0.0, -static_cast<Real>(0.5)*x0[i],
+				-static_cast<Real>(0.5)*x1[i], static_cast<Real>(0.5)*x0[i], static_cast<Real>(0.0);
 
 			Matrix3r &target = getTargetNablaV(i);
 			target += R;
@@ -396,7 +396,7 @@ void Viscosity_Peer2016::step()
 		x2 = g2;
 	m_iterationsV += (int)m_solverV.iterations();
 	STOP_TIMING_AVG;
-	INCREASE_COUNTER("Visco iterations - V", m_iterationsV);
+	INCREASE_COUNTER("Visco iterations - V", static_cast<Real>(m_iterationsV));
 
 	#pragma omp parallel default(shared)
 	{

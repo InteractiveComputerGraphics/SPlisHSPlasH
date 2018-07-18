@@ -428,17 +428,17 @@ void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, 
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 	{
 		const unsigned int fluidIndex = fluidIDs[m_scene.fluidBlocks[i]->id];
-		const Real diam = 2.0*m_scene.particleRadius;
+		const Real diam = static_cast<Real>(2.0)*m_scene.particleRadius;
 
 		Real xshift = diam;
 		Real yshift = diam;
-		const Real eps = 1.0e-9;
+		const Real eps = static_cast<Real>(1.0e-9);
 		if (m_scene.fluidBlocks[i]->mode == 1)
-			yshift = sqrt(3.0) * m_scene.particleRadius + eps;
+			yshift = sqrt(static_cast<Real>(3.0)) * m_scene.particleRadius + eps;
 		else if (m_scene.fluidBlocks[i]->mode == 2)
 		{
-			xshift = sqrt(6.0) * diam / 3.0 + eps;
-			yshift = sqrt(3.0) * m_scene.particleRadius + eps;
+			xshift = sqrt(static_cast<Real>(6.0)) * diam / static_cast<Real>(3.0) + eps;
+			yshift = sqrt(static_cast<Real>(3.0)) * m_scene.particleRadius + eps;
 		}
 
 		Vector3r diff = m_scene.fluidBlocks[i]->box.m_maxX - m_scene.fluidBlocks[i]->box.m_minX;
@@ -457,7 +457,7 @@ void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, 
 		const int stepsY = (int)round(diff[1] / yshift) - 1;
 		const int stepsZ = (int)round(diff[2] / diam) - 1;
 
-		Vector3r start = m_scene.fluidBlocks[i]->box.m_minX + 2.0*m_scene.particleRadius*Vector3r::Ones();
+		Vector3r start = m_scene.fluidBlocks[i]->box.m_minX + static_cast<Real>(2.0)*m_scene.particleRadius*Vector3r::Ones();
 		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + stepsX*stepsY*stepsZ);
 		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + stepsX*stepsY*stepsZ, m_scene.fluidBlocks[i]->initialVelocity);
 		for (int j = 0; j < stepsX; j++)
@@ -481,11 +481,11 @@ void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, 
 						Vector3r shift_vec(0, 0, 0);
 						if (j % 2)
 						{
-							shift_vec[2] += diam / (2.0 * (k % 2 ? -1 : 1));
+							shift_vec[2] += diam / (static_cast<Real>(2.0) * (k % 2 ? -1 : 1));
 						}
 						if (k % 2 == 0)
 						{
-							shift_vec[0] += xshift / 2.0;
+							shift_vec[0] += xshift / static_cast<Real>(2.0);
 						}
 						currPos += shift_vec;
 					}
@@ -513,7 +513,7 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 
 	Simulation *sim = Simulation::getCurrent();
 	const Real supportRadius = sim->getSupportRadius();
-	Real vmax = 0.4*2.0*supportRadius / TimeManager::getCurrent()->getTimeStepSize();
+	Real vmax = static_cast<Real>(0.4*2.0)*supportRadius / TimeManager::getCurrent()->getTimeStepSize();
 	Real vmin = 0.0;
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
@@ -524,15 +524,15 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 		if (model->numActiveParticles() > 0)
 		{
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0));
+			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
 			glEnableVertexAttribArray(1);
 			if (m_renderAngularVelocities && ((VorticityMethods)model->getVorticityMethod() == VorticityMethods::Micropolar))
 			{
 				glUniform3fv(m_shader.getUniform("color"), 1, fluidColor2);
-				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &((MicropolarModel_Bender2017*)model->getVorticityBase())->getAngularVelocity(0)[0]);
+				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &((MicropolarModel_Bender2017*)model->getVorticityBase())->getAngularVelocity(0)[0]);
 			}
 			else
-				glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0));
+				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
 
 			glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
 			glDisableVertexAttribArray(0);
@@ -549,8 +549,8 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 		for (unsigned int i = 0; i < nParticles; i++)
 		{
 			Real v = model->getVelocity(i).norm();
-			v = 0.5*((v - vmin) / (vmax - vmin));
-			v = min(128.0*v*v, 0.5);
+			v = static_cast<Real>(0.5)*((v - vmin) / (vmax - vmin));
+			v = min(static_cast<Real>(128.0)*v*v, static_cast<Real>(0.5));
 			float fluidColor[4] = { 0.2f, 0.2f, 0.2f, 1.0 };
 			MiniGL::hsvToRgb(0.55f, 1.0f, 0.5f + (float)v, fluidColor);
 
@@ -572,9 +572,9 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 			const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 			glUniform1f(m_shader.getUniform("radius"), (float)radius*1.05f);
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, &model->getPosition(0));
+			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 3, GL_DOUBLE, GL_FALSE, 0, &model->getVelocity(0));
+			glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
 			glDrawElements(GL_POINTS, (GLsizei) getSelectedParticles()[fluidIndex].size(), GL_UNSIGNED_INT, getSelectedParticles()[fluidIndex].data());
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
@@ -676,7 +676,7 @@ void DemoBase::step()
 	{
 		if (TimeManager::getCurrent()->getTime() >= m_nextFrameTime)
 		{
-			m_nextFrameTime += 1.0 / m_framesPerSecond;
+			m_nextFrameTime += static_cast<Real>(1.0) / m_framesPerSecond;
 			partioExport();
 			m_frameCounter++;
 		}
@@ -685,6 +685,7 @@ void DemoBase::step()
 
 void DemoBase::reset()
 {
+	TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
 	m_nextFrameTime = 0.0;
 	m_frameCounter = 1;
 }

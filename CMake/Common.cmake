@@ -19,6 +19,7 @@ if (UNIX)
     set(CMAKE_USE_RELATIVE_PATHS "1")
     # Set compiler flags for "release"
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fopenmp") 
+    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp") 
 endif (UNIX)
 
 if(APPLE)

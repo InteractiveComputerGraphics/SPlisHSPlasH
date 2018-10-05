@@ -14,8 +14,7 @@ using namespace std;
 using namespace Eigen;
 using namespace SPH;
 
-PoissonDiskSampling::PoissonDiskSampling() :
-	m_uniform_distribution1(0.0, 1.0)
+PoissonDiskSampling::PoissonDiskSampling()
 {
 }
 
@@ -119,21 +118,31 @@ void PoissonDiskSampling::determineTriangleAreas(const unsigned int numVertices,
 void PoissonDiskSampling::generateInitialPointSet(const unsigned int numVertices, const Vector3r *vertices, const unsigned int numFaces, const unsigned int *faces)
 {
 	m_totalArea = 0.0;
-
+	
+	// Drawing random barycentric coordinates
+	std::uniform_real_distribution<Real> distribution(0.0, 1.0);
+	
+	random_device r;
+	std::vector<std::default_random_engine> generators;
+    for (int i = 0; i < omp_get_max_threads(); ++i) 
+        generators.emplace_back(default_random_engine(r()));
+	
 	#pragma omp parallel default(shared)
-	{
+	{	
 		// Generating the surface points
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)m_initialInfoVec.size(); i++)
 		{
-			// Drawing random barycentric coordinates
-			Real rn1 = sqrt(m_uniform_distribution1(m_generator));
+			// Get the generator based on thread id
+			std::default_random_engine& generator = generators[omp_get_thread_num()];
+			
+			Real rn1 = sqrt(distribution(generator));
 			Real bc1 = static_cast<Real>(1.0) - rn1;
-			Real bc2 = m_uniform_distribution1(m_generator)*rn1;
+			Real bc2 = distribution(generator)*rn1;
 			Real bc3 = static_cast<Real>(1.0) - bc1 - bc2;
 
 			// Triangle selection with probability proportional to area
-			const unsigned int randIndex = getAreaIndex(m_areas, m_totalArea);
+			const unsigned int randIndex = getAreaIndex(m_areas, m_totalArea, generator, distribution);
 
 			// Calculating point coordinates
 			const Vector3r &v1 = vertices[faces[3 * randIndex]];
@@ -147,7 +156,7 @@ void PoissonDiskSampling::generateInitialPointSet(const unsigned int numVertices
 }
 
 
-unsigned int PoissonDiskSampling::getAreaIndex(const vector<Real>& areas, const Real totalArea)
+unsigned int PoissonDiskSampling::getAreaIndex(const vector<Real>& areas, const Real totalArea, std::default_random_engine &generator, std::uniform_real_distribution<Real> &distribution)
 {
 	// see https://en.wikipedia.org/wiki/Fitness_proportionate_selection
 	//// Linear Version O(n)
@@ -166,8 +175,8 @@ unsigned int PoissonDiskSampling::getAreaIndex(const vector<Real>& areas, const 
 	unsigned int index;
 	while (notaccepted)
 	{
-		index = (int)((Real)areas.size()*m_uniform_distribution1(m_generator));
-		if (m_uniform_distribution1(m_generator)<areas[index] / m_maxArea)
+		index = (int)((Real)areas.size()*distribution(generator));
+		if (distribution(generator)<areas[index] / m_maxArea)
 			notaccepted = false;
 	}
 	return index;

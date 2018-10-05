@@ -84,14 +84,12 @@ namespace SPH
 		std::vector<InitialPointInfo> m_initialInfoVec;
 		std::vector<std::vector<CellPos>> m_phaseGroups;
 
-		std::default_random_engine m_generator;
-		std::uniform_real_distribution<Real> m_uniform_distribution1;
 		Real m_maxArea;
 
 		void computeFaceNormals(const unsigned int numVertices, const Vector3r *vertices, const unsigned int numFaces, const unsigned int *faces);
 		void determineTriangleAreas(const unsigned int numVertices, const Vector3r *vertices, const unsigned int numFaces, const unsigned int *faces);
 		void generateInitialPointSet(const unsigned int numVertices, const Vector3r *vertices, const unsigned int numFaces, const unsigned int *faces);
-		unsigned int getAreaIndex(const std::vector<Real>& areas, const Real totalArea);
+		unsigned int getAreaIndex(const std::vector<Real>& areas, const Real totalArea, std::default_random_engine &generator, std::uniform_real_distribution<Real> &distribution);
 		void parallelUniformSurfaceSampling(std::vector<Vector3r> &samples);
 
 		void quickSort(int left, int right);

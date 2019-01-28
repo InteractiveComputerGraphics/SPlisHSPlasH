@@ -17,6 +17,7 @@ using namespace std;
 using namespace GenParam;
 
 Simulation* Simulation::current = nullptr;
+int Simulation::SIM_2D = -1;
 int Simulation::PARTICLE_RADIUS = -1;
 int Simulation::GRAVITATION = -1;
 int Simulation::CFL_METHOD = -1;
@@ -25,13 +26,19 @@ int Simulation::CFL_MAX_TIMESTEPSIZE = -1;
 int Simulation::KERNEL_METHOD = -1;
 int Simulation::GRAD_KERNEL_METHOD = -1;
 int Simulation::ENUM_KERNEL_CUBIC = -1;
+int Simulation::ENUM_KERNEL_WENDLANDQUINTICC2 = -1;
 int Simulation::ENUM_KERNEL_POLY6 = -1;
 int Simulation::ENUM_KERNEL_SPIKY = -1;
 int Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC = -1;
+int Simulation::ENUM_KERNEL_CUBIC_2D = -1;
+int Simulation::ENUM_KERNEL_WENDLANDQUINTICC2_2D = -1;
 int Simulation::ENUM_GRADKERNEL_CUBIC = -1;
+int Simulation::ENUM_GRADKERNEL_WENDLANDQUINTICC2 = -1;
 int Simulation::ENUM_GRADKERNEL_POLY6 = -1;
 int Simulation::ENUM_GRADKERNEL_SPIKY = -1;
 int Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC = -1;
+int Simulation::ENUM_GRADKERNEL_CUBIC_2D = -1;
+int Simulation::ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D = -1;
 int Simulation::SIMULATION_METHOD = -1;
 int Simulation::ENUM_CFL_NONE = -1;
 int Simulation::ENUM_CFL_STANDARD = -1;
@@ -59,6 +66,7 @@ Simulation::Simulation ()
 	m_simulationMethod = SimulationMethods::WCSPH;
 	m_simulationMethodChanged = NULL;
 
+	m_sim2D = false;
 }
 
 Simulation::~Simulation () 
@@ -97,8 +105,9 @@ bool Simulation::hasCurrent()
 	return (current != nullptr);
 }
 
-void Simulation::init(const Real particleRadius)
+void Simulation::init(const Real particleRadius, const bool sim2D)
 {
+	m_sim2D = sim2D;
 	initParameters();
 
 	// init kernel
@@ -115,6 +124,11 @@ void Simulation::init(const Real particleRadius)
 void Simulation::initParameters()
 {
 	ParameterObject::initParameters();
+
+	SIM_2D = createBoolParameter("sim2D", "2D Simulation", &m_sim2D);
+	setGroup(SIM_2D, "Simulation");
+	setDescription(SIM_2D, "2D/3D simulation.");
+	getParameter(SIM_2D)->setReadOnly(true);
 
 	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&Simulation::getParticleRadius, this);
 	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&Simulation::setParticleRadius, this, std::placeholders::_1);
@@ -151,10 +165,19 @@ void Simulation::initParameters()
 	setGroup(KERNEL_METHOD, "Kernel");
 	setDescription(KERNEL_METHOD, "Kernel function used in the SPH model.");
 	enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
-	enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
-	enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
-	enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
-	enumParam->addEnumValue("Precomputed cubic spline", ENUM_KERNEL_PRECOMPUTED_CUBIC);
+	if (!m_sim2D)
+	{
+		enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
+		enumParam->addEnumValue("Wendland quintic C2", ENUM_KERNEL_WENDLANDQUINTICC2);
+		enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
+		enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
+		enumParam->addEnumValue("Precomputed cubic spline", ENUM_KERNEL_PRECOMPUTED_CUBIC);
+	}
+	else
+	{
+		enumParam->addEnumValue("Cubic spline 2D", ENUM_KERNEL_CUBIC_2D);
+		enumParam->addEnumValue("Wendland quintic C2 2D", ENUM_KERNEL_WENDLANDQUINTICC2_2D);
+	}
 
 	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&Simulation::getGradKernel, this);
 	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&Simulation::setGradKernel, this, std::placeholders::_1);
@@ -162,10 +185,19 @@ void Simulation::initParameters()
 	setGroup(GRAD_KERNEL_METHOD, "Kernel");
 	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the SPH model.");
 	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
-	enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
-	enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
-	enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
-	enumParam->addEnumValue("Precomputed cubic spline", ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+	if (!m_sim2D)
+	{
+		enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
+		enumParam->addEnumValue("Wendland quintic C2", ENUM_GRADKERNEL_WENDLANDQUINTICC2);
+		enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
+		enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
+		enumParam->addEnumValue("Precomputed cubic spline", ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+	}
+	else
+	{
+		enumParam->addEnumValue("Cubic spline 2D", ENUM_GRADKERNEL_CUBIC_2D);
+		enumParam->addEnumValue("Wendland quintic C2 2D", ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D);
+	}
 
 	ParameterBase::GetFunc<int> getSimulationFct = std::bind(&Simulation::getSimulationMethod, this);
 	ParameterBase::SetFunc<int> setSimulationFct = std::bind(&Simulation::setSimulationMethod, this, std::placeholders::_1);
@@ -191,22 +223,44 @@ void Simulation::setParticleRadius(Real val)
 	Poly6Kernel::setRadius(m_supportRadius);
 	SpikyKernel::setRadius(m_supportRadius);
 	CubicKernel::setRadius(m_supportRadius);
+	WendlandQuinticC2Kernel::setRadius(m_supportRadius);
 	PrecomputedCubicKernel::setRadius(m_supportRadius);
 	CohesionKernel::setRadius(m_supportRadius);
 	AdhesionKernel::setRadius(m_supportRadius);
+	CubicKernel2D::setRadius(m_supportRadius);
+	WendlandQuinticC2Kernel2D::setRadius(m_supportRadius);
 }
 
 void Simulation::setGradKernel(int val)
 {
 	m_gradKernelMethod = val;
-	if (m_gradKernelMethod == 0)
-		m_gradKernelFct = CubicKernel::gradW;
-	else if (m_gradKernelMethod == 1)
-		m_gradKernelFct = Poly6Kernel::gradW;
-	else if (m_gradKernelMethod == 2)
-		m_gradKernelFct = SpikyKernel::gradW;
-	else if (m_gradKernelMethod == 3)
-		m_gradKernelFct = Simulation::PrecomputedCubicKernel::gradW;
+
+	if (!m_sim2D)
+	{
+		if ((m_gradKernelMethod < 0) || (m_gradKernelMethod > 4))
+			m_gradKernelMethod = 0;
+
+		if (m_gradKernelMethod == 0)
+			m_gradKernelFct = CubicKernel::gradW;
+		else if (m_gradKernelMethod == 1)
+			m_gradKernelFct = WendlandQuinticC2Kernel::gradW;
+		else if (m_gradKernelMethod == 2)
+			m_gradKernelFct = Poly6Kernel::gradW;
+		else if (m_gradKernelMethod == 3)
+			m_gradKernelFct = SpikyKernel::gradW;
+		else if (m_gradKernelMethod == 4)
+			m_gradKernelFct = Simulation::PrecomputedCubicKernel::gradW;
+	}
+	else
+	{
+		if ((m_gradKernelMethod < 0) || (m_gradKernelMethod > 1))
+			m_gradKernelMethod = 0;
+
+		if (m_gradKernelMethod == 0)
+			m_gradKernelFct = CubicKernel2D::gradW;
+		else if (m_gradKernelMethod == 1)
+			m_gradKernelFct = WendlandQuinticC2Kernel2D::gradW;
+	}
 }
 
 void Simulation::setKernel(int val)
@@ -215,25 +269,52 @@ void Simulation::setKernel(int val)
 		return;
 
 	m_kernelMethod = val;
-	if (m_kernelMethod == 0)
+	if (!m_sim2D)
 	{
-		m_W_zero = CubicKernel::W_zero();
-		m_kernelFct = CubicKernel::W;
+		if ((m_kernelMethod < 0) || (m_kernelMethod > 4))
+			m_kernelMethod = 0;
+
+		if (m_kernelMethod == 0)
+		{
+			m_W_zero = CubicKernel::W_zero();
+			m_kernelFct = CubicKernel::W;
+		}
+		else if (m_kernelMethod == 1)
+		{
+			m_W_zero = WendlandQuinticC2Kernel::W_zero();
+			m_kernelFct = WendlandQuinticC2Kernel::W;
+		}
+		else if (m_kernelMethod == 2)
+		{
+			m_W_zero = Poly6Kernel::W_zero();
+			m_kernelFct = Poly6Kernel::W;
+		}
+		else if (m_kernelMethod == 3)
+		{
+			m_W_zero = SpikyKernel::W_zero();
+			m_kernelFct = SpikyKernel::W;
+		}
+		else if (m_kernelMethod == 4)
+		{
+			m_W_zero = Simulation::PrecomputedCubicKernel::W_zero();
+			m_kernelFct = Simulation::PrecomputedCubicKernel::W;
+		}
 	}
-	else if (m_kernelMethod == 1)
+	else
 	{
-		m_W_zero = Poly6Kernel::W_zero();
-		m_kernelFct = Poly6Kernel::W;
-	}
-	else if (m_kernelMethod == 2)
-	{
-		m_W_zero = SpikyKernel::W_zero();
-		m_kernelFct = SpikyKernel::W;
-	}
-	else if (m_kernelMethod == 3)
-	{
-		m_W_zero = Simulation::PrecomputedCubicKernel::W_zero();
-		m_kernelFct = Simulation::PrecomputedCubicKernel::W;
+		if ((m_kernelMethod < 0) || (m_kernelMethod > 1))
+			m_kernelMethod = 0;
+
+		if (m_kernelMethod == 0)
+		{
+			m_W_zero = CubicKernel2D::W_zero();
+			m_kernelFct = CubicKernel2D::W;
+		}
+		else if (m_kernelMethod == 1)
+		{
+			m_W_zero = WendlandQuinticC2Kernel2D::W_zero();
+			m_kernelFct = WendlandQuinticC2Kernel2D::W;
+		}
 	}
 	updateBoundaryPsi();
 }
@@ -336,7 +417,7 @@ void Simulation::reset()
 	performNeighborhoodSearchSort();
 
 	TimeManager::getCurrent()->setTime(0.0);
-	TimeManager::getCurrent()->setTimeStepSize(0.001);
+	//TimeManager::getCurrent()->setTimeStepSize(0.001);
 }
 
 void Simulation::setSimulationMethod(const int val)
@@ -360,7 +441,7 @@ void Simulation::setSimulationMethod(const int val)
 		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_NONE);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
-		TimeManager::getCurrent()->setTimeStepSize(0.001);
+		//TimeManager::getCurrent()->setTimeStepSize(0.001);
 	}
 	else if (method == SimulationMethods::PCISPH)
 	{

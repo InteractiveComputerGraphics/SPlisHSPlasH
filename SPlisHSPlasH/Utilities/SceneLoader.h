@@ -78,6 +78,7 @@ namespace Utilities
 			std::vector<FluidBlock*> fluidBlocks;
 			std::vector<EmitterData*> emitters;
 			Real particleRadius;
+			bool sim2D;
 			Real timeStepSize;
 		};
 

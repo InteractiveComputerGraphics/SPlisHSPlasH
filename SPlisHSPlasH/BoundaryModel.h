@@ -26,7 +26,8 @@ namespace SPH
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
 			std::vector<Real> m_boundaryPsi;
-			std::vector<Vector3r> m_f;
+			std::vector<Vector3r> m_forcePerThread;
+			std::vector<Vector3r> m_torquePerThread;
 			bool m_sorted;
 			unsigned int m_pointSetIndex;
 
@@ -41,7 +42,24 @@ namespace SPH
 
 			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
 			RigidBodyObject* getRigidBodyObject() { return m_rigidBody; }
-			
+
+			FORCE_INLINE void addForce(const Vector3r &pos, const Vector3r &f)
+			{
+				if (m_rigidBody->isDynamic())
+				{
+					#ifdef _OPENMP
+					int tid = omp_get_thread_num();
+					#else
+					int tid = 0;
+					#endif
+					m_forcePerThread[tid] += f;
+					m_torquePerThread[tid] += (pos - m_rigidBody->getPosition()).cross(f);
+				}
+			}
+
+			void getForceAndTorque(Vector3r &force, Vector3r &torque);
+			void clearForceAndTorque();
+
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{
 				return m_x0[i];
@@ -85,21 +103,6 @@ namespace SPH
 			FORCE_INLINE void setVelocity(const unsigned int i, const Vector3r &vel)
 			{
 				m_v[i] = vel;
-			}
-			
-			FORCE_INLINE Vector3r &getForce(const unsigned int i)
-			{
-				return m_f[i];
-			}
-
-			FORCE_INLINE const Vector3r &getForce(const unsigned int i) const
-			{
-				return m_f[i];
-			}
-
-			FORCE_INLINE void setForce(const unsigned int i, const Vector3r &f)
-			{
-				m_f[i] = f;
 			}
 
 			FORCE_INLINE const Real& getVolume(const unsigned int i) const

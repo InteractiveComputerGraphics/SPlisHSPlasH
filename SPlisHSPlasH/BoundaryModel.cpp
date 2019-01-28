@@ -16,7 +16,8 @@ BoundaryModel::BoundaryModel() :
 	m_v(),
 	m_V(),
 	m_boundaryPsi(),
-	m_f()
+	m_forcePerThread(),
+	m_torquePerThread()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -29,7 +30,8 @@ BoundaryModel::~BoundaryModel(void)
 	m_v.clear();
 	m_V.clear();
 	m_boundaryPsi.clear();
-	m_f.clear();
+	m_forcePerThread.clear();
+	m_torquePerThread.clear();
 
 	delete m_rigidBody;
 }
@@ -40,8 +42,19 @@ void BoundaryModel::reset()
 	for (int j = 0; j < (int)numberOfParticles(); j++)
 	{
 		m_x[j] = m_x0[j];
-		m_f[j].setZero();
 		m_v[j].setZero();
+	}
+
+	#ifdef _OPENMP
+	const int maxThreads = omp_get_max_threads();
+	#else
+	const int maxThreads = 1;
+	#endif
+
+	for (int j = 0; j < maxThreads; j++)
+	{
+		m_forcePerThread[j].setZero();
+		m_torquePerThread[j].setZero();
 	}
 }
 
@@ -80,9 +93,17 @@ void BoundaryModel::initModel(RigidBodyObject *rbo, const unsigned int numBounda
 	m_x0.resize(numBoundaryParticles);
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
-	m_f.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
 	m_boundaryPsi.resize(numBoundaryParticles);
+	
+	#ifdef _OPENMP
+	const int maxThreads = omp_get_max_threads();
+	#else
+	const int maxThreads = 1;
+	#endif
+
+	m_forcePerThread.resize(maxThreads, Vector3r::Zero());
+	m_torquePerThread.resize(maxThreads, Vector3r::Zero());
 
 	#pragma omp parallel default(shared)
 	{
@@ -92,7 +113,6 @@ void BoundaryModel::initModel(RigidBodyObject *rbo, const unsigned int numBounda
 			m_x0[i] = boundaryParticles[i];
 			m_x[i] = boundaryParticles[i];
 			m_v[i].setZero();
-			m_f[i].setZero();
 			m_V[i] = 0.0;
 			m_boundaryPsi[i] = 0.0;
 		}
@@ -116,8 +136,38 @@ void BoundaryModel::performNeighborhoodSearchSort()
 	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);  
 	d.sort_field(&m_x[0]);
 	d.sort_field(&m_v[0]);
-	d.sort_field(&m_f[0]);
 	d.sort_field(&m_V[0]);
 	d.sort_field(&m_boundaryPsi[0]);
 	m_sorted = true;
+}
+
+void BoundaryModel::getForceAndTorque(Vector3r &force, Vector3r &torque)
+{
+	#ifdef _OPENMP
+	const int maxThreads = omp_get_max_threads();
+	#else
+	const int maxThreads = 1;
+	#endif
+
+	force.setZero();
+	for (int j = 0; j < maxThreads; j++)
+	{
+		force += m_forcePerThread[j];
+		torque += m_torquePerThread[j];
+	}
+}
+
+void BoundaryModel::clearForceAndTorque()
+{
+	#ifdef _OPENMP
+	const int maxThreads = omp_get_max_threads();
+	#else
+	const int maxThreads = 1;
+	#endif
+
+	for (int j = 0; j < maxThreads; j++)
+	{
+		m_forcePerThread[j].setZero();
+		m_torquePerThread[j].setZero();
+	}
 }

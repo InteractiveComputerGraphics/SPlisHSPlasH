@@ -60,6 +60,7 @@ namespace SPH
 	class Simulation : public GenParam::ParameterObject
 	{
 	public:
+		static int SIM_2D;
 		static int PARTICLE_RADIUS;
 		static int GRAVITATION;
 		static int CFL_METHOD;
@@ -69,13 +70,19 @@ namespace SPH
 		static int KERNEL_METHOD;
 		static int GRAD_KERNEL_METHOD;
 		static int ENUM_KERNEL_CUBIC;
+		static int ENUM_KERNEL_WENDLANDQUINTICC2;
 		static int ENUM_KERNEL_POLY6;
 		static int ENUM_KERNEL_SPIKY;
 		static int ENUM_KERNEL_PRECOMPUTED_CUBIC;
+		static int ENUM_KERNEL_CUBIC_2D;
+		static int ENUM_KERNEL_WENDLANDQUINTICC2_2D;
 		static int ENUM_GRADKERNEL_CUBIC;
+		static int ENUM_GRADKERNEL_WENDLANDQUINTICC2;
 		static int ENUM_GRADKERNEL_POLY6;
 		static int ENUM_GRADKERNEL_SPIKY;
 		static int ENUM_GRADKERNEL_PRECOMPUTED_CUBIC;
+		static int ENUM_GRADKERNEL_CUBIC_2D;
+		static int ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D;
 
 		static int SIMULATION_METHOD;
 
@@ -109,6 +116,7 @@ namespace SPH
 		Vector3r m_gravitation;
 		Real m_particleRadius;
 		Real m_supportRadius;
+		bool m_sim2D;
 		std::function<void()> m_simulationMethodChanged;		
 
 		virtual void initParameters();
@@ -120,7 +128,7 @@ namespace SPH
 		Simulation ();
 		~Simulation ();
 
-		void init(const Real particleRadius);
+		void init(const Real particleRadius, const bool sim2D);
 		void reset();
 
 		// Singleton
@@ -132,8 +140,6 @@ namespace SPH
 		FluidModel *getFluidModel(const unsigned int index) { return m_fluidModels[index]; }
 		FluidModel *getFluidModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<FluidModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
 		const unsigned int numberOfFluidModels() const { return static_cast<unsigned int>(m_fluidModels.size()); }
-
-
 
 		void addBoundaryModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
 		BoundaryModel *getBoundaryModel(const unsigned int index) { return m_boundaryModels[index]; }
@@ -157,6 +163,7 @@ namespace SPH
 
 		TimeStep *getTimeStep() { return m_timeStep; }
 
+		bool is2DSimulation() { return m_sim2D; }
 
 		void setParticleRadius(Real val);
 		Real getParticleRadius() const { return m_particleRadius; }

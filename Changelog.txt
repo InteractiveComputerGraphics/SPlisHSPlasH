@@ -1,3 +1,7 @@
+	- SPlisHSPlasH now supports 2D simulations
+	- added documentation of file format
+	- added colormaps
+	- fixed race condition
 	- fixed single precision build
 	- updated PositionBasedDynamics
 

@@ -207,7 +207,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 				// Pressure 
 				const Vector3r a = bm_neighbor->getVolume(neighborIndex) * (dpi)* sim->gradW(xi - xj);
 				ai -= a;
-				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * a;
+				bm_neighbor->addForce(xj, model->getMass(i) * a);
 			)
 		}
 	}

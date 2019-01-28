@@ -45,9 +45,7 @@ int MiniGL::mouse_button = -1;
 int MiniGL::modifier_key = 0;
 int MiniGL::mouse_pos_x_old = 0;
 int MiniGL::mouse_pos_y_old = 0;
-void (*MiniGL::keyfunc [MAX_KEY_FUNC])(void) = {NULL, NULL};
-unsigned char MiniGL::key [MAX_KEY_FUNC] = {0,0};
-int MiniGL::numberOfKeyFunc = 0;
+std::vector<MiniGL::KeyFunction> MiniGL::keyfunc;
 int MiniGL::drawMode = GL_FILL;
 TwBar *MiniGL::m_tweakBar = NULL;
 Real MiniGL::m_time = 0.0;
@@ -709,18 +707,12 @@ void MiniGL::setClientIdleFunc (int hz, void (*func) (void))
 	}
 }
 
-void MiniGL::setKeyFunc (int nr, unsigned char k, void (*func) (void))
+void MiniGL::addKeyFunc (unsigned char k, std::function<void()> func)
 {
-	if ((nr >= MAX_KEY_FUNC) || (func == NULL))
-	{
+	if (func == nullptr)
 		return;
-	}
 	else
-	{
-		keyfunc[nr] = func;
-		key[nr] = k;
-		numberOfKeyFunc++;
-	}
+		keyfunc.push_back({ func, k });
 }
 
 void MiniGL::idle ()
@@ -759,10 +751,10 @@ void MiniGL::keyboard (unsigned char k, int x, int y)
 		rotateY(turnspeed);
 	else 
 	{
-		for (int i=0; i < numberOfKeyFunc; i++)
+		for (int i=0; i < keyfunc.size(); i++)
 		{
-			if (k == key[i])
-				keyfunc [i] ();
+			if (k == keyfunc[i].key)
+				keyfunc[i].fct();
 		}
 	}
 	glutPostRedisplay ();

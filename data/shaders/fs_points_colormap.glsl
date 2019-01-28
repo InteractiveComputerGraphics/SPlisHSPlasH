@@ -4,6 +4,7 @@ uniform float radius;
 uniform float min_scalar;
 uniform float max_scalar;
 uniform mat4 projection_matrix;
+uniform sampler1D samp;
 
 in block
 {
@@ -60,8 +61,8 @@ void main(void)
 	vec3 hsv = rgb2hsv(color);
 	float v = max(In.scalar_field-min_scalar, 0.0);
 	float diff = abs(max_scalar-min_scalar);
-	v = min(v/diff, 1.0);
-	vec3 fluidColor = hsv2rgb(vec3(hsv.x, 1.0 - v, 1.0));
+	v = min(v/diff, 1.0);	
+	vec3 fluidColor = texture(samp, v).xyz;
 
 	// compute final color
 	vec3 color_ = 0.25 * fluidColor;

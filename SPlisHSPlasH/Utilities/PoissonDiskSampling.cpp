@@ -124,7 +124,14 @@ void PoissonDiskSampling::generateInitialPointSet(const unsigned int numVertices
 	
 	random_device r;
 	std::vector<std::default_random_engine> generators;
-    for (int i = 0; i < omp_get_max_threads(); ++i) 
+
+	#ifdef _OPENMP
+	const int maxThreads = omp_get_max_threads();
+	#else
+	const int maxThreads = 1;
+	#endif
+
+    for (int i = 0; i < maxThreads; ++i) 
         generators.emplace_back(default_random_engine(r()));
 	
 	#pragma omp parallel default(shared)
@@ -133,8 +140,13 @@ void PoissonDiskSampling::generateInitialPointSet(const unsigned int numVertices
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)m_initialInfoVec.size(); i++)
 		{
+			#ifdef _OPENMP
+			int tid = omp_get_thread_num();
+			#else
+			int tid = 0;
+			#endif
 			// Get the generator based on thread id
-			std::default_random_engine& generator = generators[omp_get_thread_num()];
+			std::default_random_engine& generator = generators[tid];
 			
 			Real rn1 = sqrt(distribution(generator));
 			Real bc1 = static_cast<Real>(1.0) - rn1;

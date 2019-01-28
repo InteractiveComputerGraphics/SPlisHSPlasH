@@ -18,6 +18,11 @@ Real SpikyKernel::m_k;
 Real SpikyKernel::m_l;
 Real SpikyKernel::m_W_zero;
 
+Real WendlandQuinticC2Kernel::m_radius;
+Real WendlandQuinticC2Kernel::m_k;
+Real WendlandQuinticC2Kernel::m_l;
+Real WendlandQuinticC2Kernel::m_W_zero;
+
 Real CohesionKernel::m_radius;
 Real CohesionKernel::m_k;
 Real CohesionKernel::m_c;
@@ -26,3 +31,14 @@ Real CohesionKernel::m_W_zero;
 Real AdhesionKernel::m_radius;
 Real AdhesionKernel::m_k;
 Real AdhesionKernel::m_W_zero;
+
+Real CubicKernel2D::m_radius;
+Real CubicKernel2D::m_k;
+Real CubicKernel2D::m_l;
+Real CubicKernel2D::m_W_zero;
+
+Real WendlandQuinticC2Kernel2D::m_radius;
+Real WendlandQuinticC2Kernel2D::m_k;
+Real WendlandQuinticC2Kernel2D::m_l;
+Real WendlandQuinticC2Kernel2D::m_W_zero;
+

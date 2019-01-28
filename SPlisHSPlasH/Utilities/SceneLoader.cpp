@@ -44,6 +44,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.particleRadius = 0.025;
 		readValue(config["particleRadius"], scene.particleRadius);
+
+		scene.sim2D = false;
+		readValue(config["sim2D"], scene.sim2D);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

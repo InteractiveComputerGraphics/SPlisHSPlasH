@@ -18,6 +18,7 @@
 #include "Utilities/Counting.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "Demos/Common/TweakBarParameters.h"
+#include "GL/freeglut_ext.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -54,7 +55,7 @@ int main( int argc, char **argv )
 	base->init(argc, argv, "StaticBoundaryDemo");
 
 	Simulation *sim = Simulation::getCurrent();
-	sim->init(base->getScene().particleRadius);
+	sim->init(base->getScene().particleRadius, base->getScene().sim2D);
 	
 	base->buildModel();
 
@@ -80,7 +81,7 @@ int main( int argc, char **argv )
 	base->readParameters();
 
 	MiniGL::setClientIdleFunc(50, timeStep);
-	MiniGL::setKeyFunc(0, 'r', reset);
+	MiniGL::addKeyFunc('r', reset);
 	MiniGL::setClientSceneFunc(render);
 
 	glutMainLoop ();	
@@ -146,6 +147,9 @@ void reset()
 	Utilities::Timing::printAverageTimes();
 	Utilities::Timing::reset();
 
+	Utilities::Counting::printAverageCounts();
+	Utilities::Counting::reset();
+
 	Simulation::getCurrent()->reset();
 	base->reset();
 	base->getSelectedParticles().clear();
@@ -153,6 +157,10 @@ void reset()
 
 void timeStep ()
 {
+	const Real stopAt = base->getValue<Real>(DemoBase::STOP_AT);
+	if ((stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
+		glutLeaveMainLoop();
+
 	const Real pauseAt = base->getValue<Real>(DemoBase::PAUSE_AT);
 	if ((pauseAt > 0.0) && (pauseAt < TimeManager::getCurrent()->getTime()))
 		base->setValue(DemoBase::PAUSE, true);
@@ -161,6 +169,8 @@ void timeStep ()
 		return;
 
 	// Simulation code
+	Simulation *sim = Simulation::getCurrent();
+	const bool sim2D = sim->is2DSimulation();
 	const unsigned int numSteps = base->getValue<unsigned int>(DemoBase::NUM_STEPS_PER_RENDER);
 	for (unsigned int i = 0; i < numSteps; i++)
 	{
@@ -169,6 +179,22 @@ void timeStep ()
 		STOP_TIMING_AVG;
 
 		base->step();
+
+		INCREASE_COUNTER("Time step size", TimeManager::getCurrent()->getTimeStepSize());
+
+		// Make sure that particles stay in xy-plane in a 2D simulation
+		if (sim2D)
+		{
+			for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+			{
+				FluidModel *model = sim->getFluidModel(i);
+				for (unsigned int i = 0; i < model->numActiveParticles(); i++)
+				{
+					model->getPosition(i)[2] = 0.0;
+					model->getVelocity(i)[2] = 0.0;
+				}
+			}
+		}
 	}
 }
 
@@ -195,30 +221,30 @@ void render()
 void renderBoundary()
 {
 	Simulation *sim = Simulation::getCurrent();
-	Shader &shader = base->getShader();
+	Shader &shader = base->getShaderScalar();
 	Shader &meshShader = base->getMeshShader();
 	SceneLoader::Scene &scene = base->getScene();
 	const int renderWalls = base->getValue<int>(DemoBase::RENDER_WALLS);
 	GLint context_major_version = base->getContextMajorVersion();
 
-	float wallColor[4] = { 0.1f, 0.6f, 0.6f, 1.0f };
 	if ((renderWalls == 1) || (renderWalls == 2))
 	{
 		if (context_major_version > 3)
 		{
 			shader.begin();
-			glUniform3fv(shader.getUniform("color"), 1, &wallColor[0]);
-			glEnableVertexAttribArray(0);
 			for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
+					glUniform3fv(shader.getUniform("color"), 1, scene.boundaryModels[body]->color.data());
+					glEnableVertexAttribArray(0);
+
 					BoundaryModel *bm = sim->getBoundaryModel(body);
 					glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &bm->getPosition(0));
 					glDrawArrays(GL_POINTS, 0, bm->numberOfParticles());
+					glDisableVertexAttribArray(0);
 				}
-			}
-			glDisableVertexAttribArray(0);
+			}			
 			shader.end();
 		}
 		else
@@ -234,7 +260,7 @@ void renderBoundary()
 					BoundaryModel *bm = sim->getBoundaryModel(body);
 					for (unsigned int i = 0; i < bm->numberOfParticles(); i++)
 					{
-						glColor3fv(wallColor);
+						glColor3fv(scene.boundaryModels[body]->color.data());
 						glVertex3v(&bm->getPosition(i)[0]);
 					}
 				}
@@ -260,10 +286,10 @@ void renderBoundary()
 				glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
 				glUniformMatrix4fv(meshShader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
 
-				glUniform3fv(meshShader.getUniform("surface_color"), 1, wallColor);
+				glUniform3fv(meshShader.getUniform("surface_color"), 1, scene.boundaryModels[body]->color.data());
 
 				BoundaryModel *bm = sim->getBoundaryModel(body);
-				MiniGL::drawMesh(((StaticRigidBody*)bm->getRigidBodyObject())->getGeometry(), wallColor);
+				MiniGL::drawMesh(((StaticRigidBody*)bm->getRigidBodyObject())->getGeometry(), scene.boundaryModels[body]->color.data());
 
 				meshShader.end();
 			}

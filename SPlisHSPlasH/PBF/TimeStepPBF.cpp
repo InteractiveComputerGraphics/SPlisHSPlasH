@@ -6,6 +6,7 @@
 #include <iostream>
 #include "Utilities/Timing.h"
 #include "SPlisHSPlasH/Simulation.h"
+#include "Utilities/Counting.h"
 
 using namespace SPH;
 using namespace std;
@@ -164,6 +165,7 @@ void TimeStepPBF::pressureSolve()
 
 		m_iterations++;
 	}
+	INCREASE_COUNTER("PBF - iterations", m_iterations);
 }
 
 void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err)
@@ -277,8 +279,8 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 				const Vector3r dx = 2.0 * m_simulationData.getLambda(fluidModelIndex, i) * gradC_j;
 				corr -= dx;
 
-				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * dx * invH2;
-			)
+				bm_neighbor->addForce(xj, model->getMass(i) * dx * invH2);
+			);
 		}
 	}
 		

@@ -261,7 +261,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
 						vel += velChange;
 
-						bm_neighbor->getForce(neighborIndex) -= model->getMass(i) * velChange * invH;
+						bm_neighbor->addForce(xj, -model->getMass(i) * velChange * invH);
 					)
 				}
 			}
@@ -413,7 +413,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 					const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
 					v_i += velChange;
 
-					bm_neighbor->getForce(neighborIndex) -= model->getMass(i) * velChange * invH;
+					bm_neighbor->addForce(xj, -model->getMass(i) * velChange * invH);
 				)
 			}
 		}
@@ -494,7 +494,7 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 						const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
 						vel += velChange;
 
-						bm_neighbor->getForce(neighborIndex) -= model->getMass(i) * velChange * invH;
+						bm_neighbor->addForce(xj, -model->getMass(i) * velChange * invH);
 					)
 				}
 			}
@@ -656,7 +656,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 					const Vector3r velChange = -h * (Real) 1.0 * ki * grad_p_j;				// kj already contains inverse density
 					v_i += velChange;
 
-					bm_neighbor->getForce(neighborIndex) -= model->getMass(i) * velChange * invH;
+					bm_neighbor->addForce(xj, - model->getMass(i) * velChange * invH);
 				)
 			}
 		}

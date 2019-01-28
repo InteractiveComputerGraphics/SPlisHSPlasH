@@ -54,7 +54,6 @@ add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 
 include_directories(${PROJECT_PATH}/extern/freeglut/include)
 include_directories(${PROJECT_PATH}/extern/glew/include)
-include_directories(${PROJECT_PATH}/extern/spdlog/include)
 
 set_target_properties(StaticBoundaryDemo PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(StaticBoundaryDemo PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})

@@ -16,6 +16,8 @@
 #include "Utilities/Counting.h"
 #include "Utilities/Version.h"
 #include "Utilities/SystemInfo.h"
+#include "Visualization/colormaps/colormap_jet.h"
+#include "Visualization/colormaps/colormap_plasma.h"
 
 INIT_LOGGING
 INIT_TIMING
@@ -28,17 +30,27 @@ using namespace Utilities;
 
 int DemoBase::PAUSE = -1;
 int DemoBase::PAUSE_AT = -1;
+int DemoBase::STOP_AT = -1;
 int DemoBase::NUM_STEPS_PER_RENDER = -1;
 int DemoBase::PARTIO_EXPORT = -1;
 int DemoBase::PARTIO_EXPORT_FPS = -1;
-int DemoBase::RENDER_OMEGA = -1;
-int DemoBase::RENDER_MAX_VEL = -1;
+int DemoBase::RENDER_MIN_VALUE = -1;
+int DemoBase::RENDER_MAX_VALUE = -1;
 int DemoBase::RENDER_WALLS = -1;
+int DemoBase::RENDER_COLOR_FIELD = -1;
+int DemoBase::RENDER_COLOR_MAP_TYPE = -1;
 int DemoBase::ENUM_WALLS_NONE = -1;
 int DemoBase::ENUM_WALLS_PARTICLES_ALL = -1;
 int DemoBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
 int DemoBase::ENUM_WALLS_GEOMETRY_ALL = -1;
 int DemoBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
+int DemoBase::ENUM_RENDER_NONE = -1;
+int DemoBase::ENUM_RENDER_VELOCITY = -1;
+int DemoBase::ENUM_RENDER_ANGULAR_VELOCITY = -1;
+int DemoBase::ENUM_RENDER_DENSITY = -1;
+int DemoBase::ENUM_COLORMAP_NONE = -1;
+int DemoBase::ENUM_COLORMAP_JET = -1;
+int DemoBase::ENUM_COLORMAP_PLASMA = -1;
 
  
 DemoBase::DemoBase()
@@ -46,17 +58,23 @@ DemoBase::DemoBase()
 	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 
 	m_numberOfStepsPerRenderUpdate = 4;
-	m_renderAngularVelocities = false;
-	m_renderMaxVelocity = 25.0;
+	m_colorField = 1;
+	setColorMapType(0);
+	m_renderMinValue = 0.0;
+	m_renderMaxValue = 5.0;
 	m_sceneFile = "";
 	m_renderWalls = 4;
 	m_doPause = true;
 	m_pauseAt = -1.0;
+	m_stopAt = -1.0;
 	m_useParticleCaching = true;
 	m_enablePartioExport = false;
 	m_framesPerSecond = 25;
 	m_nextFrameTime = 0.0;
 	m_frameCounter = 1;
+#ifdef DL_OUTPUT
+	m_nextTiming = 1.0;
+#endif
 }
 
 DemoBase::~DemoBase()
@@ -77,24 +95,46 @@ void DemoBase::initParameters()
 	setGroup(PAUSE_AT, "General");
 	setDescription(PAUSE_AT, "Pause simulation at the given time. When the value is negative, the simulation is not paused.");
 
+	STOP_AT = createNumericParameter("stopAt", "Stop simulation at", &m_stopAt);
+	setGroup(STOP_AT, "General");
+	setDescription(STOP_AT, "Stop simulation at the given time. When the value is negative, the simulation is not stopped.");
+
 	NUM_STEPS_PER_RENDER = createNumericParameter("numberOfStepsPerRenderUpdate", "# time steps / update", &m_numberOfStepsPerRenderUpdate);
 	setGroup(NUM_STEPS_PER_RENDER, "Visualization");
-	setDescription(NUM_STEPS_PER_RENDER, "Pause simulation at the given time. When the value is negative, the simulation is not paused.");
+	setDescription(NUM_STEPS_PER_RENDER, "Number of simulation steps per rendered frame.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(NUM_STEPS_PER_RENDER))->setMinValue(1);
 
-	RENDER_MAX_VEL = createNumericParameter("renderMaxVelocity", "Max. velocity (shader)", &m_renderMaxVelocity);
-	setGroup(RENDER_MAX_VEL, "Visualization");
-	setDescription(RENDER_MAX_VEL, "Maximal velocity used for color-coding the velocity in the rendering process.");
-	static_cast<RealParameter*>(getParameter(RENDER_MAX_VEL))->setMinValue(0.00001);
+	RENDER_MIN_VALUE = createNumericParameter("renderMinValue", "Min. value (shader)", &m_renderMinValue);
+	setGroup(RENDER_MIN_VALUE, "Visualization");
+	setDescription(RENDER_MIN_VALUE, "Minimal value used for color-coding the color field in the rendering process.");
 
-	RENDER_OMEGA = createBoolParameter("renderAngularVelocities", "Render angular velocities", &m_renderAngularVelocities);
-	setGroup(RENDER_OMEGA, "Visualization");
-	setDescription(RENDER_OMEGA, "Render angular velocities (micropolar model).");
+	RENDER_MAX_VALUE = createNumericParameter("renderMaxValue", "Max. value (shader)", &m_renderMaxValue);
+	setGroup(RENDER_MAX_VALUE, "Visualization");
+	setDescription(RENDER_MAX_VALUE, "Maximal value used for color-coding the color field in the rendering process.");
+
+	RENDER_COLOR_FIELD = createEnumParameter("colorField", "Color field", &m_colorField);
+	setGroup(RENDER_COLOR_FIELD, "Visualization");
+	setDescription(RENDER_COLOR_FIELD, "Choose vector or scalar field for particle coloring.");
+	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(RENDER_COLOR_FIELD));
+	enumParam->addEnumValue("None", ENUM_RENDER_NONE);
+	enumParam->addEnumValue("Velocity", ENUM_RENDER_VELOCITY);
+	enumParam->addEnumValue("Angular velocity (micropolar model)", ENUM_RENDER_ANGULAR_VELOCITY);
+	enumParam->addEnumValue("Density", ENUM_RENDER_DENSITY);
+
+	ParameterBase::GetFunc<int> getColorMapTypeFct = std::bind(&DemoBase::getColorMapType, this);
+	ParameterBase::SetFunc<int> setColorMapTypeFct = std::bind(&DemoBase::setColorMapType, this, std::placeholders::_1);
+	RENDER_COLOR_MAP_TYPE = createEnumParameter("colorMapType", "Color map", getColorMapTypeFct, setColorMapTypeFct);
+	setGroup(RENDER_COLOR_MAP_TYPE, "Visualization");
+	setDescription(RENDER_COLOR_MAP_TYPE, "Choose a color map.");
+	enumParam = static_cast<EnumParameter*>(getParameter(RENDER_COLOR_MAP_TYPE));
+	enumParam->addEnumValue("None", ENUM_COLORMAP_NONE);
+	enumParam->addEnumValue("Jet", ENUM_COLORMAP_JET);
+	enumParam->addEnumValue("Plasma", ENUM_COLORMAP_PLASMA);
 
 	RENDER_WALLS = createEnumParameter("renderWalls", "Render walls", &m_renderWalls);
 	setGroup(RENDER_WALLS, "Visualization");
 	setDescription(RENDER_WALLS, "Make walls visible/invisible.");
-	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(RENDER_WALLS));
+	enumParam = static_cast<EnumParameter*>(getParameter(RENDER_WALLS));
 	enumParam->addEnumValue("None", ENUM_WALLS_NONE);
 	enumParam->addEnumValue("Particles (all)", ENUM_WALLS_PARTICLES_ALL);
 	enumParam->addEnumValue("Particles (no walls)", ENUM_WALLS_PARTICLES_NO_WALLS);
@@ -164,6 +204,7 @@ void DemoBase::init(int argc, char **argv, const char *demoName)
 	MiniGL::getOpenGLVersion(m_context_major_version, m_context_minor_version);
 	MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 3.0, 8.0), Vector3r(0.0, 0.0, 0.0));
 	MiniGL::setSelectionFunc(selection, this);
+	MiniGL::addKeyFunc('i', std::bind(&DemoBase::particleInfo, this));
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 		initShaders();
@@ -190,20 +231,61 @@ void DemoBase::cleanup()
 
 void DemoBase::initShaders()
 {
-	string vertFile = getExePath() + "/resources/shaders/vs_points.glsl";
+	string vertFile = getExePath() + "/resources/shaders/vs_points_vector.glsl";
 	string fragFile = getExePath() + "/resources/shaders/fs_points.glsl";
-	m_shader.compileShaderFile(GL_VERTEX_SHADER, vertFile);
-	m_shader.compileShaderFile(GL_FRAGMENT_SHADER, fragFile);
-	m_shader.createAndLinkProgram();
-	m_shader.begin();
-	m_shader.addUniform("modelview_matrix");
-	m_shader.addUniform("projection_matrix");
-	m_shader.addUniform("radius");
-	m_shader.addUniform("viewport_width");
-	m_shader.addUniform("color");
-	m_shader.addUniform("projection_radius");
-	m_shader.addUniform("max_velocity");
-	m_shader.end();
+	m_shader_vector.compileShaderFile(GL_VERTEX_SHADER, vertFile);
+	m_shader_vector.compileShaderFile(GL_FRAGMENT_SHADER, fragFile);
+	m_shader_vector.createAndLinkProgram();
+	m_shader_vector.begin();
+	m_shader_vector.addUniform("modelview_matrix");
+	m_shader_vector.addUniform("projection_matrix");
+	m_shader_vector.addUniform("radius");
+	m_shader_vector.addUniform("viewport_width");
+	m_shader_vector.addUniform("color");
+	m_shader_vector.addUniform("min_scalar");
+	m_shader_vector.addUniform("max_scalar");
+	m_shader_vector.end();
+
+	string vertFileScalar = getExePath() + "/resources/shaders/vs_points_scalar.glsl";
+	m_shader_scalar.compileShaderFile(GL_VERTEX_SHADER, vertFileScalar);
+	m_shader_scalar.compileShaderFile(GL_FRAGMENT_SHADER, fragFile);
+	m_shader_scalar.createAndLinkProgram();
+	m_shader_scalar.begin();
+	m_shader_scalar.addUniform("modelview_matrix");
+	m_shader_scalar.addUniform("projection_matrix");
+	m_shader_scalar.addUniform("radius");
+	m_shader_scalar.addUniform("viewport_width");
+	m_shader_scalar.addUniform("color");
+	m_shader_scalar.addUniform("min_scalar");
+	m_shader_scalar.addUniform("max_scalar");
+	m_shader_scalar.end();
+
+	string fragFileMap = getExePath() + "/resources/shaders/fs_points_colormap.glsl";
+	m_shader_vector_map.compileShaderFile(GL_VERTEX_SHADER, vertFile);
+	m_shader_vector_map.compileShaderFile(GL_FRAGMENT_SHADER, fragFileMap);
+	m_shader_vector_map.createAndLinkProgram();
+	m_shader_vector_map.begin();
+	m_shader_vector_map.addUniform("modelview_matrix");
+	m_shader_vector_map.addUniform("projection_matrix");
+	m_shader_vector_map.addUniform("radius");
+	m_shader_vector_map.addUniform("viewport_width");
+	m_shader_vector_map.addUniform("color");
+	m_shader_vector_map.addUniform("min_scalar");
+	m_shader_vector_map.addUniform("max_scalar");
+	m_shader_vector_map.end();
+
+	m_shader_scalar_map.compileShaderFile(GL_VERTEX_SHADER, vertFileScalar);
+	m_shader_scalar_map.compileShaderFile(GL_FRAGMENT_SHADER, fragFileMap);
+	m_shader_scalar_map.createAndLinkProgram();
+	m_shader_scalar_map.begin();
+	m_shader_scalar_map.addUniform("modelview_matrix");
+	m_shader_scalar_map.addUniform("projection_matrix");
+	m_shader_scalar_map.addUniform("radius");
+	m_shader_scalar_map.addUniform("viewport_width");
+	m_shader_scalar_map.addUniform("color");
+	m_shader_scalar_map.addUniform("min_scalar");
+	m_shader_scalar_map.addUniform("max_scalar");
+	m_shader_scalar_map.end();
 
 	vertFile = getExePath() + "/resources/shaders/vs_smooth.glsl";
 	fragFile = getExePath() + "/resources/shaders/fs_smooth.glsl";
@@ -217,6 +299,9 @@ void DemoBase::initShaders()
 	m_meshShader.addUniform("shininess");
 	m_meshShader.addUniform("specular_factor");
 	m_meshShader.end();
+
+	glActiveTexture(GL_TEXTURE0);
+	glGenTextures(1, &m_textureMap);
 }
 
 
@@ -240,24 +325,38 @@ void DemoBase::meshShaderEnd()
 	m_meshShader.end();
 }
 
-void DemoBase::pointShaderBegin(const float *col)
+void DemoBase::pointShaderBegin(Shader *shader, const float *col, const bool useTexture)
 {
-	m_shader.begin();
+	shader->begin();
 
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	const Real radius = Simulation::getCurrent()->getValue<Real>(Simulation::PARTICLE_RADIUS);
-	glUniform1f(m_shader.getUniform("viewport_width"), (float)viewport[2]);
-	glUniform1f(m_shader.getUniform("radius"), (float)radius);
-	glUniform1f(m_shader.getUniform("max_velocity"), (GLfloat) m_renderMaxVelocity);
-	glUniform3fv(m_shader.getUniform("color"), 1, col);
+	glUniform1f(shader->getUniform("viewport_width"), (float)viewport[2]);
+	glUniform1f(shader->getUniform("radius"), (float)radius);
+	glUniform1f(shader->getUniform("min_scalar"), (GLfloat)m_renderMinValue);
+	glUniform1f(shader->getUniform("max_scalar"), (GLfloat)m_renderMaxValue);
+	glUniform3fv(shader->getUniform("color"), 1, col);
+
+	if (useTexture)
+	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_1D, m_textureMap);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, m_colorMapLength, 0, GL_RGB, GL_FLOAT,
+			reinterpret_cast<float const*>(m_colorMapBuffer));
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glGenerateMipmap(GL_TEXTURE_1D);
+	}
+
 
 	GLfloat matrix[16];
 	glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-	glUniformMatrix4fv(m_shader.getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
+	glUniformMatrix4fv(shader->getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
 	GLfloat pmatrix[16];
 	glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-	glUniformMatrix4fv(m_shader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+	glUniformMatrix4fv(shader->getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
 
 	glEnable(GL_DEPTH_TEST);
 	// Point sprites do not have to be explicitly enabled since OpenGL 3.2 where
@@ -268,9 +367,10 @@ void DemoBase::pointShaderBegin(const float *col)
 	glPointParameterf(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
 }
 
-void DemoBase::pointShaderEnd()
+void DemoBase::pointShaderEnd(Shader *shader, const bool useTexture)
 {
-	m_shader.end();
+	glBindTexture(GL_TEXTURE_1D, 0);
+	shader->end();
 }
 
 void DemoBase::readParameters()
@@ -305,8 +405,16 @@ void DemoBase::buildModel()
 
 	sim->getTimeStep()->resize();
 
-	sim->setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
-	sim->setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+	if (!sim->is2DSimulation())
+	{
+		sim->setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
+		sim->setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
+	}
+	else
+	{
+		sim->setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC_2D);
+		sim->setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC_2D);
+	}
 }
 
 
@@ -455,11 +563,18 @@ void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, 
 
 		const int stepsX = (int)round(diff[0] / xshift) - 1;
 		const int stepsY = (int)round(diff[1] / yshift) - 1;
-		const int stepsZ = (int)round(diff[2] / diam) - 1;
+		int stepsZ = (int)round(diff[2] / diam) - 1;
 
 		Vector3r start = m_scene.fluidBlocks[i]->box.m_minX + static_cast<Real>(2.0)*m_scene.particleRadius*Vector3r::Ones();
 		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + stepsX*stepsY*stepsZ);
 		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + stepsX*stepsY*stepsZ, m_scene.fluidBlocks[i]->initialVelocity);
+
+		if (Simulation::getCurrent()->is2DSimulation())
+		{
+			stepsZ = 1;
+			start[2] = 0.0;
+		}
+
 		for (int j = 0; j < stepsX; j++)
 		{
 			for (int k = 0; k < stepsY; k++)
@@ -518,28 +633,58 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		float fluidColor2[4] = { 0.3f, 0.9f, 0.5f, 1.0f };
-		pointShaderBegin(&fluidColor[0]);
+		Shader *shader_vector = &m_shader_vector_map;
+		Shader *shader_scalar = &m_shader_scalar_map;
+		if (m_colorMapType == ENUM_COLORMAP_NONE)
+		{
+			shader_vector = &m_shader_vector;
+			shader_scalar = &m_shader_scalar;
+		}
+
+		if ((m_colorField == ENUM_RENDER_VELOCITY) || (m_colorField == ENUM_RENDER_ANGULAR_VELOCITY))
+			pointShaderBegin(shader_vector, &fluidColor[0], true);
+		else if (m_colorField == ENUM_RENDER_DENSITY)
+			pointShaderBegin(shader_scalar, &fluidColor[0], true);
+		else 
+			pointShaderBegin(shader_scalar, &fluidColor[0], false);
 
 		if (model->numActiveParticles() > 0)
 		{
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
-			glEnableVertexAttribArray(1);
-			if (m_renderAngularVelocities && ((VorticityMethods)model->getVorticityMethod() == VorticityMethods::Micropolar))
+			
+			if (m_colorField == ENUM_RENDER_VELOCITY)
 			{
-				glUniform3fv(m_shader.getUniform("color"), 1, fluidColor2);
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
+			}
+			else if ((m_colorField == ENUM_RENDER_ANGULAR_VELOCITY) && ((VorticityMethods)model->getVorticityMethod() == VorticityMethods::Micropolar))
+			{
+				glEnableVertexAttribArray(1);
+				float fluidColor2[4] = { 0.3f, 0.9f, 0.5f, 1.0f };
+				glUniform3fv(shader_vector->getUniform("color"), 1, fluidColor2);
 				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &((MicropolarModel_Bender2017*)model->getVorticityBase())->getAngularVelocity(0)[0]);
 			}
-			else
-				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
+			else if (m_colorField == ENUM_RENDER_DENSITY)
+			{
+				glEnableVertexAttribArray(1);
+				float fluidColor2[4] = { 0.9f, 0.3f, 0.3f, 1.0f };
+				glUniform3fv(shader_scalar->getUniform("color"), 1, fluidColor2);
+				glVertexAttribPointer(1, 1, GL_REAL, GL_FALSE, 0, &model->getDensity(0));
+			}				
 
 			glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
 		}
 
-		pointShaderEnd();
+		if ((m_colorField == ENUM_RENDER_VELOCITY) || (m_colorField == ENUM_RENDER_ANGULAR_VELOCITY))
+			pointShaderEnd(shader_vector, true);
+		else if (m_colorField == ENUM_RENDER_DENSITY)
+			pointShaderEnd(shader_scalar, true);
+		else
+			pointShaderEnd(shader_scalar, false);
+		
 	}
 	else
 	{
@@ -566,11 +711,11 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 	const unsigned int fluidIndex = model->getPointSetIndex();
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		pointShaderBegin(&red[0]);
+		pointShaderBegin(&m_shader_scalar, &red[0]);
 		if ((getSelectedParticles().size() > 0) && ((getSelectedParticles()[fluidIndex].size() > 0)))
 		{
 			const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-			glUniform1f(m_shader.getUniform("radius"), (float)radius*1.05f);
+			glUniform1f(m_shader_scalar.getUniform("radius"), (float)radius*1.05f);
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
 			glEnableVertexAttribArray(1);
@@ -579,7 +724,7 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
 		}
-		pointShaderEnd();
+		pointShaderEnd(&m_shader_scalar);
 	}
 	else
 	{
@@ -651,6 +796,28 @@ void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &en
 		MiniGL::setMouseMoveFunc(-1, NULL);
 
 	MiniGL::unproject(end[0], end[1], base->m_oldMousePos);
+	
+	if (selected && (MiniGL::getModifierKey() == 3))
+	{
+
+	}
+}
+
+void DemoBase::particleInfo()
+{
+	Simulation *sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+		for (unsigned int j = 0; j < m_selectedParticles[i].size(); j++)
+		{
+			unsigned int index = m_selectedParticles[i][j];
+			LOG_INFO << index;
+			LOG_INFO << "x:       " << model->getPosition(index).transpose();
+			LOG_INFO << "v:       " << model->getVelocity(index).transpose();
+			LOG_INFO << "density: " << model->getDensity(index);
+		}
+	}
 }
 
 void DemoBase::partioExport()
@@ -681,11 +848,41 @@ void DemoBase::step()
 			m_frameCounter++;
 		}
 	}
+#ifdef DL_OUTPUT
+	if (TimeManager::getCurrent()->getTime() >= m_nextTiming)
+	{
+		LOG_INFO << "---------------------------------------------------------------------------";
+		LOG_INFO << "Time: " << TimeManager::getCurrent()->getTime();
+		Timing::printAverageTimes();
+		Timing::printTimeSums();
+		Counting::printAverageCounts();
+		Counting::printCounterSums();
+		m_nextTiming += 1.0;
+	}
+#endif
 }
 
 void DemoBase::reset()
 {
-	TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
+	//TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
 	m_nextFrameTime = 0.0;
 	m_frameCounter = 1;
+#ifdef DL_OUTPUT
+	m_nextTiming = 1.0;
+#endif
+}
+
+void DemoBase::setColorMapType(const int v)
+{
+	m_colorMapType = v;
+	if (m_colorMapType == ENUM_COLORMAP_JET)
+	{
+		m_colorMapBuffer = colormap_jet[0];
+		m_colorMapLength = 256u;
+	}
+	else if (m_colorMapType == ENUM_COLORMAP_PLASMA)
+	{
+		m_colorMapBuffer = colormap_plasma[0];
+		m_colorMapLength = 256u;
+	}
 }

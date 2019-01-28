@@ -11,6 +11,8 @@
 #include "Utilities/FileSystem.h"
 #include <cfloat>
 #include "Utilities/Version.h"
+#include "Visualization/Selection.h"
+#include "extern/partio/src/lib/Partio.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -60,6 +62,10 @@ void pointShaderBegin(const float *col);
 void pointShaderEnd();
 void timeStep() {}
 void updateBoundingBox();
+void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData);
+void particleInfo();
+bool readParticles(const std::string &fileName, const Vector3r &translation, const Matrix3r &rotation, const Real scale,
+	std::vector<Vector3r> &positions, std::vector<Vector3r> &velocities);
 
 
 string inputFile = "";
@@ -72,6 +78,8 @@ Real maxVel = 1.0;
 Shader shader;
 GLint context_major_version;
 GLint context_minor_version;
+std::vector<unsigned int> selectedParticles;
+Partio::ParticlesDataMutable* partioData;
 
 
 // main 
@@ -108,12 +116,8 @@ int main( int argc, char **argv )
 	}
 
 	if (!particleRadiusParam)
-	{
 		particleRadius = 0.025;
-		PartioReaderWriter::readParticles(inputFile, Vector3r::Zero(), Matrix3r::Identity(), 1.0, x, v, particleRadius);
-	}
-	else
-		PartioReaderWriter::readParticles(inputFile, Vector3r::Zero(), Matrix3r::Identity(), 1.0, x, v);
+	readParticles(inputFile, Vector3r::Zero(), Matrix3r::Identity(), 1.0, x, v);
 
 	for (unsigned int i = 0; i < v.size(); i++)
 		maxVel = std::max(maxVel, v[i].norm());
@@ -126,6 +130,8 @@ int main( int argc, char **argv )
 	MiniGL::initTweakBarParameters();
 	MiniGL::getOpenGLVersion(context_major_version, context_minor_version);
 	MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 3.0, 10.0), Vector3r(0.0, 0.0, 0.0));
+	MiniGL::setSelectionFunc(selection, nullptr);
+	MiniGL::addKeyFunc('i', particleInfo);
 
 	TwAddVarRW(MiniGL::getTweakBar(), "particleRadius", TW_TYPE_REAL, &particleRadius, " label='Particle radius' min=0.001 group=General");
 
@@ -137,7 +143,7 @@ int main( int argc, char **argv )
 
 	glutMainLoop();
 
-
+	partioData->release();
 	Timing::printAverageTimes();
 	Timing::printTimeSums();
 	
@@ -147,7 +153,7 @@ int main( int argc, char **argv )
 
 void initShader()
 {
-	string vertFile = exePath + "/resources/shaders/vs_points.glsl";
+	string vertFile = exePath + "/resources/shaders/vs_points_vector.glsl";
 	string fragFile = exePath + "/resources/shaders/fs_points.glsl";
 	shader.compileShaderFile(GL_VERTEX_SHADER, vertFile);
 	shader.compileShaderFile(GL_FRAGMENT_SHADER, fragFile);
@@ -159,7 +165,8 @@ void initShader()
 	shader.addUniform("viewport_width");
 	shader.addUniform("color");
 	shader.addUniform("projection_radius");
-	shader.addUniform("max_velocity");
+	shader.addUniform("min_scalar");
+	shader.addUniform("max_scalar");
 	shader.end();
 }
 
@@ -205,7 +212,8 @@ void render()
 
 		if (nParticles > 0)
 		{
-			glUniform1f(shader.getUniform("max_velocity"), (GLfloat) maxVel);
+			glUniform1f(shader.getUniform("min_scalar"), 0.0f);
+			glUniform1f(shader.getUniform("max_scalar"), (GLfloat) maxVel);
 
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, x.data());
@@ -240,6 +248,40 @@ void render()
 		}
 		glEnd();
 		glEnable(GL_LIGHTING);
+	}
+
+	float red[4] = { 0.8f, 0.0f, 0.0f, 1 };
+	if (MiniGL::checkOpenGLVersion(3, 3))
+	{
+		pointShaderBegin(&red[0]);
+		if (selectedParticles.size() > 0)
+		{
+			glUniform1f(shader.getUniform("radius"), (float)particleRadius*1.05f);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, x.data());
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, v.data());
+			glDrawElements(GL_POINTS, (GLsizei)selectedParticles.size(), GL_UNSIGNED_INT, selectedParticles.data());
+			glDisableVertexAttribArray(0);
+			glDisableVertexAttribArray(1);
+		}
+		pointShaderEnd();
+	}
+	else
+	{
+		if (selectedParticles.size() > 0)
+		{
+			glPointSize(4.0);
+			glDisable(GL_LIGHTING);
+			glBegin(GL_POINTS);
+			for (unsigned int i = 0; i < selectedParticles.size(); i++)
+			{
+				glColor3fv(red);
+				glVertex3v(&x[selectedParticles[i]][0]);
+			}
+			glEnd();
+			glEnable(GL_LIGHTING);
+		}
 	}
 
 	// Render bounding box - fluid
@@ -296,3 +338,110 @@ void updateBoundingBox()
 	}
 }
 
+void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
+{
+	const unsigned int nParticles = x.size();
+	if (nParticles != 0)
+	{
+		std::vector<unsigned int> hits;
+		selectedParticles.clear();
+		Selection::selectRect(start, end, x.begin(),
+			x.end(),
+			selectedParticles);
+	}
+}
+
+void particleInfo()
+{
+	for (unsigned int i = 0; i < selectedParticles.size(); i++)
+	{
+		unsigned int index = selectedParticles[i];
+		std::cout << "Index: " << index << "\n";
+		
+		for (int j = 0; j < partioData->numAttributes(); j++)
+		{
+			Partio::ParticleAttribute attr;
+			partioData->attributeInfo(j, attr);
+
+			if (attr.type == Partio::FLOAT)
+				std::cout << attr.name << ": " << *partioData->data<float>(attr, i) << "\n";			
+			else if (attr.type == Partio::INT)
+				std::cout << attr.name << ": " << *partioData->data<int>(attr, i) << "\n";
+			else if (attr.type == Partio::VECTOR)
+			{
+				const float *v = partioData->data<float>(attr, i);
+				Vector3r vec(v[0], v[1], v[2]);
+				std::cout << attr.name << ": " << vec.transpose() << "\n";
+			}
+		}
+		std::cout << "\n";
+	}
+}
+
+
+bool readParticles(const std::string &fileName, const Vector3r &translation, const Matrix3r &rotation, const Real scale,
+	std::vector<Vector3r> &positions, std::vector<Vector3r> &velocities)
+{
+	if (!FileSystem::fileExists(fileName))
+		return false;
+
+	partioData = Partio::read(fileName.c_str());
+
+	if (!partioData)
+		return false;
+
+	std::cout << "Number of particles: " << partioData->numParticles() << "\n";
+
+	unsigned int posIndex = 0xffffffff;
+	unsigned int velIndex = 0xffffffff;
+
+	for (int i = 0; i < partioData->numAttributes(); i++)
+	{
+		Partio::ParticleAttribute attr;
+		partioData->attributeInfo(i, attr);
+		if (attr.name == "position")
+			posIndex = i;
+		else if (attr.name == "velocity")
+			velIndex = i;
+
+		std::cout << "Found attribute: " << attr.name << "\n";
+	}
+
+	Partio::ParticleAttribute attr;
+
+	if (posIndex != 0xffffffff)
+	{
+		unsigned int fSize = (unsigned int)positions.size();
+		positions.resize(fSize + partioData->numParticles());
+		partioData->attributeInfo(posIndex, attr);
+		for (int i = 0; i < partioData->numParticles(); i++)
+		{
+			const float *pos = partioData->data<float>(attr, i);
+			Vector3r x(pos[0], pos[1], pos[2]);
+			x = rotation * (x*scale) + translation;
+			positions[i + fSize] = x;
+		}
+	}
+
+	if (velIndex != 0xffffffff)
+	{
+		unsigned int fSize = (unsigned int)velocities.size();
+		velocities.resize(fSize + partioData->numParticles());
+		partioData->attributeInfo(velIndex, attr);
+		for (int i = 0; i < partioData->numParticles(); i++)
+		{
+			const float *vel = partioData->data<float>(attr, i);
+			Vector3r v(vel[0], vel[1], vel[2]);
+			velocities[i + fSize] = v;
+		}
+	}
+	else
+	{
+		unsigned int fSize = (unsigned int)velocities.size();
+		velocities.resize(fSize + partioData->numParticles());
+		for (int i = 0; i < partioData->numParticles(); i++)
+			velocities[i + fSize].setZero();
+	}
+
+	return true;
+}

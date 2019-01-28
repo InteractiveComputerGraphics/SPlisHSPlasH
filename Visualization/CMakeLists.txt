@@ -4,6 +4,8 @@ set(VIS_HEADER_FILES
 	${PROJECT_PATH}/Visualization/MiniGL.h
 	${PROJECT_PATH}/Visualization/Selection.h
 	${PROJECT_PATH}/Visualization/Shader.h
+	${PROJECT_PATH}/Visualization/colormaps/colormap_jet.h
+	${PROJECT_PATH}/Visualization/colormaps/colormap_plasma.h
 	) 
 
 	

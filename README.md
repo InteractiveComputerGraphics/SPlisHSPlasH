@@ -11,16 +11,25 @@ Furthermore we use our own libraries:
 - [CompactNSearch](https://github.com/InteractiveComputerGraphics/CompactNSearch) to perform the neighborhood search 
 - [GenericParameters](https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
+SPlisHSPlasH can export the particle data in the partio format. If you want to import partio files in Maya, try out our Maya plugin: 
+- [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
+
 
 **Author**: [Jan Bender](http://www.interactive-graphics.de), **License**: MIT
 
 ## Build Instructions
 
 This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with a compiler of your choice that supports C++11. The code was tested with the following configurations:
-- Windows 10 64-bit, CMake 3.5.2, Visual Studio 2015
+- Windows 10 64-bit, CMake 3.11.2, Visual Studio 2017
 - Ubuntu 16.10 64-bit, CMake 3.5.2, GCC 6.2.0.
 
 Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on a 64-bit OS are not supported.
+
+## Documentation
+
+* [Getting started](doc/getting_started.md)
+* [Scene file format](doc/file_format.md)
+* The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features
 
@@ -35,6 +44,7 @@ SPlisHSPlasH implements:
 * a json-based scene file importer
 * automatic surface sampling
 * a tool for volume sampling of closed geometries
+* partio file export
 
 ## Pressure Solvers
 
@@ -98,12 +108,6 @@ The SPlisHSPlasH library implements the following publication to realize multi-p
 
 * B. Solenthaler and R. Pajarola. Density Contrast SPH Interfaces. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2008.
 
-
-## Documentation
-
-The API documentation can be found here: 
-
-http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Screenshots
 		

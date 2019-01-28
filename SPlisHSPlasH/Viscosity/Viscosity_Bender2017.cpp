@@ -41,12 +41,12 @@ void Viscosity_Bender2017::initParameters()
 
 	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
 	setGroup(MAX_ITERATIONS, "Viscosity");
-	setDescription(MAX_ITERATIONS, "Coefficient for the viscosity force computation");
+	setDescription(MAX_ITERATIONS, "Max. iterations of the viscosity solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
 
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
 	setGroup(MAX_ERROR, "Viscosity");
-	setDescription(MAX_ERROR, "Coefficient for the viscosity force computation");
+	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
 	rparam->setMinValue(1e-6);
 }

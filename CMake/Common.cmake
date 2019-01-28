@@ -12,14 +12,16 @@ if (WIN32)
     set(CMAKE_USE_RELATIVE_PATHS "1")
     # Set compiler flags for "release"
     set(CMAKE_CXX_FLAGS_RELEASE "/MD /MP /Ox /Ob2 /Oi /Ot /fp:fast /D NDEBUG /openmp") 
-	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP") 
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /Zi /MP /Ox /Ob2 /Oi /Ot /fp:fast /D NDEBUG /openmp") 
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /openmp") 
 endif (WIN32)
 
 if (UNIX)
     set(CMAKE_USE_RELATIVE_PATHS "1")
     # Set compiler flags for "release"
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fopenmp") 
-    SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp") 
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -DNDEBUG -march=native -fopenmp") 
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp") 
 endif (UNIX)
 
 if(APPLE)

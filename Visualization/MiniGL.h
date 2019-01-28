@@ -36,7 +36,6 @@ namespace SPH
 {
 	class MiniGL
 	{
-	#define MAX_KEY_FUNC 30
 	#define IMAGE_ROWS 128
 	#define IMAGE_COLS 128
 
@@ -64,15 +63,19 @@ namespace SPH
 			float color[4];
 		};
 
+		struct KeyFunction
+		{
+			std::function<void()> fct;
+			unsigned char key;
+		};
+
 		static float fovy;
 		static float znear;
 		static float zfar;
 		static void (*scenefunc)(void);
 		static void (*exitfunc)(void);
 		static void (*idlefunc)(void);
-		static void (*keyfunc [MAX_KEY_FUNC])(void);
-		static unsigned char key [MAX_KEY_FUNC];
-		static int numberOfKeyFunc;
+		static std::vector<KeyFunction> keyfunc;
 		static int idlefunchz;
 		static int width;
 		static int height;
@@ -138,7 +141,8 @@ namespace SPH
 		static void setClientSceneFunc (void (*func)(void));
 		static void display ();
 		static void setClientIdleFunc (int hz, void (*func) (void));
-		static void setKeyFunc (int nr, unsigned char k, void (*func) (void));
+		static void addKeyFunc(unsigned char k, std::function<void()> func);
+		static std::vector<KeyFunction> &getKeyFunc() { return keyfunc; }
 		static void init(int argc, char **argv, const int width, const int height, const int posx, const int posy, const char *name);
 		static void destroy ();
 		static void viewport ();
@@ -160,6 +164,7 @@ namespace SPH
 		static float getZFar();
 		static void hsvToRgb(float h, float s, float v, float *rgb);
 		static void rgbToHsv(float r, float g, float b, float *hsv);
+		static int getModifierKey() { return modifier_key; }
 
 		static void setBreakPointActive(const bool active);
 		static void breakPoint();

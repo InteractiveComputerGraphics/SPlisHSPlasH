@@ -7,12 +7,12 @@ uniform float radius;
 uniform float viewport_width;
 
 layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 velocity;
+layout (location = 1) in float scalar_field;
 
 out block
 {
 	flat vec3 mv_pos;
-	flat vec3 velocity;
+	flat float scalar_field;
 }
 Out;
 
@@ -23,6 +23,6 @@ void main()
     gl_PointSize = viewport_width * proj.x / proj.w;
 
 	Out.mv_pos = mv_pos.xyz;
-	Out.velocity = velocity.xyz;
+	Out.scalar_field = scalar_field;
     gl_Position = projection_matrix * mv_pos;  
 }

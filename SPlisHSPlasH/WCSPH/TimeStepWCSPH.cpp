@@ -72,8 +72,8 @@ void TimeStepWCSPH::step()
 			for (int i = 0; i < (int)model->numActiveParticles(); i++)
 			{
 				Real &density = model->getDensity(i);
-				density = max(density, density0) / density0;
-				m_simulationData.getPressure(fluidModelIndex, i) = m_stiffness * (pow(density / static_cast<Real>(1.0), m_exponent) - static_cast<Real>(1.0));
+				density = max(density, density0);
+				m_simulationData.getPressure(fluidModelIndex, i) = m_stiffness * (pow(density / density0, m_exponent) - static_cast<Real>(1.0));
 			}
 		}
 
@@ -129,7 +129,7 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = model->getPosition(i);
-			const Real &density_i = model->getDensity(i);
+			const Real density_i = model->getDensity(i);
 
 			Vector3r &ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
 			ai.setZero();
@@ -140,18 +140,19 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors(
 				// Pressure 
-				const Real &density_j = fm_neighbor->getDensity(neighborIndex);
+				const Real density_j = fm_neighbor->getDensity(neighborIndex) * density0 / fm_neighbor->getDensity0();
 				const Real dpj = m_simulationData.getPressure(pid, neighborIndex) / (density_j*density_j);
-				ai -= fm_neighbor->getVolume(neighborIndex) * (dpi + (fm_neighbor->getDensity0() / density0) * dpj) * sim->gradW(xi - xj);
-			)
+				ai -= density0 * fm_neighbor->getVolume(neighborIndex) * (dpi + dpj) * sim->gradW(xi - xj);
+			);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
+			const Real dpj = m_simulationData.getPressure(fluidModelIndex, i) / (density0*density0);
 			forall_boundary_neighbors(
-				const Vector3r a = bm_neighbor->getVolume(neighborIndex) * (dpi)* sim->gradW(xi - xj);
+				const Vector3r a = density0 * bm_neighbor->getVolume(neighborIndex) * (dpi + dpj)* sim->gradW(xi - xj);
 				ai -= a;
-				bm_neighbor->getForce(neighborIndex) += model->getMass(i) * a;
+				bm_neighbor->addForce(xj, model->getMass(i) * a);
 			)
 		}
 	}

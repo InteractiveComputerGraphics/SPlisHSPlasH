@@ -47,13 +47,6 @@ Example code:
 ##### Visualization:
 
 * numberOfStepsPerRenderUpdate (int): Number of simulation steps per rendered frame
-* colorField (int): Choose vector or scalar field for particle coloring.
-* colorMapType (int): Selection of a color map for coloring the scalar/vector field.
-  - 0: None
-  - 1: Jet
-  - 2: Plasma
-* renderMinValue (float): Minimal value used for color-coding the color field in the rendering process.
-* renderMaxValue (float): Maximal value used for color-coding the color field in the rendering process.
 * renderWalls (int): 
   - 0: None
   - 1: Particles (all)
@@ -65,6 +58,7 @@ Example code:
 
 * enablePartioExport (bool): Enable/disable partio export.
 * partioFPS (int): Frame rate of partio export.
+* partioAttributes (string): A list of attribute names separated by ";" that should be exported in the partio files (e.g. "velocity;density"). Default value: "velocity"
 
 ##### Simulation:
 
@@ -259,6 +253,10 @@ Example code:
 "Fluid":
 {
     "density0": 1000, 
+    "colorField": "velocity",
+	"colorMapType": 1,
+	"renderMinValue": 0.0,
+	"renderMaxValue": 5.0,
     "surfaceTension": 0.2,
     "surfaceTensionMethod": 0,		
     "viscosity": 0.01,
@@ -268,13 +266,23 @@ Example code:
     "viscosityOmega": 0.05,
     "inertiaInverse": 0.5,
     "maxEmitterParticles": 1000,
-	"emitterReuseParticles": false,
-	"emitterBoxMin": [-4.0,-1.0,-4.0],
-	"emitterBoxMax": [0.0,4,4.0]
+    "emitterReuseParticles": false,
+    "emitterBoxMin": [-4.0,-1.0,-4.0],
+    "emitterBoxMax": [0.0,4,4.0],
 }
 ```
 
 * density0 (float): Rest density of the corresponding fluid.
+
+##### Particle Coloring 
+
+* colorField (string): Choose vector or scalar field for particle coloring.
+* colorMapType (int): Selection of a color map for coloring the scalar/vector field.
+  - 0: None
+  - 1: Jet
+  - 2: Plasma
+* renderMinValue (float): Minimal value used for color-coding the color field in the rendering process.
+* renderMaxValue (float): Maximal value used for color-coding the color field in the rendering process.
 
 ##### Viscosity
 
@@ -321,3 +329,10 @@ Example code:
   - 2: Akinci et al. 2013
   - 3: He et al. 2014
 * surfaceTension (float): Coefficient for the surface tension computation
+
+##### Emitters
+
+* maxEmitterParticles (int): Maximum number of particles the emitter generates. Note that reused particles (see below) are not counted here.
+* emitterReuseParticles (bool):  Reuse particles if they are outside of the bounding box defined by emitterBoxMin, emitterBoxMax
+* emitterBoxMin (vec3): Minimum coordinates of an axis-aligned box (used in combination with emitterReuseParticles)
+* emitterBoxMax (vec3): Maximum coordinates of an axis-aligned box (used in combination with emitterReuseParticles)

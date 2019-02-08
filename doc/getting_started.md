@@ -6,15 +6,15 @@ SPlisHSPlasH currently consists of different simulators and tools which are intr
 
 ## Simulators 
 
-### StaticBoundaryDemo
+### StaticBoundarySimulator
 
-This application reads a SPlisHSPlasH scene file and performs a simulation of the scene. It assumes that only static boundary objects are in the scenario which increases the performance. If you want to simulation dynamic boundaries, you can use "DynamicBoundaryDemo". 
+This application reads a SPlisHSPlasH scene file and performs a simulation of the scene. It assumes that only static boundary objects are in the scenario which increases the performance. If you want to simulation dynamic boundaries, you can use "DynamicBoundarySimulator". 
 
 The scene file format is explained [here.](file_format.md)
 
-### DynamicBoundaryDemo
+### DynamicBoundarySimulator
 
-This application can also simulate SPlisHSPlasH scenes but in contrast to the StaticBoundaryDemo it can handle dynamic boundaries. The dynamic rigid bodies are simulated using our [PositionBasedDynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) which is automatically included in the build process. If a scene only contains static bodies, you should use "StaticBoundaryDemo" since it is faster. 
+This application can also simulate SPlisHSPlasH scenes but in contrast to the StaticBoundarySimulator it can handle dynamic boundaries. The dynamic rigid bodies are simulated using our [PositionBasedDynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) which is automatically included in the build process. If a scene only contains static bodies, you should use "StaticBoundarySimulator" since it is faster. 
 
 The scene file format is explained [here.](file_format.md)
 

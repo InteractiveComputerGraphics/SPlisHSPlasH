@@ -14,10 +14,37 @@ TimeStepIISPH::TimeStepIISPH() :
 {
 	m_simulationData.init();
 	m_counter = 0;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "a_ii", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getAii(fluidModelIndex, i); } });
+		model->addField({ "d_ii", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDii(fluidModelIndex, i)[0]; } });
+		model->addField({ "d_ij*p_j", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDij_pj(fluidModelIndex, i)[0]; } });
+		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
+		//model->addField({ "last pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getLastPressure(fluidModelIndex, i); } });
+		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+	}
 }
 
 TimeStepIISPH::~TimeStepIISPH(void)
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("a_ii");
+		model->removeFieldByName("d_ii");
+		model->removeFieldByName("d_ij*p_j");
+		model->removeFieldByName("pressure");
+		//model->removeFieldByName("last pressure");
+		model->removeFieldByName("advected density");
+		model->removeFieldByName("pressure acceleration");
+	}
 }
 
 void TimeStepIISPH::step()
@@ -187,7 +214,7 @@ void TimeStepIISPH::pressureSolve()
 		for (unsigned int i = 0; i < nFluids; i++)
 		{
 			FluidModel *model = sim->getFluidModel(i);
-			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+			const Real density0 = model->getDensity0();
 
 			avg_density_err = 0.0;
 			pressureSolveIteration(i, avg_density_err);
@@ -208,7 +235,7 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 	const unsigned int numParticles = model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
 	const Real omega = 0.5;

@@ -25,7 +25,6 @@ namespace SPH
 			std::vector<Vector3r> m_x;
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
-			std::vector<Real> m_boundaryPsi;
 			std::vector<Vector3r> m_forcePerThread;
 			std::vector<Vector3r> m_torquePerThread;
 			bool m_sorted;
@@ -34,7 +33,7 @@ namespace SPH
 		public:
 			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
 
-			void computeBoundaryPsi(const Real density0);
+			void computeBoundaryVolume();
 
 			virtual void reset();
 
@@ -118,21 +117,6 @@ namespace SPH
 			FORCE_INLINE void setVolume(const unsigned int i, const Real &val)
 			{
 				m_V[i] = val;
-			}
-
-			FORCE_INLINE const Real& getBoundaryPsi(const unsigned int i) const
-			{
-				return m_boundaryPsi[i];
-			}
-
-			FORCE_INLINE Real& getBoundaryPsi(const unsigned int i)
-			{
-				return m_boundaryPsi[i];
-			}
-
-			FORCE_INLINE void setBoundaryPsi(const unsigned int i, const Real &val)
-			{
-				m_boundaryPsi[i] = val;
 			}
 	};
 }

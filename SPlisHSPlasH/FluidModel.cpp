@@ -25,6 +25,9 @@
 #include "Vorticity/MicropolarModel_Bender2017.h"
 #include "Drag/DragForce_Gissler2017.h"
 #include "Drag/DragForce_Macklin2014.h"
+#include "Elasticity/ElasticityBase.h"
+#include "Elasticity/Elasticity_Becker2009.h"
+#include "Elasticity/Elasticity_Peer2018.h"
 
 
 using namespace SPH;
@@ -37,6 +40,7 @@ int FluidModel::DRAG_METHOD = -1;
 int FluidModel::SURFACE_TENSION_METHOD = -1;
 int FluidModel::VISCOSITY_METHOD = -1;
 int FluidModel::VORTICITY_METHOD = -1;
+int FluidModel::ELASTICITY_METHOD = -1;
 int FluidModel::ENUM_DRAG_NONE = -1;
 int FluidModel::ENUM_DRAG_MACKLIN2014 = -1;
 int FluidModel::ENUM_DRAG_GISSLER2017 = -1;
@@ -55,6 +59,9 @@ int FluidModel::ENUM_VISCOSITY_WEILER2018 = -1;
 int FluidModel::ENUM_VORTICITY_NONE = -1;
 int FluidModel::ENUM_VORTICITY_MICROPOLAR = -1;
 int FluidModel::ENUM_VORTICITY_VC = -1;
+int FluidModel::ENUM_ELASTICITY_NONE = -1;
+int FluidModel::ENUM_ELASTICITY_BECKER2009 = -1;
+int FluidModel::ENUM_ELASTICITY_PEER2018 = -1;
 
 
 FluidModel::FluidModel() :
@@ -82,15 +89,27 @@ FluidModel::FluidModel() :
 	m_surfaceTensionMethodChanged = nullptr;
 	m_viscosityMethodChanged = nullptr;
 	m_vorticityMethodChanged = nullptr;
+	m_elasticityMethod = ElasticityMethods::None;
+	m_elasticity = nullptr;
+	m_elasticityMethodChanged = nullptr;
+
+	addField({ "position", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition(i)[0]; } });
+	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; } });
+	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); } });
 }
 
 FluidModel::~FluidModel(void)
 {
+	removeFieldByName("position");
+	removeFieldByName("velocity");
+	removeFieldByName("density");
+
 	delete m_emitterSystem;
 	delete m_surfaceTension;
 	delete m_drag;
 	delete m_vorticity;
 	delete m_viscosity;
+	delete m_elasticity;
 
 	releaseFluidParticles();
 }
@@ -171,6 +190,16 @@ void FluidModel::initParameters()
 	enumParam->addEnumValue("None", ENUM_VORTICITY_NONE);
 	enumParam->addEnumValue("Micropolar model", ENUM_VORTICITY_MICROPOLAR);
 	enumParam->addEnumValue("Vorticity confinement", ENUM_VORTICITY_VC);
+
+	ParameterBase::GetFunc<int> getElasticityFct = std::bind(&FluidModel::getElasticityMethod, this);
+	ParameterBase::SetFunc<int> setElasticityFct = std::bind(&FluidModel::setElasticityMethod, this, std::placeholders::_1);
+	ELASTICITY_METHOD = createEnumParameter("elasticityMethod", "Elasticity method", getElasticityFct, setElasticityFct);
+	setGroup(ELASTICITY_METHOD, "Elasticity");
+	setDescription(ELASTICITY_METHOD, "Method to compute elastic forces.");
+	enumParam = static_cast<EnumParameter*>(getParameter(ELASTICITY_METHOD));
+	enumParam->addEnumValue("None", ENUM_ELASTICITY_NONE);
+	enumParam->addEnumValue("Becker et al. 2009", ENUM_ELASTICITY_BECKER2009);
+	enumParam->addEnumValue("Peer et al. 2018", ENUM_ELASTICITY_PEER2018);
 }
 
 
@@ -201,6 +230,8 @@ void FluidModel::reset()
 		m_vorticity->reset();
 	if (m_drag)
 		m_drag->reset();
+	if (m_elasticity)
+		m_elasticity->reset();
 
 	m_emitterSystem->reset();
 }
@@ -305,15 +336,29 @@ void FluidModel::performNeighborhoodSearchSort()
 		m_vorticity->performNeighborhoodSearchSort();
 	if (m_drag)
 		m_drag->performNeighborhoodSearchSort();
+	if (m_elasticity)
+		m_elasticity->performNeighborhoodSearchSort();
 }
 
 void SPH::FluidModel::setDensity0(const Real v)
 {
 	m_density0 = v; 
 	initMasses(); 
-	Simulation::getCurrent()->updateBoundaryPsi();
 }
 
+const SPH::FieldDescription & SPH::FluidModel::getField(const std::string &name)
+{
+	unsigned int index = 0;
+	for (auto i = 0; i < m_fields.size(); i++)
+	{
+		if (m_fields[i].name == name)
+		{
+			index = i;
+			break;
+		}
+	}
+	return m_fields[index];
+}
 
 void FluidModel::setNumActiveParticles(const unsigned int num)
 {
@@ -345,6 +390,11 @@ void FluidModel::setVorticityMethodChangedCallback(std::function<void()> const& 
 	m_vorticityMethodChanged = callBackFct;
 }
 
+void FluidModel::setElasticityMethodChangedCallback(std::function<void()> const& callBackFct)
+{
+	m_elasticityMethodChanged = callBackFct;
+}
+
 void FluidModel::computeSurfaceTension()
 {
 	if (m_surfaceTension)
@@ -369,6 +419,12 @@ void FluidModel::computeDragForce()
 		m_drag->step();
 }
 
+void FluidModel::computeElasticity()
+{
+	if (m_elasticity)
+		m_elasticity->step();
+}
+
 void FluidModel::emittedParticles(const unsigned int startIndex)
 {
 	if (m_viscosity)
@@ -379,6 +435,8 @@ void FluidModel::emittedParticles(const unsigned int startIndex)
 		m_vorticity->emittedParticles(startIndex);
 	if (m_drag)
 		m_drag->emittedParticles(startIndex);
+	if (m_elasticity)
+		m_elasticity->emittedParticles(startIndex);
 }
 
 void FluidModel::setSurfaceTensionMethod(const int val)
@@ -495,3 +553,49 @@ void FluidModel::setDragMethod(const int val)
 	if (m_dragMethodChanged != nullptr)
 		m_dragMethodChanged();
 }
+
+void FluidModel::setElasticityMethod(const int val)
+{
+	ElasticityMethods em = static_cast<ElasticityMethods>(val);
+	if ((em < ElasticityMethods::None) || (em >= ElasticityMethods::NumElasticityMethods))
+		em = ElasticityMethods::None;
+
+	if (em == m_elasticityMethod)
+		return;
+
+	delete m_elasticity;
+	m_elasticity = nullptr;
+
+	m_elasticityMethod = em;
+
+	if (m_elasticityMethod == ElasticityMethods::Becker2009)
+		m_elasticity = new Elasticity_Becker2009(this);
+	else if (m_elasticityMethod == ElasticityMethods::Peer2018)
+		m_elasticity = new Elasticity_Peer2018(this);
+
+	if (m_elasticity != nullptr)
+		m_elasticity->init();
+
+	if (m_elasticityMethodChanged != nullptr)
+		m_elasticityMethodChanged();
+}
+
+
+void FluidModel::addField(const FieldDescription &field)
+{
+	m_fields.push_back(field);
+	std::sort(m_fields.begin(), m_fields.end(), [](FieldDescription &i, FieldDescription &j) -> bool { return (i.name < j.name); });
+}
+
+void FluidModel::removeFieldByName(const std::string &fieldName)
+{
+	for (auto it = m_fields.begin(); it != m_fields.end(); it++)
+	{
+		if (it->name == fieldName)
+		{
+			m_fields.erase(it);
+			break;
+		}
+	}
+}
+

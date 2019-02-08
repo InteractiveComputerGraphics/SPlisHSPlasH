@@ -1,4 +1,4 @@
-#include "DemoBase.h"
+#include "SimulatorBase.h"
 #include "Visualization/MiniGL.h"
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
 #include "Utilities/FileSystem.h"
@@ -18,6 +18,7 @@
 #include "Utilities/SystemInfo.h"
 #include "Visualization/colormaps/colormap_jet.h"
 #include "Visualization/colormaps/colormap_plasma.h"
+#include "extern/partio/src/lib/Partio.h"
 
 INIT_LOGGING
 INIT_TIMING
@@ -28,40 +29,30 @@ using namespace std;
 using namespace GenParam;
 using namespace Utilities;
 
-int DemoBase::PAUSE = -1;
-int DemoBase::PAUSE_AT = -1;
-int DemoBase::STOP_AT = -1;
-int DemoBase::NUM_STEPS_PER_RENDER = -1;
-int DemoBase::PARTIO_EXPORT = -1;
-int DemoBase::PARTIO_EXPORT_FPS = -1;
-int DemoBase::RENDER_MIN_VALUE = -1;
-int DemoBase::RENDER_MAX_VALUE = -1;
-int DemoBase::RENDER_WALLS = -1;
-int DemoBase::RENDER_COLOR_FIELD = -1;
-int DemoBase::RENDER_COLOR_MAP_TYPE = -1;
-int DemoBase::ENUM_WALLS_NONE = -1;
-int DemoBase::ENUM_WALLS_PARTICLES_ALL = -1;
-int DemoBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
-int DemoBase::ENUM_WALLS_GEOMETRY_ALL = -1;
-int DemoBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
-int DemoBase::ENUM_RENDER_NONE = -1;
-int DemoBase::ENUM_RENDER_VELOCITY = -1;
-int DemoBase::ENUM_RENDER_ANGULAR_VELOCITY = -1;
-int DemoBase::ENUM_RENDER_DENSITY = -1;
-int DemoBase::ENUM_COLORMAP_NONE = -1;
-int DemoBase::ENUM_COLORMAP_JET = -1;
-int DemoBase::ENUM_COLORMAP_PLASMA = -1;
+int SimulatorBase::PAUSE = -1;
+int SimulatorBase::PAUSE_AT = -1;
+int SimulatorBase::STOP_AT = -1;
+int SimulatorBase::NUM_STEPS_PER_RENDER = -1;
+int SimulatorBase::PARTIO_EXPORT = -1;
+int SimulatorBase::PARTIO_EXPORT_FPS = -1;
+int SimulatorBase::PARTIO_EXPORT_ATTRIBUTES = -1;
+int SimulatorBase::RENDER_WALLS = -1;
+int SimulatorBase::ENUM_WALLS_NONE = -1;
+int SimulatorBase::ENUM_WALLS_PARTICLES_ALL = -1;
+int SimulatorBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
+int SimulatorBase::ENUM_WALLS_GEOMETRY_ALL = -1;
+int SimulatorBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
+int SimulatorBase::ENUM_RENDER_NONE = -1;
+int SimulatorBase::ENUM_RENDER_VELOCITY = -1;
+int SimulatorBase::ENUM_RENDER_ANGULAR_VELOCITY = -1;
+int SimulatorBase::ENUM_RENDER_DENSITY = -1;
 
  
-DemoBase::DemoBase()
+SimulatorBase::SimulatorBase()
 {
 	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 
 	m_numberOfStepsPerRenderUpdate = 4;
-	m_colorField = 1;
-	setColorMapType(0);
-	m_renderMinValue = 0.0;
-	m_renderMaxValue = 5.0;
 	m_sceneFile = "";
 	m_renderWalls = 4;
 	m_doPause = true;
@@ -72,17 +63,22 @@ DemoBase::DemoBase()
 	m_framesPerSecond = 25;
 	m_nextFrameTime = 0.0;
 	m_frameCounter = 1;
+	m_colorField.resize(1, "velocity");
+	m_colorMapType.resize(1, 0);
+	m_renderMinValue.resize(1, 0.0);
+	m_renderMaxValue.resize(1, 5.0);
+	m_partioAttributes = "velocity";
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
 }
 
-DemoBase::~DemoBase()
+SimulatorBase::~SimulatorBase()
 {
 
 }
 
-void DemoBase::initParameters()
+void SimulatorBase::initParameters()
 {
 	ParameterObject::initParameters();
 
@@ -104,37 +100,10 @@ void DemoBase::initParameters()
 	setDescription(NUM_STEPS_PER_RENDER, "Number of simulation steps per rendered frame.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(NUM_STEPS_PER_RENDER))->setMinValue(1);
 
-	RENDER_MIN_VALUE = createNumericParameter("renderMinValue", "Min. value (shader)", &m_renderMinValue);
-	setGroup(RENDER_MIN_VALUE, "Visualization");
-	setDescription(RENDER_MIN_VALUE, "Minimal value used for color-coding the color field in the rendering process.");
-
-	RENDER_MAX_VALUE = createNumericParameter("renderMaxValue", "Max. value (shader)", &m_renderMaxValue);
-	setGroup(RENDER_MAX_VALUE, "Visualization");
-	setDescription(RENDER_MAX_VALUE, "Maximal value used for color-coding the color field in the rendering process.");
-
-	RENDER_COLOR_FIELD = createEnumParameter("colorField", "Color field", &m_colorField);
-	setGroup(RENDER_COLOR_FIELD, "Visualization");
-	setDescription(RENDER_COLOR_FIELD, "Choose vector or scalar field for particle coloring.");
-	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(RENDER_COLOR_FIELD));
-	enumParam->addEnumValue("None", ENUM_RENDER_NONE);
-	enumParam->addEnumValue("Velocity", ENUM_RENDER_VELOCITY);
-	enumParam->addEnumValue("Angular velocity (micropolar model)", ENUM_RENDER_ANGULAR_VELOCITY);
-	enumParam->addEnumValue("Density", ENUM_RENDER_DENSITY);
-
-	ParameterBase::GetFunc<int> getColorMapTypeFct = std::bind(&DemoBase::getColorMapType, this);
-	ParameterBase::SetFunc<int> setColorMapTypeFct = std::bind(&DemoBase::setColorMapType, this, std::placeholders::_1);
-	RENDER_COLOR_MAP_TYPE = createEnumParameter("colorMapType", "Color map", getColorMapTypeFct, setColorMapTypeFct);
-	setGroup(RENDER_COLOR_MAP_TYPE, "Visualization");
-	setDescription(RENDER_COLOR_MAP_TYPE, "Choose a color map.");
-	enumParam = static_cast<EnumParameter*>(getParameter(RENDER_COLOR_MAP_TYPE));
-	enumParam->addEnumValue("None", ENUM_COLORMAP_NONE);
-	enumParam->addEnumValue("Jet", ENUM_COLORMAP_JET);
-	enumParam->addEnumValue("Plasma", ENUM_COLORMAP_PLASMA);
-
 	RENDER_WALLS = createEnumParameter("renderWalls", "Render walls", &m_renderWalls);
 	setGroup(RENDER_WALLS, "Visualization");
 	setDescription(RENDER_WALLS, "Make walls visible/invisible.");
-	enumParam = static_cast<EnumParameter*>(getParameter(RENDER_WALLS));
+	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(RENDER_WALLS));
 	enumParam->addEnumValue("None", ENUM_WALLS_NONE);
 	enumParam->addEnumValue("Particles (all)", ENUM_WALLS_PARTICLES_ALL);
 	enumParam->addEnumValue("Particles (no walls)", ENUM_WALLS_PARTICLES_NO_WALLS);
@@ -148,9 +117,14 @@ void DemoBase::initParameters()
 	PARTIO_EXPORT_FPS = createNumericParameter("partioFPS", "Export FPS", &m_framesPerSecond);
 	setGroup(PARTIO_EXPORT_FPS, "Export");
 	setDescription(PARTIO_EXPORT_FPS, "Frame rate of partio export.");
+
+	PARTIO_EXPORT_ATTRIBUTES = createStringParameter("partioAttributes", "Export attributes", &m_partioAttributes);
+	getParameter(PARTIO_EXPORT_ATTRIBUTES)->setReadOnly(true);
+	setGroup(PARTIO_EXPORT_ATTRIBUTES, "Export");
+	setDescription(PARTIO_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
 }
 
-void DemoBase::init(int argc, char **argv, const char *demoName)
+void SimulatorBase::init(int argc, char **argv, const char *simName)
 {
 	initParameters();
 	m_exePath = FileSystem::getProgramPath();
@@ -199,18 +173,22 @@ void DemoBase::init(int argc, char **argv, const char *demoName)
 		return;
 
 	// OpenGL
-	MiniGL::init(argc, argv, 1280, 960, 0, 0, demoName);
+	MiniGL::init(argc, argv, 1280, 960, 0, 0, simName);
 	MiniGL::initLights();
 	MiniGL::getOpenGLVersion(m_context_major_version, m_context_minor_version);
-	MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 3.0, 8.0), Vector3r(0.0, 0.0, 0.0));
+	const bool sim2D = getScene().sim2D;
+	if (sim2D)
+		MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 0.0, 8.0), Vector3r(0.0, 0.0, 0.0));
+	else
+		MiniGL::setViewport(40.0, 0.1f, 500.0, Vector3r(0.0, 3.0, 8.0), Vector3r(0.0, 0.0, 0.0));
 	MiniGL::setSelectionFunc(selection, this);
-	MiniGL::addKeyFunc('i', std::bind(&DemoBase::particleInfo, this));
+	MiniGL::addKeyFunc('i', std::bind(&SimulatorBase::particleInfo, this));
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 		initShaders();
 }
 
-void DemoBase::cleanup()
+void SimulatorBase::cleanup()
 {
 	for (unsigned int i = 0; i < m_scene.boundaryModels.size(); i++)
 		delete m_scene.boundaryModels[i];
@@ -229,7 +207,7 @@ void DemoBase::cleanup()
 	m_scene.emitters.clear();
 }
 
-void DemoBase::initShaders()
+void SimulatorBase::initShaders()
 {
 	string vertFile = getExePath() + "/resources/shaders/vs_points_vector.glsl";
 	string fragFile = getExePath() + "/resources/shaders/fs_points.glsl";
@@ -305,7 +283,7 @@ void DemoBase::initShaders()
 }
 
 
-void DemoBase::meshShaderBegin(const float *col)
+void SimulatorBase::meshShaderBegin(const float *col)
 {
 	m_meshShader.begin();
 	glUniform1f(m_meshShader.getUniform("shininess"), 5.0f);
@@ -320,12 +298,12 @@ void DemoBase::meshShaderBegin(const float *col)
 	glUniform3fv(m_meshShader.getUniform("surface_color"), 1, col);
 }
 
-void DemoBase::meshShaderEnd()
+void SimulatorBase::meshShaderEnd()
 {
 	m_meshShader.end();
 }
 
-void DemoBase::pointShaderBegin(Shader *shader, const float *col, const bool useTexture)
+void SimulatorBase::pointShaderBegin(Shader *shader, const float *col, const Real minVal, const Real maxVal, const bool useTexture, float const* color_map)
 {
 	shader->begin();
 
@@ -334,16 +312,16 @@ void DemoBase::pointShaderBegin(Shader *shader, const float *col, const bool use
 	const Real radius = Simulation::getCurrent()->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	glUniform1f(shader->getUniform("viewport_width"), (float)viewport[2]);
 	glUniform1f(shader->getUniform("radius"), (float)radius);
-	glUniform1f(shader->getUniform("min_scalar"), (GLfloat)m_renderMinValue);
-	glUniform1f(shader->getUniform("max_scalar"), (GLfloat)m_renderMaxValue);
+	glUniform1f(shader->getUniform("min_scalar"), (GLfloat)minVal);
+	glUniform1f(shader->getUniform("max_scalar"), (GLfloat)maxVal);
 	glUniform3fv(shader->getUniform("color"), 1, col);
 
 	if (useTexture)
 	{
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_1D, m_textureMap);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, m_colorMapLength, 0, GL_RGB, GL_FLOAT,
-			reinterpret_cast<float const*>(m_colorMapBuffer));
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, 256u, 0, GL_RGB, GL_FLOAT, color_map);
+		
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -367,13 +345,13 @@ void DemoBase::pointShaderBegin(Shader *shader, const float *col, const bool use
 	glPointParameterf(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
 }
 
-void DemoBase::pointShaderEnd(Shader *shader, const bool useTexture)
+void SimulatorBase::pointShaderEnd(Shader *shader, const bool useTexture)
 {
 	glBindTexture(GL_TEXTURE_1D, 0);
 	shader->end();
 }
 
-void DemoBase::readParameters()
+void SimulatorBase::readParameters()
 {
 	m_sceneLoader->readParameterObject("Configuration", this);
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent());
@@ -389,11 +367,18 @@ void DemoBase::readParameters()
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getViscosityBase());
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getVorticityBase());
+		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getElasticityBase());
+
+		SceneLoader::ColoringData colorData = m_sceneLoader->readColoringInfo(key);
+		setColorField(i, colorData.colorField);
+		setColorMapType(i, colorData.colorMapType);
+		setRenderMinValue(i, colorData.minVal);
+		setRenderMaxValue(i, colorData.maxVal);
 	}
 }
 
 
-void DemoBase::buildModel()
+void SimulatorBase::buildModel()
 {
 	TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
 
@@ -403,7 +388,8 @@ void DemoBase::buildModel()
 
 	Simulation *sim = Simulation::getCurrent();
 
-	sim->getTimeStep()->resize();
+	if (sim->getTimeStep())
+		sim->getTimeStep()->resize();
 
 	if (!sim->is2DSimulation())
 	{
@@ -418,7 +404,7 @@ void DemoBase::buildModel()
 }
 
 
-void DemoBase::initFluidData()
+void SimulatorBase::initFluidData()
 {
 	LOG_INFO << "Initialize fluid particles";
 
@@ -430,7 +416,7 @@ void DemoBase::initFluidData()
 	std::map<std::string, unsigned int> fluidIDs;
 	unsigned int index = 0;
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
-	{ 
+	{
 		if (fluidIDs.find(m_scene.fluidBlocks[i]->id) == fluidIDs.end())
 			fluidIDs[m_scene.fluidBlocks[i]->id] = index++;
 	}
@@ -482,10 +468,15 @@ void DemoBase::initFluidData()
 		nParticles += (unsigned int)fluidParticles[index].size();
 	}
 
+	m_colorField.resize(sim->numberOfFluidModels(), "velocity");
+	m_colorMapType.resize(sim->numberOfFluidModels(), 0);
+	m_renderMinValue.resize(sim->numberOfFluidModels(), 0.0);
+	m_renderMaxValue.resize(sim->numberOfFluidModels(), 5.0);
+
 	LOG_INFO << "Number of fluid particles: " << nParticles;
 }
 
-void DemoBase::createEmitters()
+void SimulatorBase::createEmitters()
 {
 	Simulation *sim = Simulation::getCurrent();
 
@@ -531,7 +522,7 @@ void DemoBase::createEmitters()
 }
 
 
-void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities)
+void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities)
 {
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 	{
@@ -611,9 +602,11 @@ void DemoBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, 
 	}
 }
 
-void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
+void SimulatorBase::renderFluid(const unsigned int fluidModelIndex, float *fluidColor)
 {
 	// Draw simulation model
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const unsigned int nParticles = model->numActiveParticles();
 	if (nParticles == 0)
 		return;
@@ -625,8 +618,7 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, speccolor);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0);
 	glColor3fv(surfaceColor);
-
-	Simulation *sim = Simulation::getCurrent();
+	
 	const Real supportRadius = sim->getSupportRadius();
 	Real vmax = static_cast<Real>(0.4*2.0)*supportRadius / TimeManager::getCurrent()->getTimeStepSize();
 	Real vmin = 0.0;
@@ -635,56 +627,60 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 	{
 		Shader *shader_vector = &m_shader_vector_map;
 		Shader *shader_scalar = &m_shader_scalar_map;
-		if (m_colorMapType == ENUM_COLORMAP_NONE)
+		float const *color_map = nullptr;
+		if (m_colorMapType[fluidModelIndex] == 1)
+			color_map = reinterpret_cast<float const*>(colormap_jet);
+		else if (m_colorMapType[fluidModelIndex] == 2)
+			color_map = reinterpret_cast<float const*>(colormap_plasma);
+
+		if (m_colorMapType[fluidModelIndex] == 0)
 		{
 			shader_vector = &m_shader_vector;
 			shader_scalar = &m_shader_scalar;
 		}
 
-		if ((m_colorField == ENUM_RENDER_VELOCITY) || (m_colorField == ENUM_RENDER_ANGULAR_VELOCITY))
-			pointShaderBegin(shader_vector, &fluidColor[0], true);
-		else if (m_colorField == ENUM_RENDER_DENSITY)
-			pointShaderBegin(shader_scalar, &fluidColor[0], true);
-		else 
-			pointShaderBegin(shader_scalar, &fluidColor[0], false);
+		const FieldDescription *field = nullptr;
+		const std::string &colorFieldName = m_colorField[fluidModelIndex];
+		field = &model->getField(colorFieldName);
+
+
+		if (field == nullptr) 
+			pointShaderBegin(shader_scalar, &fluidColor[0], m_renderMinValue[fluidModelIndex], m_renderMaxValue[fluidModelIndex],  false);
+		else if (field->type == FieldType::Vector3)
+			pointShaderBegin(shader_vector, &fluidColor[0], m_renderMinValue[fluidModelIndex], m_renderMaxValue[fluidModelIndex], true, color_map);
+		else if (field->type == FieldType::Scalar)
+			pointShaderBegin(shader_scalar, &fluidColor[0], m_renderMinValue[fluidModelIndex], m_renderMaxValue[fluidModelIndex], true, color_map);
 
 		if (model->numActiveParticles() > 0)
 		{
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
-			
-			if (m_colorField == ENUM_RENDER_VELOCITY)
+
+			if (field != nullptr)
 			{
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
-			}
-			else if ((m_colorField == ENUM_RENDER_ANGULAR_VELOCITY) && ((VorticityMethods)model->getVorticityMethod() == VorticityMethods::Micropolar))
-			{
-				glEnableVertexAttribArray(1);
-				float fluidColor2[4] = { 0.3f, 0.9f, 0.5f, 1.0f };
-				glUniform3fv(shader_vector->getUniform("color"), 1, fluidColor2);
-				glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &((MicropolarModel_Bender2017*)model->getVorticityBase())->getAngularVelocity(0)[0]);
-			}
-			else if (m_colorField == ENUM_RENDER_DENSITY)
-			{
-				glEnableVertexAttribArray(1);
-				float fluidColor2[4] = { 0.9f, 0.3f, 0.3f, 1.0f };
-				glUniform3fv(shader_scalar->getUniform("color"), 1, fluidColor2);
-				glVertexAttribPointer(1, 1, GL_REAL, GL_FALSE, 0, &model->getDensity(0));
-			}				
+				if (field->type == FieldType::Vector3)
+				{
+					glEnableVertexAttribArray(1);
+					glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, field->getFct(0));
+				}
+				else if (field->type == FieldType::Scalar)
+				{
+					glEnableVertexAttribArray(1);
+					glVertexAttribPointer(1, 1, GL_REAL, GL_FALSE, 0, field->getFct(0));
+				}
+			}	
 
 			glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
 			glDisableVertexAttribArray(0);
 			glDisableVertexAttribArray(1);
 		}
 
-		if ((m_colorField == ENUM_RENDER_VELOCITY) || (m_colorField == ENUM_RENDER_ANGULAR_VELOCITY))
-			pointShaderEnd(shader_vector, true);
-		else if (m_colorField == ENUM_RENDER_DENSITY)
-			pointShaderEnd(shader_scalar, true);
-		else
+		if (field == nullptr)
 			pointShaderEnd(shader_scalar, false);
-		
+		else if (field->type == FieldType::Vector3)
+			pointShaderEnd(shader_vector, true);
+		else if (field->type == FieldType::Scalar)
+			pointShaderEnd(shader_scalar, true);
 	}
 	else
 	{
@@ -711,7 +707,7 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 	const unsigned int fluidIndex = model->getPointSetIndex();
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		pointShaderBegin(&m_shader_scalar, &red[0]);
+		pointShaderBegin(&m_shader_scalar, &red[0], m_renderMinValue[fluidModelIndex], m_renderMaxValue[fluidModelIndex]);
 		if ((getSelectedParticles().size() > 0) && ((getSelectedParticles()[fluidIndex].size() > 0)))
 		{
 			const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
@@ -745,9 +741,9 @@ void DemoBase::renderFluid(FluidModel *model, float *fluidColor)
 
 }
 
-void DemoBase::mouseMove(int x, int y, void *clientData)
+void SimulatorBase::mouseMove(int x, int y, void *clientData)
 {
-	DemoBase *base = (DemoBase*)clientData;
+	SimulatorBase *base = (SimulatorBase*)clientData;
 	Simulation *sim = Simulation::getCurrent();
 
 	Vector3r mousePos;
@@ -768,9 +764,9 @@ void DemoBase::mouseMove(int x, int y, void *clientData)
 	base->m_oldMousePos = mousePos;
 }
 
-void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
+void SimulatorBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
 {
-	DemoBase *base = (DemoBase*)clientData;
+	SimulatorBase *base = (SimulatorBase*)clientData;
 	Simulation *sim = Simulation::getCurrent();
 	base->m_selectedParticles.resize(sim->numberOfFluidModels());
 	bool selected = false;
@@ -803,24 +799,59 @@ void DemoBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &en
 	}
 }
 
-void DemoBase::particleInfo()
+void SimulatorBase::particleInfo()
 {
 	Simulation *sim = Simulation::getCurrent();
+	const int maxWidth = 25;
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 	{
 		FluidModel *model = sim->getFluidModel(i);
+		if (m_selectedParticles[i].size() > 0)
+		{
+			LOG_INFO << "---------------------------------------------------------------------------";
+			LOG_INFO << model->getId();
+			LOG_INFO << "---------------------------------------------------------------------------";
+		}
 		for (unsigned int j = 0; j < m_selectedParticles[i].size(); j++)
 		{
 			unsigned int index = m_selectedParticles[i][j];
-			LOG_INFO << index;
-			LOG_INFO << "x:       " << model->getPosition(index).transpose();
-			LOG_INFO << "v:       " << model->getVelocity(index).transpose();
-			LOG_INFO << "density: " << model->getDensity(index);
+ 			LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << "Index:" << index;
+ 			for (unsigned int k = 0; k < model->numberOfFields(); k++)
+ 			{
+				const FieldDescription &field = model->getField(k);
+				if (field.type == Scalar)
+ 					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << field.name + ":" << *field.getFct(index);
+				else if (field.type == Vector3)
+				{
+					Eigen::Map<Vector3r> vec(field.getFct(index));
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << field.name + ":" << vec.transpose();
+				}
+				else if (field.type == Vector6)
+				{
+					Eigen::Map<Vector6r> vec(field.getFct(index));
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << field.name + ":" << vec.transpose();
+				}
+				else if (field.type == Matrix3)
+				{
+					Eigen::Map<Matrix3r> mat(field.getFct(index));
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << field.name + ":" << mat.row(0);
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << " " << mat.row(1);
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << " " << mat.row(2);
+				}
+				else if (field.type == Matrix6)
+				{
+					Eigen::Map<Matrix6r> mat(field.getFct(index));
+					LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << field.name + ":" << mat.row(0);
+					for (unsigned int k = 1; k < 6; k++)
+						LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << " " << mat.row(k);
+				}
+ 			}
+			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
 	}
 }
 
-void DemoBase::partioExport()
+void SimulatorBase::partioExport()
 {	
 	std::string exportPath = FileSystem::normalizePath(m_outputPath + "/partio");
 	FileSystem::makeDirs(exportPath);
@@ -833,11 +864,107 @@ void DemoBase::partioExport()
 		fileName = fileName + "_" + model->getId() + "_" + std::to_string(m_frameCounter) + ".bgeo";
 		std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
 
-		PartioReaderWriter::writeParticles(exportFileName, model->numActiveParticles(), &model->getPosition(0), &model->getVelocity(0), 0.0);
+		writeParticles(exportFileName, model);
 	}
 }
 
-void DemoBase::step()
+
+void SimulatorBase::writeParticles(const std::string &fileName, FluidModel *model)
+{
+	Partio::ParticlesDataMutable& particleData = *Partio::create();
+	Partio::ParticleAttribute posAttr = particleData.addAttribute("position", Partio::VECTOR, 3);
+	Partio::ParticleAttribute idAttr = particleData.addAttribute("id", Partio::INT, 1);
+
+	// add attributes
+	std::vector<std::string> attributes;
+	StringTools::tokenize(m_partioAttributes, attributes, ";");
+
+ 	std::map<unsigned int, int> attrMap;
+ 	std::map<unsigned int, Partio::ParticleAttribute> partioAttrMap;
+ 	for (unsigned int i = 0; i < attributes.size(); i++)
+ 	{
+ 		// position is exported anyway
+		if (attributes[i] == "position")
+		{
+			attrMap[i] = -1;
+			continue;
+		}
+ 
+ 		bool found = false;
+ 		for (unsigned int j = 0; j < model->numberOfFields(); j++)
+ 		{
+ 			const FieldDescription &field = model->getField(j);
+ 			if (field.name == attributes[i])
+ 			{
+ 				found = true;
+ 				if (field.type == Scalar)
+ 				{
+ 					attrMap[i] = j;
+ 					partioAttrMap[i] = particleData.addAttribute(attributes[i].c_str(), Partio::FLOAT, 1);
+ 				}
+ 				else if (field.type == Vector3)
+ 				{
+ 					attrMap[i] = j;
+ 					partioAttrMap[i] = particleData.addAttribute(attributes[i].c_str(), Partio::VECTOR, 3);
+ 				}
+ 				else
+ 				{
+ 					attrMap[i] = -1;
+ 					LOG_WARN << "Only scalar and vector fields are currently supported by the partio exporter.";
+ 				}
+ 				break;
+ 			}
+ 		}
+		if (!found)
+		{
+			attrMap[i] = -1;
+			LOG_WARN << "Unknown field cannot be exported in partio file: " << attributes[i];
+		}
+ 	}
+
+	const unsigned int numParticles = model->numActiveParticles();
+
+	for (unsigned int i = 0; i < numParticles; i++)
+	{
+		Partio::ParticleIndex index = particleData.addParticle();
+		float* pos = particleData.dataWrite<float>(posAttr, index);
+		int* id = particleData.dataWrite<int>(idAttr, index);
+
+		const Vector3r &x = model->getPosition(i);
+		pos[0] = (float)x[0];
+		pos[1] = (float)x[1];
+		pos[2] = (float)x[2];
+	
+		id[0] = i;
+
+ 		for (unsigned int j = 0; j < attributes.size(); j++)
+ 		{
+ 			const int fieldIndex = attrMap[j];
+ 			if (fieldIndex != -1)
+ 			{
+ 				const FieldDescription &field = model->getField(fieldIndex);
+ 				if (field.type == FieldType::Scalar)
+ 				{
+ 					float* val = particleData.dataWrite<float>(partioAttrMap[j], index);
+ 					*val = (float) *field.getFct(i);
+ 				}
+ 				else if (field.type == FieldType::Vector3)
+ 				{
+ 					float* val = particleData.dataWrite<float>(partioAttrMap[j], index);
+					Eigen::Map<Vector3r> vec(field.getFct(i));
+ 					val[0] = (float)vec[0];
+ 					val[1] = (float)vec[1];
+ 					val[2] = (float)vec[2];
+ 				}
+ 			}
+ 		}
+	}
+
+	Partio::write(fileName.c_str(), particleData, true);
+	particleData.release();
+}
+
+void SimulatorBase::step()
 {
 	if (m_enablePartioExport)
 	{
@@ -862,7 +989,7 @@ void DemoBase::step()
 #endif
 }
 
-void DemoBase::reset()
+void SimulatorBase::reset()
 {
 	//TimeManager::getCurrent()->setTimeStepSize(m_scene.timeStepSize);
 	m_nextFrameTime = 0.0;
@@ -872,17 +999,3 @@ void DemoBase::reset()
 #endif
 }
 
-void DemoBase::setColorMapType(const int v)
-{
-	m_colorMapType = v;
-	if (m_colorMapType == ENUM_COLORMAP_JET)
-	{
-		m_colorMapBuffer = colormap_jet[0];
-		m_colorMapLength = 256u;
-	}
-	else if (m_colorMapType == ENUM_COLORMAP_PLASMA)
-	{
-		m_colorMapBuffer = colormap_plasma[0];
-		m_colorMapLength = 256u;
-	}
-}

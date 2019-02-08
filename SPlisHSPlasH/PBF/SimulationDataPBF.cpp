@@ -67,8 +67,8 @@ void SimulationDataPBF::reset()
 		{
 			m_deltaX[i][j].setZero();
 			m_lambda[i][j] = 0.0;
-			getLastPosition(i, j) = fm->getPosition(i);
-			getOldPosition(i, j) = fm->getPosition(i);
+			getLastPosition(i, j) = fm->getPosition(j);
+			getOldPosition(i, j) = fm->getPosition(j);
 		}
 	}
 }

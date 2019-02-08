@@ -35,13 +35,13 @@ include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
 set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_GenericParameters)
 
 
-add_executable(StaticBoundaryDemo
+add_executable(StaticBoundarySimulator
 	main.cpp
 	
-	${PROJECT_PATH}/Demos/Common/DemoBase.cpp
-	${PROJECT_PATH}/Demos/Common/DemoBase.h
-	${PROJECT_PATH}/Demos/Common/TweakBarParameters.cpp
-	${PROJECT_PATH}/Demos/Common/TweakBarParameters.h
+	${PROJECT_PATH}/Simulators/Common/SimulatorBase.cpp
+	${PROJECT_PATH}/Simulators/Common/SimulatorBase.h
+	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.cpp
+	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.h
   
 	${VIS_FILES}          
 )
@@ -55,15 +55,15 @@ add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 include_directories(${PROJECT_PATH}/extern/freeglut/include)
 include_directories(${PROJECT_PATH}/extern/glew/include)
 
-set_target_properties(StaticBoundaryDemo PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_target_properties(StaticBoundaryDemo PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
-set_target_properties(StaticBoundaryDemo PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
-add_dependencies(StaticBoundaryDemo ${SIMULATION_DEPENDENCIES})
-target_link_libraries(StaticBoundaryDemo ${SIMULATION_LINK_LIBRARIES})
+set_target_properties(StaticBoundarySimulator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_target_properties(StaticBoundarySimulator PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
+set_target_properties(StaticBoundarySimulator PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
+add_dependencies(StaticBoundarySimulator ${SIMULATION_DEPENDENCIES})
+target_link_libraries(StaticBoundarySimulator ${SIMULATION_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 
-set_target_properties(StaticBoundaryDemo PROPERTIES FOLDER "Demos")
+set_target_properties(StaticBoundarySimulator PROPERTIES FOLDER "Simulators")
 
-add_custom_command(TARGET StaticBoundaryDemo PRE_BUILD
+add_custom_command(TARGET StaticBoundarySimulator PRE_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:StaticBoundaryDemo>/resources/shaders)
+                       ${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:StaticBoundarySimulator>/resources/shaders)

@@ -23,10 +23,27 @@ TimeStepPBF::TimeStepPBF() :
 	m_simulationData.init();
 	m_counter = 0;
 	m_velocityUpdateMethod = 0;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "lambda", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getLambda(fluidModelIndex, i); } });
+		model->addField({ "deltaX", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDeltaX(fluidModelIndex, i)[0]; } });
+	}
 }
 
 TimeStepPBF::~TimeStepPBF(void)
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("lambda");
+		model->removeFieldByName("deltaX");
+	}
 }
 
 void TimeStepPBF::initParameters()
@@ -153,7 +170,7 @@ void TimeStepPBF::pressureSolve()
 		for (unsigned int i = 0; i < nFluids; i++)
 		{
 			FluidModel *model = sim->getFluidModel(i);
-			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+			const Real density0 = model->getDensity0();
 
 			avg_density_err = 0.0;
 			pressureSolveIteration(i, avg_density_err);
@@ -178,7 +195,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real eps = 1.0e-6;
 
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 
 	#pragma omp parallel default(shared)
 	{

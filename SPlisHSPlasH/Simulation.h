@@ -145,7 +145,7 @@ namespace SPH
 		BoundaryModel *getBoundaryModel(const unsigned int index) { return m_boundaryModels[index]; }
 		BoundaryModel *getBoundaryModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<BoundaryModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
 		const unsigned int numberOfBoundaryModels() const { return static_cast<unsigned int>(m_boundaryModels.size()); }
-		void updateBoundaryPsi();
+		void updateBoundaryVolume();
 
 		int getKernel() const { return m_kernelMethod; }
 		void setKernel(int val);

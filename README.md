@@ -34,17 +34,21 @@ Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on 
 ## Features
 
 SPlisHSPlasH implements:
-* an open-source SPH fluid simulation
+* an open-source SPH fluid simulation (2D & 3D)
 * several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * explicit and implicit viscosity methods
 * current surface tension approaches
 * different vorticity methods
+* computation of drag forces
 * support for multi-phase simulations
+* simulation of deformable solids 
+* rigid-fluid coupling with static and dynamic bodies
+* two-way coupling with deformable solids
 * fluid emitters
 * a json-based scene file importer
 * automatic surface sampling
 * a tool for volume sampling of closed geometries
-* partio file export
+* partio file export of all particle data
 
 ## Pressure Solvers
 
@@ -102,6 +106,12 @@ The SPlisHSPlasH library implements the drag force computation of the following 
 
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
 
+## Elastic Forces
+
+* M. Becker, M. Ihmsen, and M. Teschner. Corotated SPH for deformable solids. Proceedings of Eurographics Conference on Natural Phenomena, 2009
+
+* A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017
+
 ## Multi-Phase Fluid Simulation
 
 The SPlisHSPlasH library implements the following publication to realize multi-phase simulations: 
@@ -132,6 +142,8 @@ The following videos were generated using the SPlisHSPlasH library:
 
 * Markus Becker and Matthias Teschner. Weakly compressible SPH for free surface flows. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2007. Eurographics Association.
 
+* M. Becker, M. Ihmsen, and M. Teschner. Corotated SPH for deformable solids. Proceedings of Eurographics Conference on Natural Phenomena, 2009
+
 * Jan Bender and Dan Koschier. Divergence-free smoothed particle hydrodynamics. In Proceedings of ACM SIGGRAPH / Eurographics Symposium on Computer Animation, 2015. ACM.
 
 * Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 2017.
@@ -153,6 +165,8 @@ The following videos were generated using the SPlisHSPlasH library:
 * Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1–104:12, July 2013.
 
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
+
+* A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017
 
 * Andreas Peer, Markus Ihmsen, Jens Cornelis, and Matthias Teschner. An Implicit Viscosity Formulation for SPH Fluids. ACM Trans. Graph., 34(4), 2015.
 

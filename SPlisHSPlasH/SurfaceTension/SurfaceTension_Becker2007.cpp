@@ -24,6 +24,7 @@ void SurfaceTension_Becker2007::step()
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	FluidModel *model = m_model;
+	const Real density0 = model->getDensity0();
 
 	// Compute forces
 	#pragma omp parallel default(shared)
@@ -53,9 +54,9 @@ void SurfaceTension_Becker2007::step()
 				const Vector3r xixj = xi - xj;
 				const Real r2 = xixj.dot(xixj);
 				if (r2 > diameter2)
-					ai -= k / m_model->getMass(i) * bm_neighbor->getBoundaryPsi(neighborIndex) * (xi - xj) * sim->W(xi - xj);
+					ai -= k / m_model->getMass(i) * density0 * bm_neighbor->getVolume(neighborIndex) * (xi - xj) * sim->W(xi - xj);
 				else
-					ai -= k / m_model->getMass(i) * bm_neighbor->getBoundaryPsi(neighborIndex) * (xi - xj) * sim->W(Vector3r(diameter, 0.0, 0.0));
+					ai -= k / m_model->getMass(i) * density0 * bm_neighbor->getVolume(neighborIndex) * (xi - xj) * sim->W(Vector3r(diameter, 0.0, 0.0));
 			)
 		}
 	}

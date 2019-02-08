@@ -120,13 +120,27 @@ set(DRAG_SOURCE_FILES
 	Drag/DragForce_Macklin2014.cpp
 	)	
 	
+set(ELASTICITY_HEADER_FILES
+	Elasticity/ElasticityBase.h
+	Elasticity/Elasticity_Becker2009.h	
+	Elasticity/Elasticity_Peer2018.h
+	)
+	
+set(ELASTICITY_SOURCE_FILES
+	Elasticity/ElasticityBase.cpp
+	Elasticity/Elasticity_Becker2009.cpp
+	Elasticity/Elasticity_Peer2018.cpp
+	)	
+	
 set(UTILS_HEADER_FILES
-	Utilities/PoissonDiskSampling.h
+	Utilities/MathFunctions.h
 	Utilities/MatrixFreeSolver.h
+	Utilities/PoissonDiskSampling.h
 	Utilities/SceneLoader.h
 	)
 	
 set(UTILS_SOURCE_FILES
+	Utilities/MathFunctions.cpp
 	Utilities/PoissonDiskSampling.cpp
 	Utilities/SceneLoader.cpp
 	)	
@@ -200,6 +214,9 @@ add_library(SPlisHSPlasH
 	${DRAG_HEADER_FILES}
 	${DRAG_SOURCE_FILES}
 
+	${ELASTICITY_HEADER_FILES}
+	${ELASTICITY_SOURCE_FILES}
+
 	${UTILS_HEADER_FILES}
 	${UTILS_SOURCE_FILES}
 )
@@ -227,6 +244,8 @@ source_group("Header Files\\Vorticity" FILES ${VORTICITY_HEADER_FILES})
 source_group("Source Files\\Vorticity" FILES ${VORTICITY_SOURCE_FILES})
 source_group("Header Files\\Drag" FILES ${DRAG_HEADER_FILES})
 source_group("Source Files\\Drag" FILES ${DRAG_SOURCE_FILES})
+source_group("Header Files\\Elasticity" FILES ${ELASTICITY_HEADER_FILES})
+source_group("Source Files\\Elasticity" FILES ${ELASTICITY_SOURCE_FILES})
 source_group("Header Files\\Utils" FILES ${UTILS_HEADER_FILES})
 source_group("Source Files\\Utils" FILES ${UTILS_SOURCE_FILES})
 

@@ -1,2 +1,2 @@
-.\DynamicBoundaryDemo.exe ../data/scenes/DamBreakWithObjects.json
+.\DynamicBoundarySimulator.exe ../data/scenes/DamBreakWithObjects.json
 pause

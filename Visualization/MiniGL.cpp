@@ -393,7 +393,7 @@ void MiniGL::drawTetrahedron(const Vector3r &a, const Vector3r &b, const Vector3
 	drawTriangle(b, c, d, normal4, color);
 }
 
-void MiniGL::drawGrid(float *color)
+void MiniGL::drawGrid_xz(float *color)
 {
 	float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
@@ -419,6 +419,35 @@ void MiniGL::drawGrid(float *color)
 	glVertex3f((float)size, 0.0f, 0.0f);
 	glVertex3f(0.0f, 0.0f, (float) -size);
 	glVertex3f(0.0f, 0.0f, (float) size);
+	glEnd();
+}
+
+void MiniGL::drawGrid_xy(float *color)
+{
+	float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, speccolor);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0);
+
+	const int size = 5;
+
+	glBegin(GL_LINES);
+	for (int i = -size; i <= size; i++)
+	{
+		glVertex3f((float)i, (float)-size, 0.0f );
+		glVertex3f((float)i, (float)size, 0.0f);
+		glVertex3f((float)-size, (float)i, 0.0f);
+		glVertex3f((float)size, (float)i, 0.0f);
+	}
+	glEnd();
+
+	glLineWidth(3.0f);
+	glBegin(GL_LINES);
+	glVertex3f((float)-size, 0.0f, 0.0f);
+	glVertex3f((float)size, 0.0f, 0.0f);
+	glVertex3f(0.0f, (float)-size, 0.0f);
+	glVertex3f(0.0f, (float)size, 0.0f);
 	glEnd();
 }
 

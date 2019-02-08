@@ -63,7 +63,7 @@ void Viscosity_XSPH::step()
 			//		const unsigned int neighborIndex = sim->getNeighbor(pid, i, j);
 			//		const Vector3r &xj = bm_neighbor->getPosition(neighborIndex);
 			//		const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-			//		ai -= invH * viscosity * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi)* sim->W(xi - xj);
+			//		ai -= invH * viscosity * bm_neighbor->getVolume(neighborIndex) * (vi)* sim->W(xi - xj);
 			//	}
 			//}
 		}

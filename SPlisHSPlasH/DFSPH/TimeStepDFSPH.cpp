@@ -28,10 +28,31 @@ TimeStepDFSPH::TimeStepDFSPH() :
 	m_enableDivergenceSolver = true;
 	m_maxIterationsV = 100;
 	m_maxErrorV = 0.1;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "factor", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getFactor(fluidModelIndex, i); } });
+		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "kappa", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getKappa(fluidModelIndex, i); } });
+		model->addField({ "kappa_v", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getKappaV(fluidModelIndex, i); } });
+	}
 }
 
 TimeStepDFSPH::~TimeStepDFSPH(void)
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("factor");
+		model->removeFieldByName("advected density");
+		model->removeFieldByName("kappa");
+		model->removeFieldByName("kappa_v");
+	}
 }
 
 void TimeStepDFSPH::initParameters()
@@ -206,7 +227,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 	const Real invH2 = 1.0 / h2;
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
@@ -290,7 +311,7 @@ void TimeStepDFSPH::pressureSolve()
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+		const Real density0 = model->getDensity0();
 		const int numParticles = (int)model->numActiveParticles();
 		#pragma omp parallel default(shared)
 		{
@@ -322,7 +343,7 @@ void TimeStepDFSPH::pressureSolve()
 		for (unsigned int i = 0; i < nFluids; i++)
 		{
 			FluidModel *model = sim->getFluidModel(i);
-			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+			const Real density0 = model->getDensity0();
 
 			avg_density_err = 0.0;
 			pressureSolveIteration(i, avg_density_err);
@@ -358,7 +379,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 {
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
@@ -441,7 +462,7 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 	const Real invH = 1.0 / h;
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
@@ -560,7 +581,7 @@ void TimeStepDFSPH::divergenceSolve()
 		for (unsigned int i = 0; i < nFluids; i++)
 		{
 			FluidModel *model = sim->getFluidModel(i);
-			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+			const Real density0 = model->getDensity0();
 
 			avg_density_err = 0.0;
 			divergenceSolveIteration(i, avg_density_err);
@@ -602,7 +623,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 {
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const int numParticles = (int)model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();

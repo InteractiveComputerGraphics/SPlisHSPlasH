@@ -21,10 +21,18 @@ Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
 	m_iterations = 0;
 	m_maxIter = 50;
 	m_maxError = 0.01;
+
+	model->addField({ "target strain rate", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_targetStrainRate[i][0]; } });
+	model->addField({ "viscosity factor", FieldType::Matrix6, [&](const unsigned int i) -> Real* { return &m_viscosityFactor[i](0,0); } });
+	model->addField({ "viscosity lambda", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_viscosityLambda[i][0]; } });
 }
 
 Viscosity_Bender2017::~Viscosity_Bender2017(void)
 {
+	m_model->removeFieldByName("target strain rate");
+	m_model->removeFieldByName("viscosity factor");
+	m_model->removeFieldByName("viscosity lambda");
+
 	m_targetStrainRate.clear();
 	m_viscosityFactor.clear();
 	m_viscosityLambda.clear();
@@ -61,6 +69,7 @@ void Viscosity_Bender2017::step()
 	const unsigned int maxIter = m_maxIter;
 	const Real maxError = m_maxError;	
 	const Real maxError2 = maxError*maxError;
+	const Real density0 = model->getDensity0();
 
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
@@ -187,7 +196,7 @@ void Viscosity_Bender2017::step()
 			//////////////////////////////////////////////////////////////////////////
 			forall_boundary_neighbors(
 				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-				ai -= invH * 0.1 * m_viscosity * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
+				ai -= invH * 0.1 * m_viscosity * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
 			)
 		}
 	}

@@ -10,10 +10,14 @@ VorticityConfinement::VorticityConfinement(FluidModel *model) :
 {
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 	m_normOmega.resize(model->numParticles(), 0.0);
+
+	model->addField({ "angular velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
 }
 
 VorticityConfinement::~VorticityConfinement(void)
 {
+	m_model->removeFieldByName("angular velocity");
+
 	m_omega.clear();
 	m_normOmega.clear();
 }

@@ -14,7 +14,7 @@ DragForce_Macklin2014::~DragForce_Macklin2014(void)
 
 void DragForce_Macklin2014::step()
 {
-	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = m_model->getDensity0();
 
 	const unsigned int numParticles = m_model->numActiveParticles();
 

@@ -1,5 +1,5 @@
-#ifndef __DemoBase_h__
-#define __DemoBase_h__
+#ifndef __SimulatorBase_h__
+#define __SimulatorBase_h__
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
@@ -11,7 +11,7 @@
 
 namespace SPH
 {
-	class DemoBase : public GenParam::ParameterObject
+	class SimulatorBase : public GenParam::ParameterObject
 	{
 	public: 
 		struct SimulationMethod
@@ -38,20 +38,21 @@ namespace SPH
 		Shader m_meshShader;
 		GLuint m_textureMap;
 		int m_renderWalls;
-		int m_colorField;
 		bool m_doPause;
 		Real m_pauseAt;
 		Real m_stopAt;
 		bool m_enablePartioExport;
 		unsigned int m_framesPerSecond;
-		Real m_renderMaxValue;
-		Real m_renderMinValue;
+		std::string m_partioAttributes;
 		Vector3r m_oldMousePos;
 		std::vector<std::vector<unsigned int>> m_selectedParticles;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
 		unsigned int m_frameCounter;
-		int m_colorMapType;
+		std::vector<std::string> m_colorField;
+		std::vector<int> m_colorMapType;
+		std::vector<Real> m_renderMaxValue;
+		std::vector<Real> m_renderMinValue;
 		float const* m_colorMapBuffer;
 		unsigned int m_colorMapLength;
 #ifdef DL_OUTPUT
@@ -76,12 +77,9 @@ namespace SPH
 		static int NUM_STEPS_PER_RENDER;
 		static int PARTIO_EXPORT;
 		static int PARTIO_EXPORT_FPS;
-		static int RENDER_MIN_VALUE;
-		static int RENDER_MAX_VALUE;
+		static int PARTIO_EXPORT_ATTRIBUTES;
 		static int RENDER_WALLS;
-		static int RENDER_COLOR_FIELD;
-		static int RENDER_COLOR_MAP_TYPE;
-
+		
 		static int ENUM_WALLS_NONE;
 		static int ENUM_WALLS_PARTICLES_ALL;
 		static int ENUM_WALLS_PARTICLES_NO_WALLS;
@@ -93,21 +91,18 @@ namespace SPH
 		static int ENUM_RENDER_ANGULAR_VELOCITY;
 		static int ENUM_RENDER_DENSITY;
 
-		static int ENUM_COLORMAP_NONE;
-		static int ENUM_COLORMAP_JET;
-		static int ENUM_COLORMAP_PLASMA;
+		SimulatorBase();
+		virtual ~SimulatorBase();
 
-		DemoBase();
-		virtual ~DemoBase();
-
-		void init(int argc, char **argv, const char *demoName);
+		void init(int argc, char **argv, const char *simName);
 		void buildModel();
 		void cleanup();
 
-		void renderFluid(FluidModel *model, float *fluidColor);
+		void renderFluid(const unsigned int fluidModelIndex, float *fluidColor);
 
 		void readParameters();
 		void partioExport();
+		void writeParticles(const std::string &fileName, FluidModel *model);
 		void step();
 		void reset();
 
@@ -124,7 +119,7 @@ namespace SPH
 		Shader& getMeshShader() { return m_meshShader; }
 		void meshShaderBegin(const float *col);
 		void meshShaderEnd();
-		void pointShaderBegin(Shader *shader, const float *col, const bool useTexture = false);
+		void pointShaderBegin(Shader *shader, const float *col, const Real minVal, const Real maxVal, const bool useTexture = false, float const* color_map = nullptr);
 		void pointShaderEnd(Shader *shader, const bool useTexture = false);
 		Utilities::SceneLoader::Scene& getScene() { return m_scene; }
 
@@ -132,8 +127,15 @@ namespace SPH
 		bool getUseParticleCaching() const { return m_useParticleCaching; }
 		void setUseParticleCaching(bool val) { m_useParticleCaching = val; }
 
-		int getColorMapType() const { return m_colorMapType; }
-		void setColorMapType(const int v);
+		const std::string& getColorField(const unsigned int fluidModelIndex) {	return m_colorField[fluidModelIndex]; }
+		void setColorField(const unsigned int fluidModelIndex, const std::string& fieldName) { m_colorField[fluidModelIndex] = fieldName; }
+
+		int getColorMapType(const unsigned int fluidModelIndex) const { return m_colorMapType[fluidModelIndex]; }
+		void setColorMapType(const unsigned int fluidModelIndex, int val) { m_colorMapType[fluidModelIndex] = val; }
+		Real getRenderMaxValue(const unsigned int fluidModelIndex) const { return m_renderMaxValue[fluidModelIndex]; }
+		void setRenderMaxValue(const unsigned int fluidModelIndex, Real val) { m_renderMaxValue[fluidModelIndex] = val; }
+		Real getRenderMinValue(const unsigned int fluidModelIndex) const { return m_renderMinValue[fluidModelIndex]; }
+		void setRenderMinValue(const unsigned int fluidModelIndex, Real val) { m_renderMinValue[fluidModelIndex] = val; }
 	};
 }
  

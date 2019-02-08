@@ -21,6 +21,9 @@ void Viscosity_Standard::step()
 	const Real h2 = h*h;
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
+	Real d = 10.0;
+	if (sim->is2DSimulation())
+		d = 6.0;
 
 	#pragma omp parallel default(shared)
 	{
@@ -41,7 +44,7 @@ void Viscosity_Standard::step()
 				// Viscosity
 				const Real density_j = fm_neighbor->getDensity(neighborIndex);
 				const Vector3r xixj = xi - xj;
-				ai += 10.0 * m_viscosity * (fm_neighbor->getMass(neighborIndex) / density_j) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * sim->gradW(xi - xj);
+				ai += d * m_viscosity * (fm_neighbor->getMass(neighborIndex) / density_j) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * sim->gradW(xi - xj);
 			)
 
 			////////////////////////////////////////////////////////////////////////////
@@ -56,7 +59,7 @@ void Viscosity_Standard::step()
 			//		const Vector3r &xj = bm_neighbor->getPosition(neighborIndex);
 			//		const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
 			//		const Vector3r xixj = xi - xj;
-			//		ai += 10.0 * viscosity * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi) * (xixj.dot(sim->gradW(xi - xj))) / (xixj.squaredNorm() + 0.01*h2);
+			//		ai += d * viscosity * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi) * (xixj.dot(sim->gradW(xi - xj))) / (xixj.squaredNorm() + 0.01*h2);
 			//	}
 			//}
 		}

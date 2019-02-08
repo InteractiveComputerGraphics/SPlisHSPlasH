@@ -14,10 +14,29 @@ TimeStepPCISPH::TimeStepPCISPH() :
 {
 	m_simulationData.init();
 	m_counter = 0;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
+		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+	}
 }
 
 TimeStepPCISPH::~TimeStepPCISPH(void)
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("pressure");
+		model->removeFieldByName("advected density");
+		model->removeFieldByName("pressure acceleration");
+	}
 }
 
 void TimeStepPCISPH::step()
@@ -101,7 +120,7 @@ void TimeStepPCISPH::pressureSolve()
 		for (unsigned int i = 0; i < nFluids; i++)
 		{
 			FluidModel *model = sim->getFluidModel(i);
-			const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+			const Real density0 = model->getDensity0();
 
 			avg_density_err = 0.0;
 			pressureSolveIteration(i, avg_density_err);
@@ -120,7 +139,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const int numParticles = (int)model->numActiveParticles();
-	const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = model->getDensity0();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real h2 = h*h;
 	const Real invH2 = static_cast<Real>(1.0) / h2;

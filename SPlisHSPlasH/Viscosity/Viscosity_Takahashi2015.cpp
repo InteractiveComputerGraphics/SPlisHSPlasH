@@ -20,10 +20,16 @@ Viscosity_Takahashi2015::Viscosity_Takahashi2015(FluidModel *model) :
 	m_maxIter = 100;
 	m_maxError = 0.01;
 	m_iterations = 0;
+
+	model->addField({ "viscous stress", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_viscousStress[i](0,0); } });
+	model->addField({ "accel (visco)", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_accel[i][0]; } });
 }
 
 Viscosity_Takahashi2015::~Viscosity_Takahashi2015(void)
 {
+	m_model->removeFieldByName("viscous stress");
+	m_model->removeFieldByName("accel (visco)");
+
 	m_viscousStress.clear();
 	m_accel.clear();
 }
@@ -132,7 +138,7 @@ void Viscosity_Takahashi2015::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
-	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = m_model->getDensity0();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
@@ -208,7 +214,7 @@ void Viscosity_Takahashi2015::step()
 					const unsigned int neighborIndex = sim->getNeighbor(fluidModelIndex, pid, i, j);
 					const Vector3r &xj = bm_neighbor->getPosition(neighborIndex);
 					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-					ai -= invH * 0.1 * (bm_neighbor->getBoundaryPsi(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
+					ai -= invH * 0.1 * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
 				}
 			}
 		}

@@ -10,10 +10,10 @@
 #include "Utilities/Timing.h"
 #include "Utilities/FileSystem.h"
 #include "GL/freeglut_ext.h"
-#include "Demos/Visualization/Shader.h"
+#include "Visualization/Shader.h"
 #include "Simulation/TimeManager.h"
 #include "Simulation/Simulation.h"
-#include "Demos/Visualization/Visualization.h"
+#include "Visualization/Visualization.h"
 #include "Simulation/TimeStepController.h"
 
 

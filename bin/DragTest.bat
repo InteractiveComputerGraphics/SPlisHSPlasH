@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/DragTest.json
+.\StaticBoundarySimulator.exe ../data/scenes/DragTest.json
 pause

@@ -8,10 +8,13 @@ SurfaceTension_Akinci2013::SurfaceTension_Akinci2013(FluidModel *model) :
 	SurfaceTensionBase(model)
 {
 	m_normals.resize(model->numParticles(), Vector3r::Zero());
+
+	model->addField({ "normal", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_normals[i][0]; } });
 }
 
 SurfaceTension_Akinci2013::~SurfaceTension_Akinci2013(void)
 {
+	m_model->removeFieldByName("normal");
 	m_normals.clear();
 }
 
@@ -51,7 +54,7 @@ void SurfaceTension_Akinci2013::computeNormals()
 void SurfaceTension_Akinci2013::step()
 {
 	Simulation *sim = Simulation::getCurrent();
-	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = m_model->getDensity0();
 	const Real supportRadius = sim->getSupportRadius();
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_surfaceTension;
@@ -108,7 +111,7 @@ void SurfaceTension_Akinci2013::step()
 					if (length2 > 1.0e-9)
 					{
 						xixj = ((Real) 1.0 / sqrt(length2)) * xixj;
-						ai -= k * bm_neighbor->getBoundaryPsi(neighborIndex) * xixj * AdhesionKernel::W(xi - xj);
+						ai -= k * density0 * bm_neighbor->getVolume(neighborIndex) * xixj * AdhesionKernel::W(xi - xj);
 					}
 			)
 		}

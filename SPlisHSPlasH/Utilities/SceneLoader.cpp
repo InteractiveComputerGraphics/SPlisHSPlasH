@@ -328,6 +328,35 @@ void SceneLoader::readParameterObject(const std::string &key, ParameterObject *p
 						static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
 				}
 			}
+			else if (paramBase->getType() == ParameterBase::STRING)
+			{
+				std::string val;
+				if (readValue(config[paramBase->getName()], val))
+					static_cast<StringParameter*>(paramBase)->setValue(val);
+			}
 		}
 	}
+}
+
+Utilities::SceneLoader::ColoringData Utilities::SceneLoader::readColoringInfo(const std::string &key)
+{
+	ColoringData data;
+	data.colorField = "velocity";
+	data.colorMapType = 0;
+	data.minVal = 0.0;
+	data.maxVal = 5.0;
+
+	//////////////////////////////////////////////////////////////////////////
+	// read configuration 
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find(key) != m_jsonData.end())
+	{
+		nlohmann::json config = m_jsonData[key];
+#
+		readValue(config["renderMinValue"], data.minVal);
+		readValue(config["renderMaxValue"], data.maxVal);
+		readValue(config["colorField"], data.colorField);
+		readValue(config["colorMapType"], data.colorMapType);
+	}
+	return data;
 }

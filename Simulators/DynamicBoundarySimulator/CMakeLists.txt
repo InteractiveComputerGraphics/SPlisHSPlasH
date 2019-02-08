@@ -64,13 +64,13 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 set(SIMULATION_DEPENDENCIES Ext_PBD ${SIMULATION_DEPENDENCIES})
 link_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/lib)
 
-add_executable(DynamicBoundaryDemo
+add_executable(DynamicBoundarySimulator
 	main.cpp
 	
-	${PROJECT_PATH}/Demos/Common/DemoBase.cpp
-	${PROJECT_PATH}/Demos/Common/DemoBase.h
-	${PROJECT_PATH}/Demos/Common/TweakBarParameters.cpp
-	${PROJECT_PATH}/Demos/Common/TweakBarParameters.h
+	${PROJECT_PATH}/Simulators/Common/SimulatorBase.cpp
+	${PROJECT_PATH}/Simulators/Common/SimulatorBase.h
+	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.cpp
+	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.h
   
 	${VIS_FILES}          
 
@@ -87,23 +87,23 @@ add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 include_directories(${PROJECT_PATH}/extern/freeglut/include)
 include_directories(${PROJECT_PATH}/extern/glew/include)
 
-set_target_properties(DynamicBoundaryDemo PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_target_properties(DynamicBoundaryDemo PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
-set_target_properties(DynamicBoundaryDemo PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
-add_dependencies(DynamicBoundaryDemo ${SIMULATION_DEPENDENCIES})
-target_link_libraries(DynamicBoundaryDemo ${SIMULATION_LINK_LIBRARIES})
+set_target_properties(DynamicBoundarySimulator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_target_properties(DynamicBoundarySimulator PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
+set_target_properties(DynamicBoundarySimulator PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
+add_dependencies(DynamicBoundarySimulator ${SIMULATION_DEPENDENCIES})
+target_link_libraries(DynamicBoundarySimulator ${SIMULATION_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 
 source_group("Header Files\\PBD" FILES ${PBDWRAPPER_HEADER_FILES})
 source_group("Source Files\\PBD" FILES ${PBDWRAPPER_SOURCE_FILES})
 
-set_target_properties(DynamicBoundaryDemo PROPERTIES FOLDER "Demos")
+set_target_properties(DynamicBoundarySimulator PROPERTIES FOLDER "Simulators")
 
-add_custom_command(TARGET DynamicBoundaryDemo PRE_BUILD
+add_custom_command(TARGET DynamicBoundarySimulator PRE_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_directory
-					${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:DynamicBoundaryDemo>/resources/shaders)
+					${PROJECT_PATH}/data/shaders $<TARGET_FILE_DIR:DynamicBoundarySimulator>/resources/shaders)
 
-add_custom_command(TARGET DynamicBoundaryDemo PRE_BUILD
+add_custom_command(TARGET DynamicBoundarySimulator PRE_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data/shaders $<TARGET_FILE_DIR:DynamicBoundaryDemo>/resources/pbd_shaders)
+                    ${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data/shaders $<TARGET_FILE_DIR:DynamicBoundarySimulator>/resources/pbd_shaders)
 

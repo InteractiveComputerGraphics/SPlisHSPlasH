@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/BucklingModel_Weiler2018.json
+.\StaticBoundarySimulator.exe ../data/scenes/BucklingModel_Weiler2018.json
 pause

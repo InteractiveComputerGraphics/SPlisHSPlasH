@@ -15,12 +15,23 @@ namespace SPH
 	class SurfaceTensionBase;
 	class VorticityBase;
 	class DragBase;
+	class ElasticityBase;
 	class EmitterSystem;
+
+	enum FieldType { Scalar = 0, Vector3, Vector6, Matrix3, Matrix6 };
+	struct FieldDescription
+	{
+		std::string name;
+		FieldType type;
+		// getFct(particleIndex)
+		std::function<Real*(const unsigned int)> getFct;
+	};
 
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, NumSurfaceTensionMethods };
 	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, Takahashi2015, Weiler2018, NumViscosityMethods };
 	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement, NumVorticityMethods };
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
+	enum class ElasticityMethods { None = 0, Becker2009, Peer2018, NumElasticityMethods };
 
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
@@ -35,6 +46,7 @@ namespace SPH
 			static int SURFACE_TENSION_METHOD;
 			static int VISCOSITY_METHOD;
 			static int VORTICITY_METHOD;
+			static int ELASTICITY_METHOD;
 
 			static int ENUM_DRAG_NONE;
 			static int ENUM_DRAG_MACKLIN2014;
@@ -58,7 +70,10 @@ namespace SPH
 			static int ENUM_VORTICITY_MICROPOLAR;
 			static int ENUM_VORTICITY_VC;
 
-
+			static int ENUM_ELASTICITY_NONE;
+			static int ENUM_ELASTICITY_BECKER2009;
+			static int ENUM_ELASTICITY_PEER2018;
+			
 			FluidModel();
 			virtual ~FluidModel();
 
@@ -89,11 +104,15 @@ namespace SPH
 			VorticityBase *m_vorticity;
 			DragMethods m_dragMethod;
 			DragBase *m_drag;
+			ElasticityMethods m_elasticityMethod;
+			ElasticityBase *m_elasticity;
+			std::vector<FieldDescription> m_fields;
 
 			std::function<void()> m_dragMethodChanged;
 			std::function<void()> m_surfaceTensionMethodChanged;
 			std::function<void()> m_viscosityMethodChanged;
 			std::function<void()> m_vorticityMethodChanged;
+			std::function<void()> m_elasticityMethodChanged;
 
 			Real m_density0;
 			unsigned int m_pointSetIndex;
@@ -119,6 +138,13 @@ namespace SPH
 			void setDensity0(const Real v);
 
 			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
+
+			void addField(const FieldDescription &field);
+			const std::vector<FieldDescription> &getFields() { return m_fields; }
+			const FieldDescription &getField(const unsigned int i) { return m_fields[i]; }
+			const FieldDescription &getField(const std::string &name);
+			const unsigned int numberOfFields() { return static_cast<unsigned int>(m_fields.size()); }
+			void removeFieldByName(const std::string &fieldName);
 
 			void setNumActiveParticles(const unsigned int num);
 			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
@@ -147,21 +173,26 @@ namespace SPH
 			void setVorticityMethod(const int val);
 			int getDragMethod() const { return static_cast<int>(m_dragMethod); }
 			void setDragMethod(const int val);
+			int getElasticityMethod() const { return static_cast<int>(m_elasticityMethod); }
+			void setElasticityMethod(const int val);
 
 			SurfaceTensionBase *getSurfaceTensionBase() { return m_surfaceTension; }
 			ViscosityBase *getViscosityBase() { return m_viscosity; }
 			VorticityBase *getVorticityBase() { return m_vorticity; }
 			DragBase *getDragBase() { return m_drag; }
+			ElasticityBase *getElasticityBase() { return m_elasticity; }
 
 			void setDragMethodChangedCallback(std::function<void()> const& callBackFct);
 			void setSurfaceMethodChangedCallback(std::function<void()> const& callBackFct);
 			void setViscosityMethodChangedCallback(std::function<void()> const& callBackFct);
 			void setVorticityMethodChangedCallback(std::function<void()> const& callBackFct);
+			void setElasticityMethodChangedCallback(std::function<void()> const& callBackFct);
 
 			void computeSurfaceTension();
 			void computeViscosity();
 			void computeVorticity();
 			void computeDragForce();
+			void computeElasticity();
 
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)

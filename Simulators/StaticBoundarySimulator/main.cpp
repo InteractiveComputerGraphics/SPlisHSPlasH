@@ -7,18 +7,17 @@
 #include <iostream>
 #include "Utilities/Timing.h"
 #include "Utilities/PartioReaderWriter.h"
-#include "PositionBasedDynamicsWrapper/PBDRigidBody.h"
+#include "SPlisHSPlasH/StaticRigidBody.h"
 #include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
-#include "PositionBasedDynamicsWrapper/PBDWrapper.h"
-#include "Demos/Common/DemoBase.h"
+#include "Simulators/Common/SimulatorBase.h"
 #include "Utilities/FileSystem.h"
 #include "Utilities/Version.h"
-#include "Utilities/SystemInfo.h"
+#include <fstream>
+#include "Utilities/Logger.h"
 #include "Utilities/Counting.h"
 #include "SPlisHSPlasH/Simulation.h"
-#include "Demos/Common/TweakBarParameters.h"
-#include "SPlisHSPlasH/TimeStep.h"
+#include "Simulators/Common/TweakBarParameters.h"
 #include "GL/freeglut_ext.h"
 
 // Enable memory leak detection
@@ -40,32 +39,33 @@ void render ();
 void renderBoundary();
 void reset();
 void initParameters();
-void updateBoundaryParticles(const bool forceUpdate);
-void updateBoundaryForces();
+void loadObj(const std::string &filename, TriangleMesh &geo, const Vector3r &scale);
 void TW_CALL setCurrentFluidModel(const void *value, void *clientData);
 void TW_CALL getCurrentFluidModel(void *value, void *clientData);
+void TW_CALL setColorField(const void *value, void *clientData);
+void TW_CALL getColorField(void *value, void *clientData);
+void TW_CALL setRenderMaxValue(const void *value, void *clientData);
+void TW_CALL getRenderMaxValue(void *value, void *clientData);
+void TW_CALL setRenderMinValue(const void *value, void *clientData);
+void TW_CALL getRenderMinValue(void *value, void *clientData);
+void TW_CALL setColorMapType(const void *value, void *clientData);
+void TW_CALL getColorMapType(void *value, void *clientData);
 
-DemoBase *base;
-PBDWrapper pbdWrapper;
+SimulatorBase *base;
 unsigned int currentFluidModel = 0;
+std::vector<std::string> colorFieldNames;
 
 // main 
 int main( int argc, char **argv )
 {
 	REPORT_MEMORY_LEAKS;
 
-	base = new DemoBase();
-	base->init(argc, argv, "DynamicBoundaryDemo");
+	base = new SimulatorBase();
+	base->init(argc, argv, "StaticBoundarySimulator");
 
 	Simulation *sim = Simulation::getCurrent();
 	sim->init(base->getScene().particleRadius, base->getScene().sim2D);
-
-	//////////////////////////////////////////////////////////////////////////
-	// PBD
-	//////////////////////////////////////////////////////////////////////////
-	pbdWrapper.initShader();
-	pbdWrapper.readScene(base->getSceneFile());
-
+	
 	base->buildModel();
 
 	initBoundaryData();
@@ -83,13 +83,12 @@ int main( int argc, char **argv )
 		model->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getSurfaceTensionBase()); });
 		model->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getViscosityBase()); });
 		model->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getVorticityBase()); });
+		model->setElasticityMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getElasticityBase()); });
 	}
 
 	initParameters();
 	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
 	base->readParameters();
-
-	pbdWrapper.initModel(TimeManager::getCurrent()->getTimeStepSize());
 
 	MiniGL::setClientIdleFunc(50, timeStep);
 	MiniGL::addKeyFunc('r', reset);
@@ -97,7 +96,7 @@ int main( int argc, char **argv )
 
 	glutMainLoop ();	
 
-	base->cleanup();
+	base->cleanup ();
 
 	Utilities::Timing::printAverageTimes();
 	Utilities::Timing::printTimeSums();
@@ -141,18 +140,46 @@ void initParameters()
 	// show GUI only for currently selected fluid model
 	unsigned int i = currentFluidModel;
 	FluidModel *model = sim->getFluidModel(currentFluidModel);
+
+	colorFieldNames.clear();
+	colorFieldNames.resize(model->numberOfFields());
+	TwType enumType = TwDefineEnum("ColorFieldEnum", NULL, 0);
+	std::ostringstream oss;
+	for (unsigned int j = 0; j < model->numberOfFields(); j++)
+	{
+		const FieldDescription &field = model->getField(j);
+		if ((field.type == FieldType::Scalar) || (field.type == FieldType::Vector3))
+		{
+			if (j != 0)
+				oss << ", ";
+			oss << j << " {" << field.name.c_str() << "}";
+			colorFieldNames[j] = field.name;
+		}
+	}
+	std::string enumStr = " label='Color field' enum='" + oss.str() + "' group='" + model->getId() + "'";
+	enumStr = enumStr + " help='Choose vector or scalar field for particle coloring.'";
+	TwAddVarCB(MiniGL::getTweakBar(), "ColorField", enumType, setColorField, getColorField, nullptr, enumStr.c_str());
+
+	TwType enumType2 = TwDefineEnum("ColorMapTypeEnum", NULL, 0);
+	std::string str = " label='Color map' enum='0 {None}, 1 {Jet}, 2 {Plasma}' group='" + model->getId() + "' help='Choose a color map.'";
+	TwAddVarCB(MiniGL::getTweakBar(), "ColorMapType", enumType2, setColorMapType, getColorMapType, nullptr, str.c_str());
+	str = " label='Min. value (shader)' step=0.001 precision=3 group='" + model->getId() + "' help='Minimal value used for color-coding the color field in the rendering process.'";
+	TwAddVarCB(MiniGL::getTweakBar(), "RenderMinValue", TW_TYPE_REAL, setRenderMinValue, getRenderMinValue, nullptr, str.c_str());
+	str = " label='Max. value (shader)' step=0.001 precision=3 group='" + model->getId() + "' help='Maximal value used for color-coding the color field in the rendering process.'";
+	TwAddVarCB(MiniGL::getTweakBar(), "RenderMaxValue", TW_TYPE_REAL, setRenderMaxValue, getRenderMaxValue, nullptr, str.c_str());
+
 	TweakBarParameters::createParameterObjectGUI(model);
 	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getDragBase());
 	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getSurfaceTensionBase());
 	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getViscosityBase());
 	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getVorticityBase());
+	TweakBarParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getElasticityBase());
 	TwDefine((std::string("TweakBar/FluidModel group='") + model->getId() + "'").c_str());
 	TwDefine((std::string("TweakBar/'Drag force' group='") + model->getId() + "'").c_str());
 	TwDefine((std::string("TweakBar/'Surface tension' group='") + model->getId() + "'").c_str());
 	TwDefine((std::string("TweakBar/Viscosity group='") + model->getId() + "'").c_str());
 	TwDefine((std::string("TweakBar/Vorticity group='") + model->getId() + "'").c_str());
-
-	pbdWrapper.initGUI();
+	TwDefine((std::string("TweakBar/'Elasticity' group='") + model->getId() + "'").c_str());
 }
 
 void reset()
@@ -165,49 +192,31 @@ void reset()
 
 	Simulation::getCurrent()->reset();
 	base->reset();
-
-	//////////////////////////////////////////////////////////////////////////
-	// PBD
-	//////////////////////////////////////////////////////////////////////////
-	pbdWrapper.reset();
-
-	updateBoundaryParticles(true);
 	base->getSelectedParticles().clear();
 }
 
 void timeStep ()
 {
-	const Real stopAt = base->getValue<Real>(DemoBase::STOP_AT);
+	const Real stopAt = base->getValue<Real>(SimulatorBase::STOP_AT);
 	if ((stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
 		glutLeaveMainLoop();
 
-	const Real pauseAt = base->getValue<Real>(DemoBase::PAUSE_AT);
+	const Real pauseAt = base->getValue<Real>(SimulatorBase::PAUSE_AT);
 	if ((pauseAt > 0.0) && (pauseAt < TimeManager::getCurrent()->getTime()))
-		base->setValue(DemoBase::PAUSE, true);
+		base->setValue(SimulatorBase::PAUSE, true);
 
-	if (base->getValue<bool>(DemoBase::PAUSE))
+	if (base->getValue<bool>(SimulatorBase::PAUSE))
 		return;
 
 	// Simulation code
 	Simulation *sim = Simulation::getCurrent();
 	const bool sim2D = sim->is2DSimulation();
-	const unsigned int numSteps = base->getValue<unsigned int>(DemoBase::NUM_STEPS_PER_RENDER);
+	const unsigned int numSteps = base->getValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER);
 	for (unsigned int i = 0; i < numSteps; i++)
 	{
 		START_TIMING("SimStep");
-		SPH::Simulation::getCurrent()->getTimeStep()->step();
+		Simulation::getCurrent()->getTimeStep()->step();
 		STOP_TIMING_AVG;
-
-		updateBoundaryForces();
-
-		//////////////////////////////////////////////////////////////////////////
-		// PBD
-		//////////////////////////////////////////////////////////////////////////
-		START_TIMING("SimStep - PBD");
-		pbdWrapper.timeStep();
-		STOP_TIMING_AVG;
-
-		updateBoundaryParticles(false);
 
 		base->step();
 
@@ -229,13 +238,35 @@ void timeStep ()
 	}
 }
 
+void render()
+{
+	float gridColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	const bool sim2D = Simulation::getCurrent()->is2DSimulation();
+	if (sim2D)
+		MiniGL::drawGrid_xy(gridColor);
+	else
+		MiniGL::drawGrid_xz(gridColor);
+
+	MiniGL::coordinateSystem();
+	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
+
+	Simulation *sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
+		MiniGL::hsvToRgb(0.61f-0.1f*i, 0.66f, 0.9f, fluidColor);
+		base->renderFluid(i, fluidColor);
+	}
+	renderBoundary();
+}
+
 void renderBoundary()
 {
 	Simulation *sim = Simulation::getCurrent();
 	Shader &shader = base->getShaderScalar();
 	Shader &meshShader = base->getMeshShader();
 	SceneLoader::Scene &scene = base->getScene();
-	const int renderWalls = base->getValue<int>(DemoBase::RENDER_WALLS);
+	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
 	GLint context_major_version = base->getContextMajorVersion();
 
 	if ((renderWalls == 1) || (renderWalls == 2))
@@ -255,14 +286,14 @@ void renderBoundary()
 					glDrawArrays(GL_POINTS, 0, bm->numberOfParticles());
 					glDisableVertexAttribArray(0);
 				}
-			}
+			}			
 			shader.end();
 		}
 		else
 		{
 			glDisable(GL_LIGHTING);
 			glPointSize(4.0f);
-
+ 
 			glBegin(GL_POINTS);
 			for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 			{
@@ -280,66 +311,64 @@ void renderBoundary()
 			glEnable(GL_LIGHTING);
 		}
 	}
+	else if ((renderWalls == 3) || (renderWalls == 4))
+	{
+		for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
+		{
+			if ((renderWalls == 3) || (!scene.boundaryModels[body]->isWall))
+			{
+				meshShader.begin();
+				glUniform1f(meshShader.getUniform("shininess"), 5.0f);
+				glUniform1f(meshShader.getUniform("specular_factor"), 0.2f);
+
+				GLfloat matrix[16];
+				glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
+				glUniformMatrix4fv(meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
+				GLfloat pmatrix[16];
+				glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
+				glUniformMatrix4fv(meshShader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+
+				glUniform3fv(meshShader.getUniform("surface_color"), 1, scene.boundaryModels[body]->color.data());
+
+				BoundaryModel *bm = sim->getBoundaryModel(body);
+				MiniGL::drawMesh(((StaticRigidBody*)bm->getRigidBodyObject())->getGeometry(), scene.boundaryModels[body]->color.data());
+
+				meshShader.end();
+			}
+		}		
+	}
 }
 
-
-void render()
+void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
 {
-	float gridColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
-	MiniGL::drawGrid(gridColor);
+	std::vector<OBJLoader::Vec3f> x;
+	std::vector<OBJLoader::Vec3f> normals;
+	std::vector<MeshFaceIndices> faces;
+	OBJLoader::Vec3f s = { (float) scale[0], (float)scale[1], (float)scale[2] };
+	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
 
-	MiniGL::coordinateSystem();
-	MiniGL::drawTime(TimeManager::getCurrent()->getTime());
-
-	Simulation *sim = Simulation::getCurrent();
-	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	mesh.release();
+	const unsigned int nPoints = (unsigned int)x.size();
+	const unsigned int nFaces = (unsigned int)faces.size();
+	mesh.initMesh(nPoints, nFaces);
+	for (unsigned int i = 0; i < nPoints; i++)
 	{
-		FluidModel *model = sim->getFluidModel(i);
-
-		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
-		MiniGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
-		base->renderFluid(model, fluidColor);
+		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
 	}
-	renderBoundary();
-
-	//////////////////////////////////////////////////////////////////////////
-	// PBD
-	//////////////////////////////////////////////////////////////////////////
-
-	PBD::SimulationModel &model = pbdWrapper.getSimulationModel();
-	PBD::SimulationModel::RigidBodyVector &rb = model.getRigidBodies();
-
-	const int renderWalls = base->getValue<int>(DemoBase::RENDER_WALLS);
-	SceneLoader::Scene &scene = base->getScene();
-	if ((renderWalls == 3) || (renderWalls == 4))
+	for (unsigned int i = 0; i < nFaces; i++)
 	{
-		for (size_t i = 0; i < rb.size(); i++)
+		// Reduce the indices by one
+		int posIndices[3];
+		for (int j = 0; j < 3; j++)
 		{
-			const PBD::VertexData &vd = rb[i]->getGeometry().getVertexData();
-			const Utilities::IndexedFaceMesh &mesh = rb[i]->getGeometry().getMesh();
-			if ((renderWalls == 3) || (!scene.boundaryModels[i]->isWall))
-			{
-				float *col = &scene.boundaryModels[i]->color[0];
-				if (!scene.boundaryModels[i]->isWall)
-				{
-					base->meshShaderBegin(col);
-					pbdWrapper.drawMesh(vd, mesh, 0, col);
-					base->meshShaderEnd();
-				}
-				else
-				{
-					base->meshShaderBegin(col);
-					pbdWrapper.drawMesh(vd, mesh, 0, col);
-					base->meshShaderEnd();
-				}
-			}
+			posIndices[j] = faces[i].posIndices[j] - 1;
 		}
+
+		mesh.addFace(&posIndices[0]);
 	}
 
-	pbdWrapper.renderTriangleModels();
-	pbdWrapper.renderTetModels();
-	pbdWrapper.renderConstraints();
-	pbdWrapper.renderBVH();
+	LOG_INFO << "Number of triangles: " << nFaces;
+	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
 void initBoundaryData()
@@ -355,7 +384,6 @@ void initBoundaryData()
 	{
 		string meshFileName = FileSystem::normalizePath(scene_path + "/" + scene.boundaryModels[i]->meshFile);
 
-		// check if mesh file has changed
 		std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + FileSystem::getFileNameWithExt(meshFileName) + ".md5");
 		bool md5 = false;
 		if (useCache)
@@ -365,30 +393,25 @@ void initBoundaryData()
 				md5 = FileSystem::checkMD5(md5Str, md5FileName);
 		}
 
-		// if a samples file is given, use this one
 		std::vector<Vector3r> boundaryParticles;
 		if (scene.boundaryModels[i]->samplesFile != "")
 		{
 			string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
-			PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
+			PartioReaderWriter::readParticles(particleFileName, scene.boundaryModels[i]->translation, scene.boundaryModels[i]->rotation, scene.boundaryModels[i]->scale[0], boundaryParticles);
 		}
 
-		PBD::SimulationModel &model = pbdWrapper.getSimulationModel();
-		PBD::SimulationModel::RigidBodyVector &rigidBodies = model.getRigidBodies();
-		PBDRigidBody *rb = new PBDRigidBody(rigidBodies[i]);
-		PBD::RigidBodyGeometry &geo = rigidBodies[i]->getGeometry();
-		Utilities::IndexedFaceMesh &mesh = geo.getMesh();
-		PBD::VertexData &vd = geo.getVertexData();
+		StaticRigidBody *rb = new StaticRigidBody();
+		TriangleMesh &geo = rb->getGeometry();
+		loadObj(meshFileName, geo, scene.boundaryModels[i]->scale);
 
-		// if no samples file is given, sample the surface model
 		if (scene.boundaryModels[i]->samplesFile == "")
 		{
 			// Cache sampling
 			std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
 			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
-			
+
 			const string resStr = to_string(scene.boundaryModels[i]->scale[0]) + "_" + to_string(scene.boundaryModels[i]->scale[1]) + "_" + to_string(scene.boundaryModels[i]->scale[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_dbd_" + std::to_string(scene.particleRadius) + "_" + resStr + ".bgeo");
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sbd_" + std::to_string(scene.particleRadius) + "_" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
@@ -398,21 +421,17 @@ void initBoundaryData()
 
 			if (useCache && foundCacheFile && md5)
 			{
-				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
+				PartioReaderWriter::readParticles(particleFileName, scene.boundaryModels[i]->translation, scene.boundaryModels[i]->rotation, 1.0, boundaryParticles);
 				LOG_INFO << "Loaded cached boundary sampling: " << particleFileName;
 			}
 
 			if (!useCache || !foundCacheFile || !md5)
 			{
-				LOG_INFO << "Surface sampling of " << scene.boundaryModels[i]->meshFile;
+				LOG_INFO << "Surface sampling of " << meshFileName;
 				START_TIMING("Poisson disk sampling");
 				PoissonDiskSampling sampling;
-				sampling.sampleMesh(mesh.numVertices(), &vd.getPosition(0), mesh.numFaces(), mesh.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
+				sampling.sampleMesh(geo.numVertices(), geo.getVertices().data(), geo.numFaces(), geo.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
 				STOP_TIMING_AVG;
-
-				// transform back to local coordinates
-				for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-					boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
 
 				// Cache sampling
 				if (useCache && (FileSystem::makeDir(cachePath) == 0))
@@ -421,59 +440,21 @@ void initBoundaryData()
 					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, scene.particleRadius);
 					FileSystem::writeMD5File(meshFileName, md5FileName);
 				}
+
+				// transform particles
+				for (unsigned int j = 0; j < (unsigned int)boundaryParticles.size(); j++)
+					boundaryParticles[j] = scene.boundaryModels[i]->rotation * boundaryParticles[j] + scene.boundaryModels[i]->translation;
 			}
 		}
+		for (unsigned int j = 0; j < geo.numVertices(); j++)
+			geo.getVertices()[j] = scene.boundaryModels[i]->rotation * geo.getVertices()[j] + scene.boundaryModels[i]->translation;
+
+		geo.updateNormals();
+		geo.updateVertexNormals();
+
 		Simulation::getCurrent()->addBoundaryModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}
-	Simulation::getCurrent()->updateBoundaryPsi();
-	updateBoundaryParticles(true);
-}
-
-
-void updateBoundaryParticles(const bool forceUpdate = false)
-{
-	Simulation *sim = Simulation::getCurrent();
-	SceneLoader::Scene &scene = base->getScene();
-	const unsigned int nObjects = sim->numberOfBoundaryModels();
-	for (unsigned int i = 0; i < nObjects; i++)
-	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic() || forceUpdate)
-		{
-			#pragma omp parallel default(shared)
-			{
-				#pragma omp for schedule(static)  
-				for (int j = 0; j < (int)bm->numberOfParticles(); j++)
-				{
-					bm->getPosition(j) = rbo->getRotation() * bm->getPosition0(j) + rbo->getPosition();
-					bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
-				}
-			}
-		}
-	}
-}
-
-void updateBoundaryForces()
-{
-	Real h = TimeManager::getCurrent()->getTimeStepSize();
-	SceneLoader::Scene &scene = base->getScene();
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nObjects = sim->numberOfBoundaryModels();	
-	for (unsigned int i = 0; i < nObjects; i++)
-	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic())
-		{
-			((PBDRigidBody*)rbo)->updateTimeStepSize();
-			Vector3r force, torque;
-			bm->getForceAndTorque(force, torque);
-			rbo->addForce(force);
-			rbo->addTorque(torque);
-			bm->clearForceAndTorque();
-		}
-	}
+	Simulation::getCurrent()->updateBoundaryVolume();
 }
 
 void TW_CALL setCurrentFluidModel(const void *value, void *clientData)
@@ -487,4 +468,58 @@ void TW_CALL setCurrentFluidModel(const void *value, void *clientData)
 void TW_CALL getCurrentFluidModel(void *value, void *clientData)
 {
 	*(unsigned int *)(value) = *((unsigned int*)clientData);
+}
+
+void TW_CALL setColorField(const void *value, void *clientData)
+{
+	const unsigned int val = *(const unsigned int *)(value);
+	base->setColorField(currentFluidModel, colorFieldNames[val]);
+}
+
+void TW_CALL getColorField(void *value, void *clientData)
+{
+	const std::string &fieldName = base->getColorField(currentFluidModel);
+	unsigned int index = 0;
+	for (auto i = 0; i < colorFieldNames.size(); i++)
+	{
+		if (colorFieldNames[i] == fieldName)
+		{
+			index = i;
+			break;
+		}
+	}
+	*(unsigned int *)(value) = index;
+}
+
+void TW_CALL setRenderMaxValue(const void *value, void *clientData)
+{
+	const Real val = *(const Real *)(value);
+	base->setRenderMaxValue(currentFluidModel, val);
+}
+
+void TW_CALL getRenderMaxValue(void *value, void *clientData)
+{
+	*(Real *)(value) = base->getRenderMaxValue(currentFluidModel);
+}
+
+void TW_CALL setRenderMinValue(const void *value, void *clientData)
+{
+	const Real val = *(const Real *)(value);
+	base->setRenderMinValue(currentFluidModel, val);
+}
+
+void TW_CALL getRenderMinValue(void *value, void *clientData)
+{
+	*(Real *)(value) = base->getRenderMinValue(currentFluidModel);
+}
+
+void TW_CALL setColorMapType(const void *value, void *clientData)
+{
+	const unsigned int val = *(const unsigned int *)(value);
+	base->setColorMapType(currentFluidModel, val);
+}
+
+void TW_CALL getColorMapType(void *value, void *clientData)
+{
+	*(unsigned int *)(value) = base->getColorMapType(currentFluidModel);
 }

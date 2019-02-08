@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/ViscousBunny.json
+.\StaticBoundarySimulator.exe ../data/scenes/ViscousBunny.json
 pause

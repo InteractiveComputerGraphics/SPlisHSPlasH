@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/BucklingModel_Bender2017.json
+.\StaticBoundarySimulator.exe ../data/scenes/BucklingModel_Bender2017.json
 pause

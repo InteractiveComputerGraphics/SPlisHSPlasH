@@ -27,7 +27,7 @@ void DragForce_Gissler2017::step()
 	const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Real diam = static_cast<Real>(2.0)*radius;
 	static const Real pi = static_cast<Real>(M_PI);
-	const Real rho_l = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real rho_l = m_model->getDensity0();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	FluidModel *model = m_model;

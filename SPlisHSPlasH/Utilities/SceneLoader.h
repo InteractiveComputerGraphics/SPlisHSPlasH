@@ -82,6 +82,15 @@ namespace Utilities
 			Real timeStepSize;
 		};
 
+		/** \brief Struct to store particle coloring information */
+		struct ColoringData
+		{
+			std::string colorField;
+			unsigned int colorMapType;
+			Real minVal;
+			Real maxVal;
+		};
+
 
 		void readScene(const char *fileName, Scene &scene);
 
@@ -148,6 +157,7 @@ namespace Utilities
 		}
 
 		void readParameterObject(const std::string &key, GenParam::ParameterObject *paramObj);
+		ColoringData readColoringInfo(const std::string &key);
 	};
 
 	template <>

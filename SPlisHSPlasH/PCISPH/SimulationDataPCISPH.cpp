@@ -46,7 +46,7 @@ void SimulationDataPCISPH::init()
 
 		// Find prototype particle
 		// => particle with max. fluid neighbors
-		const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+		const Real density0 = model->getDensity0();
 		unsigned int index = 0;
 		unsigned int maxNeighbors = 0;
 

@@ -15,7 +15,6 @@ BoundaryModel::BoundaryModel() :
 	m_x(),
 	m_v(),
 	m_V(),
-	m_boundaryPsi(),
 	m_forcePerThread(),
 	m_torquePerThread()
 {		
@@ -29,7 +28,6 @@ BoundaryModel::~BoundaryModel(void)
 	m_x.clear();
 	m_v.clear();
 	m_V.clear();
-	m_boundaryPsi.clear();
 	m_forcePerThread.clear();
 	m_torquePerThread.clear();
 
@@ -58,7 +56,7 @@ void BoundaryModel::reset()
 	}
 }
 
-void BoundaryModel::computeBoundaryPsi(const Real density0)
+void BoundaryModel::computeBoundaryVolume()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
@@ -83,7 +81,6 @@ void BoundaryModel::computeBoundaryPsi(const Real density0)
 			}
 			const Real volume = static_cast<Real>(1.0) / delta;
 			m_V[i] = volume;
-			m_boundaryPsi[i] = density0 * volume; 
 		}
 	}
 }
@@ -94,7 +91,6 @@ void BoundaryModel::initModel(RigidBodyObject *rbo, const unsigned int numBounda
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
-	m_boundaryPsi.resize(numBoundaryParticles);
 	
 	#ifdef _OPENMP
 	const int maxThreads = omp_get_max_threads();
@@ -114,7 +110,6 @@ void BoundaryModel::initModel(RigidBodyObject *rbo, const unsigned int numBounda
 			m_x[i] = boundaryParticles[i];
 			m_v[i].setZero();
 			m_V[i] = 0.0;
-			m_boundaryPsi[i] = 0.0;
 		}
 	}
 	m_rigidBody = rbo;
@@ -137,7 +132,6 @@ void BoundaryModel::performNeighborhoodSearchSort()
 	d.sort_field(&m_x[0]);
 	d.sort_field(&m_v[0]);
 	d.sort_field(&m_V[0]);
-	d.sort_field(&m_boundaryPsi[0]);
 	m_sorted = true;
 }
 

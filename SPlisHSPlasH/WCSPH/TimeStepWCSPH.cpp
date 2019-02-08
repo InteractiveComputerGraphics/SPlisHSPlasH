@@ -22,10 +22,27 @@ TimeStepWCSPH::TimeStepWCSPH() :
 
 	m_stiffness = 50.0;
 	m_exponent = 7.0;
+
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+	}
 }
 
 TimeStepWCSPH::~TimeStepWCSPH(void)
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel *model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("pressure");
+		model->removeFieldByName("pressure acceleration");
+	}
 }
 
 void TimeStepWCSPH::initParameters()
@@ -65,7 +82,7 @@ void TimeStepWCSPH::step()
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		const Real density0 = model->getValue<Real>(FluidModel::DENSITY0);
+		const Real density0 = model->getDensity0();
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for schedule(static)  

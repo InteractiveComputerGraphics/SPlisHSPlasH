@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/Emitter.json
+.\StaticBoundarySimulator.exe ../data/scenes/Emitter.json
 pause

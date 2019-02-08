@@ -37,7 +37,7 @@ if (NOT SPH_LIBS_ONLY)
 	endif()
 	add_subdirectory(extern/AntTweakBar)
 	add_subdirectory(extern/glew)
-	add_subdirectory(Demos)
+	add_subdirectory(Simulators)
 	add_subdirectory(Tools)
 	add_subdirectory(Tests)
 endif()
@@ -54,7 +54,7 @@ ExternalProject_Add(
    Ext_PBD
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "5980708692418f45a26bbd9d3318235a41312e75"
+   GIT_TAG "46f70c2e88ec8c8d7acc15e51c967ed35754f393"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir} -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
 ) 
@@ -64,7 +64,7 @@ ExternalProject_Add(
    Ext_CompactNSearch
    PREFIX "${CMAKE_SOURCE_DIR}/extern/CompactNSearch"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-   GIT_TAG "4ad505f5457e34ec479994740b75767241cff468"
+   GIT_TAG "93724411993689ea4b0fa2daed0b295ebe1e329f"
    INSTALL_DIR ${ExternalInstallDir}/CompactNSearch
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/CompactNSearch -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
 ) 
@@ -74,7 +74,7 @@ ExternalProject_Add(
    Ext_GenericParameters
    PREFIX "${CMAKE_SOURCE_DIR}/extern/GenericParameters"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/GenericParameters.git
-   GIT_TAG "1ec904bf8555e78ae0d8ba2f9f9a395371c5d4eb"
+   GIT_TAG "b1ad669fac8d106515f6aa8514a03598d5766a36"
    INSTALL_DIR ${ExternalInstallDir}/GenericParameters
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1		
 ) 

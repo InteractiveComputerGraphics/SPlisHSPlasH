@@ -27,10 +27,16 @@ Viscosity_Peer2016::Viscosity_Peer2016(FluidModel *model) :
 	m_maxErrorV = 0.01;
 	m_maxIterOmega = 50;
 	m_maxErrorOmega = 0.01;
+
+	model->addField({ "target nablaV", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_targetNablaV[i](0,0); } });
+	model->addField({ "omega (visco)", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
 }
 
 Viscosity_Peer2016::~Viscosity_Peer2016(void)
 {
+	m_model->removeFieldByName("target nablaV");
+	m_model->removeFieldByName("omega (visco)");
+
 	m_targetNablaV.clear();
 	m_omega.clear();
 }
@@ -174,7 +180,7 @@ void Viscosity_Peer2016::step()
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
 	const Real viscosity = static_cast<Real>(1.0) - m_viscosity;
-	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = m_model->getDensity0();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	FluidModel *model = m_model;

@@ -1,2 +1,2 @@
-.\StaticBoundaryDemo.exe ../data/scenes/DamBreakModelDragons.json
+.\StaticBoundarySimulator.exe ../data/scenes/DamBreakModelDragons.json
 pause

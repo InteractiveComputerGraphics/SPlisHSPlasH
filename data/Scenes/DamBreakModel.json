@@ -16,7 +16,8 @@
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true	
+		"enableDivergenceSolver": true,
+		"partioAttributes": "density;velocity"
 	},
 	"Fluid":
 	{

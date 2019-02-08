@@ -9,10 +9,16 @@ SurfaceTension_He2014::SurfaceTension_He2014(FluidModel *model) :
 {
 	m_color.resize(model->numParticles(), 0.0);
 	m_gradC2.resize(model->numParticles(), 0.0);
+
+	model->addField({ "color", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_color[i]; } });
+	model->addField({ "gradC2", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_gradC2[i]; } });
 }
 
 SurfaceTension_He2014::~SurfaceTension_He2014(void)
 {
+	m_model->removeFieldByName("color");
+	m_model->removeFieldByName("gradC2");
+
 	m_color.clear();
 	m_gradC2.clear();
 }
@@ -23,7 +29,7 @@ void SurfaceTension_He2014::step()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const Real k = m_surfaceTension;
-	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
+	const Real density0 = m_model->getDensity0();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	FluidModel *model = m_model;
@@ -50,7 +56,7 @@ void SurfaceTension_He2014::step()
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
 			forall_boundary_neighbors(
-					ci += bm_neighbor->getBoundaryPsi(neighborIndex) / density0 * sim->W(xi - xj);
+					ci += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 			)
 		}
 	}
@@ -104,7 +110,7 @@ void SurfaceTension_He2014::step()
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
 			forall_boundary_neighbors(
-					ai += factor*bm_neighbor->getBoundaryPsi(neighborIndex) / density0 * gradC2_i * sim->gradW(xi - xj);
+					ai += factor* bm_neighbor->getVolume(neighborIndex) * gradC2_i * sim->gradW(xi - xj);
 			)
 		}
 	}

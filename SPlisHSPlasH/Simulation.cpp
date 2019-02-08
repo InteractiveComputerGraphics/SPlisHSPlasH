@@ -63,7 +63,7 @@ Simulation::Simulation ()
 
 	m_neighborhoodSearch = nullptr;
 	m_timeStep = nullptr;
-	m_simulationMethod = SimulationMethods::WCSPH;
+	m_simulationMethod = SimulationMethods::NumSimulationMethods;
 	m_simulationMethodChanged = NULL;
 
 	m_sim2D = false;
@@ -113,7 +113,8 @@ void Simulation::init(const Real particleRadius, const bool sim2D)
 	// init kernel
 	setParticleRadius(particleRadius);
 
-	setSimulationMethod(static_cast<int>(SimulationMethods::DFSPH));
+	setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
+	setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 
 	// Initialize neighborhood search
 	if (m_neighborhoodSearch == NULL)
@@ -316,7 +317,7 @@ void Simulation::setKernel(int val)
 			m_kernelFct = WendlandQuinticC2Kernel2D::W;
 		}
 	}
-	updateBoundaryPsi();
+	updateBoundaryVolume();
 }
 
 void Simulation::updateTimeStepSize()
@@ -396,6 +397,7 @@ void Simulation::computeNonPressureForces()
 		fm->computeViscosity();
 		fm->computeVorticity();
 		fm->computeDragForce();
+		fm->computeElasticity();
 	}
 	STOP_TIMING_AVG
 }
@@ -409,7 +411,7 @@ void Simulation::reset()
 	// reset boundary models
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		getBoundaryModel(i)->reset();
-	updateBoundaryPsi();
+	updateBoundaryVolume();
 
 	if (m_timeStep)
 		m_timeStep->reset();
@@ -543,13 +545,10 @@ void Simulation::addFluidModel(const std::string &id, const unsigned int nFluidP
 }
 
 
-void Simulation::updateBoundaryPsi()
+void Simulation::updateBoundaryVolume()
 {
 	if (m_neighborhoodSearch == nullptr)
 		return;
-
-	// ToDo
-	const Real density0 = 1000.0;
 
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
@@ -562,7 +561,7 @@ void Simulation::updateBoundaryPsi()
 	// Search boundary neighborhood
 
 	// Activate only static boundaries
-	LOG_INFO << "Initialize boundary psi";
+	LOG_INFO << "Initialize boundary volume";
 	m_neighborhoodSearch->set_active(false);
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 	{
@@ -576,7 +575,7 @@ void Simulation::updateBoundaryPsi()
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
 		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
-			getBoundaryModel(body)->computeBoundaryPsi(density0);
+			getBoundaryModel(body)->computeBoundaryVolume();
 	}
 
 	////////////////////////////////////////////////////////////////////////// 
@@ -592,7 +591,7 @@ void Simulation::updateBoundaryPsi()
 		{
 			m_neighborhoodSearch->set_active(body + nFluids, true, true);
 			m_neighborhoodSearch->find_neighbors();
-			getBoundaryModel(body)->computeBoundaryPsi(density0);
+			getBoundaryModel(body)->computeBoundaryVolume();
 		}
 	}
 

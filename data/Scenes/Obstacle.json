@@ -25,7 +25,7 @@
 		"vorticityMethod": 1,
 		"viscosity": 0.01,
 		"vorticity": 0.15,
-		"viscosityOmega": 0.1,
+		"viscosityOmega": 0.5,
 		"inertiaInverse": 0.5,
 		"viscosityMethod": 1,
 		"surfaceTension": 0.02,

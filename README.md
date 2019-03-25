@@ -21,7 +21,7 @@ SPlisHSPlasH can export the particle data in the partio format. If you want to i
 
 This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with a compiler of your choice that supports C++11. The code was tested with the following configurations:
 - Windows 10 64-bit, CMake 3.11.2, Visual Studio 2017
-- Ubuntu 16.10 64-bit, CMake 3.5.2, GCC 6.2.0.
+- Debian 9 64-bit, CMake 3.12.3, GCC 6.3.0.
 
 Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on a 64-bit OS are not supported.
 

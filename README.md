@@ -29,6 +29,7 @@ Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on 
 
 * [Getting started](doc/getting_started.md)
 * [Scene file format](doc/file_format.md)
+* [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 * The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features

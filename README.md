@@ -122,7 +122,9 @@ The SPlisHSPlasH library implements the following publication to realize multi-p
 
 ## Screenshots
 		
-![Static boundary demo](doc/images/SPlisHSPlasH.jpg "Static boundary demo")	
+|![](doc/images/SPlisHSPlasH2.jpg)|![](doc/images/SPlisHSPlasH1.jpg)|
+|--|--|
+|![](doc/images/SPlisHSPlasH3.jpg)|![](doc/images/SPlisHSPlasH4.jpg)|
 
 ## Videos
 

@@ -144,6 +144,7 @@ void BoundaryModel::getForceAndTorque(Vector3r &force, Vector3r &torque)
 	#endif
 
 	force.setZero();
+	torque.setZero();
 	for (int j = 0; j < maxThreads; j++)
 	{
 		force += m_forcePerThread[j];

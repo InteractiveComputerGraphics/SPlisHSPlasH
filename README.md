@@ -9,6 +9,7 @@ Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
 - [Discregrid](https://github.com/InteractiveComputerGraphics/Discregrid) to detect collisions between rigid bodies
 - [CompactNSearch](https://github.com/InteractiveComputerGraphics/CompactNSearch) to perform the neighborhood search 
+- [cuNSearch](https://github.com/InteractiveComputerGraphics/cuNSearch) to perform the neighborhood search on the GPU
 - [GenericParameters](https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
 SPlisHSPlasH can export the particle data in the partio format. If you want to import partio files in Maya, try out our Maya plugin: 
@@ -37,6 +38,7 @@ Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on 
 SPlisHSPlasH implements:
 * an open-source SPH fluid simulation (2D & 3D)
 * several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
+* neighborhood search on CPU or GPU
 * explicit and implicit viscosity methods
 * current surface tension approaches
 * different vorticity methods

@@ -19,14 +19,15 @@ find_package( Eigen3 REQUIRED )
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ############################################################
-# CompactNSearch
+# NeighborhoodSearch
 ############################################################
-include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_CompactNSearch)
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
-	optimized CompactNSearch 
-	debug CompactNSearch_d)
-link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
+include_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/include)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_NeighborhoodSearch)
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
+  ${NEIGBORHOOD_SEARCH_LINK_DEPENDENCIES}
+	optimized ${NeighborhoodAssemblyName}
+	debug ${NeighborhoodAssemblyName}_d)
+link_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/lib)
 
 ############################################################
 # GenericParameters
@@ -37,13 +38,13 @@ set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_GenericParameters)
 
 add_executable(StaticBoundarySimulator
 	main.cpp
-	
+
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.cpp
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.h
 	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.cpp
 	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.h
-  
-	${VIS_FILES}          
+
+	${VIS_FILES}
 )
 
 if(DL_OUTPUT)

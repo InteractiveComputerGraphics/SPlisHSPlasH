@@ -455,6 +455,11 @@ void initBoundaryData()
 		Simulation::getCurrent()->addBoundaryModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}
 	Simulation::getCurrent()->updateBoundaryVolume();
+
+#ifdef GPU_NEIGHBORHOOD_SEARCH
+	// copy the particle data to the GPU
+	Simulation::getCurrent()->getNeighborhoodSearch()->update_point_sets();
+#endif 
 }
 
 void TW_CALL setCurrentFluidModel(const void *value, void *clientData)

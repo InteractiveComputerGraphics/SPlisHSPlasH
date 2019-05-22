@@ -5,7 +5,7 @@
 #include "FluidModel.h"
 #include "NonPressureForceBase.h"
 #include "ParameterObject.h"
-#include "CompactNSearch.h"
+#include "NeighborhoodSearch.h"
 #include "BoundaryModel.h"
 
 
@@ -102,7 +102,7 @@ namespace SPH
 	protected:
 		std::vector<FluidModel*> m_fluidModels;
 		std::vector<BoundaryModel*> m_boundaryModels;
-		CompactNSearch::NeighborhoodSearch *m_neighborhoodSearch;
+		NeighborhoodSearch *m_neighborhoodSearch;
 		int m_cflMethod;
 		Real m_cflFactor;
 		Real m_cflMaxTimeStepSize;
@@ -187,7 +187,7 @@ namespace SPH
 		void emitParticles();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-		CompactNSearch::NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
+		NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
 
 		FORCE_INLINE unsigned int numberOfPointSets() const
 		{

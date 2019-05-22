@@ -37,20 +37,13 @@ void Viscosity_XSPH::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = 0; pid < nFluids; pid++)
-			{
-				FluidModel *fm_neighbor = sim->getFluidModelFromPointSet(pid);
-				for (unsigned int j = 0; j < sim->numberOfNeighbors(fluidModelIndex, pid, i); j++)
-				{
-					const unsigned int neighborIndex = sim->getNeighbor(fluidModelIndex, pid, i, j);
-					const Vector3r &xj = fm_neighbor->getPosition(neighborIndex);
-					const Vector3r &vj = fm_neighbor->getVelocity(neighborIndex);
+			forall_fluid_neighbors(
+				const Vector3r &vj = fm_neighbor->getVelocity(neighborIndex);
 
-					// Viscosity
-					const Real density_j = fm_neighbor->getDensity(neighborIndex);
-					ai -= invH * m_viscosity * (fm_neighbor->getMass(neighborIndex) / density_j) * (vi - vj) * sim->W(xi - xj);
-				}
-			}
+				// Viscosity
+				const Real density_j = fm_neighbor->getDensity(neighborIndex);
+				ai -= invH * m_viscosity * (fm_neighbor->getMass(neighborIndex) / density_j) * (vi - vj) * sim->W(xi - xj);
+			);
 
 			////////////////////////////////////////////////////////////////////////////
 			//// Boundary

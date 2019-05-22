@@ -42,10 +42,6 @@ int SimulatorBase::ENUM_WALLS_PARTICLES_ALL = -1;
 int SimulatorBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_ALL = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
-int SimulatorBase::ENUM_RENDER_NONE = -1;
-int SimulatorBase::ENUM_RENDER_VELOCITY = -1;
-int SimulatorBase::ENUM_RENDER_ANGULAR_VELOCITY = -1;
-int SimulatorBase::ENUM_RENDER_DENSITY = -1;
 
  
 SimulatorBase::SimulatorBase()

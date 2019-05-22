@@ -492,6 +492,11 @@ void updateBoundaryParticles(const bool forceUpdate = false)
 					bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
 				}
 			}
+#ifdef GPU_NEIGHBORHOOD_SEARCH
+			// copy the particle data to the GPU
+			if (forceUpdate)
+				sim->getNeighborhoodSearch()->update_point_sets();
+#endif 
 		}
 	}
 }

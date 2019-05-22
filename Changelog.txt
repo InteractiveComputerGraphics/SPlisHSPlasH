@@ -1,3 +1,5 @@
+	- added GPU neighborhood search (cuNSearch) which can be selected in CMake
+
 2.3.0	
 	- added the Implicit SPH Formulation for Incompressible Linearly Elastic Solids of Peer et al. 2017
 	- added Corotated SPH for deformable solids of Becker et al. 2009

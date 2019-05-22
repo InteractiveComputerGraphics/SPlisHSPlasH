@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 
 project(SPlishSPlasH)
 
@@ -14,19 +14,27 @@ add_definitions(-DSPH_DATA_PATH="../data")
 
 OPTION(USE_DOUBLE_PRECISION "Use double precision"	ON)
 if (USE_DOUBLE_PRECISION)
-	add_definitions( -DUSE_DOUBLE)	
+	add_definitions( -DUSE_DOUBLE)
 endif (USE_DOUBLE_PRECISION)
+
+set(ExternalInstallDir "${CMAKE_SOURCE_DIR}/extern/install" CACHE INTERNAL "")
+set(EXT_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE INTERNAL "")
+if (NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	set(EXT_CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "")
+endif()
+
+include(${PROJECT_PATH}/CMake/NeighborhoodSearch.cmake)
 
 if (WIN32)
   subdirs(
-  extern/zlib 
-  extern/partio 
+  extern/zlib
+  extern/partio
   extern/MD5
   SPlisHSPlasH Utilities)
 else()
   subdirs(
-	extern/zlib 
-	extern/partio 
+	extern/zlib
+	extern/partio
 	extern/md5
 	SPlisHSPlasH Utilities)
 endif()
@@ -42,14 +50,8 @@ if (NOT SPH_LIBS_ONLY)
 	add_subdirectory(Tests)
 endif()
 
-set(EXT_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
-if (NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-	set(EXT_CMAKE_BUILD_TYPE "Release")
-endif()
-
 ## PositionBasedDynamics
 include(ExternalProject)
-set(ExternalInstallDir "${CMAKE_SOURCE_DIR}/extern/install")
 ExternalProject_Add(
    Ext_PBD
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
@@ -57,17 +59,7 @@ ExternalProject_Add(
    GIT_TAG "46f70c2e88ec8c8d7acc15e51c967ed35754f393"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir} -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
-) 
-
-## CompactNSearch
-ExternalProject_Add(
-   Ext_CompactNSearch
-   PREFIX "${CMAKE_SOURCE_DIR}/extern/CompactNSearch"
-   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-   GIT_TAG "93724411993689ea4b0fa2daed0b295ebe1e329f"
-   INSTALL_DIR ${ExternalInstallDir}/CompactNSearch
-   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/CompactNSearch -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
-) 
+)
 
 ## GenericParameters
 ExternalProject_Add(
@@ -76,6 +68,5 @@ ExternalProject_Add(
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/GenericParameters.git
    GIT_TAG "b1ad669fac8d106515f6aa8514a03598d5766a36"
    INSTALL_DIR ${ExternalInstallDir}/GenericParameters
-   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1		
-) 
-
+   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1
+)

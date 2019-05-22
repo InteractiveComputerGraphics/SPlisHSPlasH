@@ -4,7 +4,7 @@
 #include "TimeManager.h"
 #include "TimeStep.h"
 #include "Utilities/Logger.h"
-#include "CompactNSearch.h"
+#include "NeighborhoodSearch.h"
 #include "Simulation.h"
 
 using namespace SPH;
@@ -60,7 +60,7 @@ void BoundaryModel::computeBoundaryVolume()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 	
 	const unsigned int numBoundaryParticles = numberOfParticles();
 
@@ -114,7 +114,7 @@ void BoundaryModel::initModel(RigidBodyObject *rbo, const unsigned int numBounda
 	}
 	m_rigidBody = rbo;
 
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 	m_pointSetIndex = neighborhoodSearch->add_point_set(&m_x[0][0], m_x.size(), m_rigidBody->isDynamic(), false, true, this);
 }
 
@@ -126,7 +126,7 @@ void BoundaryModel::performNeighborhoodSearchSort()
 	if ((numPart == 0) || (!m_rigidBody->isDynamic() && !m_sorted))
 		return;
 
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 
 	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);  
 	d.sort_field(&m_x[0]);

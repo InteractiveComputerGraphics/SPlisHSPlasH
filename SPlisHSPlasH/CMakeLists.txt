@@ -151,7 +151,7 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 ############################################################
 # CompactNSearch
 ############################################################
-include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
+include_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/include)
 
 ############################################################
 # GenericParameters
@@ -160,6 +160,8 @@ include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
 
 add_library(SPlisHSPlasH
 	Common.h
+	
+	NeighborhoodSearch.h
 	
 	BoundaryModel.cpp
 	BoundaryModel.h
@@ -221,7 +223,7 @@ add_library(SPlisHSPlasH
 	${UTILS_SOURCE_FILES}
 )
 
-add_dependencies(SPlisHSPlasH Ext_CompactNSearch)
+add_dependencies(SPlisHSPlasH Ext_NeighborhoodSearch)
 add_dependencies(SPlisHSPlasH Ext_GenericParameters)
 
 source_group("Header Files\\WCSPH" FILES ${WCSPH_HEADER_FILES})

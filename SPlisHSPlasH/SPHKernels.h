@@ -605,6 +605,7 @@ namespace SPH
 		static Real m_W[resolution];
 		static Real m_gradW[resolution + 1];
 		static Real m_radius;
+		static Real m_radius2;
 		static Real m_invStepSize;
 		static Real m_W_zero;
 	public:
@@ -612,6 +613,7 @@ namespace SPH
 		static void setRadius(Real val)
 		{
 			m_radius = val;
+			m_radius2 = m_radius * m_radius;
 			KernelType::setRadius(val);
 			const Real stepSize = m_radius / (Real)(resolution-1);
 			m_invStepSize = static_cast<Real>(1.0) / stepSize;
@@ -634,8 +636,7 @@ namespace SPH
 		{
 			Real res = 0.0;
 			const Real r2 = r.squaredNorm();
-			const Real radius2 = m_radius*m_radius;
-			if (r2 <= radius2)
+			if (r2 <= m_radius2)
 			{
 				const Real r = sqrt(r2);
 				const unsigned int pos = std::min<unsigned int>((unsigned int)(r * m_invStepSize), resolution-1);
@@ -659,8 +660,7 @@ namespace SPH
 		{
 			Vector3r res;
 			const Real r2 = r.squaredNorm();
-			const Real radius2 = m_radius*m_radius;
-			if (r2 <= radius2)
+			if (r2 <= m_radius2)
 			{
 				const Real rl = sqrt(r2);
 				const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * m_invStepSize), resolution-1);
@@ -680,6 +680,8 @@ namespace SPH
 
 	template<typename KernelType, unsigned int resolution>
 	Real PrecomputedKernel<KernelType, resolution>::m_radius;
+	template<typename KernelType, unsigned int resolution>
+	Real PrecomputedKernel<KernelType, resolution>::m_radius2;
 	template<typename KernelType, unsigned int resolution>
 	Real PrecomputedKernel<KernelType, resolution>::m_W[resolution];
 	template<typename KernelType, unsigned int resolution>

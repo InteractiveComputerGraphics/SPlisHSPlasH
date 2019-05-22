@@ -11,7 +11,7 @@ namespace SPH
 {	
 	class TimeStep;
 
-	/** \brief The fluid model stores the particle and simulation information 
+	/** \brief The boundary model stores the information required for boundary handling
 	*/
 	class BoundaryModel 
 	{

@@ -4,7 +4,7 @@
 #include "TimeManager.h"
 #include "TimeStep.h"
 #include "Utilities/Logger.h"
-#include "CompactNSearch.h"
+#include "NeighborhoodSearch.h"
 #include "Simulation.h"
 #include "EmitterSystem.h"
 #include "Viscosity/ViscosityBase.h"
@@ -218,7 +218,7 @@ void FluidModel::reset()
 		m_density[i] = 0.0;
 	}
 
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 	if (neighborhoodSearch->point_set(m_pointSetIndex).n_points() != nPoints)
 		neighborhoodSearch->resize_point_set(m_pointSetIndex, &getPosition(0)[0], nPoints);
 
@@ -305,7 +305,7 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 	initMasses();
 
 	// Fluids 
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 	m_pointSetIndex = neighborhoodSearch->add_point_set(&getPosition(0)[0], nFluidParticles, true, true, true, this);
 
 	m_numActiveParticles0 = nFluidParticles;
@@ -319,7 +319,7 @@ void FluidModel::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	CompactNSearch::NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 
 	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);
 	d.sort_field(&m_x[0]);

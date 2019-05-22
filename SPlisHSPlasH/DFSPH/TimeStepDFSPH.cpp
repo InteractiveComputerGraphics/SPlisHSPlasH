@@ -241,7 +241,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -0.5 * density0*density0);
+			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
 			//computeDensityAdv(i, numParticles, h, density0);
 		}
 
@@ -477,7 +477,7 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			m_simulationData.getKappaV(fluidModelIndex, i) = 0.5*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -0.5 * density0*density0);
+			m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5) * density0*density0);
 			computeDensityChange(fluidModelIndex, i, h);
 		}
 
@@ -725,7 +725,7 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const 
 	)
 
 	densityAdv = density / density0 + h*delta;
-	densityAdv = max(densityAdv, 1.0);
+	densityAdv = max(densityAdv, static_cast<Real>(1.0));
 }
 
 void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, const unsigned int i, const Real h)
@@ -756,7 +756,7 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 	)
 
 	// only correct positive divergence
-	densityAdv = max(densityAdv, 0.0);
+	densityAdv = max(densityAdv, static_cast<Real>(0.0));
 
 	for (unsigned int pid = 0; pid < sim->numberOfPointSets(); pid++)
 		numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);

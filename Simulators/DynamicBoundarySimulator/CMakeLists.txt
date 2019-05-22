@@ -19,14 +19,15 @@ find_package( Eigen3 REQUIRED )
 include_directories( ${EIGEN3_INCLUDE_DIR} )
 
 ############################################################
-# CompactNSearch
+# NeighborhoodSearch
 ############################################################
-include_directories(${PROJECT_PATH}/extern/install/CompactNSearch/include)
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
-	optimized CompactNSearch 
-	debug CompactNSearch_d)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_CompactNSearch)
-link_directories(${PROJECT_PATH}/extern/install/CompactNSearch/lib)
+include_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/include)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_NeighborhoodSearch)
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
+  ${NEIGBORHOOD_SEARCH_LINK_DEPENDENCIES}
+	optimized ${NeighborhoodAssemblyName}
+	debug ${NeighborhoodAssemblyName}_d)
+link_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/lib)
 
 ############################################################
 # GenericParameters
@@ -45,20 +46,20 @@ add_definitions(-DPBD_DATA_PATH="${PROJECT_PATH}/extern/install/PositionBasedDyn
 # Discregrid
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
-	optimized Discregrid 
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
+	optimized Discregrid
 	debug Discregrid_d)
 link_directories(${PROJECT_PATH}/extern/install/Discregrid/lib)
 
-	
+
 set(PBDWRAPPER_SOURCE_FILES	PositionBasedDynamicsWrapper/PBDWrapper.cpp)
-set(PBDWRAPPER_HEADER_FILES	
+set(PBDWRAPPER_HEADER_FILES
 	PositionBasedDynamicsWrapper/PBDWrapper.h
 	PositionBasedDynamicsWrapper/PBDRigidBody.h)
-		
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
+
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 	optimized Simulation debug Simulation_d
-	optimized PositionBasedDynamics debug PositionBasedDynamics_d 
+	optimized PositionBasedDynamics debug PositionBasedDynamics_d
 	optimized Utils debug Utils_d)
 
 set(SIMULATION_DEPENDENCIES Ext_PBD ${SIMULATION_DEPENDENCIES})
@@ -66,13 +67,13 @@ link_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/lib)
 
 add_executable(DynamicBoundarySimulator
 	main.cpp
-	
+
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.cpp
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.h
 	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.cpp
 	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.h
-  
-	${VIS_FILES}          
+
+	${VIS_FILES}
 
 	${PBDWRAPPER_SOURCE_FILES}
 	${PBDWRAPPER_HEADER_FILES}
@@ -106,4 +107,3 @@ add_custom_command(TARGET DynamicBoundarySimulator PRE_BUILD
 add_custom_command(TARGET DynamicBoundarySimulator PRE_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_directory
                     ${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data/shaders $<TARGET_FILE_DIR:DynamicBoundarySimulator>/resources/pbd_shaders)
-

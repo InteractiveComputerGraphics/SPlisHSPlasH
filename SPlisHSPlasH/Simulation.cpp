@@ -118,7 +118,11 @@ void Simulation::init(const Real particleRadius, const bool sim2D)
 
 	// Initialize neighborhood search
 	if (m_neighborhoodSearch == NULL)
-		m_neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(m_supportRadius, false);
+#ifdef GPU_NEIGHBORHOOD_SEARCH
+		m_neighborhoodSearch = new NeighborhoodSearch(m_supportRadius);
+#else
+		m_neighborhoodSearch = new NeighborhoodSearch(m_supportRadius, false);
+#endif
 	m_neighborhoodSearch->set_radius(m_supportRadius);
 }
 

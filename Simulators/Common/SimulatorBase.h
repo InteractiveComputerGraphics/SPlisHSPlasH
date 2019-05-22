@@ -86,11 +86,6 @@ namespace SPH
 		static int ENUM_WALLS_GEOMETRY_ALL;
 		static int ENUM_WALLS_GEOMETRY_NO_WALLS;
 
-		static int ENUM_RENDER_NONE;
-		static int ENUM_RENDER_VELOCITY;
-		static int ENUM_RENDER_ANGULAR_VELOCITY;
-		static int ENUM_RENDER_DENSITY;
-
 		SimulatorBase();
 		virtual ~SimulatorBase();
 

@@ -77,7 +77,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 
 	Real d = 10.0;
 	if (sim->is2DSimulation())
-		d = 6.0;
+		d = 8.0;
 
 	#pragma omp parallel default(shared)
 	{
@@ -101,18 +101,22 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 				const Vector3r xixj = xi - xj;
 
 				ai += d * mu * (model->getMass(neighborIndex) / density_j) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
-			)
+			);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			forall_boundary_neighbors(
-				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-				const Vector3r gradW = sim->gradW(xi - xj);
-
-				const Vector3r xixj = xi - xj;
-				ai += d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
-			)
+			if (mub != 0.0)
+			{
+				forall_boundary_neighbors(
+					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+					const Vector3r xixj = xi - xj;
+					const Vector3r gradW = sim->gradW(xixj);
+					const Vector3r a = d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
+					ai += a;
+					bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
+				);
+			}
 
 			result[3 * i] = vec[3 * i] - dt / density_i*ai[0];
 			result[3 * i + 1] = vec[3 * i + 1] - dt / density_i*ai[1];
@@ -134,7 +138,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 
 	Real d = 10.0;
 	if (sim->is2DSimulation())
-		d = 6.0;
+		d = 8.0;
 
 	const Real h = sim->getSupportRadius();
 	const Real h2 = h*h;
@@ -190,7 +194,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 
 	Real d = 10.0;
 	if (sim->is2DSimulation())
-		d = 6.0;
+		d = 8.0;
 
 	const Real density_i = model->getDensity(i);
 

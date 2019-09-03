@@ -78,7 +78,8 @@ void TimeStepPBF::step()
 			{
 				m_simulationData.getLastPosition(fluidModelIndex, i) = m_simulationData.getOldPosition(fluidModelIndex, i);
 				m_simulationData.getOldPosition(fluidModelIndex, i) = model->getPosition(i);
-				TimeIntegration::semiImplicitEuler(h, model->getMass(i), model->getPosition(i), model->getVelocity(i), model->getAcceleration(i));
+				if (model->getParticleState(i) == ParticleState::Active)
+					TimeIntegration::semiImplicitEuler(h, model->getMass(i), model->getPosition(i), model->getVelocity(i), model->getAcceleration(i));
 			}
 		}
 	}
@@ -102,7 +103,8 @@ void TimeStepPBF::step()
 				#pragma omp for schedule(static)  
 				for (int i = 0; i < (int)model->numActiveParticles(); i++)
 				{
-					TimeIntegration::velocityUpdateFirstOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), model->getVelocity(i));
+					if (model->getParticleState(i) == ParticleState::Active)
+						TimeIntegration::velocityUpdateFirstOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), model->getVelocity(i));
 					model->getAcceleration(i).setZero();
 				}
 			}
@@ -114,7 +116,8 @@ void TimeStepPBF::step()
 				#pragma omp for schedule(static)  
 				for (int i = 0; i < (int)model->numActiveParticles(); i++)
 				{
-					TimeIntegration::velocityUpdateSecondOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), m_simulationData.getLastPosition(fluidModelIndex, i), model->getVelocity(i));
+					if (model->getParticleState(i) == ParticleState::Active)
+						TimeIntegration::velocityUpdateSecondOrder(h, model->getMass(i), model->getPosition(i), m_simulationData.getOldPosition(fluidModelIndex, i), m_simulationData.getLastPosition(fluidModelIndex, i), model->getVelocity(i));
 					model->getAcceleration(i).setZero();
 				}
 			}
@@ -133,7 +136,8 @@ void TimeStepPBF::step()
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)model->numActiveParticles(); i++)
 			{
-				model->getVelocity(i) += h * model->getAcceleration(i);
+				if (model->getParticleState(i) == ParticleState::Active)
+					model->getVelocity(i) += h * model->getAcceleration(i);
 			}
 		}
 	}
@@ -141,6 +145,7 @@ void TimeStepPBF::step()
 	sim->updateTimeStepSize();
 
 	sim->emitParticles();
+	sim->animateParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -203,6 +208,8 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 		for (int i = 0; i < (int) numParticles; i++)
 		{
 			Real &density = model->getDensity(i);				
+			density = 1.0;
+			m_simulationData.getLambda(fluidModelIndex, i) = 0.0;
 
 			// Compute current density for particle i
 			density = model->getVolume(i) * sim->W_zero();
@@ -277,6 +284,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 
 			// Compute position correction
 			corr.setZero();
+
 			const Vector3r &xi = model->getPosition(i);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -306,19 +314,23 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			model->getPosition(i) += m_simulationData.getDeltaX(fluidModelIndex, i);
+			if (model->getParticleState(i) == ParticleState::Active)
+				model->getPosition(i) += m_simulationData.getDeltaX(fluidModelIndex, i);
 		}
 	}
 }
 
 void TimeStepPBF::performNeighborhoodSearch()
 {
-	if (m_counter % 500 == 0)
+	if (Simulation::getCurrent()->zSortEnabled())
 	{
-		Simulation::getCurrent()->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
+		if (m_counter % 500 == 0)
+		{
+			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			m_simulationData.performNeighborhoodSearchSort();
+		}
+		m_counter++;
 	}
-	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }

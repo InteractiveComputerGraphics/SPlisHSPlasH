@@ -1,0 +1,83 @@
+ {
+	"Configuration": 
+	{
+		"timeStepSize": 0.001,
+		"sim2D": true, 
+		"numberOfStepsPerRenderUpdate": 2,
+		"particleRadius": 0.025, 
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 2, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.05,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true
+	},
+	"Fluid":
+	{
+		"maxEmitterParticles": 10000,
+		"emitterReuseParticles": false,
+		"emitterBoxMin": [-2.0,-2.5,-2.0],
+		"emitterBoxMax": [1.0,4,2.0],
+		"viscosityMethod": 1,
+		"viscosity": 0.01,
+		"dragMethod": 2, 
+		"drag": 10.0,
+		"colorMapType": 1
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2.5, 4, 1.0],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		}
+	], 
+	"Emitters": [
+		{
+			"width": 8, 
+			"height": 5, 
+			"translation": [-1.2,0.8,0.0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"velocity": 2,
+			"type": 0,
+			"emitEndTime": 4
+		}, 
+		{
+		
+			"width": 7, 
+			"translation": [0.9,0.25,0.0],
+			"comment": "Note that in 2D the rotation axis is always set to [0,0,1].",
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 3.1415926535897932384626433832795,
+			"velocity": 2,
+			"type": 1,
+			"emitStartTime": 2,
+			"emitEndTime": 6
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-1.25, 0.0, -0.5],
+			"end": [0.5, 0.2, 0.5],
+			"translation": [0.025, 0.025, 0.0],
+			"scale": [1, 1, 1]
+		}
+	]
+}
+
+
+

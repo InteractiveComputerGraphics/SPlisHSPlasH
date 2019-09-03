@@ -241,6 +241,9 @@ void Elasticity_Peer2018::computeRotations()
 				F += m_restVolumes[neighborIndex] * xj_xi * correctedKernel.transpose();
 			}
 
+			if (sim->is2DSimulation())
+				F(2, 2) = 1.0;
+
 //  			Vector3r sigma; 
 //  			Matrix3r U, VT;
 //  			MathFunctions::svdWithInversionHandling(F, sigma, U, VT);
@@ -287,6 +290,10 @@ void Elasticity_Peer2018::computeMatrixL()
 				// minus because gradW(xij0) == -gradW(xji0)
 				L -= m_restVolumes[neighborIndex] * gradW * xj_xi_0.transpose();
 			}
+
+			// add 1 to z-component. otherwise we get a singular matrix in 2D
+			if (sim->is2DSimulation())
+				L(2, 2) = 1.0;
 
 			bool invertible = false;
 			L.computeInverseWithCheck(m_L[i], invertible, 1e-9);
@@ -342,6 +349,9 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
  				const Vector3r correctedRotatedKernel = m_rotations[i] * m_L[i] * sim->gradW(xi_xj_0);
  				m_F[i] += m_restVolumes[neighborIndex] * xj_xi * correctedRotatedKernel.transpose();
  			}
+
+			if (sim->is2DSimulation())
+				m_F[i](2, 2) = 1.0;
 
  			//////////////////////////////////////////////////////////////////////////
  			// compute Cauchy strain: epsilon = 0.5 (F + F^T) - I

@@ -33,6 +33,8 @@ namespace SPH
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
 	enum class ElasticityMethods { None = 0, Becker2009, Peer2018, NumElasticityMethods };
 
+	enum class ParticleState { Active = 0, AnimatedByEmitter };
+
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
 	class FluidModel : public GenParam::ParameterObject
@@ -94,6 +96,8 @@ namespace SPH
 			std::vector<Vector3r> m_x;
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_density;
+			std::vector<unsigned int> m_particleId;
+			std::vector<ParticleState> m_particleState;
 			Real m_V;
 
 			SurfaceTensionMethods m_surfaceTensionMethod;
@@ -298,6 +302,26 @@ namespace SPH
 			FORCE_INLINE void setDensity(const unsigned int i, const Real &val)
 			{
 				m_density[i] = val;
+			}
+
+			FORCE_INLINE const unsigned int& getParticleId(const unsigned int i) const
+			{
+				return m_particleId[i];
+			}
+
+			FORCE_INLINE const ParticleState& getParticleState(const unsigned int i) const
+			{
+				return m_particleState[i];
+			}
+
+			FORCE_INLINE ParticleState& getParticleState(const unsigned int i)
+			{
+				return m_particleState[i];
+			}
+
+			FORCE_INLINE void setParticleState(const unsigned int i, const ParticleState &val)
+			{
+				m_particleState[i] = val;
 			}
 
 			FORCE_INLINE const Real getVolume(const unsigned int i) const

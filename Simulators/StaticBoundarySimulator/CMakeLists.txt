@@ -1,5 +1,5 @@
-set(SIMULATION_LINK_LIBRARIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5)
-set(SIMULATION_DEPENDENCIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5)
+set(SIMULATION_LINK_LIBRARIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5 tinyexpr)
+set(SIMULATION_DEPENDENCIES AntTweakBar glew SPlisHSPlasH Utilities partio zlib MD5 tinyexpr)
 
 if(WIN32)
   set(SIMULATION_LINK_LIBRARIES freeglut opengl32.lib glu32.lib ${SIMULATION_LINK_LIBRARIES})
@@ -30,6 +30,17 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 link_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/lib)
 
 ############################################################
+# DiscreGrid
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_Discregrid)
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
+	optimized Discregrid 
+	debug Discregrid_d)
+set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_Discregrid)	
+link_directories(${PROJECT_PATH}/extern/install/Discregrid/lib)
+
+############################################################
 # GenericParameters
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
@@ -39,6 +50,8 @@ set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_GenericParameters)
 add_executable(StaticBoundarySimulator
 	main.cpp
 
+	${PROJECT_PATH}/Simulators/Common/BinaryFileWriter.cpp
+	${PROJECT_PATH}/Simulators/Common/BinaryFileWriter.h
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.cpp
 	${PROJECT_PATH}/Simulators/Common/SimulatorBase.h
 	${PROJECT_PATH}/Simulators/Common/TweakBarParameters.cpp

@@ -85,7 +85,6 @@ void TimeStepDFSPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	TimeManager *tm = TimeManager::getCurrent ();
-	const Real h = tm->getTimeStepSize();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	performNeighborhoodSearch();
@@ -114,6 +113,7 @@ void TimeStepDFSPH::step()
 	sim->computeNonPressureForces();
 
 	sim->updateTimeStepSize();
+	const Real h = tm->getTimeStepSize();
 
 	// compute new velocities only considering non-pressure forces
 	for (unsigned int m = 0; m < nModels; m++)
@@ -125,8 +125,11 @@ void TimeStepDFSPH::step()
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
-				Vector3r &vel = fm->getVelocity(i);
-				vel += h * fm->getAcceleration(i);
+				if (fm->getParticleState(i) == ParticleState::Active)
+				{
+					Vector3r &vel = fm->getVelocity(i);
+					vel += h * fm->getAcceleration(i);
+				}
 			}
 		}
 	}
@@ -145,14 +148,18 @@ void TimeStepDFSPH::step()
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
-				Vector3r &xi = fm->getPosition(i);
-				const Vector3r &vi = fm->getVelocity(i);
-				xi += h * vi;
+				if (fm->getParticleState(i) == ParticleState::Active)
+				{
+					Vector3r &xi = fm->getPosition(i);
+					const Vector3r &vi = fm->getVelocity(i);
+					xi += h * vi;
+				}
 			}
 		}
 	}
 
 	sim->emitParticles();
+	sim->animateParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -179,6 +186,9 @@ void TimeStepDFSPH::computeDFSPHFactor(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
+			Real &factor = m_simulationData.getFactor(fluidModelIndex, i);
+			factor = 0.0;
+			
 			//////////////////////////////////////////////////////////////////////////
 			// Compute gradient dp_i/dx_j * (1/k)  and dp_j/dx_j * (1/k)
 			//////////////////////////////////////////////////////////////////////////
@@ -210,8 +220,6 @@ void TimeStepDFSPH::computeDFSPHFactor(const unsigned int fluidModelIndex)
 			//////////////////////////////////////////////////////////////////////////
 			// Compute pressure stiffness denominator
 			//////////////////////////////////////////////////////////////////////////
-			Real &factor = m_simulationData.getFactor(fluidModelIndex, i);
-
 			sum_grad_p_k = max(sum_grad_p_k, m_eps);
 			factor = -1.0 / (sum_grad_p_k);
 		}
@@ -776,12 +784,15 @@ void TimeStepDFSPH::reset()
 
 void TimeStepDFSPH::performNeighborhoodSearch()
 {
-	if (m_counter % 500 == 0)
+	if (Simulation::getCurrent()->zSortEnabled())
 	{
-		Simulation::getCurrent()->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
+		if (m_counter % 500 == 0)
+		{
+			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			m_simulationData.performNeighborhoodSearchSort();
+		}
+		m_counter++;
 	}
-	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }

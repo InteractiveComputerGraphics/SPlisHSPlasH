@@ -66,7 +66,6 @@ void TimeStepWCSPH::step()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 	TimeManager *tm = TimeManager::getCurrent ();
-	const Real h = tm->getTimeStepSize();
 
 	performNeighborhoodSearch();
 
@@ -98,6 +97,7 @@ void TimeStepWCSPH::step()
 	}
 
 	sim->updateTimeStepSize();
+	const Real h = tm->getTimeStepSize();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -107,17 +107,21 @@ void TimeStepWCSPH::step()
 			#pragma omp for schedule(static) 
 			for (int i = 0; i < (int)model->numActiveParticles(); i++)
 			{
-				Vector3r &pos = model->getPosition(i);
-				Vector3r &vel = model->getVelocity(i);
-				Vector3r &accel = model->getAcceleration(i);
-				accel += m_simulationData.getPressureAccel(fluidModelIndex, i);
-				vel += accel * h;
-				pos += vel * h;
+				if (model->getParticleState(i) == ParticleState::Active)
+				{
+					Vector3r &pos = model->getPosition(i);
+					Vector3r &vel = model->getVelocity(i);
+					Vector3r &accel = model->getAcceleration(i);
+					accel += m_simulationData.getPressureAccel(fluidModelIndex, i);
+					vel += accel * h;
+					pos += vel * h;
+				}
 			}
 		}
 	}
 
 	sim->emitParticles();
+	sim->animateParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -177,12 +181,15 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 
 void TimeStepWCSPH::performNeighborhoodSearch()
 {
-	if (m_counter % 500 == 0)
+	if (Simulation::getCurrent()->zSortEnabled())
 	{
-		Simulation::getCurrent()->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
+		if (m_counter % 500 == 0)
+		{
+			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			m_simulationData.performNeighborhoodSearchSort();
+		}
+		m_counter++;
 	}
-	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }

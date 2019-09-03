@@ -8,6 +8,7 @@ A SPlisHSPlasH scene file is a json file which can contain the following blocks:
 * Emitters
 * RigidBodies
 * Fluid parameter block
+* Animation fields
 
 ## Configuration
 
@@ -21,7 +22,6 @@ Example code:
 	"sim2D": false, 
     "timeStepSize": 0.001,
     "numberOfStepsPerRenderUpdate": 2,
-    "colorMapType": 1,
     "particleRadius": 0.025, 
     "simulationMethod": 4,
     "gravitation": [0.0,-9.81,0], 
@@ -43,6 +43,8 @@ Example code:
 * pause (bool): Pause simulation at beginning.
 * pauseAt (float): Pause simulation at the given time. When the value is negative, the simulation is not paused.
 * stopAt (float): Stop simulation at the given time and exit. When the value is negative, the simulation is not stopped.
+* cameraPosition (vec3): Initial position of the camera.
+* cameraLookat (vec3): Lookat point of the camera.
 
 ##### Visualization:
 
@@ -56,19 +58,22 @@ Example code:
 
 ##### Export
 
-* enablePartioExport (bool): Enable/disable partio export.
-* partioFPS (int): Frame rate of partio export.
-* partioAttributes (string): A list of attribute names separated by ";" that should be exported in the partio files (e.g. "velocity;density"). Default value: "velocity"
+* enablePartioExport (bool): Enable/disable partio export (default: false).
+* enableVTKExport (bool): Enable/disable VTK export (default: false).
+* enableRigidBodyExport (bool): Enable/disable rigid body export (default: false).
+* particleFPS (int): Frame rate of particle export (default: 25).
+* particleAttributes (string): A list of attribute names separated by ";" that should be exported in the particle files (e.g. "velocity;density") (default: "velocity").
 
 ##### Simulation:
 
-* timeStepSize (float): The initial time step size used for the time integration. If you use an adaptive time stepping. This size will change during the simulation.
-* particleRadius (float): The radius of the particls in the simulation (all have the same radius).
-* sim2D (bool): If this parameter is set to true, a 2D simulation is performend instead of a 3D simulation.
-* gravitation (vec3): Vector to define the gravitational acceleration.
-* maxIterations (int): Maximal number of iterations of the pressure solver.
-* maxError (float): Maximal density error in percent which the pressure solver tolerates.
-* simulationMethod (int): The pressure solver method used in the simulation:
+* timeStepSize (float): The initial time step size used for the time integration. If you use an adaptive time stepping, this size will change during the simulation (default: 0.001).
+* particleRadius (float): The radius of the particls in the simulation (all have the same radius) (default: 0.025).
+* sim2D (bool): If this parameter is set to true, a 2D simulation is performend instead of a 3D simulation (default: false).
+* enableZSort (bool): Enable z-sort to improve cache hits and therefore to improve the performance (default: true).
+* gravitation (vec3): Vector to define the gravitational acceleration (default: [0,-9.81,0]).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
+* simulationMethod (int): The pressure solver method used in the simulation (default: 4, DFSPH):
     - 0: Weakly compressible SPH for free surface flows (WCSPH)
     - 1: Predictive-corrective incompressible SPH (PCISPH)
     - 2: Position based fluids (PBF)
@@ -194,25 +199,28 @@ Example code:
         "width": 5, 
         "height": 5, 
         "translation": [-1,0.75,0.0],
-        "direction": [1, 0, 0],
-        "velocity": [2, 0, 0.0],	
-        "comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
-        "emitsPerSecond": 40,
+        "rotationAxis": [0, 1, 0],
+		"rotationAngle": 3.1415926535897932384626433832795,
+        "velocity": 2,	
+        "emitStartTime": 2,
+		"emitEndTime": 6,
         "type": 0
     }
 ]
 ```
 
-* type (int): Defines the shape of the emitter.
+* type (int): Defines the shape of the emitter (default: 0).
   - 0: box
   - 1: circle
-* width (int): Width of the box or radius of the circle emitter.
-* height (int): Height of the box (is only used for type 0).
-* translation (vec3): Translation vector of the emitter.
-* direction (vec3): Direction of the emitter. This defines the normal vector of the box/circle.
-* velocity (vec3): Initial velocity of the emitted particles.
-* emitsPerSecond (float): Defines the number of emits per second.
-* id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.	
+* width (int): Width of the box or radius of the circle emitter (default: 5).
+* height (int): Height of the box (is only used for type 0) (default: 5).
+* translation (vec3): Translation vector of the emitter (default: [0,0,0]).
+* rotationAxis (vec3): Axis used to rotate the emitter. Note that in 2D simulations the axis is always set to [0,0,1] (default: [0,0,1]).
+* rotationAngle (float): Rotation angle for the initial rotation of the emitter (default: 0). 
+* velocity (float): Initial velocity of the emitted particles in direction of the emitter (default: 1).
+* id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used (default: "Fluid").	
+* emitStartTime (float): Start time of the emitter (default: 0).
+* emitEndTime (float): End time of the emitter (default: REAL_MAX).
 
 ## RigidBodies
 
@@ -336,3 +344,55 @@ Example code:
 * emitterReuseParticles (bool):  Reuse particles if they are outside of the bounding box defined by emitterBoxMin, emitterBoxMax
 * emitterBoxMin (vec3): Minimum coordinates of an axis-aligned box (used in combination with emitterReuseParticles)
 * emitterBoxMax (vec3): Maximum coordinates of an axis-aligned box (used in combination with emitterReuseParticles)
+
+## Animation fields
+
+In this part the user can define one or more animation fields which animate fluid particles. The user can define math expressions for the components of the field quantity. The typical math terms like cos,sin,... can be used. 
+
+Available expression variables:
+- t: Current time.
+- dt: Current time step size.
+- x, y, z: Position of the particle which is in the animation field.
+- vx, vy, vz: Velocity of the particle which is in the animation field.
+- valuex, valuey, valuez: Value of the field quantity of the particle which is in the animation field.
+
+Example:
+```json
+"particleField": "angular velocity",
+"expression_x": "valuex + cos(2*t)"
+```
+
+This means that in each step we add cos(2*t) to the x-component of the angular velocity.
+
+Example code:
+```json
+"AnimationFields": [
+    {
+        "particleField": "velocity",
+        "translation": [-0.5, -0.5, 0],
+        "rotationAxis": [0, 0, 1],
+        "rotationAngle": 0.0,
+        "scale": [0.5, 0.25, 0.8],
+        "shapeType": 0,
+        "expression_x": "cos(2*t)*0.1",
+        "expression_y": "",
+        "expression_z": ""
+    }
+]
+```
+
+* shapeType (int): Defines the shape of the animation field (default: 0).
+  - 0: box
+  - 1: sphere
+  - 2: cylinder
+* particleField (string): Defines the field quantity that should be modified by the field (e.g. velocity, angular velocity, position) (default: velocity)
+* translation (vec3): Translation vector of the animation field (default: [0,0,0]).
+* rotationAxis (vec3): Axis used to rotate the animation field (default: [0,0,1]).
+* rotationAngle (float): Rotation angle for the initial rotation of the animation field (default: 0).
+* scale (vec3): Scaling vector of the animation field.  
+  - shapeType=0 (box): This vector defines the width, height, depth of the box.
+  - shapeType=1 (sphere): The x-component of the vector defines the radius of the sphere. The other components are ignored.
+  - shapeType=2 (cylinder): The x- and y-component of the vector defines the height and radius of the cylinder, repectively. The z-component is ignored.
+* expression_x (string): Math expression for the x-component of the field quantity (default="").
+* expression_y (string): Math expression for the y-component of the field quantity (default="").
+* expression_z (string): Math expression for the z-component of the field quantity (default="").

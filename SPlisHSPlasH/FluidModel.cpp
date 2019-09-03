@@ -71,7 +71,9 @@ FluidModel::FluidModel() :
 	m_x0(),
 	m_x(),
 	m_v(),
-	m_density()
+	m_density(),
+	m_particleId(),
+	m_particleState()
 {		
 	m_density0 = 1000.0;
 	m_pointSetIndex = 0;
@@ -216,6 +218,8 @@ void FluidModel::reset()
 		getVelocity(i) = getVelocity0(i);
 		getAcceleration(i).setZero();
 		m_density[i] = 0.0;
+		m_particleId[i] = i;
+		m_particleState[i] = ParticleState::Active;
 	}
 
 	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
@@ -266,6 +270,8 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_a.resize(newSize);
 	m_masses.resize(newSize);
 	m_density.resize(newSize);
+	m_particleId.resize(newSize);
+	m_particleState.resize(newSize);
 }
 
 void FluidModel::releaseFluidParticles()
@@ -277,6 +283,8 @@ void FluidModel::releaseFluidParticles()
 	m_a.clear();
 	m_masses.clear();
 	m_density.clear();
+	m_particleId.clear();
+	m_particleState.clear();
 }
 
 void FluidModel::initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
@@ -298,6 +306,8 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 			getVelocity(i) = fluidVelocities[i];
 			getAcceleration(i).setZero();
 			m_density[i] = 0.0;
+			m_particleId[i] = i;
+			m_particleState[i] = ParticleState::Active;
 		}
 	}
 
@@ -327,6 +337,8 @@ void FluidModel::performNeighborhoodSearchSort()
 	d.sort_field(&m_a[0]);
 	d.sort_field(&m_masses[0]);
 	d.sort_field(&m_density[0]);
+	d.sort_field(&m_particleId[0]);
+	d.sort_field(&m_particleState[0]);
 
 	if (m_viscosity)
 		m_viscosity->performNeighborhoodSearchSort();

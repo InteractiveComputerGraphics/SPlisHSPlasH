@@ -60,19 +60,19 @@ int main( int argc, char **argv )
 			("s,scale", "Scaling of input geometry (e.g. --scale \"1 2 3\")", cxxopts::value<Vector3r>())
 			;
 
-		options.parse(argc, argv);
+		auto result = options.parse(argc, argv);
 
-		if (options.count("help"))
+		if (result.count("help"))
 		{
 			std::cout << options.help({ "", "Group" }) << std::endl;
 			exit(0);
 		}
 
-		if (options.count("input") && options.count("output"))
+		if (result.count("input") && result.count("output"))
 		{
-			inputFile = options["input"].as<std::string>();
+			inputFile = result["input"].as<std::string>();
 			std::cout << "Input = " << inputFile << std::endl;
-			outputFile = options["output"].as<std::string>();
+			outputFile = result["output"].as<std::string>();
 			std::cout << "Output = " << outputFile << std::endl;
 		}
 		else
@@ -82,15 +82,13 @@ int main( int argc, char **argv )
 			exit(1);
 		}
 
-		if (options.count("radius"))
-			particleRadius = options["radius"].as<Real>();
+		if (result.count("radius"))
+			particleRadius = result["radius"].as<Real>();
 		cout << "Radius: " << particleRadius << endl;
 
-		if (options.count("scale"))
-			scale = options["scale"].as<Vector3r>();
+		if (result.count("scale"))
+			scale = result["scale"].as<Vector3r>();
 		cout << "Scale: " << scale << endl;
-
-		options.parse(argc, argv);
 	}
 	catch (const cxxopts::OptionException& e)
 	{

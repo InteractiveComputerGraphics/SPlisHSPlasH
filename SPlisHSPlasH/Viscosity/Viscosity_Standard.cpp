@@ -23,7 +23,7 @@ void Viscosity_Standard::step()
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	Real d = 10.0;
 	if (sim->is2DSimulation())
-		d = 6.0;
+		d = 8.0;
 
 	#pragma omp parallel default(shared)
 	{

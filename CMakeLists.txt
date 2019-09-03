@@ -30,12 +30,14 @@ if (WIN32)
   extern/zlib
   extern/partio
   extern/MD5
+  extern/tinyexpr
   SPlisHSPlasH Utilities)
 else()
   subdirs(
 	extern/zlib
 	extern/partio
 	extern/md5
+	extern/tinyexpr
 	SPlisHSPlasH Utilities)
 endif()
 
@@ -56,7 +58,7 @@ ExternalProject_Add(
    Ext_PBD
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "2abd7737de08915a780c546216bb9d5fbaadf3bd"
+   GIT_TAG "1adf52eb23cdd73c7d9db725d09256fc8ed7f395"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir} -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
 )
@@ -69,4 +71,14 @@ ExternalProject_Add(
    GIT_TAG "b1ad669fac8d106515f6aa8514a03598d5766a36"
    INSTALL_DIR ${ExternalInstallDir}/GenericParameters
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1		
+) 
+
+## Discregrid
+ExternalProject_Add(
+   Ext_Discregrid
+   PREFIX "${CMAKE_SOURCE_DIR}/extern/Discregrid"
+   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/Discregrid.git
+   GIT_TAG "c0fb5aeac4c8a83e9f37c720315f13a834409b81"
+   INSTALL_DIR ${ExternalInstallDir}/Discregrid
+   CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/Discregrid -DBUILD_CMD_EXECUTABLE:BOOL=0 -DEIGEN3_INCLUDE_DIR:PATH=${EIGEN3_INCLUDE_DIR}
 ) 

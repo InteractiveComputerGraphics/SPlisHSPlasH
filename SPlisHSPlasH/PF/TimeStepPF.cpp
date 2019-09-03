@@ -62,7 +62,7 @@ void TimeStepPF::initParameters()
 {
 	TimeStep::initParameters();
 
-	STIFFNESS = createNumericParameter("stiffness", "Stiffness", &m_stiffness);
+	STIFFNESS = createNumericParameter("stiffnessPF", "Stiffness", &m_stiffness);
 	setGroup(STIFFNESS, "PF");
 	setDescription(STIFFNESS, "Stiffness coefficient.");
 	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(1e-6);
@@ -92,6 +92,7 @@ void TimeStepPF::step()
 
 	// update emitters
 	sim->emitParticles();
+	sim->animateParticles();
 	// Compute new time	
 	sim->updateTimeStepSize();
 	tm->setTime(tm->getTime () + tm->getTimeStepSize());
@@ -208,9 +209,12 @@ void SPH::TimeStepPF::updatePositionsAndVelocity(const VectorXr & x)
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
-				const Vector3r vel = h_inv * (x.Vec3Block(offset + i) - m_simulationData.getOldPosition(fluidModelIndex, i));
-				model->setPosition(i, x.Vec3Block(offset + i));
-				model->setVelocity(i, vel);
+				if (model->getParticleState(i) == ParticleState::Active)
+				{
+					const Vector3r vel = h_inv * (x.Vec3Block(offset + i) - m_simulationData.getOldPosition(fluidModelIndex, i));
+					model->setPosition(i, x.Vec3Block(offset + i));
+					model->setVelocity(i, vel);
+				}
 			}
 		}
 	}
@@ -282,7 +286,8 @@ void SPH::TimeStepPF::addAccellerationToVelocity()
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
-				model->setVelocity(i, model->getVelocity(i) + h * model->getAcceleration(i));
+				if (model->getParticleState(i) == ParticleState::Active)
+					model->setVelocity(i, model->getVelocity(i) + h * model->getAcceleration(i));
 			}
 		}
 	}

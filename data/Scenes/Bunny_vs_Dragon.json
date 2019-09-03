@@ -62,7 +62,7 @@
 			"translation": [-2.0, 0.1, 0.0],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 3.14159265359,
-			"scale": 1
+			"scale": [1, 1, 1]
 		}
 	]
 }

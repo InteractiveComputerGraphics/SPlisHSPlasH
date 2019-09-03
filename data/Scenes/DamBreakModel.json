@@ -17,7 +17,7 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"partioAttributes": "density;velocity"
+		"particleAttributes": "density;velocity"
 	},
 	"Fluid":
 	{

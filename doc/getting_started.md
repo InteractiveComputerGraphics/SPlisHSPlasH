@@ -12,13 +12,35 @@ This application reads a SPlisHSPlasH scene file and performs a simulation of th
 
 The scene file format is explained [here.](file_format.md)
 
+##### Command line options:
+
+* -h, --help: Print help text.
+* --no-cache: Disable caching of boundary samples/maps.
+* --data-path: Path of the data directory (location of the scene files, etc.)
+* --output-dir: Output directory for log file and partio files.
+* --no-initial-pause: Disable caching of boundary samples/maps.
+* --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file.
+
 ### DynamicBoundarySimulator
 
 This application can also simulate SPlisHSPlasH scenes but in contrast to the StaticBoundarySimulator it can handle dynamic boundaries. The dynamic rigid bodies are simulated using our [PositionBasedDynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) which is automatically included in the build process. If a scene only contains static bodies, you should use "StaticBoundarySimulator" since it is faster. 
 
 The scene file format is explained [here.](file_format.md)
 
+##### Command line options:
+
+* -h, --help: Print help text.
+* --no-cache: Disable caching of boundary samples/maps.
+* --data-path: Path of the data directory (location of the scene files, etc.)
+* --output-dir: Output directory for log file and partio files.
+* --no-initial-pause: Disable caching of boundary samples/maps.
+* --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file.
+
 ## Tools
+
+## partio2vtk
+
+A tool to convert partion files in vtk files. In this way the particle data which is exported from SPlisHSPlasH can be converted to the vtk format. This is useful to import the data in ParaView for visualization.
 
 ## PartioViewer
 

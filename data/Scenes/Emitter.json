@@ -1,4 +1,4 @@
-{
+ {
 	"Configuration": 
 	{
 		"timeStepSize": 0.001,
@@ -8,7 +8,7 @@
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
-		"cflFactor": 1,
+		"cflFactor": 0.5,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
 		"maxError": 0.01,
@@ -21,15 +21,14 @@
 	},
 	"Fluid":
 	{
-		"maxEmitterParticles": 5000,
-		"emitterReuseParticles": true,
+		"maxEmitterParticles": 10000,
+		"emitterReuseParticles": false,
 		"emitterBoxMin": [-2.0,-2.5,-2.0],
 		"emitterBoxMax": [1.0,4,2.0],
 		"viscosityMethod": 1,
 		"viscosity": 0.01,
-		"dragMethod": 2, 
-		"drag": 10.0
-
+		"dragMethod": 0, 
+		"colorMapType": 1
 	},
 	"RigidBodies": [
 		{
@@ -48,20 +47,22 @@
 			"width": 8, 
 			"height": 3, 
 			"translation": [-1.2,0.75,0.0],
-			"direction": [1, 0, 0],
-			"velocity": [2, 0, 0.0],	
-			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
-			"emitsPerSecond": 40,
-			"type": 0
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"velocity": 2,
+			"type": 0,
+			"emitEndTime": 2
 		}, 
 		{
+		
 			"width": 7, 
-			"translation": [0.9,1.0,0.0],
-			"direction": [-1, 0, 0],
-			"velocity": [-2, 0, 0.0],	
-			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
-			"emitsPerSecond": 40,
-			"type": 1
+			"translation": [0.9,0.3,0.0],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 3.1415926535897932384626433832795,
+			"velocity": 3,
+			"type": 1,
+			"emitStartTime": 2,
+			"emitEndTime": 5
 		}
 	],
 	"FluidBlocks": [

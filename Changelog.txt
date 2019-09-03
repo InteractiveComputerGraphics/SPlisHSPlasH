@@ -1,3 +1,11 @@
+2.4.0
+	- added rigid body export
+	- added VTK file export (enables the data import in ParaView)
+	- added file dialog for Windows
+	- added a Python plugin for Maya to model scenes in Maya and export them to SPlisHSPlasH
+	- added animation fields to animate particles in an area using a math script
+	- improved fluid emitters	
+	- added option to simulate without GUI
 	- added GPU neighborhood search (cuNSearch) which can be selected in CMake
 
 2.3.0	

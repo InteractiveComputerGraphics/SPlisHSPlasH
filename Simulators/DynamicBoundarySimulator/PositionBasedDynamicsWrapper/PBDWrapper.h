@@ -27,7 +27,7 @@ protected:
 	short m_solidSimulationMethod = 2;
 	short m_bendingMethod = 2;
 	bool m_drawAABB;
-	int m_drawDistanceFields;
+	bool m_drawSDF;
 	bool m_drawStaticBodies;
 	int m_drawBVHDepth;
 	std::string m_sceneName;
@@ -38,6 +38,17 @@ protected:
 	SPH::Shader *createShader(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader);
 
 public:
+	struct RBData 
+	{
+		Vector3r x;
+		Matrix3r R;
+		Vector3r scale;
+		std::string objFile;
+		int collisionType;
+		Real restitution;
+		Real friction;
+	};
+
 	PBDWrapper();
 	~PBDWrapper();
 
@@ -47,7 +58,7 @@ public:
 
 	/** Read rigid body scene and create the rigid body model
 	*/
-	void readScene(const std::string &sceneFileName);
+	void readScene(const std::string &sceneFileName, std::vector< RBData> additionalRigidBodies);
 	void initTriangleModelConstraints();
 	void initTetModelConstraints();
 
@@ -69,6 +80,8 @@ public:
 	void renderConstraints();
 	void renderAABB(PBD::AABB &aabb);
 	void renderBVH();
+	void renderSDF();
+	void renderSDF(PBD::CollisionDetection::CollisionObject* co);
 	void renderScene();
 	void renderBallJoint(PBD::BallJoint &bj);
 	void renderRigidBodyParticleBallJoint(PBD::RigidBodyParticleBallJoint &bj);
@@ -82,6 +95,9 @@ public:
 	void renderTargetVelocityMotorHingeJoint(PBD::TargetVelocityMotorHingeJoint &hj);
 	void renderRigidBodyContact(PBD::RigidBodyContactConstraint &cc);
 	void renderParticleRigidBodyContact(PBD::ParticleRigidBodyContactConstraint &cc);
+	void renderSpring(PBD::RigidBodySpring &s);
+	void renderDistanceJoint(PBD::DistanceJoint &j);
+	void renderDamperJoint(PBD::DamperJoint &joint);
 
 	static void TW_CALL setVelocityUpdateMethod(const void *value, void *clientData);
 	static void TW_CALL getVelocityUpdateMethod(void *value, void *clientData);

@@ -43,7 +43,6 @@ void TimeStepPCISPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	TimeManager *tm = TimeManager::getCurrent();
-	const Real h = tm->getTimeStepSize();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	performNeighborhoodSearch();
@@ -57,6 +56,7 @@ void TimeStepPCISPH::step()
 	sim->computeNonPressureForces();
 
 	sim->updateTimeStepSize();
+	const Real h = tm->getTimeStepSize();
 
 	START_TIMING("pressureSolve");
 	pressureSolve();
@@ -72,18 +72,22 @@ void TimeStepPCISPH::step()
 			#pragma omp for schedule(static)  
 			for (int i = 0; i < numParticles; i++)
 			{
-				const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
-				const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
-				const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
-				Vector3r &x = model->getPosition(i);
-				Vector3r &v = model->getVelocity(i);
-				v = lastV + h*accel;
-				x = lastX + h*v;
+				if (model->getParticleState(i) == ParticleState::Active)
+				{
+					const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
+					const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
+					const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
+					Vector3r &x = model->getPosition(i);
+					Vector3r &v = model->getVelocity(i);
+					v = lastV + h * accel;
+					x = lastX + h * v;
+				}
 			}
 		}
 	}
 
 	sim->emitParticles();
+	sim->animateParticles();
 
 	// Compute new time		
 	tm->setTime(tm->getTime() + h);
@@ -150,13 +154,16 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
-			const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
-			const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
-			Vector3r &x = model->getPosition(i);
-			Vector3r &v = model->getVelocity(i);
-			v = lastV + h*accel;
-			x = lastX + h*v;
+			if (model->getParticleState(i) == ParticleState::Active)
+			{
+				const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
+				const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
+				const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
+				Vector3r &x = model->getPosition(i);
+				Vector3r &v = model->getVelocity(i);
+				v = lastV + h * accel;
+				x = lastX + h * v;
+			}
 		}
 	}
 
@@ -241,12 +248,15 @@ void TimeStepPCISPH::reset()
 
 void TimeStepPCISPH::performNeighborhoodSearch()
 {
-	if (m_counter % 500 == 0)
+	if (Simulation::getCurrent()->zSortEnabled())
 	{
-		Simulation::getCurrent()->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
+		if (m_counter % 500 == 0)
+		{
+			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			m_simulationData.performNeighborhoodSearchSort();
+		}
+		m_counter++;
 	}
-	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }

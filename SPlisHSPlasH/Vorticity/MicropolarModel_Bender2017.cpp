@@ -68,7 +68,7 @@ void MicropolarModel_Bender2017::step()
 
 	Real d = 10.0;
 	if (sim->is2DSimulation())
-		d = 6.0;
+		d = 8.0;
 
 	#pragma omp parallel default(shared)
 	{
@@ -132,12 +132,15 @@ void MicropolarModel_Bender2017::step()
 				//angAcceli += d * m_inertiaInverse * zeta * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * omegaij.dot(xij) / (xij.squaredNorm() + 0.01*h2) * gradW;
  
 				// difference curl 
-				ai += nu_t * 1.0 / density_i * density0 * bm_neighbor->getVolume(neighborIndex) * (omegaij.cross(gradW));
+				const Vector3r a = nu_t * 1.0 / density_i * density0 * bm_neighbor->getVolume(neighborIndex) * (omegaij.cross(gradW));
+				ai += a;
 				angAcceli += nu_t * 1.0 / density_i * m_inertiaInverse * (density0 * bm_neighbor->getVolume(neighborIndex) * (vi - vj).cross(gradW));
 
 //				// symmetric curl 
 //				ai -= nu_t * density_i * density0 * bm_neighbor->getVolume(neighborIndex) * ((omegai / density_i2 + omegaj / density_i2).cross(gradW));
 //				angAcceli -= nu_t * density_i * m_inertiaInverse * (density0 * bm_neighbor->getVolume(neighborIndex) * (vi / density_i2 + vj / density_i2).cross(gradW));
+
+				bm_neighbor->addForce(xj, -model->getMass(i) * a);
 			);
 			angAcceli -= 2.0 * m_inertiaInverse * nu_t * omegai;
 		}

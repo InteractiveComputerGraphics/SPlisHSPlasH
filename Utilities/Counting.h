@@ -56,7 +56,7 @@ namespace Utilities
 			{
 				AverageCount &ac = iter->second;
 				const double avgCount = ac.sum / ac.numberOfCalls;
-				LOG_INFO << "Average number " << iter->first.c_str() << ": " << avgCount;
+				LOG_INFO << "Average number: " << iter->first.c_str() << ": " << avgCount;
 			}
 			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
@@ -67,7 +67,7 @@ namespace Utilities
 			for (iter = Counting::m_averageCounts.begin(); iter != Counting::m_averageCounts.end(); iter++)
 			{
 				AverageCount &ac = iter->second;
-				LOG_INFO << "Total number " << iter->first.c_str() << ": " << ac.sum;
+				LOG_INFO << "Total number: " << iter->first.c_str() << ": " << ac.sum;
 			}
 			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}

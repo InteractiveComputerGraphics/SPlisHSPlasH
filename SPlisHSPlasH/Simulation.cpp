@@ -23,6 +23,7 @@ int Simulation::GRAVITATION = -1;
 int Simulation::CFL_METHOD = -1;
 int Simulation::CFL_FACTOR = -1;
 int Simulation::CFL_MAX_TIMESTEPSIZE = -1;
+int Simulation::ENABLE_Z_SORT = -1;
 int Simulation::KERNEL_METHOD = -1;
 int Simulation::GRAD_KERNEL_METHOD = -1;
 int Simulation::ENUM_KERNEL_CUBIC = -1;
@@ -67,10 +68,14 @@ Simulation::Simulation ()
 	m_simulationMethodChanged = NULL;
 
 	m_sim2D = false;
+	m_enableZSort = true;
+
+	m_animationFieldSystem = new AnimationFieldSystem();
 }
 
 Simulation::~Simulation () 
 {
+	delete m_animationFieldSystem;
 	delete m_timeStep;
 	delete m_neighborhoodSearch;
 	delete TimeManager::getCurrent();
@@ -134,6 +139,10 @@ void Simulation::initParameters()
 	setGroup(SIM_2D, "Simulation");
 	setDescription(SIM_2D, "2D/3D simulation.");
 	getParameter(SIM_2D)->setReadOnly(true);
+
+	ENABLE_Z_SORT = createBoolParameter("enableZSort", "Enable z-sort", &m_enableZSort);
+	setGroup(ENABLE_Z_SORT, "Simulation");
+	setDescription(ENABLE_Z_SORT, "Enable z-sort to improve cache hits.");
 
 	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&Simulation::getParticleRadius, this);
 	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&Simulation::setParticleRadius, this, std::placeholders::_1);
@@ -420,10 +429,11 @@ void Simulation::reset()
 	if (m_timeStep)
 		m_timeStep->reset();
 
+	m_animationFieldSystem->reset();
+
 	performNeighborhoodSearchSort();
 
 	TimeManager::getCurrent()->setTime(0.0);
-	//TimeManager::getCurrent()->setTimeStepSize(0.001);
 }
 
 void Simulation::setSimulationMethod(const int val)
@@ -444,16 +454,13 @@ void Simulation::setSimulationMethod(const int val)
 	{
 		m_timeStep = new TimeStepWCSPH();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_NONE);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
-		//TimeManager::getCurrent()->setTimeStepSize(0.001);
 	}
 	else if (method == SimulationMethods::PCISPH)
 	{
 		m_timeStep = new TimeStepPCISPH();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
 	}
@@ -461,7 +468,6 @@ void Simulation::setSimulationMethod(const int val)
 	{
 		m_timeStep = new TimeStepPBF();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_POLY6);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_SPIKY);
 	}
@@ -469,7 +475,6 @@ void Simulation::setSimulationMethod(const int val)
 	{
 		m_timeStep = new TimeStepIISPH();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
 	}
@@ -477,7 +482,6 @@ void Simulation::setSimulationMethod(const int val)
 	{
 		m_timeStep = new TimeStepDFSPH();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 	}
@@ -485,7 +489,7 @@ void Simulation::setSimulationMethod(const int val)
 	{
 		m_timeStep = new TimeStepPF();
 		m_timeStep->init();
-		setValue(Simulation::CFL_METHOD, Simulation::ENUM_CFL_STANDARD);
+
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 	}
@@ -512,6 +516,11 @@ void Simulation::performNeighborhoodSearchSort()
 		FluidModel *fm = getFluidModel(i);
 		fm->performNeighborhoodSearchSort();
 	}
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+	{
+		BoundaryModel *bm = getBoundaryModel(i);
+		bm->performNeighborhoodSearchSort();
+	}
 }
 
 void Simulation::setSimulationMethodChangedCallback(std::function<void()> const& callBackFct)
@@ -527,11 +536,20 @@ void Simulation::emittedParticles(FluidModel *model, const unsigned int startInd
 
 void Simulation::emitParticles()
 {
+	START_TIMING("emitParticles");
 	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
 	{
 		FluidModel *fm = getFluidModel(i);
 		fm->getEmitterSystem()->step();
 	}
+	STOP_TIMING_AVG
+}
+
+void Simulation::animateParticles()
+{
+	START_TIMING("animateParticles");
+	m_animationFieldSystem->step();
+	STOP_TIMING_AVG
 }
 
 void Simulation::addBoundaryModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles)
@@ -573,6 +591,7 @@ void Simulation::updateBoundaryVolume()
 			m_neighborhoodSearch->set_active(i + nFluids, true, true);
 	}
 
+	//performNeighborhoodSearchSort();
 	m_neighborhoodSearch->find_neighbors();
 
 	// Boundary objects

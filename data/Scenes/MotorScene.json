@@ -1,0 +1,76 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.025,
+		"numberOfStepsPerRenderUpdate": 4,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.05,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"particleAttributes": "density;velocity"
+	},
+	"Fluid":
+	{
+		"colorMapType": 1,
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0,
+		"viscosity": 0.01,
+		"viscosityMethod": 1
+	},
+	"RigidBodies": [
+		{
+			"id": 0,
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,1,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2, 2, 2],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		},
+		{
+			"id": 1,
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,0.1,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [1,0.1,0.2],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"density": 10000,
+			"isDynamic": true,
+			"isWall": false
+		}
+	],
+	"TargetVelocityMotorHingeJoints": [
+		{
+			"bodyID1": 1,
+			"bodyID2": 0,
+			"position": [0,0,0],
+            "axis": [0,1,0],
+            "target": -6
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.5, -0.5, -0.5],
+			"end": [0.5, 0.5, 0.5],
+			"translation": [0.0, 0.6, 0.0],
+			"scale": [1,0.75,1]
+		}
+	]	
+}
+
+
+

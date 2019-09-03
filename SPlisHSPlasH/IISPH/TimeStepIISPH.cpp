@@ -51,7 +51,6 @@ void TimeStepIISPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	TimeManager *tm = TimeManager::getCurrent ();
-	const Real h = tm->getTimeStepSize();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -65,6 +64,7 @@ void TimeStepIISPH::step()
 	sim->computeNonPressureForces();
 
 	sim->updateTimeStepSize();
+	const Real h = tm->getTimeStepSize();
 
 	// Solve density constraint	
 	START_TIMING("predictAdvection");
@@ -80,6 +80,7 @@ void TimeStepIISPH::step()
 		integration(fluidModelIndex);
 
 	sim->emitParticles();
+	sim->animateParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -112,11 +113,12 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 			Vector3r &vel = model->getVelocity(i);
 			const Vector3r &accel = model->getAcceleration(i);
 			Vector3r &dii = m_simulationData.getDii(fluidModelIndex, i);
+			dii.setZero();
 
-			vel += h * accel;
+			if (model->getParticleState(i) == ParticleState::Active)
+				vel += h * accel;
 
 			// Compute d_ii
-			dii.setZero();
 			const Real density = model->getDensity(i) / density0;
 			const Real density2 = density*density;
 			const Vector3r &xi = model->getPosition(i);
@@ -172,6 +174,7 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 			// Compute a_ii
 			Real &aii = m_simulationData.getAii(fluidModelIndex, i);
 			aii = 0.0;
+
 			const Vector3r &dii = m_simulationData.getDii(fluidModelIndex, i);
 
 			const Real density2 = density * density;
@@ -248,6 +251,7 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 		{
 			Vector3r &dij_pj = m_simulationData.getDij_pj(fluidModelIndex, i);
 			dij_pj.setZero();
+
 			const Vector3r &xi = model->getPosition(i);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -268,6 +272,9 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
+			Real &pi = m_simulationData.getPressure(fluidModelIndex, i);
+			pi = 0.0;
+
 			const Real &aii = m_simulationData.getAii(fluidModelIndex, i);
 			const Real density = model->getDensity(i) / density0;
 			const Vector3r &xi = model->getPosition(i);
@@ -301,7 +308,6 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 
 			const Real b = static_cast<Real>(1.0) - m_simulationData.getDensityAdv(fluidModelIndex, i);
 
-			Real &pi = m_simulationData.getPressure(fluidModelIndex, i);
 			const Real &lastPi = m_simulationData.getLastPressure(fluidModelIndex, i);
 			const Real denom = aii*h2;
 			if (fabs(denom) > 1.0e-9)
@@ -345,10 +351,13 @@ void TimeStepIISPH::integration(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) numParticles; i++)
 		{
-			Vector3r &pos = model->getPosition(i);
-			Vector3r &vel = model->getVelocity(i);
-			vel += m_simulationData.getPressureAccel(fluidModelIndex, i) * h;
-			pos += vel * h;
+			if (model->getParticleState(i) == ParticleState::Active)
+			{
+				Vector3r &pos = model->getPosition(i);
+				Vector3r &vel = model->getVelocity(i);
+				vel += m_simulationData.getPressureAccel(fluidModelIndex, i) * h;
+				pos += vel * h;
+			}
 		}
 	}
 }
@@ -401,12 +410,15 @@ void TimeStepIISPH::computePressureAccels(const unsigned int fluidModelIndex)
 
 void TimeStepIISPH::performNeighborhoodSearch()
 {
-	if (m_counter % 500 == 0)
+	if (Simulation::getCurrent()->zSortEnabled())
 	{
-		Simulation::getCurrent()->performNeighborhoodSearchSort();
-		m_simulationData.performNeighborhoodSearchSort();
+		if (m_counter % 500 == 0)
+		{
+			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			m_simulationData.performNeighborhoodSearchSort();
+		}
+		m_counter++;
 	}
-	m_counter++;
 
 	Simulation::getCurrent()->performNeighborhoodSearch();
 }

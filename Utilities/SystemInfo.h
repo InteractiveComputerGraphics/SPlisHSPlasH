@@ -19,11 +19,13 @@ namespace Utilities
 		{
 #ifdef WIN32
 			const unsigned int bufferSize = 32767;
-			TCHAR  infoBuf[bufferSize];
+			TCHAR  *infoBuf = new TCHAR[bufferSize];
 			DWORD  bufCharCount = bufferSize;
 			if (!GetComputerName(infoBuf, &bufCharCount))
 				return "";
-			return infoBuf;
+			std::string name = infoBuf;
+			delete[] infoBuf;
+			return name;
 #else
 			const unsigned int bufferSize = 32767;
 			char hostname[bufferSize];

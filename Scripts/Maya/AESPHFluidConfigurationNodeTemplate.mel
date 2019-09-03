@@ -1,0 +1,51 @@
+global proc AESPHFluidConfigurationNodeTemplate( string $nodeName )
+{
+	editorTemplate -beginScrollLayout;
+	
+	editorTemplate -beginLayout "Simulation" -collapse 0;
+	editorTemplate -l "Rest density" -addControl "density0";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Visualization" -collapse 0;
+	editorTemplate -l "Color field" -addControl "colorField";
+	editorTemplate -l "Color map type" -addControl "colorMapType";
+	editorTemplate -l "Min. value" -addControl "renderMinValue";
+	editorTemplate -l "Max. value" -addControl "renderMaxValue";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Emitters" -collapse 0;
+	editorTemplate -l "Max. number of emitted particles" -addControl "maxEmitterParticles";
+	editorTemplate -l "Reuse particles" -addControl "emitterReuseParticles";
+	editorTemplate -l "Emitter box min." -addControl "emitterBoxMin";
+	editorTemplate -l "Emitter box max." -addControl "emitterBoxMax";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Viscosity" -collapse 0;
+	editorTemplate -l "Viscosity method" -addControl "viscosityMethod";
+	editorTemplate -l "Viscosity coefficient" -addControl "viscosity";
+	editorTemplate -l "Max. iterations (visco)" -addControl "viscoMaxIter";
+	editorTemplate -l "Max. visco error" -addControl "viscoMaxError";
+	editorTemplate -l "Max. iterations (vorticity diffusion)" -addControl "viscoMaxIterOmega";
+	editorTemplate -l "Max. vorticity diffusion error" -addControl "viscoMaxErrorOmega";
+	editorTemplate -l "Viscosity coefficient (Boundary)" -addControl "viscosityBoundary";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Vorticity" -collapse 0;
+	editorTemplate -l "Vorticity coefficient" -addControl "vorticityMethod";
+	editorTemplate -l "Angular viscosity coefficient" -addControl "viscosityOmega";
+	editorTemplate -l "Inertia inverse" -addControl "inertiaInverse";
+	editorTemplate -endLayout;
+
+	editorTemplate -beginLayout "Drag force" -collapse 0;
+	editorTemplate -l "Drag method" -addControl "dragMethod";
+	editorTemplate -l "Drag coefficient" -addControl "drag";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Surface tension" -collapse 0;
+	editorTemplate -l "Surface tension method" -addControl "surfaceTensionMethod";
+	editorTemplate -l "Surface tension coefficient" -addControl "surfaceTension";
+	editorTemplate -endLayout;
+
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

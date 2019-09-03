@@ -47,6 +47,14 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.sim2D = false;
 		readValue(config["sim2D"], scene.sim2D);
+
+		if (scene.sim2D)
+			scene.camPosition = Vector3r(0.0, 0.0, 8.0);
+		else
+			scene.camPosition = Vector3r(0.0, 3.0, 8.0);
+		readVector(config["cameraPosition"], scene.camPosition);
+		scene.camLookat = Vector3r(0.0, 0.0, 0.0);
+		readVector(config["cameraLookat"], scene.camLookat);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -130,8 +138,25 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 					data->rotation = AngleAxisr(angle, axis);
 
 				// scale
-				data->scale = 1.0;
-				readValue(fluidModel["scale"], data->scale);
+				data->scale = Vector3r::Ones();
+				readVector(fluidModel["scale"], data->scale);
+
+				// velocity
+				data->initialVelocity = Vector3r::Zero();
+				readVector(fluidModel["initialVelocity"], data->initialVelocity);
+
+				data->invert = false;
+				readValue(fluidModel["invert"], data->invert);
+
+				data->resolutionSDF = { 20, 20, 20 };
+				Eigen::Matrix<unsigned int, 3, 1> res(20,20,20);
+				readVector(fluidModel["resolutionSDF"], res);
+				data->resolutionSDF[0] = res[0];
+				data->resolutionSDF[1] = res[1];
+				data->resolutionSDF[2] = res[2];
+
+				data->mode = 0;
+				readValue(fluidModel["denseMode"], data->mode);
 
 				scene.fluidModels.push_back(data);
 			}
@@ -206,24 +231,91 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 			// translation
 			data->x = Vector3r::Zero();
 			readVector(emitter["translation"], data->x);
+			
+			// rotation
+			// default direction without rotation is +x
+			Vector3r axis(0,0,1);
+			Real angle = 0.0;
+			data->rotation = Matrix3r::Identity();
+			if (readVector(emitter["rotationAxis"], axis) &&
+				readValue(emitter["rotationAngle"], angle))
+			{
+				// in 2D simulations always rotate around z-axis
+				if (scene.sim2D)
+					axis = { 0.0, 0.0, 1.0 };
+				axis.normalize();
+				data->rotation = AngleAxisr(angle, axis).toRotationMatrix();
+ 			}
 
-			// direction
-			data->dir = Vector3r(1.0, 0.0, 0.0);
-			readVector(emitter["direction"], data->dir);
+			// emission velocity
+			data->velocity = 1;
+			readValue(emitter["velocity"], data->velocity);
 
-			// velocity
-			data->v = Vector3r(1.0, 0.0, 0.0);
-			readVector(emitter["velocity"], data->v);
-
-			// emits per second
-			data->emitsPerSecond = 10;
-			readValue(emitter["emitsPerSecond"], data->emitsPerSecond);
+			// time when emission starts and stops
+			data->emitStartTime = 0;
+			readValue(emitter["emitStartTime"], data->emitStartTime);
+			data->emitEndTime = std::numeric_limits<Real>::max();
+			readValue(emitter["emitEndTime"], data->emitEndTime);
 
 			// type: 0 = rectangular, 1 = circle
 			data->type = 0;
 			readValue(emitter["type"], data->type);
 
 			scene.emitters.push_back(data);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// read animation fields
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find("AnimationFields") != m_jsonData.end())
+	{
+		nlohmann::json fields = m_jsonData["AnimationFields"];
+		for (auto& field : fields)
+		{
+			AnimationFieldData * data = new AnimationFieldData();
+
+			data->particleFieldName = "";
+			readValue(field["particleField"], data->particleFieldName);
+
+			data->expression[0] = "";
+			readValue(field["expression_x"], data->expression[0]);
+
+			data->expression[1] = "";
+			readValue(field["expression_y"], data->expression[1]);
+
+			data->expression[2] = "";
+			readValue(field["expression_z"], data->expression[2]);
+
+			// 0=Box, 1=Cylinder
+			data->shapeType = 0;
+			readValue(field["shapeType"], data->shapeType);
+
+			// time when emission starts and stops
+			data->startTime = 0;
+			readValue(field["startTime"], data->startTime);
+			data->endTime = std::numeric_limits<Real>::max();
+			readValue(field["endTime"], data->endTime);
+
+			data->scale= Vector3r::Ones();
+			readVector(field["scale"], data->scale);
+			
+			// shape position
+			data->x = Vector3r::Zero();
+			readVector(field["translation"], data->x);
+
+			// rotation
+			// default direction without rotation is +x
+			Vector3r axis = Vector3r::Zero();
+			Real angle = 0.0;
+			data->rotation = Matrix3r::Identity();
+			if (readVector(field["rotationAxis"], axis) &&
+				readValue(field["rotationAngle"], angle))
+			{
+				axis.normalize();
+				data->rotation = AngleAxisr(angle, axis).toRotationMatrix();
+			}
+			scene.animatedFields.push_back(data);
 		}
 	}
 }

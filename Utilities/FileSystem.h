@@ -3,7 +3,7 @@
 
 #include "StringTools.h"
 #include "extern/md5/md5.h"
-#if WIN32
+#ifdef WIN32
 #include <direct.h>
 #define NOMINMAX
 #include "windows.h"

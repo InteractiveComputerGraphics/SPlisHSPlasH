@@ -161,11 +161,13 @@ bool PartioReaderWriter::readParticles(const std::string &fileName, const Vector
 		Partio::ParticleAttribute attr;
 		data->attributeInfo(i, attr);
 		if (attr.name == "position")
+		{
 			posIndex = i;
+			break;
+		}
 	}
 
 	Partio::ParticleAttribute attr;
-
 	if (posIndex != 0xffffffff)
 	{
 		unsigned int fSize = (unsigned int)positions.size();
@@ -189,6 +191,9 @@ bool PartioReaderWriter::readParticles(const std::string &fileName, const Vector
 void PartioReaderWriter::writeParticles(const std::string &fileName, const unsigned int numParticles, const Vector3r *particlePositions,
 	const Vector3r *particleVelocities, const Real particleRadius)
 {
+	if (numParticles == 0)
+		return;
+
 	Partio::ParticlesDataMutable& particleData = *Partio::create();
 	Partio::ParticleAttribute posAttr = particleData.addAttribute("position", Partio::VECTOR, 3);
 	Partio::ParticleAttribute velAttr;

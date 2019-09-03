@@ -76,7 +76,7 @@
 			"friction" : 0.2,
 			"color": [0.3, 0.5, 0.8, 1.0], 
 			"collisionObjectType": 1,
-			"collisionObjectScale": [1,1,1], 
+			"collisionObjectScale": [0.5, 0.5, 0.5], 
 			"isWall": false
 		}
 	],

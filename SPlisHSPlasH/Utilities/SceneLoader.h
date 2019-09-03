@@ -45,7 +45,11 @@ namespace Utilities
 			std::string samplesFile;
 			Vector3r translation;
 			Matrix3r rotation;
-			Real scale;
+			Vector3r scale;
+			Vector3r initialVelocity;
+			unsigned char mode;
+			bool invert;
+			std::array<unsigned int, 3> resolutionSDF;
 		};
 
 		/** \brief Struct to store a fluid block */
@@ -64,10 +68,25 @@ namespace Utilities
 			unsigned int width;
 			unsigned int height;
 			Vector3r x;
-			Vector3r dir;
-			Vector3r v;
-			Real emitsPerSecond;
+			Real velocity; // emission velocity
+			Matrix3r rotation;
+			Real emitStartTime;
+			Real emitEndTime;
 			unsigned int type;
+		};
+
+		/** \brief Struct to store an animation field object
+		 */
+		struct AnimationFieldData
+		{
+			std::string particleFieldName;
+			std::string expression[3];
+			unsigned int shapeType;
+			Vector3r x;
+			Matrix3r rotation;
+			Vector3r scale; 
+			Real startTime;
+			Real endTime;
 		};
 
 		/** \brief Struct to store scene information */
@@ -77,9 +96,12 @@ namespace Utilities
 			std::vector<FluidData*> fluidModels;
 			std::vector<FluidBlock*> fluidBlocks;
 			std::vector<EmitterData*> emitters;
+			std::vector<AnimationFieldData*> animatedFields;
 			Real particleRadius;
 			bool sim2D;
 			Real timeStepSize;
+			Vector3r camPosition;
+			Vector3r camLookat;
 		};
 
 		/** \brief Struct to store particle coloring information */

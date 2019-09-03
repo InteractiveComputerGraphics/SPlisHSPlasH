@@ -137,12 +137,18 @@ set(UTILS_HEADER_FILES
 	Utilities/MatrixFreeSolver.h
 	Utilities/PoissonDiskSampling.h
 	Utilities/SceneLoader.h
+	Utilities/VolumeSampling.h
+	Utilities/SDFFunctions.h
+	Utilities/WindingNumbers.h
 	)
 	
 set(UTILS_SOURCE_FILES
 	Utilities/MathFunctions.cpp
 	Utilities/PoissonDiskSampling.cpp
 	Utilities/SceneLoader.cpp
+	Utilities/VolumeSampling.cpp
+	Utilities/SDFFunctions.cpp
+	Utilities/WindingNumbers.cpp
 	)	
 	
 find_package( Eigen3 REQUIRED )
@@ -154,6 +160,11 @@ include_directories( ${EIGEN3_INCLUDE_DIR} )
 include_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/include)
 
 ############################################################
+# DiscreGrid
+############################################################
+include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
+
+############################################################
 # GenericParameters
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
@@ -162,7 +173,11 @@ add_library(SPlisHSPlasH
 	Common.h
 	
 	NeighborhoodSearch.h
-	
+
+	AnimationField.cpp
+	AnimationField.h
+	AnimationFieldSystem.h
+	AnimationFieldSystem.cpp
 	BoundaryModel.cpp
 	BoundaryModel.h
 	Emitter.cpp

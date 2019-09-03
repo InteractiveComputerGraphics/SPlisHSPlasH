@@ -33,8 +33,9 @@ namespace SPH
 			void enableReuseParticles(const Vector3r &boxMin = Vector3r(-1, -1, -1), const Vector3r &boxMax = Vector3r(1, 1, 1));
 			void disableReuseParticles();
 			void addEmitter(const unsigned int width, const unsigned int height,
-				const Vector3r &pos, const Vector3r &dir, const Vector3r &initialVel,
-				const Real emitsPerSecond, const unsigned int type = 0);
+				const Vector3r &pos, const Matrix3r & rotation,
+				const Real velocity,
+				const unsigned int type);
 			unsigned int numEmitters() const { return static_cast<unsigned int>(m_emitters.size()); }
 			std::vector<Emitter*> &getEmitters() { return m_emitters; }
 

@@ -20,6 +20,7 @@
 #include "Simulators/Common/TweakBarParameters.h"
 #include "SPlisHSPlasH/TimeStep.h"
 #include "GL/freeglut_ext.h"
+#include "SPlisHSPlasH/Emitter.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -35,6 +36,7 @@ using namespace Utilities;
 using namespace GenParam;
 
 void timeStep ();
+bool timeStepNoGUI();
 void initBoundaryData();
 void render ();
 void renderBoundary();
@@ -69,11 +71,38 @@ int main( int argc, char **argv )
 	Simulation *sim = Simulation::getCurrent();
 	sim->init(base->getScene().particleRadius, base->getScene().sim2D);
 
+	// create additional rigid body information for emitters
+	const SceneLoader::Scene &scene = base->getScene();
+	std::vector<PBDWrapper::RBData> additionalRBs;
+	const std::string scene_path = FileSystem::getFilePath(base->getSceneFile());
+	// the last boundary models are the ones that were added for the emitters
+	for (auto i = 0; i < scene.emitters.size(); i++)
+	{
+		SceneLoader::EmitterData *ed = scene.emitters[i];
+		PBDWrapper::RBData rb;
+		rb.x = ed->x;
+		rb.R = ed->rotation;
+		rb.scale = Emitter::getSize(ed->width, ed->height, ed->type);
+		rb.restitution = 0.6;
+		rb.friction = 0.1;
+		if (ed->type == 0)
+		{
+			rb.objFile = FileSystem::normalizePath(scene_path + "/../models/EmitterBox.obj");
+			rb.collisionType = 2;
+		}
+		else if (ed->type == 1)
+		{
+			rb.objFile = FileSystem::normalizePath(scene_path + "/../models/EmitterCylinder.obj");
+			rb.collisionType = 5;
+		}
+		additionalRBs.push_back(rb);
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// PBD
 	//////////////////////////////////////////////////////////////////////////
 	pbdWrapper.initShader();
-	pbdWrapper.readScene(base->getSceneFile());
+	pbdWrapper.readScene(base->getSceneFile(), additionalRBs);
 
 	base->buildModel();
 
@@ -84,28 +113,53 @@ int main( int argc, char **argv )
 
 	LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
 
-	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	const bool useGUI = base->getUseGUI();
+
+	if (useGUI)
 	{
-		FluidModel *model = sim->getFluidModel(i);
-		const std::string &key = model->getId();
-		model->setDragMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getDragBase()); });
-		model->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getSurfaceTensionBase()); });
-		model->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getViscosityBase()); });
-		model->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getVorticityBase()); });
-		model->setElasticityMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getElasticityBase()); });
+		for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+		{
+			FluidModel *model = sim->getFluidModel(i);
+			const std::string &key = model->getId();
+			model->setDragMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getDragBase()); });
+			model->setSurfaceMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getSurfaceTensionBase()); });
+			model->setViscosityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getViscosityBase()); });
+			model->setVorticityMethodChangedCallback([&]() { initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getVorticityBase()); });
+			model->setElasticityMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject(key, (ParameterObject*)model->getElasticityBase()); });
+		}
+	
+		initParameters();
+		Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
 	}
 
-	initParameters();
-	Simulation::getCurrent()->setSimulationMethodChangedCallback([&]() { reset(); initParameters(); base->getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
 	base->readParameters();
 
 	pbdWrapper.initModel(TimeManager::getCurrent()->getTimeStepSize());
 
-	MiniGL::setClientIdleFunc(50, timeStep);
-	MiniGL::addKeyFunc('r', reset);
-	MiniGL::setClientSceneFunc(render);
+	if (!useGUI)
+	{
+		const Real stopAt = base->getValue<Real>(SimulatorBase::STOP_AT);
+		if (stopAt < 0.0)
+		{
+			LOG_ERR << "StopAt parameter must be set when starting without GUI.";
+			exit(1);
+		}
 
-	glutMainLoop ();	
+		while (true)
+		{
+			if (!timeStepNoGUI())
+				break;
+		}
+	}
+	else
+	{
+		MiniGL::setClientIdleFunc(50, timeStep);
+		MiniGL::addKeyFunc('r', reset);
+		MiniGL::setClientSceneFunc(render);
+	}
+
+	if (useGUI)
+		glutMainLoop ();	
 
 	base->cleanup();
 
@@ -156,15 +210,17 @@ void initParameters()
 	colorFieldNames.resize(model->numberOfFields());
 	TwType enumType = TwDefineEnum("ColorFieldEnum", NULL, 0);
 	std::ostringstream oss;
+	int idx = 0;
 	for (unsigned int j = 0; j < model->numberOfFields(); j++)
 	{
 		const FieldDescription &field = model->getField(j);
 		if ((field.type == FieldType::Scalar) || (field.type == FieldType::Vector3))
 		{
-			if (j != 0)
+			if (idx != 0)
 				oss << ", ";
-			oss << j << " {" << field.name.c_str() << "}";
-			colorFieldNames[j] = field.name;
+			oss << idx << " {" << field.name.c_str() << "}";
+			colorFieldNames[idx] = field.name;
+			idx++;
 		}
 	}
 	std::string enumStr = " label='Color field' enum='" + oss.str() + "' group='" + model->getId() + "'";
@@ -267,6 +323,51 @@ void timeStep ()
 			}
 		}
 	}
+}
+
+bool timeStepNoGUI()
+{
+	const Real stopAt = base->getValue<Real>(SimulatorBase::STOP_AT);
+	if ((stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
+		return false;
+
+	// Simulation code
+	Simulation *sim = Simulation::getCurrent();
+	const bool sim2D = sim->is2DSimulation();
+
+	START_TIMING("SimStep");
+	SPH::Simulation::getCurrent()->getTimeStep()->step();
+	STOP_TIMING_AVG;
+
+	updateBoundaryForces();
+
+	//////////////////////////////////////////////////////////////////////////
+	// PBD
+	//////////////////////////////////////////////////////////////////////////
+	START_TIMING("SimStep - PBD");
+	pbdWrapper.timeStep();
+	STOP_TIMING_AVG;
+
+	updateBoundaryParticles(false);
+
+	base->step();
+
+	INCREASE_COUNTER("Time step size", TimeManager::getCurrent()->getTimeStepSize());
+
+	// Make sure that particles stay in xy-plane in a 2D simulation
+	if (sim2D)
+	{
+		for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+		{
+			FluidModel *model = sim->getFluidModel(i);
+			for (unsigned int i = 0; i < model->numActiveParticles(); i++)
+			{
+				model->getPosition(i)[2] = 0.0;
+				model->getVelocity(i)[2] = 0.0;
+			}
+		}
+	}
+	return true;
 }
 
 void renderBoundary()
@@ -382,6 +483,7 @@ void render()
 	pbdWrapper.renderTetModels();
 	pbdWrapper.renderConstraints();
 	pbdWrapper.renderBVH();
+	pbdWrapper.renderSDF();
 }
 
 void initBoundaryData()
@@ -409,11 +511,6 @@ void initBoundaryData()
 
 		// if a samples file is given, use this one
 		std::vector<Vector3r> boundaryParticles;
-		if (scene.boundaryModels[i]->samplesFile != "")
-		{
-			string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
-			PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
-		}
 
 		PBD::SimulationModel &model = pbdWrapper.getSimulationModel();
 		PBD::SimulationModel::RigidBodyVector &rigidBodies = model.getRigidBodies();
@@ -422,15 +519,23 @@ void initBoundaryData()
 		Utilities::IndexedFaceMesh &mesh = geo.getMesh();
 		PBD::VertexData &vd = geo.getVertexData();
 
-		// if no samples file is given, sample the surface model
-		if (scene.boundaryModels[i]->samplesFile == "")
+		if (scene.boundaryModels[i]->samplesFile != "")
+		{
+			string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
+			PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
+
+			// transform back to local coordinates
+			for (unsigned int j = 0; j < boundaryParticles.size(); j++)
+				boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * (boundaryParticles[j] + rb->getWorldSpacePosition()) - rb->getPosition());
+		}
+		else		// if no samples file is given, sample the surface model
 		{
 			// Cache sampling
 			std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
 			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
 			
-			const string resStr = to_string(scene.boundaryModels[i]->scale[0]) + "_" + to_string(scene.boundaryModels[i]->scale[1]) + "_" + to_string(scene.boundaryModels[i]->scale[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_dbd_" + std::to_string(scene.particleRadius) + "_" + resStr + ".bgeo");
+			const string resStr = base->real2String(scene.boundaryModels[i]->scale[0]) + "_" + base->real2String(scene.boundaryModels[i]->scale[1]) + "_" + base->real2String(scene.boundaryModels[i]->scale[2]);
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_dbd_" + base->real2String(scene.particleRadius) + "_" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
@@ -460,15 +565,17 @@ void initBoundaryData()
 				if (useCache && (FileSystem::makeDir(cachePath) == 0))
 				{
 					LOG_INFO << "Save particle sampling: " << particleFileName;
-					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, scene.particleRadius);
+					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, 0.0);
 					FileSystem::writeMD5File(meshFileName, md5FileName);
 				}
 			}
 		}
 		Simulation::getCurrent()->addBoundaryModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 	}
-	Simulation::getCurrent()->updateBoundaryVolume();
+
+	Simulation::getCurrent()->performNeighborhoodSearchSort();
 	updateBoundaryParticles(true);
+	Simulation::getCurrent()->updateBoundaryVolume();
 }
 
 
@@ -482,14 +589,17 @@ void updateBoundaryParticles(const bool forceUpdate = false)
 		BoundaryModel *bm = sim->getBoundaryModel(i);
 		RigidBodyObject *rbo = bm->getRigidBodyObject();
 		if (rbo->isDynamic() || forceUpdate)
-		{
+		{			
 			#pragma omp parallel default(shared)
 			{
 				#pragma omp for schedule(static)  
 				for (int j = 0; j < (int)bm->numberOfParticles(); j++)
 				{
 					bm->getPosition(j) = rbo->getRotation() * bm->getPosition0(j) + rbo->getPosition();
-					bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
+					if (rbo->isDynamic())
+						bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
+					else
+						bm->getVelocity(j).setZero();
 				}
 			}
 #ifdef GPU_NEIGHBORHOOD_SEARCH

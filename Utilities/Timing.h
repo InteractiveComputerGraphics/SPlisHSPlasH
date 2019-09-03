@@ -162,7 +162,7 @@ namespace Utilities
 			{
 				AverageTime &at = iter->second;
 				const double avgTime = at.totalTime / at.counter;
-				LOG_INFO << "Average time " << at.name.c_str() << ": " << avgTime << " ms";
+				LOG_INFO << "Average time: " << at.name.c_str() << ": " << avgTime << " ms";
 			}
 			if (Timing::m_startCounter != Timing::m_stopCounter)
 				LOG_INFO << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming. ";
@@ -176,7 +176,7 @@ namespace Utilities
 			{
 				AverageTime &at = iter->second;
 				const double timeSum = at.totalTime;
-				LOG_INFO << "Time sum " << at.name.c_str() << ": " << timeSum << " ms";
+				LOG_INFO << "Time sum: " << at.name.c_str() << ": " << timeSum << " ms";
 			}
 			if (Timing::m_startCounter != Timing::m_stopCounter)
 				LOG_INFO << "Problem: " << Timing::m_startCounter << " calls of startTiming and " << Timing::m_stopCounter << " calls of stopTiming. ";

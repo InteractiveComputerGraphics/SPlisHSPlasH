@@ -7,6 +7,7 @@
 #include "ParameterObject.h"
 #include "NeighborhoodSearch.h"
 #include "BoundaryModel.h"
+#include "AnimationFieldSystem.h"
 
 
 /** Loop over the fluid neighbors of all fluid phases. 
@@ -66,6 +67,7 @@ namespace SPH
 		static int CFL_METHOD;
 		static int CFL_FACTOR;
 		static int CFL_MAX_TIMESTEPSIZE;
+		static int ENABLE_Z_SORT;
 
 		static int KERNEL_METHOD;
 		static int GRAD_KERNEL_METHOD;
@@ -103,6 +105,7 @@ namespace SPH
 		std::vector<FluidModel*> m_fluidModels;
 		std::vector<BoundaryModel*> m_boundaryModels;
 		NeighborhoodSearch *m_neighborhoodSearch;
+		AnimationFieldSystem *m_animationFieldSystem;
 		int m_cflMethod;
 		Real m_cflFactor;
 		Real m_cflMaxTimeStepSize;
@@ -117,6 +120,7 @@ namespace SPH
 		Real m_particleRadius;
 		Real m_supportRadius;
 		bool m_sim2D;
+		bool m_enableZSort;
 		std::function<void()> m_simulationMethodChanged;		
 
 		virtual void initParameters();
@@ -147,6 +151,8 @@ namespace SPH
 		const unsigned int numberOfBoundaryModels() const { return static_cast<unsigned int>(m_boundaryModels.size()); }
 		void updateBoundaryVolume();
 
+		AnimationFieldSystem* getAnimationFieldSystem() { return m_animationFieldSystem; }
+
 		int getKernel() const { return m_kernelMethod; }
 		void setKernel(int val);
 		int getGradKernel() const { return m_gradKernelMethod; }
@@ -164,6 +170,7 @@ namespace SPH
 		TimeStep *getTimeStep() { return m_timeStep; }
 
 		bool is2DSimulation() { return m_sim2D; }
+		bool zSortEnabled() { return m_enableZSort; }
 
 		void setParticleRadius(Real val);
 		Real getParticleRadius() const { return m_particleRadius; }
@@ -184,6 +191,7 @@ namespace SPH
 
 		void computeNonPressureForces();
 
+		void animateParticles();
 		void emitParticles();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 

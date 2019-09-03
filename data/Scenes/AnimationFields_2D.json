@@ -1,0 +1,98 @@
+{
+	"Configuration": 
+	{
+		"cameraPosition": [0,0,5],
+		"cameraLookat": [0,0,0],
+		"pause": true,
+		"sim2D": true, 
+		"particleRadius": 0.025,
+		"numberOfStepsPerRenderUpdate": 2,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,0,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"particleAttributes": "velocity;density"
+	},
+	"Fluid":
+	{
+		"surfaceTension": 0.2,
+		"surfaceTensionMethod": 0,		
+		"viscosity": 0.01,
+		"viscosityMethod": 1, 
+		"vorticityMethod": 1, 
+		"vorticity": 0.1, 
+		"viscosityOmega": 0.05,
+		"inertiaInverse": 0.5,
+		"colorMapType": 1,
+		"renderMaxValue": 0.5
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,0.0,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2, 2, 1],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.5, -0.5, -0.5],
+			"end": [0.5, 0.5, 0.5],
+			"translation": [0,0,0],
+			"scale": [2, 2, 2]
+		}
+	],
+	"AnimationFields": [
+		{
+			"particleField": "velocity",
+			"translation": [-0.5, -0.5, 0],
+			"rotationAxis": [0, 0, 1],
+			"rotationAngle": 0.0,
+			"scale": [0.5, 0.25, 0.8],
+			"shapeType": 0,
+			"expression_x": "cos(2*t)*0.1",
+			"expression_y": "",
+			"expression_z": ""
+		},
+		{
+			"particleField": "angular velocity",
+			"translation": [0.3, 0.2, 0],
+			"rotationAxis": [0, 0, 1],
+			"rotationAngle": 0.7,
+			"scale": [0.25, 0.25, 0.8],
+			"shapeType": 0,
+			"expression_x": "",
+			"expression_y": "",
+			"expression_z": "0.125"
+		},
+		{
+			"particleField": "velocity",
+			"translation": [-0.5, 0.5, 0],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 1.57,
+			"scale": [0.25, 0.25, 0.8],
+			"shapeType": 1,
+			"expression_x": "sin(2*t)*0.2",
+			"expression_y": "",
+			"expression_z": ""
+		}
+	]	
+}
+
+
+

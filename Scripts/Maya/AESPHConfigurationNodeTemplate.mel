@@ -1,0 +1,68 @@
+global proc AESPHConfigurationNodeTemplate( string $nodeName )
+{
+	editorTemplate -beginScrollLayout;
+	
+	editorTemplate -beginLayout "General" -collapse 0;
+	editorTemplate -l "Pause" -addControl "pause";
+	editorTemplate -l "Time step size" -addControl "timeStepSize";
+	editorTemplate -l "Pause simulation at" -addControl "pauseAt";
+	editorTemplate -l "Stop simulation at" -addControl "stopAt";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Visualization" -collapse 0;
+	editorTemplate -l "Camera position" -addControl "cameraPosition";
+	editorTemplate -l "Camera lookat" -addControl "cameraLookat";
+	editorTemplate -l "# time steps / update" -addControl "numberOfStepsPerRenderUpdate";
+	editorTemplate -l "Render walls" -addControl "renderWalls";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Export" -collapse 0;
+	editorTemplate -l "Partio export" -addControl "enablePartioExport";
+	editorTemplate -l "VTK export" -addControl "enableVTKExport";
+	editorTemplate -l "Export FPS" -addControl "particleFPS";
+	editorTemplate -l "Export attributes" -addControl "particleAttributes";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Simulation" -collapse 0;
+	editorTemplate -l "2D simulation" -addControl "sim2D";
+	editorTemplate -l "Enable z-sort" -addControl "enableZSort";
+	editorTemplate -l "Particle radius" -addControl "particleRadius";
+	editorTemplate -l "Gravitation" -addControl "gravitation";
+	editorTemplate -l "Simulation method" -addControl "simulationMethod";
+	editorTemplate -l "Max. iterations" -addControl "maxIterations";
+	editorTemplate -l "Max. density error(%)" -addControl "maxError";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "CFL" -collapse 0;
+	editorTemplate -l "CFL - method" -addControl "cflMethod";
+	editorTemplate -l "CFL - factor" -addControl "cflFactor";
+	editorTemplate -l "CFL - max. time step size" -addControl "cflMaxTimeStepSize";
+	editorTemplate -endLayout;
+
+	editorTemplate -beginLayout "Kernel" -collapse 0;
+	editorTemplate -l "Kernel" -addControl "kernel";
+	editorTemplate -l "Gradient of kernel" -addControl "gradKernel";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "WCSPH" -collapse 0;
+	editorTemplate -l "Stiffness" -addControl "stiffness";
+	editorTemplate -l "Exponent (gamma)" -addControl "exponent";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "PBF" -collapse 0;
+	editorTemplate -l "Velocity update method" -addControl "velocityUpdateMethod";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "DFSPH" -collapse 0;
+	editorTemplate -l "Max. iterations (divergence)" -addControl "maxIterationsV";
+	editorTemplate -l "Max. divergence error (%)" -addControl "maxErrorV";
+	editorTemplate -l "Enable divergence solver" -addControl "enableDivergenceSolver";
+	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Projective Fluids" -collapse 0;
+	editorTemplate -l "Stiffness" -addControl "stiffnessPF";
+	editorTemplate -endLayout;
+
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

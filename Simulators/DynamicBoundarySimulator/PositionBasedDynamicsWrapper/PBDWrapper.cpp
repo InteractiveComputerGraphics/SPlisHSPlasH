@@ -34,11 +34,10 @@ PBDWrapper::PBDWrapper()
 	m_bendingMethod = 2;
 	m_sceneName = "";
 	m_sceneFileName = "";
-	m_enableMayaExport = false;
 	m_dampingCoeff = 0.0;
 	m_drawAABB = false;
 	m_drawStaticBodies = true;
-	m_drawDistanceFields = -1;
+	m_drawSDF = false;
 	m_drawBVHDepth = -1;
 	m_timeStep = new PBD::TimeStepController();
 	m_timeStep->init();
@@ -57,7 +56,7 @@ void PBDWrapper::initGUI()
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderAABBs", TW_TYPE_BOOLCPP, &m_drawAABB, " label='Render AABBs' group=PBD ");
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderBVH", TW_TYPE_INT32, &m_drawBVHDepth, " label='Render BVH depth' group=PBD ");
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderStaticBodies", TW_TYPE_BOOLCPP, &m_drawStaticBodies, " label='Render static bodies' group=PBD ");
-	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderDistanceFields", TW_TYPE_INT32, &m_drawDistanceFields, " label='Render distance fields' step=1 group=PBD ");
+	TwAddVarRW(SPH::MiniGL::getTweakBar(), "RenderDistanceFields", TW_TYPE_BOOLCPP, &m_drawSDF, " label='Render distance fields' group=PBD ");
 	TwAddVarRW(SPH::MiniGL::getTweakBar(), "DampingCoeff", TW_TYPE_REAL, &m_dampingCoeff, " label='Damping' group=PBD ");
 	TwType enumType = TwDefineEnum("VelocityUpdateMethodType", NULL, 0);
 	TwAddVarCB(SPH::MiniGL::getTweakBar(), "VelocityUpdateMethod", enumType, setVelocityUpdateMethod, getVelocityUpdateMethod, m_timeStep, " label='Velocity update method' enum='0 {First Order Update}, 1 {Second Order Update}' group=PBD");
@@ -216,7 +215,7 @@ void PBDWrapper::loadObj(const std::string &filename, PBD::VertexData &vd, Utili
 	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
-void PBDWrapper::readScene(const std::string &sceneFileName)
+void PBDWrapper::readScene(const std::string &sceneFileName, std::vector< RBData> additionalRigidBodies)
 {
 	m_sceneFileName = sceneFileName;
 
@@ -262,6 +261,30 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	//////////////////////////////////////////////////////////////////////////
 	// rigid bodies
 	//////////////////////////////////////////////////////////////////////////
+
+	// add additional bodies
+	for (auto i=0; i < additionalRigidBodies.size(); i++)
+	{
+		Utilities::SceneLoader::RigidBodyData rbd;
+		rbd.m_modelFile = additionalRigidBodies[i].objFile;
+		rbd.m_collisionObjectFileName = "";
+		rbd.m_x = additionalRigidBodies[i].x;
+		rbd.m_q = Quaternionr(additionalRigidBodies[i].R);
+		rbd.m_scale = additionalRigidBodies[i].scale;
+		rbd.m_collisionObjectScale = additionalRigidBodies[i].scale;
+		rbd.m_collisionObjectType = additionalRigidBodies[i].collisionType;
+		rbd.m_frictionCoeff = additionalRigidBodies[i].friction;
+		rbd.m_restitutionCoeff = additionalRigidBodies[i].restitution;
+		rbd.m_density = 1000.0;
+		rbd.m_invertSDF = false;
+		rbd.m_isDynamic = false;
+		rbd.m_omega.setZero();
+		rbd.m_v.setZero();
+		rbd.m_resolutionSDF = Eigen::Matrix<unsigned int, 3, 1>(10, 10, 10);
+		rbd.m_thicknessSDF = 0.0;
+		rbd.m_testMesh = false;
+		data.m_rigidBodyData.push_back(rbd);
+	}
 
 	// map file names to loaded geometry to prevent multiple imports of same files
 	std::map<std::string, pair<PBD::VertexData, Utilities::IndexedFaceMesh>> objFiles;
@@ -409,11 +432,19 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 			rbd.m_scale);
 
 		if (!rbd.m_isDynamic)
+		{
 			rb[i]->setMass(0.0);
+			rb[i]->setVelocity(Vector3r::Zero());
+			rb[i]->setVelocity0(Vector3r::Zero());
+			rb[i]->setAngularVelocity(Vector3r::Zero());
+			rb[i]->setAngularVelocity0(Vector3r::Zero());
+		}
 		else
 		{
 			rb[i]->setVelocity(rbd.m_v);
-			rb[i]->setAngularVelocity(rbd.m_omega);
+			rb[i]->setVelocity0(rbd.m_v);
+			rb[i]->setAngularVelocity(rbd.m_omega);			
+			rb[i]->setAngularVelocity0(rbd.m_omega);
 		}
 		rb[i]->setRestitutionCoeff(rbd.m_restitutionCoeff);
 		rb[i]->setFrictionCoeff(rbd.m_frictionCoeff);
@@ -649,7 +680,7 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	for (unsigned int i = 0; i < data.m_sliderJointData.size(); i++)
 	{
 		const Utilities::SceneLoader::SliderJointData &jd = data.m_sliderJointData[i];
-		m_model.addSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
+		m_model.addSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_axis);
 	}
 
 	for (unsigned int i = 0; i < data.m_rigidBodyParticleBallJointData.size(); i++)
@@ -662,28 +693,54 @@ void PBDWrapper::readScene(const std::string &sceneFileName)
 	{
 		const Utilities::SceneLoader::TargetAngleMotorHingeJointData &jd = data.m_targetAngleMotorHingeJointData[i];
 		m_model.addTargetAngleMotorHingeJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetAngleMotorHingeJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTargetSequence(jd.m_targetSequence);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setRepeatSequence(jd.m_repeat);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetVelocityMotorHingeJointData.size(); i++)
 	{
 		const Utilities::SceneLoader::TargetVelocityMotorHingeJointData &jd = data.m_targetVelocityMotorHingeJointData[i];
 		m_model.addTargetVelocityMotorHingeJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetVelocityMotorHingeJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTargetSequence(jd.m_targetSequence);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setRepeatSequence(jd.m_repeat);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetPositionMotorSliderJointData.size(); i++)
 	{
 		const Utilities::SceneLoader::TargetPositionMotorSliderJointData &jd = data.m_targetPositionMotorSliderJointData[i];
-		m_model.addTargetPositionMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetPositionMotorSliderJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		m_model.addTargetPositionMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_axis);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTargetSequence(jd.m_targetSequence);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setRepeatSequence(jd.m_repeat);
 	}
 
 	for (unsigned int i = 0; i < data.m_targetVelocityMotorSliderJointData.size(); i++)
 	{
 		const Utilities::SceneLoader::TargetVelocityMotorSliderJointData &jd = data.m_targetVelocityMotorSliderJointData[i];
-		m_model.addTargetVelocityMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position, jd.m_axis);
-		((PBD::TargetVelocityMotorSliderJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		m_model.addTargetVelocityMotorSliderJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_axis);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTarget(jd.m_target);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setTargetSequence(jd.m_targetSequence);
+		((PBD::MotorJoint*)constraints[constraints.size() - 1])->setRepeatSequence(jd.m_repeat);
+	}
+
+	for (unsigned int i = 0; i < data.m_damperJointData.size(); i++)
+	{
+		const Utilities::SceneLoader::DamperJointData &jd = data.m_damperJointData[i];
+		m_model.addDamperJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_axis, jd.m_stiffness);
+	}
+
+	for (unsigned int i = 0; i < data.m_rigidBodySpringData.size(); i++)
+	{
+		const Utilities::SceneLoader::RigidBodySpringData &jd = data.m_rigidBodySpringData[i];
+		m_model.addRigidBodySpring(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position1, jd.m_position2, jd.m_stiffness);
+	}
+
+	for (unsigned int i = 0; i < data.m_distanceJointData.size(); i++)
+	{
+		const Utilities::SceneLoader::DistanceJointData &jd = data.m_distanceJointData[i];
+		m_model.addDistanceJoint(id_index[jd.m_bodyID[0]], id_index[jd.m_bodyID[1]], jd.m_position1, jd.m_position2);
 	}
 
 	m_cd.updateAABBs(m_model);
@@ -798,11 +855,19 @@ void PBDWrapper::renderBallOnLineJoint(PBD::BallOnLineJoint &bj)
 	SPH::MiniGL::drawCylinder(bj.m_jointInfo.col(5) - bj.m_jointInfo.col(7), bj.m_jointInfo.col(5) + bj.m_jointInfo.col(7), jointColor, 0.05f);
 }
  
-void PBDWrapper::renderHingeJoint(PBD::HingeJoint &hj)
+void PBDWrapper::renderHingeJoint(PBD::HingeJoint &joint)
 {
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	const Vector3r &c = joint.m_jointInfo.block<3, 1>(0, 4);
+	const Vector3r &axis_local = joint.m_jointInfo.block<3, 1>(0, 6);
+	const Vector3r axis = rb->getRotation().matrix() * axis_local;
+
+	SPH::MiniGL::drawSphere(c - 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawSphere(c + 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - 0.5*axis, c + 0.5*axis, jointColor, 0.05f);
 }
 
 void PBDWrapper::renderUniversalJoint(PBD::UniversalJoint &uj)
@@ -817,34 +882,71 @@ void PBDWrapper::renderUniversalJoint(PBD::UniversalJoint &uj)
  
 void PBDWrapper::renderSliderJoint(PBD::SliderJoint &joint)
 {
-	SPH::MiniGL::drawSphere(joint.m_jointInfo.col(6), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(joint.m_jointInfo.col(7) - joint.m_jointInfo.col(8), joint.m_jointInfo.col(7) + joint.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	Quaternionr qR0;
+	qR0.coeffs() = joint.m_jointInfo.col(1);
+	const Vector3r &c = rb->getPosition();
+	Vector3r axis = qR0.matrix().col(0);
+	SPH::MiniGL::drawSphere(c, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - axis, c + axis, jointColor, 0.05f);
 }
  
 void PBDWrapper::renderTargetPositionMotorSliderJoint(PBD::TargetPositionMotorSliderJoint &joint)
 {
-	SPH::MiniGL::drawSphere(joint.m_jointInfo.col(6), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(joint.m_jointInfo.col(7) - joint.m_jointInfo.col(8), joint.m_jointInfo.col(7) + joint.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	const Vector3r &c = rb->getPosition();
+	Vector3r axis = joint.m_jointInfo.block<3, 1>(0, 1);
+	SPH::MiniGL::drawSphere(c, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - axis, c + axis, jointColor, 0.05f);
 }
  
 void PBDWrapper::renderTargetVelocityMotorSliderJoint(PBD::TargetVelocityMotorSliderJoint &joint)
 {
-	SPH::MiniGL::drawSphere(joint.m_jointInfo.col(6), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(joint.m_jointInfo.col(7) - joint.m_jointInfo.col(8), joint.m_jointInfo.col(7) + joint.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	Quaternionr qR0;
+	qR0.coeffs() = joint.m_jointInfo.col(1);
+	const Vector3r &c = rb->getPosition();
+	Vector3r axis = qR0.matrix().col(0);
+	SPH::MiniGL::drawSphere(c, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - axis, c + axis, jointColor, 0.05f);
 }
  
-void PBDWrapper::renderTargetAngleMotorHingeJoint(PBD::TargetAngleMotorHingeJoint &hj)
+void PBDWrapper::renderTargetAngleMotorHingeJoint(PBD::TargetAngleMotorHingeJoint &joint)
 {
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	const Vector3r &c = joint.m_jointInfo.block<3, 1>(0, 5);
+	const Vector3r &axis_local = joint.m_jointInfo.block<3, 1>(0, 7);
+	const Vector3r axis = rb->getRotation().matrix() * axis_local;
+
+	SPH::MiniGL::drawSphere(c - 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawSphere(c + 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - 0.5*axis, c + 0.5*axis, jointColor, 0.05f);
 }
  
-void PBDWrapper::renderTargetVelocityMotorHingeJoint(PBD::TargetVelocityMotorHingeJoint &hj)
+void PBDWrapper::renderTargetVelocityMotorHingeJoint(PBD::TargetVelocityMotorHingeJoint &joint)
 {
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawSphere(hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), 0.1f, jointColor);
-	SPH::MiniGL::drawCylinder(hj.m_jointInfo.col(6) - 0.5*hj.m_jointInfo.col(8), hj.m_jointInfo.col(6) + 0.5*hj.m_jointInfo.col(8), jointColor, 0.05f);
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	const Vector3r &c = joint.m_jointInfo.block<3, 1>(0, 5);
+	const Vector3r axis = joint.m_jointInfo.block<3, 1>(0, 7);
+
+	SPH::MiniGL::drawSphere(c - 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawSphere(c + 0.5*axis, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - 0.5*axis, c + 0.5*axis, jointColor, 0.05f);
 }
  
 void PBDWrapper::renderRigidBodyContact(PBD::RigidBodyContactConstraint &cc)
@@ -863,6 +965,34 @@ void PBDWrapper::renderParticleRigidBodyContact(PBD::ParticleRigidBodyContactCon
 	SPH::MiniGL::drawPoint(cc.m_constraintInfo.col(0), 5.0f, col1);
 	SPH::MiniGL::drawPoint(cc.m_constraintInfo.col(1), 5.0f, col2);
 	SPH::MiniGL::drawVector(cc.m_constraintInfo.col(1), cc.m_constraintInfo.col(1) + cc.m_constraintInfo.col(2), 1.0f, col2);
+}
+
+void PBDWrapper::renderSpring(PBD::RigidBodySpring &s)
+{
+	SPH::MiniGL::drawSphere(s.m_jointInfo.col(2), 0.1f, jointColor);
+	SPH::MiniGL::drawSphere(s.m_jointInfo.col(3), 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(s.m_jointInfo.col(2), s.m_jointInfo.col(3), jointColor, 0.05f);
+}
+
+void PBDWrapper::renderDistanceJoint(PBD::DistanceJoint &j)
+{
+	SPH::MiniGL::drawSphere(j.m_jointInfo.col(2), 0.1f, jointColor);
+	SPH::MiniGL::drawSphere(j.m_jointInfo.col(3), 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(j.m_jointInfo.col(2), j.m_jointInfo.col(3), jointColor, 0.05f);
+}
+
+void PBDWrapper::renderDamperJoint(PBD::DamperJoint &joint)
+{
+	PBD::SimulationModel *model = PBD::Simulation::getCurrent()->getModel();
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = model->getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[joint.m_bodies[0]];
+
+	Quaternionr qR0;
+	qR0.coeffs() = joint.m_jointInfo.col(1);
+	const Vector3r &c = rb->getPosition();
+	Vector3r axis = qR0.matrix().col(0);
+	SPH::MiniGL::drawSphere(c, 0.1f, jointColor);
+	SPH::MiniGL::drawCylinder(c - axis, c + axis, jointColor, 0.05f);
 }
 
 void PBDWrapper::renderScene ()
@@ -896,6 +1026,7 @@ void PBDWrapper::renderScene ()
 	renderTetModels();
 	renderConstraints(); 
 	renderBVH();
+	renderSDF();
 }
 
 void PBDWrapper::renderConstraints()
@@ -951,6 +1082,18 @@ void PBDWrapper::renderConstraints()
 		{
 			renderRigidBodyParticleBallJoint(*(PBD::RigidBodyParticleBallJoint*)constraints[i]);
 		}
+		else if (constraints[i]->getTypeId() == PBD::RigidBodySpring::TYPE_ID)
+		{
+			renderSpring(*(PBD::RigidBodySpring*)constraints[i]);
+		}
+		else if (constraints[i]->getTypeId() == PBD::DistanceJoint::TYPE_ID)
+		{
+			renderDistanceJoint(*(PBD::DistanceJoint*)constraints[i]);
+		}
+		else if (constraints[i]->getTypeId() == PBD::DamperJoint::TYPE_ID)
+		{
+			renderDamperJoint(*(PBD::DamperJoint*)constraints[i]);
+		}
 	}
 }
 
@@ -992,6 +1135,58 @@ void PBDWrapper::renderBVH()
 					};
 
 					bvh.traverse_depth_first(predicate, cb);
+				}
+			}
+		}
+	}
+}
+
+
+void PBDWrapper::renderSDF()
+{
+	if (m_drawSDF)
+	{
+		std::vector<PBD::CollisionDetection::CollisionObject*> &collisionObjects = m_cd.getCollisionObjects();
+		for (unsigned int k = 0; k < collisionObjects.size(); k++)
+		{
+			renderSDF(collisionObjects[k]);
+		}
+	}
+}
+
+void PBDWrapper::renderSDF(PBD::CollisionDetection::CollisionObject* co)
+{
+	if ((!m_cd.isDistanceFieldCollisionObject(co)) || (co->m_bodyType != PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType))
+		return;
+
+	const PBD::SimulationModel::RigidBodyVector &rigidBodies = m_model.getRigidBodies();
+	PBD::RigidBody *rb = rigidBodies[co->m_bodyIndex];
+
+	const Vector3r &com = rb->getPosition();
+	const Matrix3r &R = rb->getTransformationR();
+	const Vector3r &v1 = rb->getTransformationV1();
+	const Vector3r &v2 = rb->getTransformationV2();
+
+	PBD::DistanceFieldCollisionDetection::DistanceFieldCollisionObject *dfco = (PBD::DistanceFieldCollisionDetection::DistanceFieldCollisionObject *)co;
+	const Vector3r &startX = co->m_aabb.m_p[0];
+	const Vector3r &endX = co->m_aabb.m_p[1];
+	Vector3r diff = endX - startX;
+	const unsigned int steps = 20;
+	Vector3r stepSize = (1.0 / steps) * diff;
+	for (Real x = startX[0]; x < endX[0]; x += stepSize[0])
+	{
+		for (Real y = startX[1]; y < endX[1]; y += stepSize[1])
+		{
+			for (Real z = startX[2]; z < endX[2]; z += stepSize[2])
+			{
+				Vector3r pos_w(x, y, z);
+				const Vector3r pos = R * (pos_w - com) + v1;
+				const double dist = dfco->distance(pos.template cast<double>(), 0.0);
+
+				if (dist < 0.0)
+				{
+					float col[4] = { (float)-dist, 0.0f, 0.0f, 1.0f };
+					SPH::MiniGL::drawPoint(pos_w, 3.0f, col);
 				}
 			}
 		}

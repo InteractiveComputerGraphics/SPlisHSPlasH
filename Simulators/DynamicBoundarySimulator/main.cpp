@@ -526,7 +526,7 @@ void initBoundaryData()
 
 			// transform back to local coordinates
 			for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-				boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * (boundaryParticles[j] + rb->getWorldSpacePosition()) - rb->getPosition());
+				boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * boundaryParticles[j] + rb->getWorldSpacePosition() - rb->getPosition());
 		}
 		else		// if no samples file is given, sample the surface model
 		{

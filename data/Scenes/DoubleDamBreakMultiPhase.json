@@ -97,14 +97,10 @@
 			"width": 8, 
 			"height": 3, 
 			"translation": [-0.2,0.75,0.0],
-			"direction": [1, 0, 0],
-			"velocity": [2, 0, 0.0],	
-			"comment" : "The initial velocity should be at least 2*particleRadius*emitsPerSecond.",
-			"emitsPerSecond": 40,
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0.0,
+			"velocity": 2,
 			"type": 0
 		}
 	]
 }
-
-
-

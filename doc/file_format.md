@@ -349,7 +349,7 @@ Example code:
 * alpha (float): Coefficent for zero-energy modes suppression method
 * elasticityIterations (float): (Peer et al. 2018) Coefficient for the elasticity force computation
 * elasticityMaxIter (float): (Peer et al. 2018) Coefficient for the elasticity force computation
-* elasticityMaxError(float): (Peer et al. 2019) Coefficient for the elasticity force computation
+* elasticityMaxError (float): (Peer et al. 2019) Coefficient for the elasticity force computation
 
 ##### Emitters
 

@@ -338,6 +338,19 @@ Example code:
   - 3: He et al. 2014
 * surfaceTension (float): Coefficient for the surface tension computation
 
+##### Elasticity
+
+* elasticityMethod (int): Elasticity method
+  - 0: None
+  - 1: Becker et al. 2009
+  - 2: Peer et al. 2018
+* youngsModulus (float): Coefficient for the elasticity force computation
+* poissonsRatio (float): Coefficient for the elasticity force computation
+* alpha (float): Coefficent for zero-energy modes suppression method
+* elasticityIterations (float): (Peer et al. 2018) Coefficient for the elasticity force computation
+* elasticityMaxIter (float): (Peer et al. 2018) Coefficient for the elasticity force computation
+* elasticityMaxError(float): (Peer et al. 2019) Coefficient for the elasticity force computation
+
 ##### Emitters
 
 * maxEmitterParticles (int): Maximum number of particles the emitter generates. Note that reused particles (see below) are not counted here.

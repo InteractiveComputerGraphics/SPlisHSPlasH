@@ -344,12 +344,11 @@ Example code:
   - 0: None
   - 1: Becker et al. 2009
   - 2: Peer et al. 2018
-* youngsModulus (float): Coefficient for the elasticity force computation
-* poissonsRatio (float): Coefficient for the elasticity force computation
-* alpha (float): Coefficent for zero-energy modes suppression method
-* elasticityIterations (float): (Peer et al. 2018) Coefficient for the elasticity force computation
-* elasticityMaxIter (float): (Peer et al. 2018) Coefficient for the elasticity force computation
-* elasticityMaxError (float): (Peer et al. 2019) Coefficient for the elasticity force computation
+* youngsModulus (float): Young's modulus - coefficient for the stiffness of the material (default: 100000.0)
+* poissonsRatio (float): Poisson's ratio - measure of the Poisson effect (default: 0.3)
+* alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
+* elasticityMaxIter (float): (Peer et al. 2018) Maximum solver iterations (default: 100)
+* elasticityMaxError (float): (Peer et al. 2019) Maximum elasticity error allowed by the solver (default: 1.0e-4)
 
 ##### Emitters
 

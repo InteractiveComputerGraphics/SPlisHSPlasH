@@ -96,7 +96,7 @@ void SurfaceTension_Akinci2013::step()
 
 				// Curvature
 				const Vector3r &nj = getNormal(neighborIndex);
-				accel -= k * supportRadius* (ni - nj);
+				accel -= k * (ni - nj);
 
 				ai += K_ij * accel;
 			)

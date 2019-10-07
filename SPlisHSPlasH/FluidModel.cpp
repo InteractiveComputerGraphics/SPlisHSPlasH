@@ -221,6 +221,11 @@ void FluidModel::reset()
 		m_particleId[i] = i;
 		m_particleState[i] = ParticleState::Active;
 	}
+	// emitted particles
+	for (unsigned int i = nPoints; i < (unsigned int)m_particleId.size(); i++)
+	{
+		m_particleId[i] = i;
+	}
 
 	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 	if (neighborhoodSearch->point_set(m_pointSetIndex).n_points() != nPoints)
@@ -310,6 +315,12 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 			m_particleState[i] = ParticleState::Active;
 		}
 	}
+	// set IDs for emitted particles
+	for (unsigned int i = nFluidParticles; i < (nFluidParticles + nMaxEmitterParticles); i++)
+	{
+		m_particleId[i] = i;
+	}
+	
 
 	// initialize masses
 	initMasses();

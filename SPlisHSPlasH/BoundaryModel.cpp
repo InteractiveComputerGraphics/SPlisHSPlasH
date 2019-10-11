@@ -123,12 +123,13 @@ void BoundaryModel::performNeighborhoodSearchSort()
 	const unsigned int numPart = numberOfParticles();
 
 	// sort static boundaries only once
-	if ((numPart == 0) || (!m_rigidBody->isDynamic() && !m_sorted))
+	if ((numPart == 0) || (!m_rigidBody->isDynamic() && m_sorted))
 		return;
 
 	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 
 	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);  
+	d.sort_field(&m_x0[0]);
 	d.sort_field(&m_x[0]);
 	d.sort_field(&m_v[0]);
 	d.sort_field(&m_V[0]);

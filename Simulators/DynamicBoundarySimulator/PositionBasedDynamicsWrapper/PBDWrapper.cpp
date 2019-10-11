@@ -42,6 +42,7 @@ PBDWrapper::PBDWrapper()
 	m_timeStep = new PBD::TimeStepController();
 	m_timeStep->init();
 	m_model.init();
+	PBD::Simulation::getCurrent()->setModel(&m_model);
 }
 
 PBDWrapper::~PBDWrapper()

@@ -23,30 +23,18 @@ Elasticity_Becker2009::Elasticity_Becker2009(FluidModel *model) :
 
 	initValues();
 
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nModels = sim->numberOfFluidModels();
-	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
-	{
-		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; } });
-		model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
-		model->addField({ "stress", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
-		model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
-	}
+	model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
+	model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
+	model->addField({ "stress", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
+	model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
 }
 
 Elasticity_Becker2009::~Elasticity_Becker2009(void)
 {
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nModels = sim->numberOfFluidModels();
-	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
-	{
-		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->removeFieldByName("rest volume");
-		model->removeFieldByName("rotation");
-		model->removeFieldByName("stress");
-		model->removeFieldByName("deformation gradient");
-	}
+	m_model->removeFieldByName("rest volume");
+	m_model->removeFieldByName("rotation");
+	m_model->removeFieldByName("stress");
+	m_model->removeFieldByName("deformation gradient");
 }
 
 void Elasticity_Becker2009::initParameters()
@@ -331,5 +319,17 @@ void Elasticity_Becker2009::computeForces()
 			ai += fi / model->getMass(i);
 		}
 	}
+}
+
+void SPH::Elasticity_Becker2009::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.writeBuffer((char*)m_current_to_initial_index.data(), m_current_to_initial_index.size() * sizeof(unsigned int));
+	binWriter.writeBuffer((char*)m_initial_to_current_index.data(), m_initial_to_current_index.size() * sizeof(unsigned int));
+}
+
+void SPH::Elasticity_Becker2009::loadState(BinaryFileReader &binReader)
+{
+	binReader.readBuffer((char*)m_current_to_initial_index.data(), m_current_to_initial_index.size() * sizeof(unsigned int));
+	binReader.readBuffer((char*)m_initial_to_current_index.data(), m_initial_to_current_index.size() * sizeof(unsigned int));
 }
 

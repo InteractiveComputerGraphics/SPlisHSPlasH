@@ -1,6 +1,9 @@
 #include "SurfaceTension_He2014.h"
 #include <iostream>
 #include "../Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
 
@@ -28,10 +31,15 @@ void SurfaceTension_He2014::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const Real k = m_surfaceTension;
-	const Real density0 = m_model->getDensity0();
+	const Real kb = m_surfaceTensionBoundary;
+	const Real density0 = m_model->getValue<Real>(FluidModel::DENSITY0);
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 	FluidModel *model = m_model;
 
 	// Compute color field
@@ -50,14 +58,29 @@ void SurfaceTension_He2014::step()
 			forall_fluid_neighbors_in_same_phase(
 				const Real density_j = m_model->getDensity(neighborIndex);
 				ci += m_model->getMass(neighborIndex) / density_j * sim->W(xi - xj);
-			)
+			);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
 			forall_boundary_neighbors(
 					ci += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
-			)
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					ci += rho;
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{
+				forall_volume_maps(
+					ci += Vj * sim->W(xi - xj);
+				);
+			}
 		}
 	}
 
@@ -70,7 +93,6 @@ void SurfaceTension_He2014::step()
 			const Vector3r &xi = m_model->getPosition(i);
 			Vector3r gradC_i;
 			gradC_i.setZero();
-			const Real &density_i = m_model->getDensity(i);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
@@ -96,6 +118,7 @@ void SurfaceTension_He2014::step()
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real &density_i = m_model->getDensity(i);
 			const Real factor = static_cast<Real>(0.25)*k / density_i;
+			const Real factorb = static_cast<Real>(0.25)*kb / density_i;
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
@@ -104,14 +127,35 @@ void SurfaceTension_He2014::step()
 				const Real &gradC2_j = getGradC2(neighborIndex);
 				const Real &density_j = m_model->getDensity(neighborIndex);
 				ai += factor*m_model->getMass(neighborIndex) / density_j * (gradC2_i + gradC2_j) * sim->gradW(xi - xj);
-			)
+			);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
 			forall_boundary_neighbors(
-					ai += factor* bm_neighbor->getVolume(neighborIndex) * gradC2_i * sim->gradW(xi - xj);
-			)
+					const Vector3r a = factorb*bm_neighbor->getVolume(neighborIndex) * gradC2_i * sim->gradW(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					const Vector3r a = -factorb* gradC2_i * gradRho;
+					ai += a;
+					bm_neighbor->addForce(xj, -model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{
+				forall_volume_maps(
+					const Vector3r a = factorb*Vj * gradC2_i * sim->gradW(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -model->getMass(i) * a);
+				);
+			}
 		}
 	}
 }

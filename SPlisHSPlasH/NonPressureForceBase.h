@@ -24,6 +24,9 @@ namespace SPH
 		virtual void performNeighborhoodSearchSort() {};
 		virtual void emittedParticles(const unsigned int startIndex) {};
 
+		virtual void saveState(BinaryFileWriter &binWriter) {};
+		virtual void loadState(BinaryFileReader &binReader) {};
+
 		FluidModel *getModel() { return m_model; }
 
 		virtual void init();

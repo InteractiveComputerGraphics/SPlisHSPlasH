@@ -36,6 +36,12 @@ namespace Utilities
 			bool isWall;
 			Eigen::Vector4f color;
 			void *rigidBody;
+
+			std::string mapFile;
+			bool mapInvert;
+			Real mapThickness;	
+			Eigen::Matrix<unsigned int, 3, 1> mapResolution;
+			unsigned int samplingMode;
 		};
 
 		/** \brief Struct to store a fluid object */

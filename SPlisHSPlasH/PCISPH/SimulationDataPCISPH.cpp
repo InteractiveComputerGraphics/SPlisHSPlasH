@@ -51,33 +51,56 @@ void SimulationDataPCISPH::init()
  		Real sumGradW2 = 0.0;
  		const Real supportRadius = sim->getSupportRadius();
  		const Real particleRadius = sim->getParticleRadius();
- 		const Real diam = 1.99 * particleRadius;
+ 		const Real diam = 2.0 * particleRadius;
  		const Vector3r xi(0,0,0);
  
  		// use a regular sampling around (0,0,0)
- 		Vector3r xj = { -supportRadius, -supportRadius, -supportRadius };
- 		while (xj[0] <= supportRadius)
- 		{
- 			while (xj[1] <= supportRadius)
- 			{
- 				while (xj[2] <= supportRadius)
- 				{
- 					// check if xj is in the support of xi
- 					if ((xi-xj).squaredNorm() < supportRadius*supportRadius)
- 					{
- 						const Vector3r gradW = sim->gradW(xi - xj);
- 						sumGradW += gradW;
- 						sumGradW2 += gradW.squaredNorm();
- 					}
- 					xj[2] += diam;
- 				}
- 				xj[1] += diam;
- 				xj[2] = -supportRadius;
- 			}
- 			xj[0] += diam;
- 			xj[1] = -supportRadius;
- 			xj[2] = -supportRadius;
- 		}
+		if (sim->is2DSimulation())
+		{
+			Vector3r xj = { -supportRadius, -supportRadius, 0.0 };
+			while (xj[0] <= supportRadius)
+			{
+				while (xj[1] <= supportRadius)
+				{
+					// check if xj is in the support of xi
+					if ((xi - xj).squaredNorm() < supportRadius*supportRadius)
+					{
+						const Vector3r gradW = sim->gradW(xi - xj);
+						sumGradW += gradW;
+						sumGradW2 += gradW.squaredNorm();
+					}
+					xj[1] += diam;
+				}
+				xj[0] += diam;
+				xj[1] = -supportRadius;
+			}
+		}
+		else
+		{
+			Vector3r xj = { -supportRadius, -supportRadius, -supportRadius };
+			while (xj[0] <= supportRadius)
+			{
+				while (xj[1] <= supportRadius)
+				{
+					while (xj[2] <= supportRadius)
+					{
+						// check if xj is in the support of xi
+						if ((xi - xj).squaredNorm() < supportRadius*supportRadius)
+						{
+							const Vector3r gradW = sim->gradW(xi - xj);
+							sumGradW += gradW;
+							sumGradW2 += gradW.squaredNorm();
+						}
+						xj[2] += diam;
+					}
+					xj[1] += diam;
+					xj[2] = -supportRadius;
+				}
+				xj[0] += diam;
+				xj[1] = -supportRadius;
+				xj[2] = -supportRadius;
+			}
+		}
  
 		const Real beta = static_cast<Real>(2.0) * model->getVolume(0)*model->getVolume(0);
 		m_pcisph_factor[fluidModelIndex] = static_cast<Real>(1.0) / (beta * (sumGradW.squaredNorm() + sumGradW2));
@@ -121,7 +144,6 @@ void SimulationDataPCISPH::performNeighborhoodSearchSort()
 void SimulationDataPCISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
 	// initialize values for new particles
-	Simulation *sim = Simulation::getCurrent();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	for (unsigned int j = startIndex; j < model->numActiveParticles(); j++)
 	{

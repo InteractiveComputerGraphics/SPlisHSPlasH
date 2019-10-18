@@ -19,7 +19,7 @@ Example code:
 "Configuration": 
 {
     "pause": true,
-	"sim2D": false, 
+    "sim2D": false, 
     "timeStepSize": 0.001,
     "numberOfStepsPerRenderUpdate": 2,
     "particleRadius": 0.025, 
@@ -61,8 +61,10 @@ Example code:
 * enablePartioExport (bool): Enable/disable partio export (default: false).
 * enableVTKExport (bool): Enable/disable VTK export (default: false).
 * enableRigidBodyExport (bool): Enable/disable rigid body export (default: false).
-* particleFPS (int): Frame rate of particle export (default: 25).
+* dataExportFPS (float): Frame rate of particle and rigid body export (default: 25).
 * particleAttributes (string): A list of attribute names separated by ";" that should be exported in the particle files (e.g. "velocity;density") (default: "velocity").
+* enableStateExport (bool): Enable/disable export of complete simulation state (default: false).
+* stateExportFPS (float): Frame rate of simulation state export (default: 1).
 
 ##### Simulation:
 
@@ -73,13 +75,17 @@ Example code:
 * gravitation (vec3): Vector to define the gravitational acceleration (default: [0,-9.81,0]).
 * maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
 * maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
+* boundaryHandlingMethod (int): The boundary handling method that is used in the simulation (default: 2, Volume Maps):
+    - 0: particle-based boundaries (Akinci et al. 2012)
+    - 1: density maps (Koschier et al. 2017)
+    - 2: volume maps (Bender et al. 2019)
 * simulationMethod (int): The pressure solver method used in the simulation (default: 4, DFSPH):
     - 0: Weakly compressible SPH for free surface flows (WCSPH)
     - 1: Predictive-corrective incompressible SPH (PCISPH)
     - 2: Position based fluids (PBF)
     - 3: Implicit incompressible SPH (IISPH)
     - 4: Divergence-free smoothed particle hydrodynamics (DFSPH)
-    - 5: Projective Fluids
+    - 5: Projective Fluids (dynamic boundaries not supported yet)
 
 
 ##### WCSPH parameters:
@@ -238,7 +244,11 @@ Example code:
         "scale": [2.5, 4, 1.0],
         "color": [0.1, 0.4, 0.6, 1.0], 
         "isDynamic": false,
-        "isWall": true
+        "isWall": true,
+        "mapInvert": true, 
+		"mapThickness": 0.0,
+		"mapResolution": [20,20,20],
+        "samplingMode": 1
     }
 ]
 ```
@@ -252,7 +262,10 @@ Example code:
 * isDynamic (bool): Defines if the body is static or dynamic.
 * isWall (bool): Defines if this is a wall. Walls are typically not rendered. This is the only difference.
 * color (vec4): RGBA color of the body.
-
+* mapInvert (bool): Invert the map when using density or volume maps, flips inside/outside (default: false) 
+* mapThickness (float): Additional thickness of a volume or density map (default: 0.0)
+* mapResolution (vec3): Resolution of a volume or density map (defaut: [20,20,20])
+* samplingMode (int): Surface sampling mode. 0 Poisson disk sampling, 1 Regular triangle sampling (default: 1).
 
 
 ## Fluid parameter block

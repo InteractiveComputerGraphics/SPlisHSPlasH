@@ -19,8 +19,10 @@ global proc AESPHConfigurationNodeTemplate( string $nodeName )
 	editorTemplate -beginLayout "Export" -collapse 0;
 	editorTemplate -l "Partio export" -addControl "enablePartioExport";
 	editorTemplate -l "VTK export" -addControl "enableVTKExport";
-	editorTemplate -l "Export FPS" -addControl "particleFPS";
+	editorTemplate -l "Export FPS" -addControl "dataExportFPS";
 	editorTemplate -l "Export attributes" -addControl "particleAttributes";
+	editorTemplate -l "State export" -addControl "enableStateExport";
+	editorTemplate -l "State export FPS" -addControl "stateExportFPS";
 	editorTemplate -endLayout;
 	
 	editorTemplate -beginLayout "Simulation" -collapse 0;
@@ -31,6 +33,7 @@ global proc AESPHConfigurationNodeTemplate( string $nodeName )
 	editorTemplate -l "Simulation method" -addControl "simulationMethod";
 	editorTemplate -l "Max. iterations" -addControl "maxIterations";
 	editorTemplate -l "Max. density error(%)" -addControl "maxError";
+	editorTemplate -l "Boundary handling method" -addControl "boundaryHandlingMethod";
 	editorTemplate -endLayout;
 	
 	editorTemplate -beginLayout "CFL" -collapse 0;

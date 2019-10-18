@@ -6,7 +6,7 @@
 		"particleRadius": 0.025, 
 		"density0": 1000, 
 		"simulationMethod": 4,
-		"gravitation": [0.1,-9.81,0], 
+		"gravitation": [0.1,-9.81,0.02], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
@@ -17,14 +17,15 @@
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
 		"surfaceTension": 0.2,
 		"surfaceTensionMethod": 0,
 		"viscosity": 5000,
-		"viscosityBoundary": 5000,
+		"viscosityBoundary": 4000,
 		"viscosityMethod": 7,
 		"viscoMaxIter": 200, 
 		"viscoMaxError": 0.05
@@ -38,7 +39,11 @@
 			"scale": [3, 0.5, 3],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20],
+			"samplingMode": 0
 		}
 	],
 	"FluidBlocks": [
@@ -46,7 +51,7 @@
 			"denseMode": 0,
 			"start": [-0.1, 0.01, -0.1],
 			"end": [0.1, 12.0, 0.1],
-			"translation": [0, 0.0, 0.0],
+			"translation": [0, 0.1, 0.0],
 			"scale": [0.75,1,0.75]
 		}
 	]	

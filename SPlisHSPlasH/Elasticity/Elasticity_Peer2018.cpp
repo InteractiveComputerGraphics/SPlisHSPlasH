@@ -34,32 +34,20 @@ Elasticity_Peer2018::Elasticity_Peer2018(FluidModel *model) :
 
 	initValues();
 
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nModels = sim->numberOfFluidModels();
-	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
-	{
-		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; } });
-		model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
-		model->addField({ "stress", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
-		model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
-		model->addField({ "correction matrix", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_L[i](0,0); } });
-	}
+	model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
+	model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
+	model->addField({ "stress", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
+	model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
+	model->addField({ "correction matrix", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_L[i](0,0); } });
 }
 
 Elasticity_Peer2018::~Elasticity_Peer2018(void)
 {
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nModels = sim->numberOfFluidModels();
-	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
-	{
-		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->removeFieldByName("rest volume");
-		model->removeFieldByName("rotation");
-		model->removeFieldByName("stress");
-		model->removeFieldByName("deformation gradient");
-		model->removeFieldByName("correction matrix");
-	}
+	m_model->removeFieldByName("rest volume");
+	m_model->removeFieldByName("rotation");
+	m_model->removeFieldByName("stress");
+	m_model->removeFieldByName("deformation gradient");
+	m_model->removeFieldByName("correction matrix");
 }
 
 
@@ -133,8 +121,9 @@ void Elasticity_Peer2018::initValues()
 
 void Elasticity_Peer2018::step()
 {
-	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 
 	//////////////////////////////////////////////////////////////////////////
@@ -260,7 +249,6 @@ void Elasticity_Peer2018::computeMatrixL()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int numParticles = m_model->numActiveParticles();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
-	FluidModel *model = m_model;
 
 	#pragma omp parallel default(shared)
 	{
@@ -569,4 +557,18 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
 			result[3 * i + 2] = vec[3 * i + 2] - factor * force[2];
 		}
 	}
+}
+
+void SPH::Elasticity_Peer2018::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.writeBuffer((char*)m_current_to_initial_index.data(), m_current_to_initial_index.size() * sizeof(unsigned int));
+	binWriter.writeBuffer((char*)m_initial_to_current_index.data(), m_initial_to_current_index.size() * sizeof(unsigned int));
+	binWriter.writeBuffer((char*)m_L.data(), m_L.size() * sizeof(Matrix3r));
+}
+
+void SPH::Elasticity_Peer2018::loadState(BinaryFileReader &binReader)
+{
+	binReader.readBuffer((char*)m_current_to_initial_index.data(), m_current_to_initial_index.size() * sizeof(unsigned int));
+	binReader.readBuffer((char*)m_initial_to_current_index.data(), m_initial_to_current_index.size() * sizeof(unsigned int));
+	binReader.readBuffer((char*)m_L.data(), m_L.size() * sizeof(Matrix3r));
 }

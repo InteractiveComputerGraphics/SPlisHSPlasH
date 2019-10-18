@@ -134,25 +134,34 @@ set(ELASTICITY_SOURCE_FILES
 	
 set(UTILS_HEADER_FILES
 	Utilities/MathFunctions.h
+	Utilities/GaussQuadrature.h
 	Utilities/MatrixFreeSolver.h
+	Utilities/SurfaceSampling.h
 	Utilities/PoissonDiskSampling.h
+	Utilities/RegularTriangleSampling.h
+	Utilities/RegularSampling2D.h
 	Utilities/SceneLoader.h
 	Utilities/VolumeSampling.h
 	Utilities/SDFFunctions.h
+	Utilities/SimpleQuadrature.h
 	Utilities/WindingNumbers.h
 	)
 	
 set(UTILS_SOURCE_FILES
 	Utilities/MathFunctions.cpp
+	Utilities/GaussQuadrature.cpp
 	Utilities/PoissonDiskSampling.cpp
+	Utilities/RegularTriangleSampling.cpp
+	Utilities/RegularSampling2D.cpp
 	Utilities/SceneLoader.cpp
 	Utilities/VolumeSampling.cpp
 	Utilities/SDFFunctions.cpp
+	Utilities/SimpleQuadrature.cpp
 	Utilities/WindingNumbers.cpp
 	)	
 	
 find_package( Eigen3 REQUIRED )
-include_directories( ${EIGEN3_INCLUDE_DIR} )
+include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR} )
 
 ############################################################
 # CompactNSearch
@@ -180,6 +189,12 @@ add_library(SPlisHSPlasH
 	AnimationFieldSystem.cpp
 	BoundaryModel.cpp
 	BoundaryModel.h
+	BoundaryModel_Akinci2012.cpp
+	BoundaryModel_Akinci2012.h
+	BoundaryModel_Bender2019.cpp
+	BoundaryModel_Bender2019.h
+	BoundaryModel_Koschier2017.cpp
+	BoundaryModel_Koschier2017.h
 	Emitter.cpp
 	Emitter.h
 	EmitterSystem.cpp
@@ -240,6 +255,7 @@ add_library(SPlisHSPlasH
 
 add_dependencies(SPlisHSPlasH Ext_NeighborhoodSearch)
 add_dependencies(SPlisHSPlasH Ext_GenericParameters)
+add_dependencies(SPlisHSPlasH Ext_Discregrid)
 
 source_group("Header Files\\WCSPH" FILES ${WCSPH_HEADER_FILES})
 source_group("Source Files\\WCSPH" FILES ${WCSPH_SOURCE_FILES})

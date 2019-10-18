@@ -2,7 +2,11 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
-#include "../Simulation.h"
+#include "SPlisHSPlasH/Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
+#include "SPlisHSPlasH/Utilities/MathFunctions.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -22,7 +26,7 @@ Viscosity_Weiler2018::Viscosity_Weiler2018(FluidModel *model) :
 
 	m_vDiff.resize(model->numParticles(), Vector3r::Zero());
 
-	model->addField({ "velocity difference", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_vDiff[i][0]; } });
+	model->addField({ "velocity difference", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_vDiff[i][0]; }, true });
 }
 
 Viscosity_Weiler2018::~Viscosity_Weiler2018(void)
@@ -67,12 +71,14 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 	const unsigned int numParticles = model->numActiveParticles();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	const Real h = sim->getSupportRadius();
 	const Real h2 = h*h;
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
 	const Real mub = visco->m_boundaryViscosity;
+	const Real sphereVolume = static_cast<Real>(4.0 / 3.0 * M_PI) * h2*h;
 	const Real density0 = model->getDensity0();
 
 	Real d = 10.0;
@@ -108,14 +114,131 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 			//////////////////////////////////////////////////////////////////////////
 			if (mub != 0.0)
 			{
-				forall_boundary_neighbors(
-					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-					const Vector3r xixj = xi - xj;
-					const Vector3r gradW = sim->gradW(xixj);
-					const Vector3r a = d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
-					ai += a;
-					bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
-				);
+				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+				{
+					forall_boundary_neighbors(
+						const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+						const Vector3r xixj = xi - xj;
+						const Vector3r gradW = sim->gradW(xixj);
+						const Vector3r a = d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj).dot(xixj) / (xixj.squaredNorm() + 0.01*h2) * gradW;
+						ai += a;
+						bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
+					);
+				}
+				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+				{
+					forall_density_maps(
+						const Vector3r xixj = xi - xj;
+						Vector3r normal = -xixj;
+						const Real nl = normal.norm();
+						if (nl > static_cast<Real>(0.0001))
+						{
+							normal /= nl;
+
+							Vector3r t1;
+							Vector3r t2;
+							MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
+							//const Real dist = 0.25*h;
+							const Vector3r x1 = xj - t1 * dist;
+							const Vector3r x2 = xj + t1 * dist;
+							const Vector3r x3 = xj - t2 * dist;
+							const Vector3r x4 = xj + t2 * dist;
+
+							const Vector3r xix1 = xi - x1;
+							const Vector3r xix2 = xi - x2;
+							const Vector3r xix3 = xi - x3;
+							const Vector3r xix4 = xi - x4;
+
+							const Vector3r gradW1 = sim->gradW(xix1);
+							const Vector3r gradW2 = sim->gradW(xix2);
+							const Vector3r gradW3 = sim->gradW(xix3);
+							const Vector3r gradW4 = sim->gradW(xix4);
+
+							// each sample point represents the quarter of the volume inside of the boundary
+							const Real vol = static_cast<Real>(0.25) * rho * sphereVolume;
+
+ 							Vector3r v1;
+ 							Vector3r v2;
+							Vector3r v3;
+							Vector3r v4;
+ 							bm_neighbor->getPointVelocity(x1, v1);
+ 							bm_neighbor->getPointVelocity(x2, v2);
+							bm_neighbor->getPointVelocity(x3, v3);
+							bm_neighbor->getPointVelocity(x4, v4);
+
+ 							// compute forces for both sample point
+ 							const Vector3r a1 = d * mub * vol * (vi-v1).dot(xix1) / (xix1.squaredNorm() + 0.01*h2) * gradW1;
+ 							const Vector3r a2 = d * mub * vol * (vi-v2).dot(xix2) / (xix2.squaredNorm() + 0.01*h2) * gradW2;
+							const Vector3r a3 = d * mub * vol * (vi-v3).dot(xix3) / (xix3.squaredNorm() + 0.01*h2) * gradW3;
+							const Vector3r a4 = d * mub * vol * (vi-v4).dot(xix4) / (xix4.squaredNorm() + 0.01*h2) * gradW4;
+ 							ai += a1 + a2 + a3 + a4;
+
+							bm_neighbor->addForce(x1, -model->getMass(i)/density_i * a1);
+ 							bm_neighbor->addForce(x2, -model->getMass(i)/density_i * a2);
+							bm_neighbor->addForce(x3, -model->getMass(i)/density_i * a3);
+							bm_neighbor->addForce(x4, -model->getMass(i)/density_i * a4);
+ 						}
+					);
+				}
+				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+				{
+					forall_volume_maps(
+						const Vector3r xixj = xi - xj;
+						Vector3r normal = -xixj;
+						const Real nl = normal.norm();
+						if (nl > static_cast<Real>(0.0001))
+						{
+							normal /= nl;
+
+							Vector3r t1;
+							Vector3r t2;
+							MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
+							//const Real dist = 0.25*h;
+							const Vector3r x1 = xj - t1*dist;
+							const Vector3r x2 = xj + t1*dist;
+							const Vector3r x3 = xj - t2*dist;
+							const Vector3r x4 = xj + t2*dist;
+
+							const Vector3r xix1 = xi - x1;
+							const Vector3r xix2 = xi - x2;
+							const Vector3r xix3 = xi - x3;
+							const Vector3r xix4 = xi - x4;
+
+							const Vector3r gradW1 = sim->gradW(xix1);
+							const Vector3r gradW2 = sim->gradW(xix2);
+							const Vector3r gradW3 = sim->gradW(xix3);
+							const Vector3r gradW4 = sim->gradW(xix4);
+
+							// each sample point represents the quarter of the volume inside of the boundary
+							const Real vol = static_cast<Real>(0.25) * Vj;
+
+ 							Vector3r v1;
+ 							Vector3r v2;
+							Vector3r v3;
+							Vector3r v4;
+ 							bm_neighbor->getPointVelocity(x1, v1);
+ 							bm_neighbor->getPointVelocity(x2, v2);
+							bm_neighbor->getPointVelocity(x3, v3);
+							bm_neighbor->getPointVelocity(x4, v4);
+
+ 							// compute forces for both sample point
+ 							const Vector3r a1 = d * mub * vol * (vi-v1).dot(xix1) / (xix1.squaredNorm() + 0.01*h2) * gradW1;
+ 							const Vector3r a2 = d * mub * vol * (vi-v2).dot(xix2) / (xix2.squaredNorm() + 0.01*h2) * gradW2;
+							const Vector3r a3 = d * mub * vol * (vi-v3).dot(xix3) / (xix3.squaredNorm() + 0.01*h2) * gradW3;
+							const Vector3r a4 = d * mub * vol * (vi-v4).dot(xix4) / (xix4.squaredNorm() + 0.01*h2) * gradW4;
+ 							ai += a1 + a2 + a3 + a4;
+
+							bm_neighbor->addForce(x1, -model->getMass(i)/density_i * a1);
+ 							bm_neighbor->addForce(x2, -model->getMass(i)/density_i * a2);
+							bm_neighbor->addForce(x3, -model->getMass(i)/density_i * a3);
+							bm_neighbor->addForce(x4, -model->getMass(i)/density_i * a4);
+						}
+					);
+				}
 			}
 
 			result[3 * i] = vec[3 * i] - dt / density_i*ai[0];
@@ -134,6 +257,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 	FluidModel *model = visco->getModel();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 	const Real density0 = model->getDensity0();
 
 	Real d = 10.0;
@@ -145,6 +269,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
 	const Real mub = visco->m_boundaryViscosity;
+	const Real sphereVolume = static_cast<Real>(4.0 / 3.0 * M_PI) * h2*h;
 
 	const Real density_i = model->getDensity(i);
 
@@ -160,18 +285,106 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 		const Vector3r gradW = sim->gradW(xi - xj);
 		const Vector3r xixj = xi - xj;
 		result += d * mu * (model->getMass(neighborIndex) / density_j) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-	)
+	);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Boundary
 	//////////////////////////////////////////////////////////////////////////
-	forall_boundary_neighbors(
-		const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-		const Vector3r gradW = sim->gradW(xi - xj);
+	if (mub != 0.0)
+	{
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		{
+			forall_boundary_neighbors(
+				const Vector3r xixj = xi - xj;
+				const Vector3r gradW = sim->gradW(xixj);
+				result += d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
+			);
+		}
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		{
+			forall_density_maps(
+				const Vector3r xixj = xi - xj;
+				Vector3r normal = -xixj;
+				const Real nl = normal.norm();
+				if (nl > static_cast<Real>(0.0001))
+				{
+					normal /= nl;
 
-		const Vector3r xixj = xi - xj;
-		result += d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-	)
+					Vector3r t1;
+					Vector3r t2;
+					MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+ 					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
+					//const Real dist = 0.25*h;
+					const Vector3r x1 = xj - t1*dist;
+					const Vector3r x2 = xj + t1*dist;
+					const Vector3r x3 = xj - t2*dist;
+					const Vector3r x4 = xj + t2*dist;
+
+					const Vector3r xix1 = xi - x1;
+					const Vector3r xix2 = xi - x2;
+					const Vector3r xix3 = xi - x3;
+					const Vector3r xix4 = xi - x4;
+
+					const Vector3r gradW1 = sim->gradW(xix1);
+					const Vector3r gradW2 = sim->gradW(xix2);
+					const Vector3r gradW3 = sim->gradW(xix3);
+					const Vector3r gradW4 = sim->gradW(xix4);
+
+					// each sample point represents the quarter of the volume inside of the boundary
+					const Real vol = static_cast<Real>(0.25) * rho * sphereVolume;
+
+					// compute forces for both sample point
+					result += d * mub * vol / (xix1.squaredNorm() + 0.01*h2) * (gradW1 * xix1.transpose());
+					result += d * mub * vol / (xix2.squaredNorm() + 0.01*h2) * (gradW2 * xix2.transpose());
+					result += d * mub * vol / (xix3.squaredNorm() + 0.01*h2) * (gradW3 * xix3.transpose());
+					result += d * mub * vol / (xix4.squaredNorm() + 0.01*h2) * (gradW4 * xix4.transpose());
+				}
+			);
+		}
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		{
+			forall_volume_maps(
+				const Vector3r xixj = xi - xj;
+				Vector3r normal = -xixj;
+				const Real nl = normal.norm();
+				if (nl > static_cast<Real>(0.0001))
+				{
+					normal /= nl;
+
+					Vector3r t1;
+					Vector3r t2;
+					MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+ 					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
+					//const Real dist = 0.25*h;
+					const Vector3r x1 = xj - t1*dist;
+					const Vector3r x2 = xj + t1*dist;
+					const Vector3r x3 = xj - t2*dist;
+					const Vector3r x4 = xj + t2*dist;
+
+					const Vector3r xix1 = xi - x1;
+					const Vector3r xix2 = xi - x2;
+					const Vector3r xix3 = xi - x3;
+					const Vector3r xix4 = xi - x4;
+
+					const Vector3r gradW1 = sim->gradW(xix1);
+					const Vector3r gradW2 = sim->gradW(xix2);
+					const Vector3r gradW3 = sim->gradW(xix3);
+					const Vector3r gradW4 = sim->gradW(xix4);
+
+					// each sample point represents the quarter of the volume inside of the boundary
+					const Real vol = static_cast<Real>(0.25) * Vj;
+
+					// compute forces for both sample point
+					result += d * mub * vol / (xix1.squaredNorm() + 0.01*h2) * (gradW1 * xix1.transpose());
+					result += d * mub * vol / (xix2.squaredNorm() + 0.01*h2) * (gradW2 * xix2.transpose());
+					result += d * mub * vol / (xix3.squaredNorm() + 0.01*h2) * (gradW3 * xix3.transpose());
+					result += d * mub * vol / (xix4.squaredNorm() + 0.01*h2) * (gradW4 * xix4.transpose());
+				}
+			);
+		}
+	}
 	result = Matrix3r::Identity() - (dt / density_i) * result;
 }
 
@@ -180,10 +393,13 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r &result, void *userData)
 {
 	// Diagonal element
+	Simulation *sim = Simulation::getCurrent();
 	Viscosity_Weiler2018 *visco = (Viscosity_Weiler2018*)userData;
 	FluidModel *model = visco->getModel();
 
-	const Real h = model->getSupportRadius();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
+	
+	const Real h = sim->getSupportRadius();
 	const Real h2 = h*h;
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const Real mu = visco->m_viscosity;
@@ -195,35 +411,126 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 	Real d = 10.0;
 	if (sim->is2DSimulation())
 		d = 8.0;
+	const Real sphereVolume = 4.0 / 3.0 * M_PI * h2*h;
 
 	const Real density_i = model->getDensity(i);
 
 	result.setZero();
 
-	const Vector3r &xi = model->getPosition(0, i);
+	const Vector3r &xi = model->getPosition(i);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
 	forall_fluid_neighbors_in_same_phase(
 		const Real density_j = model->getDensity(neighborIndex);
-		const Vector3r gradW = model->gradW(xi - xj);
+		const Vector3r gradW = sim->gradW(xi - xj);
 		const Vector3r xixj = xi - xj;
 		Matrix3r r = d * mu * (model->getMass(neighborIndex) / density_j) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
 		result += r.diagonal();
-	)
+	);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Boundary
 	//////////////////////////////////////////////////////////////////////////
-	forall_boundary_neighbors(
-		const Vector3r &vj = model->getVelocity(pid, neighborIndex);
-		const Vector3r gradW = model->gradW(xi - xj);
+	if (mub != 0.0)
+	{
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		{
+			forall_boundary_neighbors(
+				const Vector3r xixj = xi - xj;
+				const Vector3r gradW = sim->gradW(xixj);
+				Matrix3r r = d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
+				result += r.diagonal();
+			);
+		}
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		{
+			forall_density_maps(
+				const Vector3r xixj = xi - xj;
+				Vector3r normal = -xixj;
+				const Real nl = normal.norm();
+				if (nl > 0.0001)
+				{
+					normal /= nl;
 
-		const Vector3r xixj = xi - xj;
-		Matrix3r r = d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
-		result += r.diagonal();
-	)
+					Vector3r t1;
+					Vector3r t2;
+					MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+ 					const Real dist = (1.0 - nl / h) * h;
+					//const Real dist = 0.25*h;
+					const Vector3r x1 = xj - t1*dist;
+					const Vector3r x2 = xj + t1*dist;
+					const Vector3r x3 = xj - t2*dist;
+					const Vector3r x4 = xj + t2*dist;
+
+					const Vector3r xix1 = xi - x1;
+					const Vector3r xix2 = xi - x2;
+					const Vector3r xix3 = xi - x3;
+					const Vector3r xix4 = xi - x4;
+
+					const Vector3r gradW1 = sim->gradW(xix1);
+					const Vector3r gradW2 = sim->gradW(xix2);
+					const Vector3r gradW3 = sim->gradW(xix3);
+					const Vector3r gradW4 = sim->gradW(xix4);
+
+					// each sample point represents the quarter of the volume inside of the boundary
+					const Real vol = 0.25 * rho * sphereVolume;
+
+					// compute forces for both sample point
+					Matrix3r r = d * mub * vol / (xix1.squaredNorm() + 0.01*h2) * (gradW1 * xix1.transpose());
+					r += d * mub * vol / (xix2.squaredNorm() + 0.01*h2) * (gradW2 * xix2.transpose());
+					r += d * mub * vol / (xix3.squaredNorm() + 0.01*h2) * (gradW3 * xix3.transpose());
+					r += d * mub * vol / (xix4.squaredNorm() + 0.01*h2) * (gradW4 * xix4.transpose());
+					result += r.diagonal();
+				}
+			);
+		}
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		{
+			forall_volume_maps(
+				const Vector3r xixj = xi - xj;
+				Vector3r normal = -xixj;
+				const Real nl = normal.norm();
+				if (nl > 0.0001)
+				{
+					normal /= nl;
+
+					Vector3r t1;
+					Vector3r t2;
+					MathFunctions::getOrthogonalVectors(normal, t1, t2);
+
+ 					const Real dist = (1.0 - nl / h) * h;
+					//const Real dist = 0.25*h;
+					const Vector3r x1 = xj - t1*dist;
+					const Vector3r x2 = xj + t1*dist;
+					const Vector3r x3 = xj - t2*dist;
+					const Vector3r x4 = xj + t2*dist;
+
+					const Vector3r xix1 = xi - x1;
+					const Vector3r xix2 = xi - x2;
+					const Vector3r xix3 = xi - x3;
+					const Vector3r xix4 = xi - x4;
+
+					const Vector3r gradW1 = sim->gradW(xix1);
+					const Vector3r gradW2 = sim->gradW(xix2);
+					const Vector3r gradW3 = sim->gradW(xix3);
+					const Vector3r gradW4 = sim->gradW(xix4);
+
+					// each sample point represents the quarter of the volume inside of the boundary
+					const Real vol = 0.25 * Vj;
+
+					// compute forces for both sample point
+					Matrix3r r = d * mub * vol / (xix1.squaredNorm() + 0.01*h2) * (gradW1 * xix1.transpose());
+					r += d * mub * vol / (xix2.squaredNorm() + 0.01*h2) * (gradW2 * xix2.transpose());
+					r += d * mub * vol / (xix3.squaredNorm() + 0.01*h2) * (gradW3 * xix3.transpose());
+					r += d * mub * vol / (xix4.squaredNorm() + 0.01*h2) * (gradW4 * xix4.transpose());
+					result += r.diagonal();
+				}
+			);
+		}
+	}
 	result = Vector3r::Ones() - (dt / density_i) * result;
 }
 
@@ -303,3 +610,4 @@ void Viscosity_Weiler2018::reset()
 void Viscosity_Weiler2018::performNeighborhoodSearchSort()
 {
 }
+

@@ -103,7 +103,6 @@ void SimulationDataIISPH::performNeighborhoodSearchSort()
 void SimulationDataIISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
 	// initialize last pressure values for new particles
-	Simulation *sim = Simulation::getCurrent();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	for (unsigned int j = startIndex; j < model->numActiveParticles(); j++)
 	{

@@ -33,7 +33,7 @@ namespace SPH
 
 
 		virtual void initParameters();
-
+		
 	public:
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;

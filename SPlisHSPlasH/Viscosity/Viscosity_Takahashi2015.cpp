@@ -3,6 +3,9 @@
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
 #include "../Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -138,9 +141,13 @@ void Viscosity_Takahashi2015::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const Real density0 = m_model->getDensity0();
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 
 	//////////////////////////////////////////////////////////////////////////
@@ -206,16 +213,34 @@ void Viscosity_Takahashi2015::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 			{
-				BoundaryModel *bm_neighbor = sim->getBoundaryModelFromPointSet(pid);
-				for (unsigned int j = 0; j < sim->numberOfNeighbors(fluidModelIndex, pid, i); j++)
-				{
-					const unsigned int neighborIndex = sim->getNeighbor(fluidModelIndex, pid, i, j);
-					const Vector3r &xj = bm_neighbor->getPosition(neighborIndex);
+				forall_boundary_neighbors(
 					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-					ai -= invH * 0.1 * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
-				}
+					const Vector3r a = -invH * 0.1 * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					Vector3r vj;
+					bm_neighbor->getPointVelocity(xi, vj);
+					const Vector3r a = -invH * 0.1 * (density0 / density_i) * (vi-vj)* rho;
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{
+				forall_volume_maps(
+					Vector3r vj;
+					bm_neighbor->getPointVelocity(xj, vj);
+					const Vector3r a = -invH * 0.1 * (density0 * Vj / density_i) * (vi-vj)* sim->W(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
 			}
 		}
 	}

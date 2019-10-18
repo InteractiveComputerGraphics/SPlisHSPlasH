@@ -27,16 +27,18 @@ namespace SPH
 
 		virtual Real const getMass() const { return 0.0; }
 		virtual Vector3r const& getPosition() const  { return m_x; }
+		virtual void setPosition(const Vector3r &x) { m_x = x; }
 		virtual Vector3r getWorldSpacePosition() const { return m_x_world; }
 		virtual Vector3r const& getVelocity() const { return m_zero; }
+		virtual void setVelocity(const Vector3r &v) {}
 		virtual Matrix3r const& getRotation() const { return m_R; }
+		virtual void setRotation(const Matrix3r &r) { m_R = r; }
 		virtual Matrix3r getWorldSpaceRotation() const { return m_R_world; }
 		virtual Vector3r const& getAngularVelocity() const { return m_zero; }
+		virtual void setAngularVelocity(const Vector3r &v) {}
 		virtual void addForce(const Vector3r &f) {}
 		virtual void addTorque(const Vector3r &t) {}
 
-		void setPosition(const Vector3r &x) { m_x = x; }
-		void setRotation(const Matrix3r &r) { m_R = r; }
 		void setWorldSpacePosition(const Vector3r &x) { m_x_world = x; }
 		void setWorldSpaceRotation(const Matrix3r &r) { m_R_world = r; }
 		TriangleMesh& getGeometry() { return m_geometry; }

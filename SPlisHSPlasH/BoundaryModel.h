@@ -6,6 +6,7 @@
 
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
+#include "Utilities/BinaryFileReaderWriter.h"
 
 namespace SPH 
 {	
@@ -21,25 +22,17 @@ namespace SPH
 
 		protected:
 			RigidBodyObject *m_rigidBody;
-			std::vector<Vector3r> m_x0;
-			std::vector<Vector3r> m_x;
-			std::vector<Vector3r> m_v;
-			std::vector<Real> m_V;
 			std::vector<Vector3r> m_forcePerThread;
 			std::vector<Vector3r> m_torquePerThread;
-			bool m_sorted;
-			unsigned int m_pointSetIndex;
 
 		public:
-			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
-
-			void computeBoundaryVolume();
-
 			virtual void reset();
 
-			void performNeighborhoodSearchSort();
+			virtual void performNeighborhoodSearchSort() {};
 
-			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
+			virtual void saveState(BinaryFileWriter &binWriter) {};
+			virtual void loadState(BinaryFileReader &binReader) {};
+
 			RigidBodyObject* getRigidBodyObject() { return m_rigidBody; }
 
 			FORCE_INLINE void addForce(const Vector3r &pos, const Vector3r &f)
@@ -56,68 +49,39 @@ namespace SPH
 				}
 			}
 
+#ifdef USE_AVX
+			FORCE_INLINE void addForce(const Vector3f8 &pos, const Vector3f8 &f, const unsigned int count)
+			{
+				if (m_rigidBody->isDynamic())
+				{
+					float fx[8];
+					float fy[8];
+					float fz[8];
+					f.x().store(fx);
+					f.y().store(fy);
+					f.z().store(fz);
+					float px[8];
+					float py[8];
+					float pz[8];
+					pos.x().store(px);
+					pos.y().store(py);
+					pos.z().store(pz);
+					for (unsigned int l = 0; l < count; l++)
+					{
+						addForce(Vector3r(px[l],py[l],pz[l]), Vector3r(fx[l],fy[l],fz[l]));
+					}
+				}
+			}
+#endif
+
+			
+			FORCE_INLINE void getPointVelocity(const Vector3r &x, Vector3r &res)
+			{
+				res = m_rigidBody->getAngularVelocity().cross(x - m_rigidBody->getPosition()) + m_rigidBody->getVelocity();
+			}
+
 			void getForceAndTorque(Vector3r &force, Vector3r &torque);
 			void clearForceAndTorque();
-
-			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
-			{
-				return m_x0[i];
-			}
-
-			FORCE_INLINE const Vector3r &getPosition0(const unsigned int i) const
-			{
-				return m_x0[i];
-			}
-
-			FORCE_INLINE void setPosition0(const unsigned int i, const Vector3r &pos)
-			{
-				m_x0[i] = pos;
-			}
-
-			FORCE_INLINE Vector3r &getPosition(const unsigned int i)
-			{
-				return m_x[i];
-			}
-
-			FORCE_INLINE const Vector3r &getPosition(const unsigned int i) const
-			{
-				return m_x[i];
-			}
-
-			FORCE_INLINE void setPosition(const unsigned int i, const Vector3r &pos)
-			{
-				m_x[i] = pos;
-			}
-
-			FORCE_INLINE Vector3r &getVelocity(const unsigned int i)
-			{
-				return m_v[i];
-			}
-
-			FORCE_INLINE const Vector3r &getVelocity(const unsigned int i) const
-			{
-				return m_v[i];
-			}
-
-			FORCE_INLINE void setVelocity(const unsigned int i, const Vector3r &vel)
-			{
-				m_v[i] = vel;
-			}
-
-			FORCE_INLINE const Real& getVolume(const unsigned int i) const
-			{
-				return m_V[i];
-			}
-
-			FORCE_INLINE Real& getVolume(const unsigned int i)
-			{
-				return m_V[i];
-			}
-
-			FORCE_INLINE void setVolume(const unsigned int i, const Real &val)
-			{
-				m_V[i] = val;
-			}
 	};
 }
 

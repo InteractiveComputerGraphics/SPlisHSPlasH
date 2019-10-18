@@ -14,7 +14,7 @@ namespace SPH
 	class SimulationDataDFSPH;
 
 	/** \brief This class implements the Divergence-free Smoothed Particle Hydrodynamics approach introduced
-	* by Bender and Koschier \cite Bender:2015, \cite Bender2017.
+	* by Bender and Koschier \cite Bender:2015, \cite Bender2017, \cite KBST19.
 	*/
 	class TimeStepDFSPH : public TimeStep
 	{

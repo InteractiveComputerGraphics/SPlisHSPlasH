@@ -7,6 +7,7 @@
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
 #include "ParameterObject.h"
+#include "Utilities/BinaryFileReaderWriter.h"
 
 namespace SPH 
 {	
@@ -18,13 +19,18 @@ namespace SPH
 	class ElasticityBase;
 	class EmitterSystem;
 
-	enum FieldType { Scalar = 0, Vector3, Vector6, Matrix3, Matrix6 };
+	enum FieldType { Scalar = 0, Vector3, Vector6, Matrix3, Matrix6, UInt };
 	struct FieldDescription
 	{
 		std::string name;
 		FieldType type;
 		// getFct(particleIndex)
-		std::function<Real*(const unsigned int)> getFct;
+		std::function<void*(const unsigned int)> getFct;
+		bool storeData;
+
+		FieldDescription(const std::string &n, const FieldType &t, 
+			const std::function<void*(const unsigned int)> &fct, const bool s = false) :
+			name(n), type(t), getFct(fct), storeData(s) { }
 	};
 
 	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, NumSurfaceTensionMethods };
@@ -198,6 +204,9 @@ namespace SPH
 			void computeDragForce();
 			void computeElasticity();
 
+			void saveState(BinaryFileWriter &binWriter);
+			void loadState(BinaryFileReader &binReader);
+
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{
@@ -302,6 +311,11 @@ namespace SPH
 			FORCE_INLINE void setDensity(const unsigned int i, const Real &val)
 			{
 				m_density[i] = val;
+			}
+
+			FORCE_INLINE unsigned int& getParticleId(const unsigned int i)
+			{
+				return m_particleId[i];
 			}
 
 			FORCE_INLINE const unsigned int& getParticleId(const unsigned int i) const

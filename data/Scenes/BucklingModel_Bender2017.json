@@ -17,7 +17,8 @@
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -37,7 +38,10 @@
 			"scale": [3, 0.5, 3],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"FluidBlocks": [
@@ -45,7 +49,7 @@
 			"denseMode": 0,
 			"start": [-0.1, 0.01, -0.4],
 			"end": [0.1, 6.0, 0.4],
-			"translation": [0, 0.0, 0.0],
+			"translation": [0, 0.1, 0.0],
 			"scale": [0.75,1,0.75]
 		}
 	]	

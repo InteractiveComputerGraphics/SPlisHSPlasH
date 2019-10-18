@@ -137,6 +137,7 @@ void PBDWrapper::initShader()
 	PBD::ParticleData &pd = m_model.getParticles();
 	PBD::SimulationModel::RigidBodyVector &rb = m_model.getRigidBodies();
 	PBD::TimeManager::getCurrent()->setTimeStepSize(SPH::TimeManager::getCurrent()->getTimeStepSize());
+	PBD::TimeManager::getCurrent()->setTime(SPH::TimeManager::getCurrent()->getTime());
 
 	m_timeStep->step(m_model);
 
@@ -1169,8 +1170,8 @@ void PBDWrapper::renderSDF(PBD::CollisionDetection::CollisionObject* co)
 	const Vector3r &v2 = rb->getTransformationV2();
 
 	PBD::DistanceFieldCollisionDetection::DistanceFieldCollisionObject *dfco = (PBD::DistanceFieldCollisionDetection::DistanceFieldCollisionObject *)co;
-	const Vector3r &startX = co->m_aabb.m_p[0];
-	const Vector3r &endX = co->m_aabb.m_p[1];
+	const Vector3r &startX = co->m_aabb.m_p[0] - 0.1 * Vector3r::Ones();
+	const Vector3r &endX = co->m_aabb.m_p[1] + 0.1 * Vector3r::Ones();
 	Vector3r diff = endX - startX;
 	const unsigned int steps = 20;
 	Vector3r stepSize = (1.0 / steps) * diff;
@@ -1182,11 +1183,18 @@ void PBDWrapper::renderSDF(PBD::CollisionDetection::CollisionObject* co)
 			{
 				Vector3r pos_w(x, y, z);
 				const Vector3r pos = R * (pos_w - com) + v1;
-				const double dist = dfco->distance(pos.template cast<double>(), 0.0);
+				double dist = dfco->distance(pos.template cast<double>(), 0.0);
 
 				if (dist < 0.0)
 				{
-					float col[4] = { (float)-dist, 0.0f, 0.0f, 1.0f };
+					if (dist < -1.0)
+						dist = -1.0;
+					float col[4] = { 1.0f + (float)dist, 0.0f, 0.0f, 1.0f };
+					SPH::MiniGL::drawPoint(pos_w, 3.0f, col);
+				}
+				else if (dist < 1.0)
+				{
+					float col[4] = { 0.0f, 1.0f - (float)dist, 0.0f, 1.0f };
 					SPH::MiniGL::drawPoint(pos_w, 3.0f, col);
 				}
 			}

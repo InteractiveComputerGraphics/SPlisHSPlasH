@@ -4,6 +4,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "../Simulation.h"
+#include "../BoundaryModel_Bender2019.h"
 
 using namespace SPH;
 
@@ -30,8 +31,13 @@ void DragForce_Gissler2017::step()
 	const Real rho_l = m_model->getDensity0();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 	FluidModel *model = m_model;
+	const unsigned int numParticles = m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
 
+	const Real fluidParticleVolume = m_model->getVolume(0);
 
 	// Air velocity.
 	const Vector3r va(0, 0, 0);
@@ -63,7 +69,6 @@ void DragForce_Gissler2017::step()
 	const Real n_full = 38;
 	const Real n_full_23 = n_full * 2.0/3.0;
 	
-	const unsigned int numParticles = m_model->numActiveParticles();
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
@@ -95,9 +100,27 @@ void DragForce_Gissler2017::step()
 			// Equation (9)
 			const Real C_Di_Liu = C_Di_sphere * (static_cast<Real>(1.0) + static_cast<Real>(2.632) * y_i_max);
 
-			unsigned int numNeighbors = sim->numberOfNeighbors(0, i);
-			for (unsigned int pid = 1; pid < sim->numberOfPointSets(); pid++)
-				numNeighbors += sim->numberOfNeighbors(pid, i);
+			unsigned int numNeighbors = 0;
+			for (unsigned int pid = 0; pid < nFluids; pid++)
+				numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
+
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
+				for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) 
+					numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
+			}
+			//if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			//{
+			//	forall_density_maps(
+			//		// ToDo
+			//	);
+			//}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{
+				forall_volume_maps(
+					numNeighbors += (unsigned int)(Vj / fluidParticleVolume) + 1;
+				);
+			}
 
 			// Equation (10)
 			Real C_Di;

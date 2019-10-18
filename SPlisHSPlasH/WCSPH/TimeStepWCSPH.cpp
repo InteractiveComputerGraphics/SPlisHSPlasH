@@ -5,6 +5,10 @@
 #include <iostream>
 #include "Utilities/Timing.h"
 #include "../Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
+
 
 using namespace SPH;
 using namespace std;
@@ -66,8 +70,14 @@ void TimeStepWCSPH::step()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 	TimeManager *tm = TimeManager::getCurrent ();
+	const Real h = tm->getTimeStepSize();
 
 	performNeighborhoodSearch();
+
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		computeVolumeAndBoundaryX();
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		computeDensityAndGradient();
 
 	// Compute accelerations: a(t)
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -97,7 +107,6 @@ void TimeStepWCSPH::step()
 	}
 
 	sim->updateTimeStepSize();
-	const Real h = tm->getTimeStepSize();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -142,6 +151,7 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 	const Real density0 = model->getDensity0();
 	const unsigned int numParticles = model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	// Compute pressure forces
 	#pragma omp parallel default(shared)
@@ -170,11 +180,30 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
 			const Real dpj = m_simulationData.getPressure(fluidModelIndex, i) / (density0*density0);
-			forall_boundary_neighbors(
-				const Vector3r a = density0 * bm_neighbor->getVolume(neighborIndex) * (dpi + dpj)* sim->gradW(xi - xj);
-				ai -= a;
-				bm_neighbor->addForce(xj, model->getMass(i) * a);
-			)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
+				forall_boundary_neighbors(
+					const Vector3r a = density0 * bm_neighbor->getVolume(neighborIndex) * (dpi + dpj)* sim->gradW(xi - xj);
+					ai -= a;
+					bm_neighbor->addForce(xj, model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					const Vector3r a = -density0 * (dpi + dpj)* gradRho;
+					ai -= a;
+					bm_neighbor->addForce(xj, model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{				
+				forall_volume_maps(
+					const Vector3r a = density0 * Vj * (dpi + dpj)* sim->gradW(xi - xj);
+					ai -= a;
+					bm_neighbor->addForce(xj, model->getMass(i) * a);
+				);
+			}
 		}
 	}
 }

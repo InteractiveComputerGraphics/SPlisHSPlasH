@@ -44,6 +44,9 @@ namespace SPH
 
 			void step();
 			void reset();
+
+			void saveState(BinaryFileWriter &binWriter);
+			void loadState(BinaryFileReader &binReader);
 	};
 }
 

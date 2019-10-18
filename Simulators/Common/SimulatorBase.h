@@ -8,6 +8,9 @@
 #include "SPlisHSPlasH/FluidModel.h"
 #include "extern/AntTweakBar/include/AntTweakBar.h"
 #include "ParameterObject.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 
 namespace SPH
@@ -26,6 +29,7 @@ namespace SPH
 		unsigned int m_numberOfStepsPerRenderUpdate;
 		std::string m_exePath;
 		std::string m_dataPath;
+		std::string m_stateFile;
 		std::string m_outputPath;
 		std::string m_sceneFile;
 		bool m_useParticleCaching;
@@ -46,12 +50,16 @@ namespace SPH
 		bool m_enablePartioExport;
 		bool m_enableVTKExport;
 		bool m_enableRigidBodyExport;
-		unsigned int m_framesPerSecond;
+		bool m_enableStateExport;
+		Real m_framesPerSecond;
+		Real m_framesPerSecondState;
 		std::string m_particleAttributes;
 		Vector3r m_oldMousePos;
 		std::vector<std::vector<unsigned int>> m_selectedParticles;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
+		Real m_nextFrameTimeState;
+		bool m_firstState;
 		unsigned int m_frameCounter;
 		bool m_isFirstFrame;
 		std::vector<std::string> m_colorField;
@@ -84,8 +92,10 @@ namespace SPH
 		static int PARTIO_EXPORT;
 		static int VTK_EXPORT;
 		static int RB_EXPORT;
-		static int PARTICLE_EXPORT_FPS;
+		static int DATA_EXPORT_FPS;
 		static int PARTICLE_EXPORT_ATTRIBUTES;
+		static int STATE_EXPORT;
+		static int STATE_EXPORT_FPS;
 		static int RENDER_WALLS;
 		
 		static int ENUM_WALLS_NONE;
@@ -102,6 +112,9 @@ namespace SPH
 		void cleanup();
 
 		std::string real2String(const Real r);
+		void initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel);
+		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
+
 		void renderFluid(const unsigned int fluidModelIndex, float *fluidColor);
 
 		void readParameters();
@@ -111,6 +124,23 @@ namespace SPH
 		void writeParticlesVTK(const std::string &fileName, FluidModel *model);
 		void step();
 		void reset();
+
+		void saveState();
+		void loadStateDialog();
+		void loadState(const std::string &stateFile);
+		void writeFluidParticlesState(const std::string &fileName, FluidModel *model);
+		void readFluidParticlesState(const std::string &fileName, FluidModel *model);
+		void writeBoundaryState(const std::string &fileName, BoundaryModel *model);
+		void readBoundaryState(const std::string &fileName, BoundaryModel *model);
+		void writeParameterState(BinaryFileWriter &binWriter);
+		void readParameterState(BinaryFileReader &binReader);
+		void writeParameterObjectState(BinaryFileWriter &binWriter, GenParam::ParameterObject *paramObj);
+		void readParameterObjectState(BinaryFileReader &binReader, GenParam::ParameterObject *paramObj);
+
+		void updateBoundaryParticles(const bool forceUpdate);
+		void updateDMVelocity();
+		void updateVMVelocity();
+		void updateBoundaryForces();
 
 		static void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 
@@ -157,6 +187,9 @@ namespace SPH
 			for (unsigned int c = 0u; c < n / 2; c++)
 				std::swap(bytes[c], bytes[n - c - 1]);
 		}
+
+		std::string getStateFile() const { return m_stateFile; }
+		void setStateFile(std::string val) { m_stateFile = val; }
 	};
 }
  

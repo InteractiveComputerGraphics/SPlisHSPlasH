@@ -67,14 +67,17 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 		{
 			std::string particleFile = "";
 			std::string meshFile = "";
+			std::string mapFile = "";
 			const bool bMesh = readValue<std::string>(boundaryModel["geometryFile"], meshFile);
 			const bool bSamples = readValue<std::string>(boundaryModel["particleFile"], particleFile);
+			const bool bMap = readValue<std::string>(boundaryModel["mapFile"], mapFile);
 
 			if (bMesh || bSamples)
 			{
 				BoundaryData *data = new BoundaryData();
 				data->meshFile = meshFile;
 				data->samplesFile = particleFile;
+				data->mapFile = mapFile;
 
 				// translation
 				data->translation = Vector3r::Zero();
@@ -100,6 +103,20 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 				data->color = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 0.0f);
 				readVector(boundaryModel["color"], data->color);
+
+				data->samplingMode = 0;
+				readValue<unsigned int>(boundaryModel["samplingMode"], data->samplingMode);
+
+				// Maps
+				data->mapInvert = false;
+				readValue(boundaryModel["mapInvert"], data->mapInvert);
+
+				data->mapThickness = 0.0;
+				readValue(boundaryModel["mapThickness"], data->mapThickness);
+
+				data->mapResolution = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20);
+				readVector(boundaryModel["mapResolution"], data->mapResolution);
+
 
 				scene.boundaryModels.push_back(data);
 			}

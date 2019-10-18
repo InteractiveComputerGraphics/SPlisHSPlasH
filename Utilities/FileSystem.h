@@ -3,13 +3,23 @@
 
 #include "StringTools.h"
 #include "extern/md5/md5.h"
+#include <sys/stat.h>
 #ifdef WIN32
 #include <direct.h>
 #define NOMINMAX
 #include "windows.h"
+#include <commdlg.h>
 #else
-#include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+#endif
+
+#ifndef S_ISDIR
+#define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
+#endif
+
+#ifndef S_ISREG
+#define S_ISREG(mode)  (((mode) & S_IFMT) == S_IFREG)
 #endif
 
 namespace Utilities
@@ -238,6 +248,54 @@ namespace Utilities
 
 			return true;
 		}
+
+		static bool isFile(const std::string &path) 
+		{
+			struct stat st;
+			if (!stat(path.c_str(), &st))
+				return S_ISREG(st.st_mode);
+			return false;
+		}
+
+		static bool isDirectory(const std::string &path)
+		{
+			struct stat st;
+			if (!stat(path.c_str(), &st))
+				return S_ISDIR(st.st_mode);
+			return false;
+		}
+
+		static bool getFilesInDirectory(const std::string& path, std::vector<std::string> &res)
+		{
+#ifdef WIN32
+			std::string p = path + "\\*";
+			WIN32_FIND_DATA data;
+			HANDLE hFind = FindFirstFile(p.c_str(), &data);
+			if (hFind  != INVALID_HANDLE_VALUE) 
+			{
+				do 
+				{
+					res.push_back(data.cFileName);
+				} 
+				while (FindNextFile(hFind, &data) != 0);
+				FindClose(hFind);
+				return true;
+			}
+			return false;
+#else
+			DIR* dir = opendir(path.c_str());
+			if (dir != NULL)
+			{
+				struct dirent *dp;
+				while ((dp = readdir(dir)) != NULL) 
+					res.push_back(dp->d_name);
+				closedir(dir);
+				return true;
+			}
+			return false;
+#endif
+		}
+
 		
 		/** Compute the MD5 hash of a file.
 		*/
@@ -293,6 +351,47 @@ namespace Utilities
 
 			return str == md5Hash;
 		}
+
+#ifdef WIN32
+		/** Open windows file dialog.\n
+		* dialogType 0 = Open file dialog\n
+		* dialogType 1 = Save file dialog\n
+		*/
+		static const std::string fileDialog(int dialogType,
+			const std::string &initialDir,
+			const std::string &filter)
+		{
+			std::string initDir = normalizePath(initialDir);
+			std::replace(initDir.begin(), initDir.end(), '/', '\\');
+
+			OPENFILENAME ofn;       // common dialog box structure
+			char fileNameBuffer[512]; 
+			fileNameBuffer[0] = '\0';			
+
+			const std::string filterWithEscape = filter + '\0';
+			
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.lpstrFile = fileNameBuffer;
+			ofn.nMaxFile = sizeof(fileNameBuffer);
+			ofn.lpstrFilter = filterWithEscape.c_str();
+			ofn.nFilterIndex = 1;
+			ofn.lpstrInitialDir = (LPSTR)initDir.c_str();
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+			if (dialogType == 0)
+			{
+				if (GetOpenFileName(&ofn))
+					return std::string(fileNameBuffer);
+			}
+			else
+			{
+				if (GetSaveFileName(&ofn))
+					return std::string(fileNameBuffer);
+			}
+			return "";
+		}
+#endif
 	};
 }
 

@@ -167,7 +167,6 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 		if (numEmittedParticles != 0)
 		{
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			Simulation *sim = Simulation::getCurrent();
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
 			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
@@ -192,7 +191,6 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 				}
 			}
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			Simulation *sim = Simulation::getCurrent();
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
 			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
@@ -315,7 +313,6 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 		if (numEmittedParticles != 0)
 		{
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			Simulation *sim = Simulation::getCurrent();
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
 			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
@@ -342,7 +339,6 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 				}
 			}
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			Simulation *sim = Simulation::getCurrent();
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
 			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
@@ -358,5 +354,17 @@ void Emitter::step(std::vector <unsigned int> &reusedParticles, unsigned int &in
 		emitParticlesCircle(reusedParticles, indexReuse, numEmittedParticles);
 	else
 		emitParticles(reusedParticles, indexReuse, numEmittedParticles);
+}
+
+void SPH::Emitter::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.write(m_nextEmitTime);
+	binWriter.write(m_emitCounter);
+}
+
+void SPH::Emitter::loadState(BinaryFileReader &binReader)
+{
+	binReader.read(m_nextEmitTime);
+	binReader.read(m_emitCounter);
 }
 

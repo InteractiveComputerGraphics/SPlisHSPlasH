@@ -62,6 +62,8 @@ namespace SPH
 			void step(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
 			virtual void reset();
 
+			void saveState(BinaryFileWriter &binWriter);
+			void loadState(BinaryFileReader &binReader);
 	};
 }
 

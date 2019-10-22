@@ -51,15 +51,6 @@ include_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/include
 add_definitions(-DUSE_PBD)
 add_definitions(-DPBD_DATA_PATH="${PROJECT_PATH}/extern/install/PositionBasedDynamics/include/data")
 
-############################################################
-# Discregrid
-############################################################
-include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
-	optimized Discregrid
-	debug Discregrid_d)
-link_directories(${PROJECT_PATH}/extern/install/Discregrid/lib)
-
 
 set(PBDWRAPPER_SOURCE_FILES	PositionBasedDynamicsWrapper/PBDWrapper.cpp)
 set(PBDWRAPPER_HEADER_FILES

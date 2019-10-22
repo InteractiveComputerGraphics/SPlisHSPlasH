@@ -97,7 +97,7 @@ namespace SPH
 			while (true) 
 			{
 				bool inQuad = true;
-				const Vector3r &p = *posIter;
+				const Vector3r p((*posIter)[0], (*posIter)[1], (*posIter)[2]);
 				for (int j = 0; j < 4; ++j)
 				{
 					const Real d = planes[j].normal.dot(p) + planes[j].d;

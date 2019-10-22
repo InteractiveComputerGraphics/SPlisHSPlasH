@@ -1,27 +1,30 @@
  {
 	"Configuration": 
 	{
+		"cameraPosition": [0,2,5],
+		"cameraLookat": [0,0,0],
 		"timeStepSize": 0.001,
 		"numberOfStepsPerRenderUpdate": 2,
 		"particleRadius": 0.025, 
 		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
-		"cflMethod": 1, 
+		"cflMethod": 2, 
 		"cflFactor": 0.5,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
-		"maxEmitterParticles": 10000,
+		"maxEmitterParticles": 8000,
 		"emitterReuseParticles": false,
 		"emitterBoxMin": [-2.0,-2.5,-2.0],
 		"emitterBoxMax": [1.0,4,2.0],
@@ -33,13 +36,16 @@
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",
-			"translation": [0,2,0],
+			"translation": [0,1,0],
 			"rotationAxis": [1, 0, 0],
 			"rotationAngle": 0,
-			"scale": [2.5, 4, 1.0],
+			"scale": [2.6, 2.1, 1.0],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [30,25,20]
 		}
 	], 
 	"Emitters": [

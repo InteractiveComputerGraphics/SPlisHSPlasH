@@ -170,6 +170,9 @@ namespace SPH
 		static void setBreakPointActive(const bool active);
 		static void breakPoint();
 
+		static int getWidth() { return width; }
+		static int getHeight() { return height; }
+
 		static void initTweakBar();
 		static void initTweakBarParameters();
 		static TwBar *getTweakBar();

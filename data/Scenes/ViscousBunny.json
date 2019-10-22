@@ -17,7 +17,8 @@
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -38,7 +39,10 @@
 			"scale": [5, 0.5, 5],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [30,20,30]
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
@@ -48,7 +52,10 @@
 			"scale": [2, 2, 2], 
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"FluidModels": [
@@ -56,8 +63,7 @@
 			"particleFile": "../models/bunny.bgeo",
 			"translation": [0.0, 1.8, -0.2],
 			"rotationAxis": [0, 1, 0],
-			"rotationAngle": 1.57,
-			"scale": 1
+			"rotationAngle": 1.57
 		}
 	]
 }

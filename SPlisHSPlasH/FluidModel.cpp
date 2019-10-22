@@ -95,9 +95,10 @@ FluidModel::FluidModel() :
 	m_elasticity = nullptr;
 	m_elasticityMethodChanged = nullptr;
 
-	addField({ "position", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition(i)[0]; } });
-	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; } });
-	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); } });
+	addField({ "id", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return &getParticleId(i); }, true });
+	addField({ "position", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition(i)[0]; }, true });
+	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; }, true });
+	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, false });
 }
 
 FluidModel::~FluidModel(void)
@@ -320,7 +321,6 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 	{
 		m_particleId[i] = i;
 	}
-	
 
 	// initialize masses
 	initMasses();
@@ -620,5 +620,46 @@ void FluidModel::removeFieldByName(const std::string &fieldName)
 			break;
 		}
 	}
+}
+
+void SPH::FluidModel::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.write(m_numActiveParticles);
+	binWriter.writeBuffer((char*) m_particleState.data(), m_numActiveParticles * sizeof(ParticleState));
+
+	if (m_surfaceTension)
+		m_surfaceTension->saveState(binWriter);
+	if (m_viscosity)
+		m_viscosity->saveState(binWriter);
+	if (m_vorticity)
+		m_vorticity->saveState(binWriter);
+	if (m_drag)
+		m_drag->saveState(binWriter);
+	if (m_elasticity)
+		m_elasticity->saveState(binWriter);
+	m_emitterSystem->saveState(binWriter);
+}
+
+void SPH::FluidModel::loadState(BinaryFileReader &binReader)
+{
+	binReader.read(m_numActiveParticles);
+	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	neighborhoodSearch->update_point_sets();
+	neighborhoodSearch->resize_point_set(m_pointSetIndex, &getPosition(0)[0], m_numActiveParticles);
+
+	binReader.readBuffer((char*)m_particleState.data(), m_numActiveParticles * sizeof(ParticleState));
+
+	if (m_surfaceTension)
+		m_surfaceTension->loadState(binReader);
+	if (m_viscosity)
+		m_viscosity->loadState(binReader);
+	if (m_vorticity)
+		m_vorticity->loadState(binReader);
+	if (m_drag)
+		m_drag->loadState(binReader);
+	if (m_elasticity)
+		m_elasticity->loadState(binReader);
+
+	m_emitterSystem->loadState(binReader);
 }
 

@@ -53,3 +53,15 @@ void TimeManager::setTimeStepSize(Real tss)
 {
 	h = tss;
 }
+
+void SPH::TimeManager::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.write(time);
+	binWriter.write(h);
+}
+
+void SPH::TimeManager::loadState(BinaryFileReader &binReader)
+{
+	binReader.read(time);
+	binReader.read(h);
+}

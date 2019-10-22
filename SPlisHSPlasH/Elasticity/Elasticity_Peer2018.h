@@ -66,6 +66,9 @@ namespace SPH
 		virtual void reset();
 		virtual void performNeighborhoodSearchSort();
 
+		virtual void saveState(BinaryFileWriter &binWriter);
+		virtual void loadState(BinaryFileReader &binReader);
+
 		static void matrixVecProd(const Real* vec, Real *result, void *userData);
 	};
 }

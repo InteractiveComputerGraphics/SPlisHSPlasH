@@ -10,13 +10,14 @@
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Simulation": 
 	{
@@ -59,7 +60,10 @@
 			"friction" : 0.0,
 			"collisionObjectType": 2,
 			"collisionObjectScale": [3.1, 8, 1.6],	
-			"invertSDF": true
+			"invertSDF": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [30,40,15]
 		},
 		{
 			"id": 2,
@@ -75,7 +79,10 @@
 			"friction" : 0.2,
 			"color": [0.3, 0.5, 0.8, 1.0], 
 			"collisionObjectType": 1,
-			"collisionObjectScale": [0.2, 0.2, 0.2]
+			"collisionObjectScale": [0.2, 0.2, 0.2],
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}, 
 		{
 			"id": 3,
@@ -90,7 +97,10 @@
 			"friction" : 0.2,
 			"color": [0.2, 0.6, 0.4, 1.0], 
 			"collisionObjectType": 3,
-			"collisionObjectScale": [0.1, 0.5, 0.1]
+			"collisionObjectScale": [0.1, 0.5, 0.1],
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		},
 		{
 			"id": 4,
@@ -105,7 +115,10 @@
 			"friction" : 0.2,
 			"color": [0.5, 0.2, 0.6, 1.0], 
 			"collisionObjectType": 4,
-			"collisionObjectScale": [0.2, 0.1, 0.2]	
+			"collisionObjectScale": [0.2, 0.1, 0.2],
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"FluidBlocks": [

@@ -1,3 +1,15 @@
+2.5.0 
+	- added the boundary handling method "Volume Maps: An Implicit Boundary Representation for SPH"
+	- added the boundary handling method "Density Maps for Improved SPH Boundary Handling"
+	- added regular particle sampling
+	- PartioViewer can play sequences
+	- PartioViewer can write sequences as jpg files
+	- PartioViewer can generate movies using ffmpeg
+	- PartioViewer can render rigid body data	
+	- PartioViewer supports multiphase data
+	- user can now save/load the complete state of the simulation 
+	- bugfixes
+
 2.4.0
 	- added rigid body export
 	- added VTK file export (enables the data import in ParaView)

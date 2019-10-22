@@ -20,6 +20,10 @@ namespace SPH
 		static void svdWithInversionHandling(const Matrix3r &A, Vector3r &sigma, Matrix3r &U, Matrix3r &VT);
 		static void eigenDecomposition(const Matrix3r &A, Matrix3r &eigenVecs, Vector3r &eigenVals);
 		static void jacobiRotate(Matrix3r &A, Matrix3r &R, int p, int q);
+
+		/** Returns two orthogonal vectors to vec which are also orthogonal to each other.
+		*/
+		static void getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vector3r &y);
 	};
 }
 

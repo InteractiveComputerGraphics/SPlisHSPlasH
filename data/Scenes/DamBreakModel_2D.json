@@ -5,7 +5,7 @@
 		"sim2D": true, 
 		"particleRadius": 0.025,
 		"colorMapType": 1,
-		"numberOfStepsPerRenderUpdate": 2,
+		"numberOfStepsPerRenderUpdate": 4,
 		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
@@ -13,13 +13,14 @@
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.1,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true	
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -28,9 +29,10 @@
 		"viscosity": 0.01,
 		"viscosityMethod": 1, 
 		"vorticityMethod": 1, 
-		"vorticity": 0.15, 
+		"vorticity": 0.1, 
 		"viscosityOmega": 0.05,
-		"inertiaInverse": 0.5
+		"inertiaInverse": 0.5,
+		"colorMapType": 1
 	},
 	"RigidBodies": [
 		{
@@ -41,7 +43,10 @@
 			"scale": [4, 4, 1],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [30,30,20]
 		}
 	],
 	"FluidBlocks": [

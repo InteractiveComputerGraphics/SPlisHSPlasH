@@ -53,6 +53,9 @@ namespace SPH
 		virtual void step();
 		virtual void reset();
 		virtual void performNeighborhoodSearchSort();
+
+		virtual void saveState(BinaryFileWriter &binWriter);
+		virtual void loadState(BinaryFileReader &binReader);
 	};
 }
 

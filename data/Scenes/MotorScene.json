@@ -17,7 +17,8 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"particleAttributes": "density;velocity"
+		"particleAttributes": "velocity",
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -37,7 +38,10 @@
 			"scale": [2, 2, 2],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [25,25,25]
 		},
 		{
 			"id": 1,
@@ -49,7 +53,10 @@
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"density": 10000,
 			"isDynamic": true,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"TargetVelocityMotorHingeJoints": [

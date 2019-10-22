@@ -17,7 +17,9 @@ TEMPLATE_TEST_CASE("3D Kernel is normalized, positive", "", CubicKernel, Poly6Ke
 	Vector3r xi;
 	xi.setZero();
 	Real sum = 0.0;
+	Vector3r sumV = Vector3r::Zero();
 	bool positive = true;
+	Real V = pow(stepSize, 3);
 	for (unsigned int i = 0; i < numberOfSteps; i++)
 	{
 		for (unsigned int j = 0; j < numberOfSteps; j++)
@@ -26,13 +28,15 @@ TEMPLATE_TEST_CASE("3D Kernel is normalized, positive", "", CubicKernel, Poly6Ke
 			{
 				const Vector3r xj(-supportRadius + i*stepSize, -supportRadius + j*stepSize, -supportRadius + k*stepSize);
 				const Real W = TestType::W(xi - xj);
-				sum += W *pow(stepSize, 3);
+				sum += W *V;
+				sumV += TestType::gradW(xi - xj) * V;
 				if (W < -1.0e-5)
 					positive = false;
 			}
 		}
 	}
 	REQUIRE(fabs(sum - 1.0) < 1.0e-5);
+	REQUIRE(sumV.norm() < 1.0e-5);
 	REQUIRE(positive);
 }
 
@@ -45,18 +49,22 @@ TEMPLATE_TEST_CASE("2D Kernel is normalized, positive", "", CubicKernel2D, Wendl
 	Vector3r xi;
 	xi.setZero();
 	Real sum = 0.0;
+	Vector3r sumV = Vector3r::Zero();
 	bool positive = true;
+	Real V = pow(stepSize, 2);
 	for (unsigned int i = 0; i < numberOfSteps; i++)
 	{
 		for (unsigned int j = 0; j < numberOfSteps; j++)
 		{
 			const Vector3r xj(-supportRadius + i*stepSize, -supportRadius + j*stepSize, 0.0);
 			const Real W = TestType::W(xi - xj);
-			sum += W *pow(stepSize, 2);
+			sum += W * V;
+			sumV += TestType::gradW(xi - xj) * V;
 			if (W < -1.0e-5)
 				positive = false;
 		}
 	}
 	REQUIRE(fabs(sum - 1.0) < 1.0e-5);
+	REQUIRE(sumV.norm() < 1.0e-5);
 	REQUIRE(positive);
 }

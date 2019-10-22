@@ -229,3 +229,20 @@ void MathFunctions::jacobiRotate(Matrix3r &A, Matrix3r &R, int p, int q)
 		R(k, q) = Rkq;
 	}
 }
+
+// ----------------------------------------------------------------------------------------------
+void MathFunctions::getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vector3r &y)
+{
+	// Get plane vectors x, y
+	Vector3r v(1, 0, 0);
+
+	// Check, if v has same direction as vec
+	if (fabs(v.dot(vec)) > 0.999)
+		v = Vector3r(0, 1, 0);
+
+	x = vec.cross(v);
+	y = vec.cross(x);
+	x.normalize();
+	y.normalize();
+}
+

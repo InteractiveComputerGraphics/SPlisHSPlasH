@@ -2,6 +2,9 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "Utilities/Counting.h"
 #include "../Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -63,7 +66,11 @@ void Viscosity_Bender2017::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 	FluidModel *model = m_model;
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	const unsigned int maxIter = m_maxIter;
@@ -194,10 +201,35 @@ void Viscosity_Bender2017::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			forall_boundary_neighbors(
-				const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
-				ai -= invH * 0.1 * m_viscosity * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
-			)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
+				forall_boundary_neighbors(
+					const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
+					const Vector3r a = -invH * 0.1 * m_viscosity * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) * (vi - vj)* sim->W(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					Vector3r vj;
+					bm_neighbor->getPointVelocity(xi, vj);
+					const Vector3r a = -invH * 0.1 * m_viscosity * (density0 / density_i) * (vi-vj)* rho;
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			{
+				forall_volume_maps(
+					Vector3r vj;
+					bm_neighbor->getPointVelocity(xj, vj);
+					const Vector3r a = -invH * 0.1 * m_viscosity * (density0 * Vj / density_i) * (vi-vj)* sim->W(xi - xj);
+					ai += a;
+					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
+				);
+			}
 		}
 	}
 }

@@ -10,24 +10,34 @@
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 0
+	},
+	"Fluid":
+	{
+		"viscosity": 0.01,
+		"viscosityMethod": 1, 
+		"colorMapType": 1
 	},
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",
-			"translation": [0,3,0],
+			"translation": [0,2,0],
 			"rotationAxis": [1, 0, 0],
 			"rotationAngle": 0,
-			"scale": [6, 6, 3],
+			"scale": [6, 4, 3],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [40,30,20]
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
@@ -37,17 +47,23 @@
 			"scale": [1, 1, 1], 
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
-			"translation": [1.5,0,0.75],
+			"translation": [1.5,0.0,0.75],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 0,
 			"scale": [1, 1, 1], 
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"FluidBlocks": [

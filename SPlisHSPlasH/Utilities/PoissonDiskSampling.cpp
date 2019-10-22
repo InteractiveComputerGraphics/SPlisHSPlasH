@@ -184,7 +184,7 @@ unsigned int PoissonDiskSampling::getAreaIndex(const vector<Real>& areas, const 
 
 	// Stochastic acceptance version O(1)
 	bool notaccepted = true;
-	unsigned int index;
+	unsigned int index = 0;
 	while (notaccepted)
 	{
 		index = (int)((Real)areas.size()*distribution(generator));

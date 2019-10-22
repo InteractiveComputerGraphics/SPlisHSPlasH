@@ -77,7 +77,7 @@ void AnimationField::step()
 				const Vector3r &vi = fm->getVelocity(i);
 				if (inShape(m_type, xi, m_x, m_rotation, m_scale))
 				{
-					Eigen::Map<Vector3r> value(particleField->getFct(i));
+					Eigen::Map<Vector3r> value((Real*) particleField->getFct(i));
  					te_variable vars[] = { {"t", &t}, {"dt", &dt}, 
 										   {"x", &xi[0]}, {"y", &xi[1]}, {"z", &xi[2]},
 										   {"vx", &vi[0]}, {"vy", &vi[1]}, {"vz", &vi[2]},

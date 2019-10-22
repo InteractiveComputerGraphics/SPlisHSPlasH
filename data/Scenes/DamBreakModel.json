@@ -2,22 +2,24 @@
 	"Configuration": 
 	{
 		"particleRadius": 0.025,
-		"numberOfStepsPerRenderUpdate": 2,
+		"numberOfStepsPerRenderUpdate": 4,
 		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
+		"timeStepSize": 0.005,
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"particleAttributes": "density;velocity"
+		"particleAttributes": "density;velocity",
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -29,13 +31,16 @@
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",
-			"translation": [0,2,0],
+			"translation": [0,1.5,0],
 			"rotationAxis": [1, 0, 0],
 			"rotationAngle": 0,
-			"scale": [4, 4, 1.5],
+			"scale": [4, 3, 1.5],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [40,30,15]
 		}
 	],
 	"FluidBlocks": [

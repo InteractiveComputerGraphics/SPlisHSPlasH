@@ -1,0 +1,51 @@
+{
+	"Configuration": 
+	{
+		"timeStepSize": 0.001,
+		"stopAt": 15,
+		"numberOfStepsPerRenderUpdate": 2,
+		"particleRadius": 0.02, 
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0.0,-6,0.0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2, 
+		"enablePartioExport": true,
+		"partioAttributes": "velocity"
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [-6,-0.25,0],
+			"rotationAxis": [0, 0, 1],
+			"rotationAngle": 0.05,
+			"scale": [16, 0.5, 4],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [40,5,10]
+		}
+	],
+	"FluidModels": [
+		{
+			"particleFile": "../models/particle_grid.bgeo",
+			"translation": [0.0, 0.35, 0.0],
+			"scale": [0.125,0.125,0.125]
+		}
+	]	
+}
+
+
+

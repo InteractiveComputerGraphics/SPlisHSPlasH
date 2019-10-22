@@ -46,6 +46,18 @@ void SimulationDataWCSPH::cleanup()
 
 void SimulationDataWCSPH::reset()
 {
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+
+	for (unsigned int i = 0; i < nModels; i++)
+	{
+		FluidModel *fm = sim->getFluidModel(i);
+		for (unsigned int j = 0; j < fm->numActiveParticles(); j++)
+		{
+			m_pressure[i][j] = 0.0;
+			m_pressureAccel[i][j].setZero();
+		}
+	}
 }
 
 void SimulationDataWCSPH::performNeighborhoodSearchSort()
@@ -70,7 +82,6 @@ void SimulationDataWCSPH::performNeighborhoodSearchSort()
 void SimulationDataWCSPH::emittedParticles(FluidModel *model, const unsigned int startIndex)
 {
 	// initialize kappa values for new particles
-	Simulation *sim = Simulation::getCurrent();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	for (unsigned int j = startIndex; j < model->numActiveParticles(); j++)
 	{

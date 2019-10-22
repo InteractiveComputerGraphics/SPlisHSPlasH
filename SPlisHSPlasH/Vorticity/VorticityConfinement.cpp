@@ -42,7 +42,6 @@ void VorticityConfinement::step()
 			const Vector3r &vi = m_model->getVelocity(i);
 			Vector3r &omegai = m_omega[i];
 			omegai.setZero();
-			Vector3r &ai = m_model->getAcceleration(i);
 			const Real density_i = m_model->getDensity(i);
 			const Real density_i2 = density_i *density_i;
 
@@ -68,7 +67,6 @@ void VorticityConfinement::step()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r &xi = m_model->getPosition(i);
-			const Vector3r &vi = m_model->getVelocity(i);
 			Vector3r &ai = m_model->getAcceleration(i);
 			const Real density_i = m_model->getDensity(i);
 			const Real density_i2 = density_i *density_i;

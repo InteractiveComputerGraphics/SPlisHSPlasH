@@ -8,17 +8,18 @@
 		"density0": 1000, 
 		"simulationMethod": 4,		
 		"gravitation": [0,-9.81,0], 		
-		"cflMethod": 1, 
-		"cflFactor": 0.7,
+		"cflMethod": 2, 
+		"cflFactor": 1.0,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -40,17 +41,23 @@
 			"scale": [2.5, 4, 1.0],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [25,40,20]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
-			"translation": [-1.08,1,0.075],
+			"translation": [-1.05,1,0.075],
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 0,
 			"scale": [0.2,2,0.85], 
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": false
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	],
 	"FluidBlocks": [
@@ -58,7 +65,7 @@
 			"denseMode": 0,
 			"start": [-1.7, 0.0, -0.48],
 			"end": [-1.2, 1.5, 0.48],
-			"translation": [0, 0.0, 0.0],
+			"translation": [0, 0.05, 0.0],
 			"scale": [1, 1, 1]
 		}
 	]

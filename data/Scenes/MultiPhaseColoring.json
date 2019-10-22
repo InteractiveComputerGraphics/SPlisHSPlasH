@@ -10,43 +10,43 @@
 		"cflFactor": 0.5,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.05,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 5000,
 		"exponent": 1,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"first_fluid":
 	{
 		"density0": 1000, 
-		"viscosity": 0.01,
-		"viscosityBoundary": 5000,
+		"viscosity": 0.02,
 		"viscosityMethod": 1,
 		"viscoMaxIter": 200, 
 		"viscoMaxError": 0.05,
 		"maxEmitterParticles": 6000,
 		"colorField": "velocity",
 		"colorMapType": 1,
-		"renderMinValue": 0.01,
+		"renderMinValue": 0.0,
 		"renderMaxValue": 6.0
 	},
 	"second_fluid":
 	{
-		"density0": 100, 
+		"density0": 500, 
 		"viscosity": 0.01,
 		"viscosityMethod": 1,
 		"vorticityMethod": 1, 
 		"vorticity": 0.1,
 		"colorField": "angular velocity",
 		"colorMapType": 2,
-		"renderMinValue": 0.01,
+		"renderMinValue": 0.0,
 		"renderMaxValue": 2.0
 	},
 	"third_fluid":
 	{
-		"density0": 50, 
+		"density0": 250, 
 		"viscosity": 0.015,
 		"maxEmitterParticles": 1000,
 		"emitterReuseParticles": false,
@@ -71,24 +71,10 @@
 			"friction" : 0.0,
 			"collisionObjectType": 2,
 			"collisionObjectScale": [2.1, 4, 2.1],	
-			"invertSDF": true
-		}
-	],
-	"Comment": [
-		{
-			"id": 1,
-			"geometryFile": "../models/torus.obj",
-			"isDynamic": 1, 
-			"density": 50, 
-			"translation": [0.4,1.0,0.0],
-			"rotationAxis": [0, 0, 1],
-			"rotationAngle": 1.0,
-			"scale": [0.2, 0.2, 0.2],
-			"restitution" : 0.6,
-			"friction" : 0.2,
-			"color": [0.5, 0.2, 0.6, 1.0], 
-			"collisionObjectType": 4,
-			"collisionObjectScale": [0.2, 0.1, 0.2]	
+			"invertSDF": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [25,30,25]
 		}
 	],
 	"FluidBlocks": [
@@ -114,7 +100,8 @@
 			"rotationAxis": [0, 1, 0],
 			"rotationAngle": 0.0,
 			"velocity": 2,
-			"type": 0
+			"type": 0,
+			"emitEndTime": 2
 		}
 	]
 }

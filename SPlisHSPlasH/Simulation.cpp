@@ -9,6 +9,9 @@
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
+#include "BoundaryModel_Akinci2012.h"
+#include "BoundaryModel_Bender2019.h"
+#include "BoundaryModel_Koschier2017.h"
 
 
 
@@ -50,6 +53,10 @@ int Simulation::ENUM_SIMULATION_PBF = -1;
 int Simulation::ENUM_SIMULATION_IISPH = -1;
 int Simulation::ENUM_SIMULATION_DFSPH = -1;
 int Simulation::ENUM_SIMULATION_PF = -1;
+int Simulation::BOUNDARY_HANDLING_METHOD = -1;
+int Simulation::ENUM_AKINCI2012 = -1;
+int Simulation::ENUM_KOSCHIER2017 = -1;
+int Simulation::ENUM_BENDER2019 = -1;
 
 
 Simulation::Simulation () 
@@ -71,6 +78,7 @@ Simulation::Simulation ()
 	m_enableZSort = true;
 
 	m_animationFieldSystem = new AnimationFieldSystem();
+	m_boundaryHandlingMethod = static_cast<int>(BoundaryHandlingMethods::Bender2019);
 }
 
 Simulation::~Simulation () 
@@ -225,6 +233,15 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("IISPH", ENUM_SIMULATION_IISPH);
 	enumParam->addEnumValue("DFSPH", ENUM_SIMULATION_DFSPH);
 	enumParam->addEnumValue("Projective Fluids", ENUM_SIMULATION_PF);
+
+	BOUNDARY_HANDLING_METHOD = createEnumParameter("boundaryHandlingMethod", "Boundary handling method", &m_boundaryHandlingMethod);
+	setGroup(BOUNDARY_HANDLING_METHOD, "Simulation");
+	setDescription(BOUNDARY_HANDLING_METHOD, "Boundary handling method.");
+	enumParam = static_cast<EnumParameter*>(getParameter(BOUNDARY_HANDLING_METHOD));
+	enumParam->addEnumValue("Akinci et al. 2012", ENUM_AKINCI2012);
+	enumParam->addEnumValue("Koschier and Bender 2017", ENUM_KOSCHIER2017);
+	enumParam->addEnumValue("Bender et al. 2019", ENUM_BENDER2019);
+	enumParam->setReadOnly(true);
 }
 
 
@@ -330,7 +347,8 @@ void Simulation::setKernel(int val)
 			m_kernelFct = WendlandQuinticC2Kernel2D::W;
 		}
 	}
-	updateBoundaryVolume();
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		updateBoundaryVolume();
 }
 
 void Simulation::updateTimeStepSize()
@@ -355,15 +373,17 @@ void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 {
 	const Real radius = m_particleRadius;
 	Real h = TimeManager::getCurrent()->getTimeStepSize();
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	// Approximate max. position change due to current velocities
 	Real maxVel = 0.1;
 	const Real diameter = static_cast<Real>(2.0)*radius;
 
 	// fluid particles
-	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < numberOfFluidModels(); fluidModelIndex++)
 	{
-		FluidModel *fm = getFluidModel(i);
+		FluidModel *fm = getFluidModel(fluidModelIndex);
 		const unsigned int numParticles = fm->numActiveParticles();
 		for (unsigned int i = 0; i < numParticles; i++)
 		{
@@ -376,17 +396,42 @@ void Simulation::updateTimeStepSizeCFL(const Real minTimeStepSize)
 	}
 
 	// boundary particles
-	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{
-		BoundaryModel *bm = getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
+		for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		{
-			for (unsigned int j = 0; j < bm->numberOfParticles(); j++)
+			BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(i));
+			if (bm->getRigidBodyObject()->isDynamic())
 			{
-				const Vector3r &vel = bm->getVelocity(j);
-				const Real velMag = vel.squaredNorm();
-				if (velMag > maxVel)
-					maxVel = velMag;
+				for (unsigned int j = 0; j < bm->numberOfParticles(); j++)
+				{
+					const Vector3r &vel = bm->getVelocity(j);
+					const Real velMag = vel.squaredNorm();
+					if (velMag > maxVel)
+						maxVel = velMag;
+				}
+			}
+		}
+	}
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	{
+		for (unsigned int boundaryModelIndex = 0; boundaryModelIndex < numberOfBoundaryModels(); boundaryModelIndex++)
+		{
+			BoundaryModel_Koschier2017 *bm = static_cast<BoundaryModel_Koschier2017*>(getBoundaryModel(boundaryModelIndex));
+			if (bm->getRigidBodyObject()->isDynamic())
+			{
+				maxVel = std::max(maxVel, bm->getMaxVel());
+			}
+		}
+	}
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+	{
+		for (unsigned int boundaryModelIndex = 0; boundaryModelIndex < numberOfBoundaryModels(); boundaryModelIndex++)
+		{
+			BoundaryModel_Bender2019 *bm = static_cast<BoundaryModel_Bender2019*>(getBoundaryModel(boundaryModelIndex));
+			if (bm->getRigidBodyObject()->isDynamic())
+			{
+				maxVel = std::max(maxVel, bm->getMaxVel());
 			}
 		}
 	}
@@ -424,7 +469,9 @@ void Simulation::reset()
 	// reset boundary models
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		getBoundaryModel(i)->reset();
-	updateBoundaryVolume();
+
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		updateBoundaryVolume();
 
 	if (m_timeStep)
 		m_timeStep->reset();
@@ -552,10 +599,8 @@ void Simulation::animateParticles()
 	STOP_TIMING_AVG
 }
 
-void Simulation::addBoundaryModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles)
+void Simulation::addBoundaryModel(BoundaryModel *bm)
 {
-	BoundaryModel *bm = new BoundaryModel();
-	bm->initModel(rbo, numBoundaryParticles, boundaryParticles);
 	m_boundaryModels.push_back(bm);
 }
 
@@ -598,7 +643,7 @@ void Simulation::updateBoundaryVolume()
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
 		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
-			getBoundaryModel(body)->computeBoundaryVolume();
+			static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body))->computeBoundaryVolume();
 	}
 
 	////////////////////////////////////////////////////////////////////////// 
@@ -614,7 +659,7 @@ void Simulation::updateBoundaryVolume()
 		{
 			m_neighborhoodSearch->set_active(body + nFluids, true, true);
 			m_neighborhoodSearch->find_neighbors();
-			getBoundaryModel(body)->computeBoundaryVolume();
+			static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body))->computeBoundaryVolume();
 		}
 	}
 
@@ -627,4 +672,24 @@ void Simulation::updateBoundaryVolume()
 		for (unsigned int j = numberOfFluidModels(); j < m_neighborhoodSearch->point_sets().size(); j++)
 			m_neighborhoodSearch->set_active(i, j, true);
 	}
+}
+
+void SPH::Simulation::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.write(m_W_zero);
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+		getFluidModel(i)->saveState(binWriter);
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+		getBoundaryModel(i)->saveState(binWriter);
+	m_timeStep->saveState(binWriter);
+}
+
+void SPH::Simulation::loadState(BinaryFileReader &binReader)
+{
+	binReader.read(m_W_zero);
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+		getFluidModel(i)->loadState(binReader);
+	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
+		getBoundaryModel(i)->loadState(binReader);
+	m_timeStep->loadState(binReader);
 }

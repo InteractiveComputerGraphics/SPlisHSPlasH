@@ -3,7 +3,7 @@
 	{
 		"timeStepSize": 0.001,
 		"sim2D": true, 
-		"numberOfStepsPerRenderUpdate": 2,
+		"numberOfStepsPerRenderUpdate": 4,
 		"particleRadius": 0.025, 
 		"density0": 1000, 
 		"simulationMethod": 4,
@@ -18,7 +18,8 @@
 		"stiffness": 50000,
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true
+		"enableDivergenceSolver": true,
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -38,10 +39,13 @@
 			"translation": [0,2,0],
 			"rotationAxis": [1, 0, 0],
 			"rotationAngle": 0,
-			"scale": [2.5, 4, 1.0],
+			"scale": [2.5, 4, 0.5],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,20]
 		}
 	], 
 	"Emitters": [

@@ -9,7 +9,7 @@
 #include "Utilities/PartioReaderWriter.h"
 #include "PositionBasedDynamicsWrapper/PBDRigidBody.h"
 #include "Utilities/OBJLoader.h"
-#include "SPlisHSPlasH/Utilities/PoissonDiskSampling.h"
+#include "SPlisHSPlasH/Utilities/SurfaceSampling.h"
 #include "PositionBasedDynamicsWrapper/PBDWrapper.h"
 #include "Simulators/Common/SimulatorBase.h"
 #include "Utilities/FileSystem.h"
@@ -19,6 +19,11 @@
 #include "SPlisHSPlasH/Simulation.h"
 #include "Simulators/Common/TweakBarParameters.h"
 #include "SPlisHSPlasH/TimeStep.h"
+#include "Discregrid/All"
+#include "SPlisHSPlasH/Utilities/GaussQuadrature.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "GL/freeglut_ext.h"
 #include "SPlisHSPlasH/Emitter.h"
 
@@ -42,8 +47,6 @@ void render ();
 void renderBoundary();
 void reset();
 void initParameters();
-void updateBoundaryParticles(const bool forceUpdate);
-void updateBoundaryForces();
 void TW_CALL setCurrentFluidModel(const void *value, void *clientData);
 void TW_CALL getCurrentFluidModel(void *value, void *clientData);
 void TW_CALL setColorField(const void *value, void *clientData);
@@ -68,6 +71,12 @@ int main( int argc, char **argv )
 	base = new SimulatorBase();
 	base->init(argc, argv, "DynamicBoundarySimulator");
 
+	if (base->getScene().sim2D)
+	{
+		LOG_ERR << "DynamicBoundarySimulator does not support 2D simulations, use the StaticBoundarySimulator.";
+		exit(1);
+	}
+
 	Simulation *sim = Simulation::getCurrent();
 	sim->init(base->getScene().particleRadius, base->getScene().sim2D);
 
@@ -87,12 +96,12 @@ int main( int argc, char **argv )
 		rb.friction = 0.1;
 		if (ed->type == 0)
 		{
-			rb.objFile = FileSystem::normalizePath(scene_path + "/../models/EmitterBox.obj");
+			rb.objFile = FileSystem::normalizePath(base->getDataPath() + "/models/EmitterBox.obj");
 			rb.collisionType = 2;
 		}
 		else if (ed->type == 1)
 		{
-			rb.objFile = FileSystem::normalizePath(scene_path + "/../models/EmitterCylinder.obj");
+			rb.objFile = FileSystem::normalizePath(base->getDataPath() + "/models/EmitterCylinder.obj");
 			rb.collisionType = 5;
 		}
 		additionalRBs.push_back(rb);
@@ -106,12 +115,14 @@ int main( int argc, char **argv )
 
 	base->buildModel();
 
-	initBoundaryData();
-	unsigned int nBoundaryParticles = 0;
-	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-		nBoundaryParticles += sim->getBoundaryModel(i)->numberOfParticles();
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	{
+		unsigned int nBoundaryParticles = 0;
+		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+			nBoundaryParticles += static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i))->numberOfParticles();
 
-	LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
+		LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
+	}
 
 	const bool useGUI = base->getUseGUI();
 
@@ -134,7 +145,12 @@ int main( int argc, char **argv )
 
 	base->readParameters();
 
+	initBoundaryData();
+
 	pbdWrapper.initModel(TimeManager::getCurrent()->getTimeStepSize());
+
+	if (base->getStateFile() != "")
+		base->loadState(base->getStateFile());
 
 	if (!useGUI)
 	{
@@ -267,7 +283,14 @@ void reset()
 	//////////////////////////////////////////////////////////////////////////
 	pbdWrapper.reset();
 
-	updateBoundaryParticles(true);
+	Simulation *sim = Simulation::getCurrent();
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		base->updateBoundaryParticles(true);
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		base->updateDMVelocity();
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		base->updateVMVelocity();
+
 	base->getSelectedParticles().clear();
 }
 
@@ -294,7 +317,7 @@ void timeStep ()
 		SPH::Simulation::getCurrent()->getTimeStep()->step();
 		STOP_TIMING_AVG;
 
-		updateBoundaryForces();
+		base->updateBoundaryForces();
 
 		//////////////////////////////////////////////////////////////////////////
 		// PBD
@@ -303,7 +326,13 @@ void timeStep ()
 		pbdWrapper.timeStep();
 		STOP_TIMING_AVG;
 
-		updateBoundaryParticles(false);
+		Simulation *sim = Simulation::getCurrent();
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			base->updateBoundaryParticles(false);
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			base->updateDMVelocity();
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			base->updateVMVelocity();
 
 		base->step();
 
@@ -339,7 +368,7 @@ bool timeStepNoGUI()
 	SPH::Simulation::getCurrent()->getTimeStep()->step();
 	STOP_TIMING_AVG;
 
-	updateBoundaryForces();
+	base->updateBoundaryForces();
 
 	//////////////////////////////////////////////////////////////////////////
 	// PBD
@@ -348,7 +377,12 @@ bool timeStepNoGUI()
 	pbdWrapper.timeStep();
 	STOP_TIMING_AVG;
 
-	updateBoundaryParticles(false);
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		base->updateBoundaryParticles(false);
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		base->updateDMVelocity();
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		base->updateVMVelocity();
 
 	base->step();
 
@@ -379,25 +413,26 @@ void renderBoundary()
 	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
 	GLint context_major_version = base->getContextMajorVersion();
 
-	if ((renderWalls == 1) || (renderWalls == 2))
+	if (((renderWalls == 1) || (renderWalls == 2)) && 
+		(sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012))
 	{
 		if (context_major_version > 3)
 		{
-			shader.begin();
 			for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					glUniform3fv(shader.getUniform("color"), 1, scene.boundaryModels[body]->color.data());
+					base->pointShaderBegin(&shader, scene.boundaryModels[body]->color.data(), 0.0, 100000.0);
 					glEnableVertexAttribArray(0);
 
-					BoundaryModel *bm = sim->getBoundaryModel(body);
+					BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(body));
 					glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &bm->getPosition(0));
 					glDrawArrays(GL_POINTS, 0, bm->numberOfParticles());
 					glDisableVertexAttribArray(0);
+
+					base->pointShaderEnd(&shader);
 				}
 			}
-			shader.end();
 		}
 		else
 		{
@@ -409,7 +444,7 @@ void renderBoundary()
 			{
 				if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 				{
-					BoundaryModel *bm = sim->getBoundaryModel(body);
+					BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(body));
 					for (unsigned int i = 0; i < bm->numberOfParticles(); i++)
 					{
 						glColor3fv(scene.boundaryModels[body]->color.data());
@@ -492,12 +527,15 @@ void initBoundaryData()
 	std::string scene_file_name = FileSystem::getFileName(base->getSceneFile());
 	SceneLoader::Scene &scene = base->getScene();
 	const bool useCache = base->getUseParticleCaching();
+	Simulation *sim = Simulation::getCurrent();
 
 	string cachePath = scene_path + "/Cache";
 
 	for (unsigned int i = 0; i < scene.boundaryModels.size(); i++)
 	{
-		string meshFileName = FileSystem::normalizePath(scene_path + "/" + scene.boundaryModels[i]->meshFile);
+		string meshFileName = scene.boundaryModels[i]->meshFile;
+		if (FileSystem::isRelativePath(meshFileName))
+			meshFileName = FileSystem::normalizePath(scene_path + "/" + scene.boundaryModels[i]->meshFile);
 
 		// check if mesh file has changed
 		std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + FileSystem::getFileNameWithExt(meshFileName) + ".md5");
@@ -519,118 +557,131 @@ void initBoundaryData()
 		Utilities::IndexedFaceMesh &mesh = geo.getMesh();
 		PBD::VertexData &vd = geo.getVertexData();
 
-		if (scene.boundaryModels[i]->samplesFile != "")
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		{
-			string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
-			PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
-
-			// transform back to local coordinates
-			for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-				boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * boundaryParticles[j] + rb->getWorldSpacePosition() - rb->getPosition());
-		}
-		else		// if no samples file is given, sample the surface model
-		{
-			// Cache sampling
-			std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
-			std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
-			
-			const string resStr = base->real2String(scene.boundaryModels[i]->scale[0]) + "_" + base->real2String(scene.boundaryModels[i]->scale[1]) + "_" + base->real2String(scene.boundaryModels[i]->scale[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_dbd_" + base->real2String(scene.particleRadius) + "_" + resStr + ".bgeo");
-
-			// check MD5 if cache file is available
-			bool foundCacheFile = false;
-
-			if (useCache)
-				foundCacheFile = FileSystem::fileExists(particleFileName);
-
-			if (useCache && foundCacheFile && md5)
+			// if a samples file is given, use this one
+			if (scene.boundaryModels[i]->samplesFile != "")
 			{
-				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
-				LOG_INFO << "Loaded cached boundary sampling: " << particleFileName;
-			}
-
-			if (!useCache || !foundCacheFile || !md5)
-			{
-				LOG_INFO << "Surface sampling of " << scene.boundaryModels[i]->meshFile;
-				START_TIMING("Poisson disk sampling");
-				PoissonDiskSampling sampling;
-				sampling.sampleMesh(mesh.numVertices(), &vd.getPosition(0), mesh.numFaces(), mesh.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
-				STOP_TIMING_AVG;
+				string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
+				PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale[0], boundaryParticles);
 
 				// transform back to local coordinates
 				for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-					boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
-
+					boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * boundaryParticles[j] + rb->getWorldSpacePosition() - rb->getPosition());
+			}
+			else		// if no samples file is given, sample the surface model
+			{
 				// Cache sampling
-				if (useCache && (FileSystem::makeDir(cachePath) == 0))
+				std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
+				std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
+
+				const string resStr = base->real2String(scene.boundaryModels[i]->scale[0]) + "_" + base->real2String(scene.boundaryModels[i]->scale[1]) + "_" + base->real2String(scene.boundaryModels[i]->scale[2]);
+
+				const string modeStr = "_m" + std::to_string(scene.boundaryModels[i]->samplingMode);
+				const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_" + base->real2String(scene.particleRadius) + "_" + resStr + modeStr + ".bgeo");
+
+				// check MD5 if cache file is available
+				bool foundCacheFile = false;
+
+				if (useCache)
+					foundCacheFile = FileSystem::fileExists(particleFileName);
+
+				if (useCache && foundCacheFile && md5)
 				{
-					LOG_INFO << "Save particle sampling: " << particleFileName;
-					PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, 0.0);
-					FileSystem::writeMD5File(meshFileName, md5FileName);
+					PartioReaderWriter::readParticles(particleFileName, Vector3r::Zero(), Matrix3r::Identity(), 1.0, boundaryParticles);
+					LOG_INFO << "Loaded cached boundary sampling: " << particleFileName;
+				}
+
+				if (!useCache || !foundCacheFile || !md5)
+				{
+					const auto samplePoissonDisk = [&]()
+					{
+						LOG_INFO << "Poisson disk surface sampling of " << meshFileName;
+						START_TIMING("Poisson disk sampling");
+						PoissonDiskSampling sampling;
+						sampling.sampleMesh(mesh.numVertices(), &vd.getPosition(0), mesh.numFaces(), mesh.getFaces().data(), scene.particleRadius, 10, 1, boundaryParticles);
+						STOP_TIMING_AVG;
+					};
+					const auto sampleRegularTriangle = [&]()
+					{
+						LOG_INFO << "Regular triangle surface sampling of " << meshFileName;
+						START_TIMING("Regular triangle sampling");
+						RegularTriangleSampling sampling;
+						sampling.sampleMesh(mesh.numVertices(), &vd.getPosition(0), mesh.numFaces(), mesh.getFaces().data(), 1.5f * scene.particleRadius, boundaryParticles);
+						STOP_TIMING_AVG;
+					};
+					if (SurfaceSamplingMode::PoissonDisk == scene.boundaryModels[i]->samplingMode)
+						samplePoissonDisk();
+					else if (SurfaceSamplingMode::RegularTriangle == scene.boundaryModels[i]->samplingMode)
+						sampleRegularTriangle();
+					else
+					{
+						LOG_WARN << "Unknown surface sampling method: " << scene.boundaryModels[i]->samplingMode;
+						LOG_WARN << "Falling back to:";
+						sampleRegularTriangle();
+					}
+
+					// transform back to local coordinates
+					for (unsigned int j = 0; j < boundaryParticles.size(); j++)
+						boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
+
+					// Cache sampling
+					if (useCache && (FileSystem::makeDir(cachePath) == 0))
+					{
+						LOG_INFO << "Save particle sampling: " << particleFileName;
+						PartioReaderWriter::writeParticles(particleFileName, (unsigned int)boundaryParticles.size(), boundaryParticles.data(), nullptr, 0.0);
+					}
 				}
 			}
+
+			BoundaryModel_Akinci2012 *bm = new BoundaryModel_Akinci2012();
+			bm->initModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
+			sim->addBoundaryModel(bm);
 		}
-		Simulation::getCurrent()->addBoundaryModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		{
+			BoundaryModel_Koschier2017 *bm = new BoundaryModel_Koschier2017();
+			bm->initModel(rb);
+			sim->addBoundaryModel(bm);
+
+			PBD::RigidBodyGeometry &geo = rigidBodies[i]->getGeometry();
+			Utilities::IndexedFaceMesh &mesh = geo.getMesh();
+			PBD::VertexData &vd = geo.getVertexData();
+			// transform back 
+			std::vector<Vector3r> xLocal;
+			xLocal.resize(vd.size());
+			for (unsigned int j = 0; j < vd.size(); j++)
+				xLocal[j] = rigidBodies[i]->getRotationMatrix().transpose() * (vd.getPosition(j) - rigidBodies[i]->getPosition());
+
+			base->initDensityMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
+		}
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		{
+			BoundaryModel_Bender2019 *bm = new BoundaryModel_Bender2019();
+			bm->initModel(rb);
+			sim->addBoundaryModel(bm);
+
+			// transform back 
+			std::vector<Vector3r> xLocal;
+			xLocal.resize(vd.size());
+			for (unsigned int j = 0; j < vd.size(); j++)
+				xLocal[j] = rb->getRotation().transpose() * (vd.getPosition(j) - rb->getPosition());
+			base->initVolumeMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
+		}
+		if (useCache && !md5)
+			FileSystem::writeMD5File(meshFileName, md5FileName);
 	}
 
 	Simulation::getCurrent()->performNeighborhoodSearchSort();
-	updateBoundaryParticles(true);
-	Simulation::getCurrent()->updateBoundaryVolume();
-}
-
-
-void updateBoundaryParticles(const bool forceUpdate = false)
-{
-	Simulation *sim = Simulation::getCurrent();
-	SceneLoader::Scene &scene = base->getScene();
-	const unsigned int nObjects = sim->numberOfBoundaryModels();
-	for (unsigned int i = 0; i < nObjects; i++)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic() || forceUpdate)
-		{			
-			#pragma omp parallel default(shared)
-			{
-				#pragma omp for schedule(static)  
-				for (int j = 0; j < (int)bm->numberOfParticles(); j++)
-				{
-					bm->getPosition(j) = rbo->getRotation() * bm->getPosition0(j) + rbo->getPosition();
-					if (rbo->isDynamic())
-						bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
-					else
-						bm->getVelocity(j).setZero();
-				}
-			}
-#ifdef GPU_NEIGHBORHOOD_SEARCH
-			// copy the particle data to the GPU
-			if (forceUpdate)
-				sim->getNeighborhoodSearch()->update_point_sets();
-#endif 
-		}
+		base->updateBoundaryParticles(true);
+		Simulation::getCurrent()->updateBoundaryVolume();
 	}
-}
-
-void updateBoundaryForces()
-{
-	Real h = TimeManager::getCurrent()->getTimeStepSize();
-	SceneLoader::Scene &scene = base->getScene();
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nObjects = sim->numberOfBoundaryModels();	
-	for (unsigned int i = 0; i < nObjects; i++)
-	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic())
-		{
-			((PBDRigidBody*)rbo)->updateTimeStepSize();
-			Vector3r force, torque;
-			bm->getForceAndTorque(force, torque);
-			rbo->addForce(force);
-			rbo->addTorque(torque);
-			bm->clearForceAndTorque();
-		}
-	}
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		base->updateDMVelocity();
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		base->updateVMVelocity();
 }
 
 void TW_CALL setCurrentFluidModel(const void *value, void *clientData)

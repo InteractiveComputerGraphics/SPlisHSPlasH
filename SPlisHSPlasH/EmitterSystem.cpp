@@ -116,3 +116,20 @@ void EmitterSystem::disableReuseParticles()
 {
 	m_reuseParticles = false;
 }
+
+void SPH::EmitterSystem::saveState(BinaryFileWriter &binWriter)
+{
+	binWriter.write(m_numberOfEmittedParticles);
+	binWriter.write(m_numReusedParticles);
+	for (size_t i = 0; i < m_emitters.size(); i++)
+		m_emitters[i]->saveState(binWriter);
+}
+
+void SPH::EmitterSystem::loadState(BinaryFileReader &binReader)
+{
+	binReader.read(m_numberOfEmittedParticles);
+	binReader.read(m_numReusedParticles);
+	for (size_t i = 0; i < m_emitters.size(); i++)
+		m_emitters[i]->loadState(binReader);
+}
+

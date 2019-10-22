@@ -2,6 +2,7 @@
 #define __TimeManager_h__
 
 #include "Common.h"
+#include "Utilities/BinaryFileReaderWriter.h"
 
 namespace SPH
 {
@@ -28,6 +29,9 @@ namespace SPH
 		void setTime(Real t);
 		Real getTimeStepSize();
 		void setTimeStepSize(Real tss);
+
+		void saveState(BinaryFileWriter &binWriter);
+		void loadState(BinaryFileReader &binReader);
 	};
 }
 

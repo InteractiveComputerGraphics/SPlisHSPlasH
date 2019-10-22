@@ -12,7 +12,14 @@ namespace SPH
 	*/
 	class Viscosity_XSPH : public ViscosityBase
 	{
+	protected:
+		Real m_boundaryViscosity;
+
+		virtual void initParameters();
+
 	public:
+		static int VISCOSITY_COEFFICIENT_BOUNDARY;
+
 		Viscosity_XSPH(FluidModel *model);
 		virtual ~Viscosity_XSPH(void);
 

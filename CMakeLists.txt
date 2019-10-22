@@ -12,6 +12,10 @@ include(${PROJECT_PATH}/CMake/Common.cmake)
 
 add_definitions(-DSPH_DATA_PATH="../data")
 
+if (NOT WIN32)
+	message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif()
+
 OPTION(USE_DOUBLE_PRECISION "Use double precision"	ON)
 if (USE_DOUBLE_PRECISION)
 	add_definitions( -DUSE_DOUBLE)
@@ -58,7 +62,7 @@ ExternalProject_Add(
    Ext_PBD
    PREFIX "${CMAKE_SOURCE_DIR}/extern/PositionBasedDynamics"
    GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-   GIT_TAG "1adf52eb23cdd73c7d9db725d09256fc8ed7f395"
+   GIT_TAG "160c7d3903e4b71c7c3012d49fb03ae6974d6041"
    INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
    CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics -DPBD_NO_DEMOS:BOOL=1	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir} -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
 )

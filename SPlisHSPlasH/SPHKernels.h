@@ -284,7 +284,7 @@ namespace SPH
 
 			const Real h3 = m_radius*m_radius*m_radius;
 			const Real h5 = h3*m_radius*m_radius;
-			m_k = static_cast<Real>(21.0) / (2.0*pi*h3);
+			m_k = static_cast<Real>(21.0) / (static_cast<Real>(2.0)*pi*h3);
 			m_l = -static_cast<Real>(210.0) / (pi*h3);
 			m_W_zero = W(0.0);
 		}
@@ -423,7 +423,6 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				const Real r = sqrt(r2);
 				if (r > 0.5*m_radius)
 					res = m_k*pow(-static_cast<Real>(4.0)*r2 / m_radius + static_cast<Real>(6.0)*r - static_cast<Real>(2.0)*m_radius, static_cast<Real>(0.25));
 			}
@@ -437,9 +436,9 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				const Real r = sqrt(r2);
-				if (r > 0.5*m_radius)
-					res = m_k*pow(-static_cast<Real>(4.0)*r2 / m_radius + static_cast<Real>(6.0)*r - static_cast<Real>(2.0)*m_radius, static_cast<Real>(0.25));
+				const Real rl = sqrt(r2);
+				if (rl > 0.5*m_radius)
+					res = m_k*pow(-static_cast<Real>(4.0)*r2 / m_radius + static_cast<Real>(6.0)*rl - static_cast<Real>(2.0)*m_radius, static_cast<Real>(0.25));
 			}
 			return res;
 		}
@@ -468,8 +467,8 @@ namespace SPH
 			static const Real pi = static_cast<Real>(M_PI);
 
 			const Real h2 = m_radius*m_radius;
-			m_k = 40.0 / (7.0 * (pi*h2));
-			m_l = 240.0 / (7.0 * (pi*h2));
+			m_k = static_cast<Real>(40.0) / (static_cast<Real>(7.0) * (pi*h2));
+			m_l = static_cast<Real>(240.0) / (static_cast<Real>(7.0) * (pi*h2));
 
 			m_W_zero = W(Vector3r::Zero());
 		}
@@ -509,14 +508,14 @@ namespace SPH
 			{
 				if (rl > 1.0e-6)
 				{
-					const Vector3r gradq = r * ((Real) 1.0 / (rl*m_radius));
+					const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
 					if (q <= 0.5)
 					{
-						res = m_l*q*((Real) 3.0*q - (Real) 2.0)*gradq;
+						res = m_l*q*(static_cast<Real>(3.0)*q - static_cast<Real>(2.0))*gradq;
 					}
 					else
 					{
-						const Real factor = 1.0 - q;
+						const Real factor = static_cast<Real>(1.0) - q;
 						res = m_l*(-factor*factor)*gradq;
 					}
 				}
@@ -628,7 +627,7 @@ namespace SPH
 					m_gradW[i] = 0.0;
 			}
 			m_gradW[resolution] = 0.0;
-			m_W_zero = W(0.0);
+			m_W_zero = W(static_cast<Real>(0));
 		}
 
 	public:
@@ -638,9 +637,9 @@ namespace SPH
 			const Real r2 = r.squaredNorm();
 			if (r2 <= m_radius2)
 			{
-				const Real r = sqrt(r2);
-				const unsigned int pos = std::min<unsigned int>((unsigned int)(r * m_invStepSize), resolution-1);
-				res = 0.5*(m_W[pos]+ m_W[pos+1]);
+				const Real rl = sqrt(r2);
+				const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * m_invStepSize), resolution-1);
+				res = static_cast<Real>(0.5)*(m_W[pos]+ m_W[pos+1]);
 			}
 			return res;
 		}
@@ -651,7 +650,7 @@ namespace SPH
 			if (r <= m_radius)
 			{
 				const unsigned int pos = std::min<unsigned int>((unsigned int)(r * m_invStepSize), resolution-1);
-				res = 0.5*(m_W[pos] + m_W[pos + 1]);
+				res = static_cast<Real>(0.5)*(m_W[pos] + m_W[pos + 1]);
 			}
 			return res;
 		}
@@ -659,11 +658,11 @@ namespace SPH
 		static Vector3r gradW(const Vector3r &r)
 		{
 			Vector3r res;
-			const Real r2 = r.squaredNorm();
-			if (r2 <= m_radius2)
+			const Real rl = r.norm();
+			if (rl <= m_radius)
 			{
-				const Real rl = sqrt(r2);
-				const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * m_invStepSize), resolution-1);
+				//const Real rl = sqrt(r2);
+				const unsigned int pos = std::min<unsigned int>(static_cast<unsigned int>(rl * m_invStepSize), resolution-1u);
 				res = 0.5*(m_gradW[pos] + m_gradW[pos + 1]) * r;
 			}
 			else

@@ -13,7 +13,7 @@ option(USE_GPU_NEIGHBORHOOD_SEARCH "Use GPU neighborhood search" OFF)
 if(USE_GPU_NEIGHBORHOOD_SEARCH)
 
 	message(STATUS "Use cuNSearch for neighborhood search")
-	
+
 	if(USE_DOUBLE_PRECISION)
 		message("Use cuNSearch with single precision to get a better performance.")
 	endif()

@@ -527,6 +527,26 @@ class convertToRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 				# is dynamic
 				cmds.addAttr(node, longName="SPH_color", niceName="color", usedAsColor= True, at="float3")
 				
+				# map thickness
+				cmds.addAttr(node, longName="SPH_density", niceName="density", at="float");
+				cmds.setAttr((node + '.SPH_density'), 1000.0)
+				
+				# map invert
+				cmds.addAttr(node, longName="SPH_mapInvert", niceName="invert map", at="bool");
+				cmds.setAttr((node + '.SPH_mapInvert'), False)
+				
+				# map thickness
+				cmds.addAttr(node, longName="SPH_mapThickness", niceName="map thickness", at="float");
+				cmds.setAttr((node + '.SPH_mapThickness'), 0.0)
+				
+				# map resolution
+				cmds.addAttr(node, longName="SPH_mapResolution", niceName="map resolution", at="long3")
+				cmds.addAttr(node, longName='SPHmapResolutionX', at='long', parent='SPH_mapResolution')
+				cmds.addAttr(node, longName='SPHmapResolutionY', at='long', parent='SPH_mapResolution')
+				cmds.addAttr(node, longName='SPHmapResolutionZ', at='long', parent='SPH_mapResolution')
+				cmds.setAttr((node + '.SPH_mapResolution'), 20, 20, 20, type="long3")
+				
+						
 				cmds.addAttr(node, longName='SPHcolorR', at='float', parent='SPH_color')
 				cmds.addAttr(node, longName='SPHcolorG', at='float', parent='SPH_color')
 				cmds.addAttr(node, longName='SPHcolorB', at='float', parent='SPH_color')
@@ -690,6 +710,10 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 
 		isDynamic = cmds.getAttr(rbNode + ".SPH_isDynamic")
 		isWall = cmds.getAttr(rbNode + ".SPH_isWall")
+		density = cmds.getAttr(rbNode + ".SPH_density")
+		mapInvert = cmds.getAttr(rbNode + ".SPH_mapInvert")
+		mapThickness = cmds.getAttr(rbNode + ".SPH_mapThickness")
+		mapResolution = cmds.getAttr(rbNode + ".SPH_mapResolution")[0]
 		color = cmds.getAttr(rbNode + ".SPH_color")[0]
 		color = color + (1.0,)
 		rb = {  'geometryFile': "rb_" + name + ".obj",
@@ -699,7 +723,15 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 				'scale': [1,1,1],
 				'color': color,
 				'isDynamic': isDynamic,
-				'isWall' : isWall
+				'isWall' : isWall,
+				'density' : density,
+				'mapInvert': mapInvert,
+				'mapThickness': mapThickness,
+				'mapResolution': mapResolution,
+				'collisionObjectType': 5,
+				'collisionObjectScale': [1,1,1],
+				'resolutionSDF': mapResolution,
+				'invertSDF': mapInvert
 			}
 	 
 		scene['RigidBodies'].append(rb)
@@ -927,8 +959,10 @@ class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 		SPHConfigurationNode.sphParameters["Export"] = [	
 			PluginFunctions.createBoolParam("enablePartioExport", "Partio export", "Enable/disable partio export.", False),
 			PluginFunctions.createBoolParam("enableVTKExport", "VTK export", "Enable/disable VTK export.", False),
-			PluginFunctions.createIntParam("particleFPS", "Export FPS", "Frame rate of particle export.", 25, 1, 1000),
-			PluginFunctions.createStringParam("particleAttributes", "Export attributes", "Attributes that are exported in the particle files (except id and position).", "velocity")
+			PluginFunctions.createFloatParam("dataExportFPS", "Export FPS", "Frame rate of particle export.", 25, 0.1, 1000),
+			PluginFunctions.createStringParam("particleAttributes", "Export attributes", "Attributes that are exported in the particle files (except id and position).", "velocity"),
+			PluginFunctions.createBoolParam("enableStateExport", "State export", "Enable/disable simulation state export.", False),
+			PluginFunctions.createFloatParam("stateExportFPS", "State export FPS", "Frame rate of state export.", 1, 0.1, 1000)
 		]
 		SPHConfigurationNode.sphParameters["Simulation"] = [
 			PluginFunctions.createBoolParam("sim2D", "2D simulation", "2D/3D simulation.", False),
@@ -937,7 +971,8 @@ class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createVec3Param("gravitation", "Gravitation", "Vector to define the gravitational acceleration.", [0,-9.81,0]),
 			PluginFunctions.createEnumParam("simulationMethod", "Simulation method", "Simulation method.", 4, ["WCSPH", "PCISPH", "PBF", "IISPH", "DFSPH", "Projective Fluids"]),
 			PluginFunctions.createIntParam("maxIterations", "Max. iterations", "Maximal number of iterations of the pressure solver.", 100, 1, 1000, 1),
-			PluginFunctions.createFloatParam("maxError", "Max. density error(%)", "Maximal density error (%).", 0.01, 1.0e-6, 1.0, 0)
+			PluginFunctions.createFloatParam("maxError", "Max. density error(%)", "Maximal density error (%).", 0.01, 1.0e-6, 1.0, 0),
+			PluginFunctions.createEnumParam("boundaryHandlingMethod", "Boundary handling method", "Boundary handling method.", 2, ["Akinci et al. 2012", "Koschier and Bender 2017", "Bender et al. 2019"])
 		
 		]
 		SPHConfigurationNode.sphParameters["CFL"] = [	
@@ -1040,7 +1075,7 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createFloatParam("viscoMaxError", "Max. visco error", "(Implicit solvers) Max. error of the viscosity solver.", 0.01, 1e-6, 1, 0),
 			PluginFunctions.createIntParam("viscoMaxIterOmega", "Max. iterations (vorticity diffusion)", "(Peer et al. 2016) Max. iterations of the vorticity diffusion solver.", 100, 1, 1000),
 			PluginFunctions.createFloatParam("viscoMaxErrorOmega", "Max. vorticity diffusion error", "(Peer et al. 2016) Max. error of the vorticity diffusion solver.", 0.01, 1e-6, 1, 0),
-			PluginFunctions.createFloatParam("viscosityBoundary", "Viscosity coefficient (Boundary)", "Coefficient for the viscosity force computation at the boundary.", 0.01, 0, 1000, 0)
+			PluginFunctions.createFloatParam("viscosityBoundary", "Viscosity coefficient (Boundary)", "Coefficient for the viscosity force computation at the boundary.", 0.0, 0, 1000, 0)
 		]
 		SPHFluidConfigurationNode.sphParameters["Vorticity"] = [	
 			PluginFunctions.createEnumParam("vorticityMethod", "Vorticity method", "Method to compute vorticity forces.", 0, ["None", "Micropolar model", "Vorticity confinement"]),
@@ -1104,10 +1139,10 @@ class loadRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 		transformNodes = []
 		for i in range(0, numBodies):
 			# determine length of file name string
-			strLength =  bytes.find("\0")
+			(strLength,), bytes = struct.unpack('i', bytes[:4]), bytes[4:]
 
 			# read file name
-			objFile, bytes = bytes[:strLength], bytes[strLength+1:]
+			objFile, bytes = bytes[:strLength], bytes[strLength:]
 			
 			# Check for duplicates and create instances
 			if objFile in objFiles:
@@ -1130,10 +1165,21 @@ class loadRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 			(sz,), bytes = struct.unpack('f', bytes[:4]), bytes[4:]
 			
 			cmds.scale(sx, sy, sz, transformNodes[i])
+				
+			(isWall,), bytes = struct.unpack('?', bytes[:1]), bytes[1:]
+			(colr,), bytes = struct.unpack('f', bytes[:4]), bytes[4:]
+			(colg,), bytes = struct.unpack('f', bytes[:4]), bytes[4:]
+			(colb,), bytes = struct.unpack('f', bytes[:4]), bytes[4:]
+			(cola,), bytes = struct.unpack('f', bytes[:4]), bytes[4:]
+			
+			if isWall:
+				cmds.setAttr((transformNodes[i] + '.visibility'), 0)
+			
 			cmds.setKeyframe(transformNodes[i], at="s", t=1)
 			if frameNumber > 1:
 				cmds.setKeyframe(transformNodes[i], at="visibility", t=1, value=0)	
-				cmds.setKeyframe(transformNodes[i], at="visibility", t=frameNumber, value=1)
+				if not isWall:
+					cmds.setKeyframe(transformNodes[i], at="visibility", t=frameNumber, value=1)
 				
 		
 		# load transformations

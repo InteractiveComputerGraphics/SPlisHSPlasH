@@ -83,6 +83,9 @@ void Viscosity_Peer2016::matrixVecProdV(const Real* vec, Real *result, void *use
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = (FluidModel*)userData;
 	const unsigned int numParticles = model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
@@ -118,6 +121,9 @@ void Viscosity_Peer2016::matrixVecProdOmega(const Real* vec, Real *result, void 
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = (FluidModel*)userData;
 	const unsigned int numParticles = model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
@@ -179,6 +185,9 @@ void Viscosity_Peer2016::step()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const int numParticles = (int) m_model->numActiveParticles();
+	if (numParticles == 0)
+		return;
+
 	const Real viscosity = static_cast<Real>(1.0) - m_viscosity;
 	const Real density0 = m_model->getDensity0();
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();

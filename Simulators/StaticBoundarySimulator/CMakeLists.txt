@@ -10,7 +10,7 @@ else()
   find_package(OpenGL REQUIRED)
 
   include_directories( ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-  
+
   set(SIMULATION_LINK_LIBRARIES
 	${SIMULATION_LINK_LIBRARIES}
 	${GLUT_LIBRARIES}
@@ -33,10 +33,9 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} ${NEIGHBORHOOD_SEARCH
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
 set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_Discregrid)
-set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES} 
-	optimized Discregrid 
+set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
+	optimized Discregrid
 	debug Discregrid_d)
-set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES} Ext_Discregrid)	
 link_directories(${PROJECT_PATH}/extern/install/Discregrid/lib)
 
 ############################################################

@@ -217,7 +217,7 @@ void PBDWrapper::loadObj(const std::string &filename, PBD::VertexData &vd, Utili
 	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
-void PBDWrapper::readScene(const std::string &sceneFileName, std::vector< RBData> additionalRigidBodies)
+void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< RBData> &additionalRigidBodies)
 {
 	m_sceneFileName = sceneFileName;
 
@@ -282,7 +282,7 @@ void PBDWrapper::readScene(const std::string &sceneFileName, std::vector< RBData
 		rbd.m_isDynamic = false;
 		rbd.m_omega.setZero();
 		rbd.m_v.setZero();
-		rbd.m_resolutionSDF = Eigen::Matrix<unsigned int, 3, 1>(10, 10, 10);
+		rbd.m_resolutionSDF = Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>(10, 10, 10);
 		rbd.m_thicknessSDF = 0.0;
 		rbd.m_testMesh = false;
 		data.m_rigidBodyData.push_back(rbd);
@@ -1378,12 +1378,12 @@ void PBDWrapper::renderSDF(PBD::CollisionDetection::CollisionObject* co)
 void TW_CALL PBDWrapper::setVelocityUpdateMethod(const void *value, void *clientData)
 {
 	const short val = *(const short *)(value);
-	((PBD::TimeStepController*)clientData)->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, (unsigned int) val);
+	((PBD::TimeStepController*)clientData)->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, (int) val);
 }
 
 void TW_CALL PBDWrapper::getVelocityUpdateMethod(void *value, void *clientData)
 {
-	*(short *)(value) = (short)((PBD::TimeStepController*)clientData)->getValue<unsigned int>(PBD::TimeStepController::VELOCITY_UPDATE_METHOD);
+	*(short *)(value) = (short)((PBD::TimeStepController*)clientData)->getValue<int>(PBD::TimeStepController::VELOCITY_UPDATE_METHOD);
 }
 
 void TW_CALL PBDWrapper::setMaxIterations(const void *value, void *clientData)

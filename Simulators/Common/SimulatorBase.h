@@ -80,7 +80,7 @@ namespace SPH
 		void createEmitters();
 		void createAnimationFields();
 
-		static void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData);
+		static void selection(const Vector2i &start, const Vector2i &end, void *clientData);
 		static void mouseMove(int x, int y, void *clientData);
 		void particleInfo();
 

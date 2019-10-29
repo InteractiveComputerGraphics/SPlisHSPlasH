@@ -1,3 +1,5 @@
+	- bugfixes
+
 2.5.0 
 	- added the boundary handling method "Volume Maps: An Implicit Boundary Representation for SPH"
 	- added the boundary handling method "Density Maps for Improved SPH Boundary Handling"

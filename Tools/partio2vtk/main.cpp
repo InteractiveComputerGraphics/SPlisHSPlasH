@@ -21,7 +21,6 @@ INIT_TIMING
 INIT_LOGGING
 
 using namespace Utilities;
-using Vector3f = Eigen::Vector3f;
 
 void saveParticleCloudVTK(const std::string & path, const Partio::ParticlesDataMutable * partioData);
 

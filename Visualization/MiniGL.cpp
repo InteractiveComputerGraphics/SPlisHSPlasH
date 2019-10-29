@@ -52,11 +52,11 @@ Real MiniGL::m_time = 0.0;
 Real MiniGL::m_quat[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 unsigned char MiniGL::texData[IMAGE_ROWS][IMAGE_COLS][3];
 unsigned int MiniGL::m_texId = 0;
-void(*MiniGL::selectionfunc)(const Eigen::Vector2i&, const Eigen::Vector2i&, void*) = NULL;
+void(*MiniGL::selectionfunc)(const Vector2i&, const Vector2i&, void*) = NULL;
 void *MiniGL::selectionfuncClientData = NULL;
 void(*MiniGL::mousefunc)(int, int, void*) = NULL;
 int MiniGL::mouseFuncButton;
-Eigen::Vector2i MiniGL::m_selectionStart;
+Vector2i MiniGL::m_selectionStart;
 GLint MiniGL::m_context_major_version = 0;
 GLint MiniGL::m_context_minor_version = 0;
 GLint MiniGL::m_context_profile = 0;
@@ -88,10 +88,10 @@ void MiniGL::getOpenGLVersion(int &major_version, int &minor_version)
 
 void MiniGL::coordinateSystem() 
 {
-	Eigen::Vector3f a(0,0,0);
-	Eigen::Vector3f b(2,0,0);
-	Eigen::Vector3f c(0,2,0);
-	Eigen::Vector3f d(0,0,2);
+	Vector3f a(0,0,0);
+	Vector3f b(2,0,0);
+	Vector3f c(0,2,0);
+	Vector3f d(0,0,2);
 
 	float diffcolor [4] = {1,0,0,1};
 	float speccolor [4] = {1,1,1,1};
@@ -690,7 +690,7 @@ void MiniGL::setMouseMoveFunc(int button, void(*func) (int, int, void*))
 }
 
 
-void MiniGL::setSelectionFunc(void(*func) (const Eigen::Vector2i&, const Eigen::Vector2i&, void*), void *clientData)
+void MiniGL::setSelectionFunc(void(*func) (const Vector2i&, const Vector2i&, void*), void *clientData)
 {
 	selectionfunc = func;
 	selectionfuncClientData = clientData;
@@ -920,15 +920,15 @@ void MiniGL::mousePress (int button, int state, int x, int y)
 		if (button == GLUT_LEFT_BUTTON)
 		{
 			if (state == GLUT_DOWN)
-				m_selectionStart = Eigen::Vector2i(x, y);
+				m_selectionStart = Vector2i(x, y);
 			else
 			{
 				if (m_selectionStart[0] != -1)
 				{
-					const Eigen::Vector2i pos(x, y);
+					const Vector2i pos(x, y);
 					selectionfunc(m_selectionStart, pos, selectionfuncClientData);
 				}
-				m_selectionStart = Eigen::Vector2i(-1, -1);
+				m_selectionStart = Vector2i(-1, -1);
 			}
 		}
 	}

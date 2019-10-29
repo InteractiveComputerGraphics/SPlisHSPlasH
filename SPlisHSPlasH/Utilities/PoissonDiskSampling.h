@@ -14,7 +14,7 @@ namespace SPH
 	*/
 	class PoissonDiskSampling
 	{
-		typedef Eigen::Vector3i CellPos;
+		typedef Eigen::Matrix<int, 3, 1, Eigen::DontAlign> CellPos;
 
 		struct CellPosHasher
 		{

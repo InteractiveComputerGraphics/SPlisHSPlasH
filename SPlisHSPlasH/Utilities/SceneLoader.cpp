@@ -166,7 +166,7 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				readValue(fluidModel["invert"], data->invert);
 
 				data->resolutionSDF = { 20, 20, 20 };
-				Eigen::Matrix<unsigned int, 3, 1> res(20,20,20);
+				Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> res(20,20,20);
 				readVector(fluidModel["resolutionSDF"], res);
 				data->resolutionSDF[0] = res[0];
 				data->resolutionSDF[1] = res[1];

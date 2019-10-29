@@ -38,7 +38,7 @@ namespace SPH
 	{
 	#define IMAGE_ROWS 128
 	#define IMAGE_COLS 128
-
+	
 	private:
 		struct Line
 		{
@@ -91,11 +91,11 @@ namespace SPH
 		static int drawMode;
 		static unsigned char texData[IMAGE_ROWS][IMAGE_COLS][3];		
 		static unsigned int m_texId;
-		static void(*selectionfunc) (const Eigen::Vector2i&, const Eigen::Vector2i&, void*);
+		static void(*selectionfunc) (const Vector2i&, const Vector2i&, void*);
 		static void* selectionfuncClientData;
 		static void(*mousefunc)(int, int, void*);
 		static int mouseFuncButton;		
-		static Eigen::Vector2i m_selectionStart;
+		static Vector2i m_selectionStart;
 		static TwBar *m_tweakBar;
 		static Real m_time;
 		static Real m_quat[4];
@@ -158,7 +158,7 @@ namespace SPH
 		static void rotateY (Real y);
 		static void setProjectionMatrix (int width, int height);
 		static void drawTime(const Real time);
-		static void setSelectionFunc(void(*func) (const Eigen::Vector2i&, const Eigen::Vector2i&, void*), void *clientData);
+		static void setSelectionFunc(void(*func) (const Vector2i&, const Vector2i&, void*), void *clientData);
 		static void setMouseMoveFunc(int button, void(*func) (int, int, void*));
 		static void unproject(const int x, const int y, Vector3r &pos);
 		static float getZNear();

@@ -638,7 +638,7 @@ namespace SPH
 			if (r2 <= m_radius2)
 			{
 				const Real rl = sqrt(r2);
-				const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * m_invStepSize), resolution-1);
+				const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * m_invStepSize), resolution-2u);
 				res = static_cast<Real>(0.5)*(m_W[pos]+ m_W[pos+1]);
 			}
 			return res;
@@ -649,7 +649,7 @@ namespace SPH
 			Real res = 0.0;
 			if (r <= m_radius)
 			{
-				const unsigned int pos = std::min<unsigned int>((unsigned int)(r * m_invStepSize), resolution-1);
+				const unsigned int pos = std::min<unsigned int>((unsigned int)(r * m_invStepSize), resolution-2u);
 				res = static_cast<Real>(0.5)*(m_W[pos] + m_W[pos + 1]);
 			}
 			return res;
@@ -662,8 +662,8 @@ namespace SPH
 			if (rl <= m_radius)
 			{
 				//const Real rl = sqrt(r2);
-				const unsigned int pos = std::min<unsigned int>(static_cast<unsigned int>(rl * m_invStepSize), resolution-1u);
-				res = 0.5*(m_gradW[pos] + m_gradW[pos + 1]) * r;
+				const unsigned int pos = std::min<unsigned int>(static_cast<unsigned int>(rl * m_invStepSize), resolution-2u);
+				res = static_cast<Real>(0.5)*(m_gradW[pos] + m_gradW[pos + 1]) * r;
 			}
 			else
 				res.setZero();

@@ -58,7 +58,7 @@ public:
 
 	/** Read rigid body scene and create the rigid body model
 	*/
-	void readScene(const std::string &sceneFileName, std::vector< RBData> additionalRigidBodies);
+	void readScene(const std::string &sceneFileName, const std::vector< RBData> &additionalRigidBodies);
 	void initTriangleModelConstraints();
 	void initTetModelConstraints();
 

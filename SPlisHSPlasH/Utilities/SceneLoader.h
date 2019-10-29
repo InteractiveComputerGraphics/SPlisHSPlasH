@@ -34,13 +34,13 @@ namespace Utilities
 			Real density;
 			bool dynamic;
 			bool isWall;
-			Eigen::Vector4f color;
+			Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color;
 			void *rigidBody;
 
 			std::string mapFile;
 			bool mapInvert;
 			Real mapThickness;	
-			Eigen::Matrix<unsigned int, 3, 1> mapResolution;
+			Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution;
 			unsigned int samplingMode;
 		};
 
@@ -133,7 +133,7 @@ namespace Utilities
 		}
 
 		template <typename T, int size>
-		bool readVector(const nlohmann::json &j, Eigen::Matrix<T, size, 1> &vec)
+		bool readVector(const nlohmann::json &j, Eigen::Matrix<T, size, 1, Eigen::DontAlign> &vec)
 		{
 			if (j.is_null())
 				return false;
@@ -164,7 +164,7 @@ namespace Utilities
 		}
 
 		template <typename T, int size>
-		bool readVector(const std::string &section, const std::string &key, Eigen::Matrix<T, size, 1> &vec)
+		bool readVector(const std::string &section, const std::string &key, Eigen::Matrix<T, size, 1, Eigen::DontAlign> &vec)
 		{
 			if (m_jsonData.find(section) != m_jsonData.end())
 			{

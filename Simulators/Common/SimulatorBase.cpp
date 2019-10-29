@@ -786,7 +786,7 @@ void SimulatorBase::createEmitters()
 			emitterBoundary->translation = pos;
 			emitterBoundary->samplesFile = "";
 			emitterBoundary->mapInvert = false;
-			emitterBoundary->mapResolution = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20);
+			emitterBoundary->mapResolution = Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>(20, 20, 20);
 			emitterBoundary->mapThickness = 0.0;
 
 			if (sim->is2DSimulation())
@@ -1086,7 +1086,7 @@ void SimulatorBase::mouseMove(int x, int y, void *clientData)
 	base->m_oldMousePos = mousePos;
 }
 
-void SimulatorBase::selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
+void SimulatorBase::selection(const Vector2i &start, const Vector2i &end, void *clientData)
 {
 	SimulatorBase *base = (SimulatorBase*)clientData;
 	Simulation *sim = Simulation::getCurrent();

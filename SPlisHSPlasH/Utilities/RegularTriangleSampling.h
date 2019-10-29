@@ -30,7 +30,7 @@ namespace SPH
 			const Real maxDistance, std::vector<Vector3r> &samples);
 		
 	private:
-		using Vector2ui = Eigen::Matrix<unsigned int, 2, 1>;
+		using Vector2ui = Eigen::Matrix<unsigned int, 2, 1, Eigen::DontAlign>;
 
 		static void appendVertexSamples(const unsigned int numVertices, const Vector3r * vertices, std::vector<Vector3r> &samples);
 		static void appendEdgeSamples(const Real d, const Vector3r * vertices, const std::vector<Vector2ui> & edges, std::vector<Vector3r> &samples, bool skipVertices = true);

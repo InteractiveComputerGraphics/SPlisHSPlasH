@@ -34,7 +34,6 @@ INIT_TIMING
 INIT_LOGGING
 
 using namespace SPH;
-using namespace Eigen;
 using namespace std;
 using namespace Utilities;
 
@@ -66,7 +65,7 @@ void pointShaderBegin(Shader *shader, const float *col, const Real minVal, const
 void pointShaderEnd(Shader *shader, const bool useTexture = false);
 void timeStep();
 void updateBoundingBox();
-void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData);
+void selection(const Vector2i &start, const Vector2i &end, void *clientData);
 void particleInfo();
 void saveFrame();
 bool nextFrame();
@@ -693,14 +692,14 @@ void initShaders()
 
 void renderAABB(const Eigen::AlignedBox3f &aabb, float *color)
 {
-	const Vector3r a = aabb.corner(AlignedBox3f::BottomLeftFloor).cast<Real>();
-	const Vector3r b = aabb.corner(AlignedBox3f::BottomRightFloor).cast<Real>();
-	const Vector3r c = aabb.corner(AlignedBox3f::TopRightFloor).cast<Real>();
-	const Vector3r d = aabb.corner(AlignedBox3f::TopLeftFloor).cast<Real>();
-	const Vector3r e = aabb.corner(AlignedBox3f::BottomLeftCeil).cast<Real>();
-	const Vector3r f = aabb.corner(AlignedBox3f::BottomRightCeil).cast<Real>();
-	const Vector3r g = aabb.corner(AlignedBox3f::TopRightCeil).cast<Real>();
-	const Vector3r h = aabb.corner(AlignedBox3f::TopLeftCeil).cast<Real>();
+	const Vector3r a = aabb.corner(Eigen::AlignedBox3f::BottomLeftFloor).cast<Real>();
+	const Vector3r b = aabb.corner(Eigen::AlignedBox3f::BottomRightFloor).cast<Real>();
+	const Vector3r c = aabb.corner(Eigen::AlignedBox3f::TopRightFloor).cast<Real>();
+	const Vector3r d = aabb.corner(Eigen::AlignedBox3f::TopLeftFloor).cast<Real>();
+	const Vector3r e = aabb.corner(Eigen::AlignedBox3f::BottomLeftCeil).cast<Real>();
+	const Vector3r f = aabb.corner(Eigen::AlignedBox3f::BottomRightCeil).cast<Real>();
+	const Vector3r g = aabb.corner(Eigen::AlignedBox3f::TopRightCeil).cast<Real>();
+	const Vector3r h = aabb.corner(Eigen::AlignedBox3f::TopLeftCeil).cast<Real>();
 
 	const float w = 1.0;
 	MiniGL::drawVector(a, b, w, color);
@@ -1016,7 +1015,7 @@ void updateBoundingBox()
 	}
 }
 
-void selection(const Eigen::Vector2i &start, const Eigen::Vector2i &end, void *clientData)
+void selection(const Vector2i &start, const Vector2i &end, void *clientData)
 {
 	for (size_t i = 0; i < fluids.size(); i++)
 	{

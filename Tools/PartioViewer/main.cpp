@@ -523,7 +523,7 @@ void generateVideo()
 #ifdef WIN32
 	if (!(ffmpegPipe = _popen(sstm.str().c_str(), "wb")))
 #else
-	if (!(ffmpegPipe = popen(sstm.str().c_str(), "wb")))
+	if (!(ffmpegPipe = popen(sstm.str().c_str(), "w")))
 #endif
 	{
 		LOG_ERR << "Cannot open pipe to ffmpeg.";

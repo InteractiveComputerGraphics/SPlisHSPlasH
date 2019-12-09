@@ -9,6 +9,7 @@
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
+#include "SPlisHSPlasH/DFSPH/TimeStepDFSPHGPU.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
 #include "BoundaryModel_Akinci2012.h"
 #include "BoundaryModel_Bender2019.h"
@@ -533,7 +534,11 @@ void Simulation::setSimulationMethod(const int val)
 	}
 	else if (method == SimulationMethods::DFSPH)
 	{
-		m_timeStep = new TimeStepDFSPH();
+		if (TIMESTEP_GPU)
+			m_timeStep = new TimeStepDFSPHGPU();
+		else
+			m_timeStep = new TimeStepDFSPH();
+
 		m_timeStep->init();
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);

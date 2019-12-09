@@ -238,6 +238,11 @@ namespace SPH
 				m_x[i] = pos;
 			}
 
+			FORCE_INLINE std::vector<Vector3r> &getVelocities()
+			{
+				return m_v;
+			}
+
 			FORCE_INLINE Vector3r &getVelocity(const unsigned int i)
 			{
 				return m_v[i];

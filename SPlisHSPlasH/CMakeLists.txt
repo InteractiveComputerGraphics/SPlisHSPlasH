@@ -47,11 +47,15 @@ set(IISPH_SOURCE_FILES
 set(DFSPH_HEADER_FILES
 	DFSPH/SimulationDataDFSPH.h
 	DFSPH/TimeStepDFSPH.h
+
+	DFSPH/TimeStepDFSPHGPU.h
 	)
 	
 set(DFSPH_SOURCE_FILES
 	DFSPH/SimulationDataDFSPH.cpp
 	DFSPH/TimeStepDFSPH.cpp
+
+	DFSPH/TimeStepDFSPHGPU.cu
 	)	
 	
 set(PF_HEADER_FILES

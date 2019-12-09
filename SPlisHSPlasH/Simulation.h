@@ -51,6 +51,37 @@ for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) \
 	} \
 }
 
+/** Loop over the fluid neighbors of all fluid phases. 
+* constructGpuData must have been called before. outer_loop for computing indices needed for inner_loop. 
+*/
+#define forall_fluid_neighborsGPU(code) \
+	for(uint pid = 0; pid < nFluids; pid++) \
+	{ \
+		const uint neighborsetIndex = pointsetIndices[fluidModelIndex] + pid; \
+		for(uint j = 0; j < neighborCounts[psPidStartIndices[neighborsetIndex] + i]; j++) \
+		{ \
+			uint neighborIndex = neighborIndices[neighborPidStartIndices[neighborsetIndex] + neighborWriteOffsets[psPidStartIndices[neighborsetIndex] + i] + j]; \ 
+			const double3 &xj = particles[pid][neighborIndex]; \
+			code \
+		} \
+	}
+
+
+/** Loop over the boundary neighbors of all fluid phases.
+* constructGpuData must have been called before.
+*/
+#define forall_boundary_neighborsGPU(code) \
+  for (unsigned int pid = nFluids; pid < nPointSets; pid++) \
+ 	{ \
+		const uint neighborsetIndex = pointsetIndices[fluidModelIndex] + pid; \
+		for(unsigned int j = 0; j < neighborCounts[psPidStartIndices[neighborsetIndex] + i]; j++) \
+		{ \
+			uint neighborIndex = neighborIndices[neighborPidStartIndices[neighborsetIndex] + neighborWriteOffsets[psPidStartIndices[neighborsetIndex] + i] + j]; \
+			const double3 &xj = particles[pid][neighborIndex]; \
+			code \
+		} \
+	}
+
 /** Loop over the boundary density maps.
 * Simulation *sim, unsigned int nBoundaries and unsigned int fluidModelIndex must be defined.
 */

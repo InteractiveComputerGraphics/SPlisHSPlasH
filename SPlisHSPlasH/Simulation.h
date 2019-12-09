@@ -285,6 +285,11 @@ namespace SPH
 			return static_cast<unsigned int>(m_neighborhoodSearch->point_set(pointSetIndex).n_neighbors(neighborPointSetIndex, index));
 		}
 
+		FORCE_INLINE std::vector<cuNSearch::PointSet> &getPointSets() const
+		{
+			return m_neighborhoodSearch->point_sets();
+		}
+
 		FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index, const unsigned int k) const
 		{
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor(neighborPointSetIndex, index, k);
@@ -292,11 +297,11 @@ namespace SPH
 
 		FORCE_INLINE const unsigned int * getNeighborList(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index) const
 		{
-			#ifdef GPU_NEIGHBORHOOD_SEARCH
+//			#ifdef GPU_NEIGHBORHOOD_SEARCH
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index);
-			#else
+/* 			#else
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index).data();
-			#endif
+			#endif */
 		}
 	};
 }

@@ -283,6 +283,11 @@ namespace SPH
 				m_a[i] = accel;
 			}
 
+			FORCE_INLINE std::vector<Real>& getMasses()
+			{
+				return m_masses;
+			}
+
 			FORCE_INLINE const Real getMass(const unsigned int i) const
 			{
 				return m_masses[i];
@@ -296,6 +301,11 @@ namespace SPH
 			FORCE_INLINE void setMass(const unsigned int i, const Real mass)
 			{
 				m_masses[i] = mass;
+			}
+
+			FORCE_INLINE std::vector<Real>& getDensities()
+			{
+				return m_density;
 			}
 
 			FORCE_INLINE const Real& getDensity(const unsigned int i) const

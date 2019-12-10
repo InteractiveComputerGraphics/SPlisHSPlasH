@@ -64,6 +64,7 @@ set(SIMULATION_LINK_LIBRARIES ${SIMULATION_LINK_LIBRARIES}
 
 set(SIMULATION_DEPENDENCIES Ext_PBD ${SIMULATION_DEPENDENCIES})
 link_directories(${PROJECT_PATH}/extern/install/PositionBasedDynamics/lib)
+include_directories(	${CUDA_INCLUDE_DIRS})
 
 add_executable(DynamicBoundarySimulator
 	main.cpp
@@ -92,7 +93,7 @@ set_target_properties(DynamicBoundarySimulator PROPERTIES DEBUG_POSTFIX ${CMAKE_
 set_target_properties(DynamicBoundarySimulator PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(DynamicBoundarySimulator PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
 add_dependencies(DynamicBoundarySimulator ${SIMULATION_DEPENDENCIES})
-target_link_libraries(DynamicBoundarySimulator ${SIMULATION_LINK_LIBRARIES})
+target_link_libraries(DynamicBoundarySimulator ${SIMULATION_LINK_LIBRARIES} ${CUDA_LIBRARIES})
 VIS_SOURCE_GROUPS()
 
 source_group("Header Files\\PBD" FILES ${PBDWRAPPER_HEADER_FILES})

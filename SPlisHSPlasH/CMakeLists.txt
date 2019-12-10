@@ -2,14 +2,14 @@ set(WCSPH_HEADER_FILES
 	WCSPH/SimulationDataWCSPH.h
 	WCSPH/TimeStepWCSPH.h
 
-	WCSPH/TimeStepWCSPHGPU.h
+	#WCSPH/TimeStepWCSPHGPU.h
 	)
 	
 set(WCSPH_SOURCE_FILES
 	WCSPH/SimulationDataWCSPH.cpp
 	WCSPH/TimeStepWCSPH.cpp
 
-	WCSPH/TimeStepWCSPHGPU.cu
+	#WCSPH/TimeStepWCSPHGPU.cu
 	)		
 	
 set(PCISPH_HEADER_FILES

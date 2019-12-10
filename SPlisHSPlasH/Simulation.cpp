@@ -4,7 +4,7 @@
 #include "TimeStep.h"
 #include "EmitterSystem.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
-#include "SPlisHSPlasH/WCSPH/TimeStepWCSPHGPU.h"
+/* #include "SPlisHSPlasH/WCSPH/TimeStepWCSPHGPU.h" */
 #include "SPlisHSPlasH/PCISPH/TimeStepPCISPH.h"
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
@@ -502,9 +502,9 @@ void Simulation::setSimulationMethod(const int val)
 
 	if (method == SimulationMethods::WCSPH)
 	{
-		if (TIMESTEP_GPU)
+/* 		if (TIMESTEP_GPU)
 			m_timeStep = new TimeStepWCSPHGPU();
-		else
+		else */
 			m_timeStep = new TimeStepWCSPH();
 
 		m_timeStep->init();

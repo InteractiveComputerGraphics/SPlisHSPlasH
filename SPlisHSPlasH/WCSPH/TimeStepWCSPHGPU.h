@@ -38,13 +38,10 @@ namespace SPH
 		KernelData *d_kernelData, kernelData;
 
 		thrust::device_vector<double3*> d_particles; // particle positions
-	  thrust::device_vector<uint> d_neighborIndices; // indices of the neighbor particles
-	  thrust::device_vector<uint> d_neighborCounts; // how many neighbors
-	  thrust::device_vector<uint> d_neighborWriteOffsets; // offsets, where neighbors within neid_neighborIndices begin
-
-		thrust::device_vector<uint> d_psPidStartIndices; // where a pid starts within neihborcounts
-		thrust::device_vector<uint> d_neighborPidStartIndices; // where a pid starts within neighborIndices
-		thrust::device_vector<uint> d_pointsetIndices; // where a point set starts within psPidStartIndices
+		uint **d_neighbors;
+		uint **d_neighborCounts;
+		uint **d_neighborOffsets;
+		uint *d_neighborPointsetIndices; // indexing the above
 
 		thrust::device_vector<Real> d_volumes;
 		thrust::device_vector<Real> d_densities0;
@@ -62,6 +59,7 @@ namespace SPH
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 		virtual void initParameters();
 		void initCUDA();
+		void prepareData();
 
 		void computePressureAccels(const unsigned int fluidModelIndex);
 

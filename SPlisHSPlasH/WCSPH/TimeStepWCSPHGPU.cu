@@ -40,6 +40,10 @@ TimeStepWCSPHGPU::TimeStepWCSPHGPU() :
 TimeStepWCSPHGPU::~TimeStepWCSPHGPU(void)
 {
 	CudaHelper::CudaFree(d_kernelData);
+	CudaHelper::CudaFree(d_neighbors);
+	CudaHelper::CudaFree(d_neighborCounts);
+	CudaHelper::CudaFree(d_neighborOffsets);
+	CudaHelper::CudaFree(d_neighborPointsetIndices); 
 
   Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
@@ -103,6 +107,8 @@ void TimeStepWCSPHGPU::step()
 		initCUDA();
 	}
 
+	prepareData();
+
 	// re-compute the precomputed kernel if necessary
 	if( sim->getSupportRadius() != PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getRadius() || !isInitialized)
 	{
@@ -114,29 +120,6 @@ void TimeStepWCSPHGPU::step()
 	}
 
 	START_TIMING("Prepare data");
-
-	std::vector<cuNSearch::PointSet> &pointSets = sim->getCurrent()->getPointSets();
-	d_pointsetIndices.resize(pointSets.size());
-	uint  particlesCount = 0, neighborSetCount = 0, neighborsCount = 0;
-
- 	for(int i = 0 ; i < pointSets.size() ; ++i)
-	{
-		d_pointsetIndices[i] = neighborSetCount;
-
-		for(int j = 0; j < pointSets[i].n_neighborsets(); j++)
-		{
-			d_neighborIndices.insert(d_neighborIndices.end(), pointSets[i].neighbor_indices(j), pointSets[i].neighbor_indices(j) + pointSets[i].neighbor_count(j)); 
-			d_neighborCounts.insert(d_neighborCounts.end(), pointSets[i].neighbor_counts(j), pointSets[i].neighbor_counts(j) + pointSets[i].particle_count(j)); 
-			d_neighborWriteOffsets.insert(d_neighborWriteOffsets.end(), pointSets[i].neighbor_offsets(j), pointSets[i].neighbor_offsets(j) + pointSets[i].particle_count(j)); 
-
-			d_psPidStartIndices.push_back(particlesCount);
-			d_neighborPidStartIndices.push_back(neighborsCount);
-
-			particlesCount += pointSets[i].particle_count(j);
-			neighborsCount += pointSets[i].neighbor_count(j);
-		}
-		neighborSetCount += pointSets[i].n_neighborsets();
-	} 
 
 	// for computeDensities and computePressureAccels
 	thrust::device_vector<Real> d_boundaryVolumes;
@@ -190,9 +173,8 @@ void TimeStepWCSPHGPU::step()
 
 		computeDensitiesGPU<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock(), impl->getThreadsPerBlock() * sizeof(Real)>>>(d_densities, CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
 			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_fmIndices), CudaHelper::GetPointer(d_densities0), W_zero, sim->getSupportRadius(), 
-			CudaHelper::GetPointer(d_particles), CudaHelper::GetPointer(d_neighborIndices), CudaHelper::GetPointer(d_neighborCounts), 
-			CudaHelper::GetPointer(d_neighborWriteOffsets), CudaHelper::GetPointer(d_pointsetIndices), CudaHelper::GetPointer(d_psPidStartIndices), 
-			CudaHelper::GetPointer(d_neighborPidStartIndices), nModels, nPointSets, fluidModelIndex, numParticles);
+			CudaHelper::GetPointer(d_particles), d_neighbors, d_neighborCounts, d_neighborOffsets, d_neighborPointsetIndices, nModels, 
+			nPointSets, fluidModelIndex, numParticles);
 
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
@@ -264,9 +246,8 @@ void TimeStepWCSPHGPU::step()
 		computePressureAccelsGPU<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock(), impl->getThreadsPerBlock() * sizeof(Vector3r)>>>( d_pressureAccels, CudaHelper::GetPointer(d_forcesPerThread), CudaHelper::GetPointer(d_torquesPerThread), CudaHelper::GetPointer(d_forcesPerThreadIndices), 
 			CudaHelper::GetPointer(d_torquesPerThreadIndices), d_densities, CudaHelper::GetPointer(d_densities0), CudaHelper::GetPointer(d_fmIndices), 
 			d_pressures, CudaHelper::GetPointer(d_masses), CudaHelper::GetPointer(d_rigidBodyPositions), CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
-			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_isDynamic), omp_get_thread_num(), d_kernelData,CudaHelper::GetPointer(d_particles), 
-			CudaHelper::GetPointer(d_neighborIndices), CudaHelper::GetPointer(d_neighborCounts), CudaHelper::GetPointer(d_neighborWriteOffsets), CudaHelper::GetPointer(d_pointsetIndices), CudaHelper::GetPointer(d_psPidStartIndices), 
-			CudaHelper::GetPointer(d_neighborPidStartIndices), nModels, nPointSets, fluidModelIndex, numParticles);
+			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_isDynamic), omp_get_thread_num(), d_kernelData, CudaHelper::GetPointer(d_particles), d_neighbors, 
+			d_neighborCounts, d_neighborOffsets, d_neighborPointsetIndices, nModels, nPointSets, fluidModelIndex, numParticles);
 
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
@@ -324,16 +305,59 @@ void TimeStepWCSPHGPU::step()
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
+}
 
-	// clear the vectors 
-//	d_particles.clear(); d_particles.shrink_to_fit();
-	d_neighborIndices.clear(); d_neighborIndices.shrink_to_fit();
-	d_neighborCounts.clear(); d_neighborCounts.shrink_to_fit();
-	d_neighborWriteOffsets.clear(); d_neighborWriteOffsets.shrink_to_fit();
+void TimeStepWCSPHGPU::prepareData()
+{
+	Simulation *sim = Simulation::getCurrent();
+	const unsigned int nPointSets = sim->numberOfPointSets();
 
-	d_psPidStartIndices.clear(); d_psPidStartIndices.shrink_to_fit();
-	d_neighborPidStartIndices.clear(); d_neighborPidStartIndices.shrink_to_fit();
-	d_pointsetIndices.clear(); d_pointsetIndices.shrink_to_fit();
+	if(isInitialized)
+	{
+		CudaHelper::CudaFree(d_neighbors);
+		CudaHelper::CudaFree(d_neighborCounts);
+		CudaHelper::CudaFree(d_neighborOffsets);
+		CudaHelper::CudaFree(d_neighborPointsetIndices); 
+	}
+
+	std::vector<cuNSearch::PointSet> &pointSets = sim->getCurrent()->getPointSets();
+
+	CudaHelper::CudaMalloc(&d_neighborPointsetIndices, nPointSets);
+	unsigned int neighborPointsetIndices_tmp[nPointSets];
+
+	unsigned int neighborsetCount = 0;
+	for(int i = 0 ; i < nPointSets ; ++i)
+	{
+		neighborPointsetIndices_tmp[i] = neighborsetCount;
+		neighborsetCount += pointSets[i].n_neighborsets();	
+	}
+
+	CudaHelper::MemcpyHostToDevice(neighborPointsetIndices_tmp, d_neighborPointsetIndices, nPointSets);
+
+	// flattened out the structures for efficiency
+	CudaHelper::CudaMalloc(&d_neighbors, neighborsetCount);
+	CudaHelper::CudaMalloc(&d_neighborCounts, neighborsetCount);
+	CudaHelper::CudaMalloc(&d_neighborOffsets, neighborsetCount);
+
+	for(int i = 0 ; i < nPointSets ; ++i)
+	{
+		const unsigned int nNeighborsets = pointSets[i].n_neighborsets();
+
+		uint* neighbors_tmp[nNeighborsets];
+		uint* neighborCounts_tmp[nNeighborsets];
+		uint* neighborOffsets_tmp[nNeighborsets];
+
+		for(int j = 0; j < nNeighborsets; j++)
+		{
+			neighbors_tmp[j] = pointSets[i].neighbor_indices(j);
+			neighborCounts_tmp[j] = pointSets[i].neighbor_counts(j);
+			neighborOffsets_tmp[j] = pointSets[i].neighbor_offsets(j);
+		}
+
+		CudaHelper::MemcpyHostToDevice(neighbors_tmp, d_neighbors + neighborPointsetIndices_tmp[i], nNeighborsets);
+		CudaHelper::MemcpyHostToDevice(neighborCounts_tmp, d_neighborCounts + neighborPointsetIndices_tmp[i], nNeighborsets);
+		CudaHelper::MemcpyHostToDevice(neighborOffsets_tmp, d_neighborOffsets + neighborPointsetIndices_tmp[i], nNeighborsets);
+	}
 }
 
 

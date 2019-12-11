@@ -125,20 +125,14 @@ void TimeStepDFSPHGPU::step()
 	const unsigned int nModels = sim->numberOfFluidModels();
 	const unsigned int nPointSets = sim->numberOfPointSets();
 
-	if(isInitialized)
-	{
-		CudaHelper::CudaFree(d_neighbors);
-		CudaHelper::CudaFree(d_neighborCounts);
-		CudaHelper::CudaFree(d_neighborOffsets);
-		CudaHelper::CudaFree(d_neighborPointsetIndices); 
-	}
-
 	performNeighborhoodSearch();
 
 	if(!isInitialized)
 	{
 		initCUDA(); // TODO: shift this in init or constructor
 	}
+
+	prepareData();
 
 	// re-compute the precomputed kernel if necessary
 	if( sim->getSupportRadius() != PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getRadius() || !isInitialized)
@@ -149,10 +143,6 @@ void TimeStepDFSPHGPU::step()
 		
 		isInitialized = true;
 	}
-
-	START_TIMING("Copy data on GPU");
-	prepareData();
-	STOP_TIMING_AVG;
 
 	START_TIMING("compute the densities");
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -188,9 +178,9 @@ void TimeStepDFSPHGPU::step()
 			d_fmVelocities.insert(d_fmVelocities.end(), fm_neighbor->getVelocities().begin(), fm_neighbor->getVelocities().begin() + fm_neighbor->numActiveParticles());
 		}
 
-		START_TIMING("divergenceSolve");
+		//START_TIMING("divergenceSolve");
 		divergenceSolve();
-		STOP_TIMING_AVG
+		//STOP_TIMING_AVG
 
 		unsigned int sumActiveParticles = 0;
 		for(unsigned int fluidModelIndex = 0; fluidModelIndex < sim->numberOfFluidModels(); fluidModelIndex++)
@@ -664,7 +654,7 @@ void TimeStepDFSPHGPU::divergenceSolveIteration(const unsigned int fluidModelInd
 	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 	const Real invH = static_cast<Real>(1.0) / h;
 	Real density_error = 0.0;
-/*	Real density_error = 0.0, *d_density_error;
+/* 	Real density_error = 0.0, *d_density_error;
 
 	CudaHelper::CudaMalloc(&d_density_error, 1);
 	CudaHelper::MemcpyHostToDevice( &density_error, d_density_error, 1); */
@@ -719,7 +709,7 @@ void TimeStepDFSPHGPU::divergenceSolveIteration(const unsigned int fluidModelInd
 		sumActiveParticles += sim->getFluidModel(fluidModelIndex)->numActiveParticles();
 	}
 
-/* 	updateDensityError<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock()>>>( d_density_error, d_densitiesAdv, CudaHelper::GetPointer(d_densities0), 
+/* 	updateDensityErrorDivergence<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock()>>>( d_density_error, d_densitiesAdv, CudaHelper::GetPointer(d_densities0), 
 		CudaHelper::GetPointer(d_fmIndices), fluidModelIndex, numParticles);
 
 	CudaHelper::CheckLastError();
@@ -742,6 +732,14 @@ void TimeStepDFSPHGPU::prepareData()
 	//////////////////////////////////////////////////////////////////////////////
 	// Common data
 	//////////////////////////////////////////////////////////////////////////////
+
+	if(isInitialized)
+	{
+		CudaHelper::CudaFree(d_neighbors);
+		CudaHelper::CudaFree(d_neighborCounts);
+		CudaHelper::CudaFree(d_neighborOffsets);
+		CudaHelper::CudaFree(d_neighborPointsetIndices); 
+	}
 
 	std::vector<cuNSearch::PointSet> &pointSets = sim->getCurrent()->getPointSets();
 

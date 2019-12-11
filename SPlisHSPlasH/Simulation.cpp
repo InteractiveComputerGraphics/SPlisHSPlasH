@@ -4,7 +4,7 @@
 #include "TimeStep.h"
 #include "EmitterSystem.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
-/* #include "SPlisHSPlasH/WCSPH/TimeStepWCSPHGPU.h" */
+#include "SPlisHSPlasH/WCSPH/TimeStepWCSPHGPU.h"
 #include "SPlisHSPlasH/PCISPH/TimeStepPCISPH.h"
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
@@ -60,7 +60,7 @@ int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
 int Simulation::ENUM_BENDER2019 = -1;
 
-bool TIMESTEP_GPU = true; // TODO: only for benchmarking purposes
+bool TIMESTEP_GPU = false; // TODO: only for benchmarking purposes
 
 Simulation::Simulation () 
 {
@@ -502,9 +502,9 @@ void Simulation::setSimulationMethod(const int val)
 
 	if (method == SimulationMethods::WCSPH)
 	{
-/* 		if (TIMESTEP_GPU)
+		if (TIMESTEP_GPU)
 			m_timeStep = new TimeStepWCSPHGPU();
-		else */
+		else
 			m_timeStep = new TimeStepWCSPH();
 
 		m_timeStep->init();

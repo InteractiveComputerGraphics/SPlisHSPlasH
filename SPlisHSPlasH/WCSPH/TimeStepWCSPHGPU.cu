@@ -119,8 +119,6 @@ void TimeStepWCSPHGPU::step()
 		isInitialized = true;
 	}
 
-	START_TIMING("Prepare data");
-
 	// for computeDensities and computePressureAccels
 	thrust::device_vector<Real> d_boundaryVolumes;
 	thrust::device_vector<unsigned int> d_boundaryVolumeIndices(sim->numberOfPointSets() - nModels);
@@ -154,8 +152,6 @@ void TimeStepWCSPHGPU::step()
 	Real *d_densities;
 	CudaHelper::CudaMalloc( &d_densities, sumParticles);
 
-	STOP_TIMING_AVG; 
-
 	// Compute accelerations: a(t)
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -179,7 +175,7 @@ void TimeStepWCSPHGPU::step()
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
 
-		CudaHelper::MemcpyDeviceToHost(d_densities, &(model->getDensities()[0]), model->getDensities().size()); // TODO: does it work like this?
+		CudaHelper::MemcpyDeviceToHost(d_densities, &(model->getDensity(0)), model->getDensities().size()); // TODO: does it work like this?
 
 		STOP_TIMING_AVG;
 	}

@@ -60,7 +60,7 @@ int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
 int Simulation::ENUM_BENDER2019 = -1;
 
-bool TIMESTEP_GPU = false; // TODO: only for benchmarking purposes
+bool TIMESTEP_GPU = true; // TODO: only for benchmarking purposes
 
 Simulation::Simulation () 
 {

@@ -46,7 +46,7 @@ void addForce(const Vector3r &pos, const Vector3r &f, /* output */ Vector3r* con
 __global__
 void computeDensitiesGPU(/*out*/ Real* const densities, const Real* const volumes, const Real* const boundaryVolumes, const uint* const boundaryVolumeIndices, 
 	const uint* const fmIndices, const Real* const densities0, const Real W_zero, const Real radius, /*start of forall-parameters*/ double3** particles, uint** neighbors, uint** neighborCounts, uint** neighborOffsets, 
-  uint* neighborPointsetIndices, const uint nFluids, const uint nPointSets, const uint fluidModelIndex, const uint numParticles);
+	uint* neighborPointsetIndices, const uint nFluids, const uint nPointSets, const uint fluidModelIndex, const uint numParticles);
 
 //////////////////////////////////////////////////////////////////
 //Kernels for WCSPH method 

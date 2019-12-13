@@ -44,7 +44,8 @@ namespace SPH
 		uint *d_neighborPointsetIndices; // indexing the above
 
 		thrust::device_vector<Real> d_volumes;
-		thrust::device_vector<Real> d_densities0, d_fmDensities;
+		thrust::device_vector<Real> d_densities0; 
+		Real *d_fmDensities;
 		thrust::device_vector<Vector3r> d_fmVelocities, d_bmVelocities;
 		thrust::device_vector<Real> d_boundaryVolumes;
 		thrust::device_vector<unsigned int> d_boundaryVolumeIndices;

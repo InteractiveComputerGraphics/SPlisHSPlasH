@@ -42,7 +42,7 @@ namespace SPH
 		uint **d_neighborCounts;
 		uint **d_neighborOffsets;
 		uint *d_neighborPointsetIndices; // indexing the above
-
+		
 		thrust::device_vector<Real> d_volumes;
 		thrust::device_vector<Real> d_densities0;
 

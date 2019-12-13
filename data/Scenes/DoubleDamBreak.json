@@ -3,7 +3,7 @@
 	{
 		"cameraPosition": [0,2,5],
 		"cameraLookat": [0,0,0],
-		"particleRadius": 0.025,
+		"particleRadius": 0.015,
 		"numberOfStepsPerRenderUpdate": 4,
 		"density0": 1000, 
 		"simulationMethod": 4,
@@ -19,7 +19,7 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 0
 	},
 	"Fluid":
 	{

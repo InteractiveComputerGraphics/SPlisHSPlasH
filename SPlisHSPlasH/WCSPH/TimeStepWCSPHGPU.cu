@@ -90,6 +90,14 @@ void TimeStepWCSPHGPU::initCUDA() // TODO: shift this into constructor or at bes
 		d_volumes[pid] = fm->getVolume(0);
 		d_densities0[pid] = fm->getDensity0();
 	}
+
+	d_fmIndices.resize(nModels);
+	fmIndices.resize(nModels); // helper to copy data back
+
+	d_rigidBodyPositions.resize(sim->numberOfPointSets() - nModels);
+	d_isDynamic.resize(sim->numberOfPointSets() - nModels);
+	d_forcesPerThreadIndices.resize(sim->numberOfPointSets() - nModels);
+	d_torquesPerThreadIndices.resize(sim->numberOfPointSets() - nModels);
 }
 
 void TimeStepWCSPHGPU::step()
@@ -120,8 +128,7 @@ void TimeStepWCSPHGPU::step()
 	}
 
 	// for computeDensities and computePressureAccels
-	thrust::device_vector<Real> d_boundaryVolumes;
-	thrust::device_vector<unsigned int> d_boundaryVolumeIndices(sim->numberOfPointSets() - nModels);
+	d_boundaryVolumeIndices.resize(sim->numberOfPointSets() - nModels);
 	unsigned int sumBoundaryVolumes = 0;
 	
 	for(unsigned int pid = nModels; pid < sim->numberOfPointSets(); pid++)
@@ -133,10 +140,7 @@ void TimeStepWCSPHGPU::step()
 		d_boundaryVolumes.insert(d_boundaryVolumes.end(), bm_neighbor->getVolumes().begin(), bm_neighbor->getVolumes().end());
 	}
 
-	thrust::device_vector<unsigned int> d_fmIndices(nModels);
-	std::vector<unsigned int> fmIndices(nModels); // helper to copy data back
 	unsigned int sumParticles = 0;
-	
 	// for indexing
 	for(unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -146,7 +150,7 @@ void TimeStepWCSPHGPU::step()
 		d_fmIndices[fluidModelIndex] = sumParticles;
 	
 		fmIndices[fluidModelIndex] = sumParticles;
-		sumParticles += fm->getDensities().size();
+		sumParticles += fm->numActiveParticles();
 	}
 
 	Real *d_densities;
@@ -175,24 +179,16 @@ void TimeStepWCSPHGPU::step()
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
 
-		CudaHelper::MemcpyDeviceToHost(d_densities, &(model->getDensity(0)), model->getDensities().size()); // TODO: does it work like this?
+		CudaHelper::MemcpyDeviceToHost(d_densities, &(model->getDensity(0)), numParticles); // TODO: does it work like this?
 
 		STOP_TIMING_AVG;
 	}
 
 	sim->computeNonPressureForces();
 
-	thrust::device_vector<Vector3r> d_rigidBodyPositions(sim->numberOfPointSets() - nModels);
-	thrust::device_vector<bool> d_isDynamic(sim->numberOfPointSets() - nModels);
-	thrust::device_vector<Vector3r> d_forcesPerThread; 
-	thrust::device_vector<Vector3r> d_torquesPerThread;
-	thrust::device_vector<unsigned int> d_forcesPerThreadIndices(sim->numberOfPointSets() - nModels);
-	thrust::device_vector<unsigned int> d_torquesPerThreadIndices(sim->numberOfPointSets() - nModels);
-
 	// for correct indexing
 	int sumForcesPerThread = 0;
 	int sumTorquesPerThread = 0;
-
  	for (unsigned int pid = nModels; pid < sim->numberOfPointSets(); pid++)
 	{
 		BoundaryModel_Akinci2012 *bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
@@ -234,23 +230,27 @@ void TimeStepWCSPHGPU::step()
 
 		// Pressure Accelerations
  		Vector3r *d_pressureAccels;
-		CudaHelper::CudaMalloc(&d_pressureAccels, m_simulationData.getPressureAccels(fluidModelIndex).size());
+		CudaHelper::CudaMalloc(&d_pressureAccels, numParticles);
 
-		thrust::device_vector<Real> d_masses;	
-		d_masses.insert(d_masses.end(), model->getMasses().begin(), model->getMasses().end());
+		Real *d_masses;	
+		CudaHelper::CudaMalloc(&d_masses, numParticles);
+		CudaHelper::MemcpyHostToDevice(&(model->getMass(0)), d_masses, numParticles);
 
 		computePressureAccelsGPU<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock(), impl->getThreadsPerBlock() * sizeof(Vector3r)>>>( d_pressureAccels, CudaHelper::GetPointer(d_forcesPerThread), CudaHelper::GetPointer(d_torquesPerThread), CudaHelper::GetPointer(d_forcesPerThreadIndices), 
 			CudaHelper::GetPointer(d_torquesPerThreadIndices), d_densities, CudaHelper::GetPointer(d_densities0), CudaHelper::GetPointer(d_fmIndices), 
-			d_pressures, CudaHelper::GetPointer(d_masses), CudaHelper::GetPointer(d_rigidBodyPositions), CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
+			d_pressures, d_masses, CudaHelper::GetPointer(d_rigidBodyPositions), CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
 			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_isDynamic), omp_get_thread_num(), d_kernelData, CudaHelper::GetPointer(d_particles), d_neighbors, 
 			d_neighborCounts, d_neighborOffsets, d_neighborPointsetIndices, nModels, nPointSets, fluidModelIndex, numParticles);
 
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
 
-		CudaHelper::MemcpyDeviceToHost( d_pressures + fmIndices[fluidModelIndex], &(m_simulationData.getPressures(fluidModelIndex)[0]), m_simulationData.getPressures(fluidModelIndex).size());
-		CudaHelper::MemcpyDeviceToHost( d_pressureAccels, &(m_simulationData.getPressureAccels(fluidModelIndex)[0]), m_simulationData.getPressureAccels(fluidModelIndex).size());
+
+		CudaHelper::MemcpyDeviceToHost( d_pressures + fmIndices[fluidModelIndex], &(m_simulationData.getPressure(fluidModelIndex, 0)), numParticles);
+		CudaHelper::MemcpyDeviceToHost( d_pressureAccels, &(m_simulationData.getPressureAccel(fluidModelIndex, 0)), numParticles);
 		CudaHelper::CudaFree(d_pressureAccels);
+		CudaHelper::CudaFree(d_masses);
+
 		STOP_TIMING_AVG; 
 	}
 
@@ -301,6 +301,10 @@ void TimeStepWCSPHGPU::step()
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
+
+	d_boundaryVolumes.clear(); d_boundaryVolumes.shrink_to_fit();
+	d_forcesPerThread.clear(); d_forcesPerThread.shrink_to_fit(); 
+	d_torquesPerThread.clear(); d_torquesPerThread.shrink_to_fit();
 }
 
 void TimeStepWCSPHGPU::prepareData()

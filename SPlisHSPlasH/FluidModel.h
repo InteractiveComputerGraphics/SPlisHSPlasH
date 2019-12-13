@@ -308,11 +308,6 @@ namespace SPH
 				m_masses[i] = mass;
 			}
 
-			FORCE_INLINE std::vector<Real>& getDensities()
-			{
-				return m_density;
-			}
-
 			FORCE_INLINE const Real& getDensity(const unsigned int i) const
 			{
 				return m_density[i];

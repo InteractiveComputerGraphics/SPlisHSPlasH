@@ -42,6 +42,19 @@ namespace SPH
 		uint **d_neighborCounts;
 		uint **d_neighborOffsets;
 		uint *d_neighborPointsetIndices; // indexing the above
+
+		thrust::device_vector<Real> d_boundaryVolumes;
+		thrust::device_vector<unsigned int> d_boundaryVolumeIndices;
+
+		thrust::device_vector<Vector3r> d_rigidBodyPositions;
+		thrust::device_vector<bool> d_isDynamic;
+		thrust::device_vector<Vector3r> d_forcesPerThread; 
+		thrust::device_vector<Vector3r> d_torquesPerThread;
+		thrust::device_vector<unsigned int> d_forcesPerThreadIndices;
+		thrust::device_vector<unsigned int> d_torquesPerThreadIndices;
+
+		thrust::device_vector<unsigned int> d_fmIndices;
+		std::vector<unsigned int> fmIndices;
 		
 		thrust::device_vector<Real> d_volumes;
 		thrust::device_vector<Real> d_densities0;

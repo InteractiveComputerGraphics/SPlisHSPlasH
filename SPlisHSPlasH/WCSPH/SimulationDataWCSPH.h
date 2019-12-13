@@ -40,11 +40,6 @@ namespace SPH
 
 			void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-			FORCE_INLINE std::vector<Real>& getPressures(const unsigned int fluidIndex)
-			{
-				return m_pressure[fluidIndex];
-			}
-
 			FORCE_INLINE const Real getPressure(const unsigned int fluidIndex, const unsigned int i) const
 			{
 				return m_pressure[fluidIndex][i];
@@ -58,11 +53,6 @@ namespace SPH
 			FORCE_INLINE void setPressure(const unsigned int fluidIndex, const unsigned int i, const Real p)
 			{
 				m_pressure[fluidIndex][i] = p;
-			}
-
-			FORCE_INLINE std::vector<Vector3r>& getPressureAccels(const unsigned int fluidIndex)
-			{
-				return m_pressureAccel[fluidIndex];
 			}
 			
 			FORCE_INLINE Vector3r &getPressureAccel(const unsigned int fluidIndex, const unsigned int i)

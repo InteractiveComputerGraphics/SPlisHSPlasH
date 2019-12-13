@@ -115,6 +115,13 @@ void TimeStepDFSPHGPU::initCUDA()
 		d_volumes[pid] = fm->getVolume(0); // TODO: ask Prof. Bender regarding scalability
 		d_densities0[pid] = fm->getDensity0();
 	}
+
+	d_fmIndices.resize(nModels);
+
+	d_rigidBodyPositions.resize(sim->numberOfPointSets() - nModels);
+	d_isDynamic.resize(sim->numberOfPointSets() - nModels);
+	d_forcesPerThreadIndices.resize(sim->numberOfPointSets() - nModels);
+	d_torquesPerThreadIndices.resize(sim->numberOfPointSets() - nModels);
 }
 
 void TimeStepDFSPHGPU::step()
@@ -804,7 +811,6 @@ void TimeStepDFSPHGPU::prepareData()
 		sumBoundaryVolumes += bm_neighbor->getVolumes().size();	
 	}
 
-	d_fmIndices.resize(nFluids);
 	sumParticles = 0;	// for indexing
 	for(unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
 	{
@@ -830,10 +836,6 @@ void TimeStepDFSPHGPU::prepareData()
 		d_masses.insert(d_masses.end(), model->getMasses().begin(), model->getMasses().begin() + model->numActiveParticles());
 	}
 	
-	d_rigidBodyPositions.resize(sim->numberOfPointSets() - nFluids);
-	d_isDynamic.resize(sim->numberOfPointSets() - nFluids);
-	d_forcesPerThreadIndices.resize(sim->numberOfPointSets() - nFluids);
-	d_torquesPerThreadIndices.resize(sim->numberOfPointSets() - nFluids);
 	// for correct indexing
 	int sumForcesPerThread = 0;
 	int sumTorquesPerThread = 0;
@@ -888,20 +890,14 @@ void TimeStepDFSPHGPU::getDataBack()
 		sumTorquesPerThread += bm_neighbor->getTorquesPerThread().size();
 	}
 	
-	d_rigidBodyPositions.clear(); d_rigidBodyPositions.shrink_to_fit();
-	d_isDynamic.clear(); d_isDynamic.shrink_to_fit();
 	d_forcesPerThread.clear(); d_forcesPerThread.shrink_to_fit();
 	d_torquesPerThread.clear(); d_torquesPerThread.shrink_to_fit();
-	d_forcesPerThreadIndices.clear(); d_forcesPerThreadIndices.shrink_to_fit();
-	d_torquesPerThreadIndices.clear(); d_torquesPerThreadIndices.shrink_to_fit();
 
 	d_fmVelocities.clear(); d_fmVelocities.shrink_to_fit();
 	d_bmVelocities.clear(); d_bmVelocities.shrink_to_fit();
 	d_boundaryVolumes.clear(); d_boundaryVolumes.shrink_to_fit();
 	d_boundaryVolumeIndices.clear(); d_boundaryVolumeIndices.shrink_to_fit();
-	d_fmIndices.clear(); d_fmIndices.shrink_to_fit();
 
-	//d_fmDensities.clear(); d_fmDensities.shrink_to_fit();
 	CudaHelper::CudaFree(d_fmDensities);
 	d_masses.clear(); d_masses.shrink_to_fit();
 }

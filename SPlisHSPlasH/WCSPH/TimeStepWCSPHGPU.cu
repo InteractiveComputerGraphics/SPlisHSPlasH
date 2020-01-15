@@ -157,6 +157,7 @@ void TimeStepWCSPHGPU::step()
 	CudaHelper::CudaMalloc( &d_densities, sumParticles);
 
 	// Compute accelerations: a(t)
+	unsigned int sumActiveParticles = 0;
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		START_TIMING("Clearing accelerations");
@@ -172,14 +173,15 @@ void TimeStepWCSPHGPU::step()
 		const Real W_zero = sim->W_zero();
 
 		computeDensitiesGPU<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock(), impl->getThreadsPerBlock() * sizeof(Real)>>>(d_densities, CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
-			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_fmIndices), CudaHelper::GetPointer(d_densities0), W_zero, sim->getSupportRadius(), 
+			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_fmIndices), CudaHelper::GetPointer(d_densities0), W_zero, d_kernelData, 
 			CudaHelper::GetPointer(d_particles), d_neighbors, d_neighborCounts, d_neighborOffsets, d_neighborPointsetIndices, nModels, 
 			nPointSets, fluidModelIndex, numParticles);
 
 		CudaHelper::CheckLastError();
 		CudaHelper::DeviceSynchronize();
 
-		CudaHelper::MemcpyDeviceToHost(d_densities, &(model->getDensity(0)), numParticles); // TODO: does it work like this?
+		CudaHelper::MemcpyDeviceToHost(d_densities + sumActiveParticles, &(model->getDensity(0)), numParticles);
+		sumActiveParticles += numParticles;
 
 		STOP_TIMING_AVG;
 	}

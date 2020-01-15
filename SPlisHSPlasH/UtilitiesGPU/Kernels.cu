@@ -9,28 +9,48 @@ using namespace SPH;
 
 KernelData::KernelData()
 {
-	cudaMalloc(&d_gradW, (PRECOMPUTED_KERNEL_SIZE + 1) * sizeof(Real));
+	CudaHelper::CudaMalloc(&d_W, PRECOMPUTED_KERNEL_SIZE);
+	CudaHelper::CudaMalloc(&d_gradW, PRECOMPUTED_KERNEL_SIZE + 1);
 }
 
 KernelData::~KernelData()
 {
-	cudaFree(d_gradW);
+	CudaHelper::CudaFree(d_W);
+	CudaHelper::CudaFree(d_gradW);
 }
 
 void updateKernelData(KernelData &data)
 {
 	data.radius = PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getRadius();
 	data.invStepSize = PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getInvStepSize();
-	cudaMemcpy(data.d_gradW, PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getGradField(), (PRECOMPUTED_KERNEL_SIZE + 1) * sizeof(Real), cudaMemcpyHostToDevice);
-			
-	cudaError_t errSync  = cudaGetLastError();
-	if(errSync != cudaSuccess) 
-		printf("Problem in copying the precomputed kernel onto the GPU: %s\n", cudaGetErrorString(errSync));
+	data.radius2 = data.radius * data.radius;
+
+	CudaHelper::MemcpyHostToDevice(PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getWeightField(), data.d_W, PRECOMPUTED_KERNEL_SIZE);
+	CudaHelper::MemcpyHostToDevice(PrecomputedKernel<CubicKernel, PRECOMPUTED_KERNEL_SIZE>::getGradField(), data.d_gradW, PRECOMPUTED_KERNEL_SIZE + 1);
 }
 
 //////////////////////////////////////////////////////////////////
 //Kernels for all methods 
 //////////////////////////////////////////////////////////////////
+
+__device__
+Real kernelWeightPrecomputed(const Vector3r &r, const KernelData* const data)
+{
+	Real res = 0.0;
+	const Real r2 = r.squaredNorm();
+	if (r2 <= data->radius2)
+	{
+		const Real rl = sqrt(r2);
+		//const unsigned int pos = std::min<unsigned int>((unsigned int)(rl * data->invStepSize), PRECOMPUTED_KERNEL_SIZE-2u);
+		unsigned int pos = 0;
+		if(static_cast<unsigned int>(rl * data->invStepSize) < PRECOMPUTED_KERNEL_SIZE-2u)
+			pos = static_cast<unsigned int>(rl * data->invStepSize);
+		else
+			pos = PRECOMPUTED_KERNEL_SIZE-2u;
+		res = static_cast<Real>(0.5)*(data->d_W[pos] + data->d_W[pos+1]);
+	}
+	return res;
+}
 
 __device__
 Vector3r gradKernelWeightPrecomputed(const Vector3r &r, const KernelData* const data)
@@ -52,20 +72,6 @@ Vector3r gradKernelWeightPrecomputed(const Vector3r &r, const KernelData* const 
 		res.setZero();
 
 	return res;
-}
-
-__global__
-void testPrecomputedGrad(const KernelData* const data)
-{
-	const uint i = blockIdx.x * blockDim.x + threadIdx.x;
-	if(i > 10)
-		return;
-
-	const float j = i / 100;
-	const Vector3r v = Vector3r(j, 0, 0);
-	const Vector3r res = gradKernelWeightPrecomputed(v, data);
-	printf("Radius: %f\n", data->radius);
-	//printf("j: %f, gradKernelWeight: (%f, %f, %f)\n", j, res[0], res[1], res[2]);
 }
 
 __device__
@@ -144,7 +150,8 @@ void addForce(const Vector3r &pos, const Vector3r &f, /* output */ Vector3r* con
 
 __global__
 void computeDensitiesGPU(/*out*/ Real* const densities, const Real* const volumes, const Real* const boundaryVolumes, const uint* const boundaryVolumeIndices, 
-	const uint* const fmIndices, const Real* const densities0, const Real W_zero, const Real radius, /*start of forall-parameters*/ double3** particles, uint** neighbors, uint** neighborCounts, uint** neighborOffsets, 
+	const uint* const fmIndices, const Real* const densities0, const Real W_zero, const KernelData* const kernelData, 
+	/*start of forall-parameters*/ double3** particles, uint** neighbors, uint** neighborCounts, uint** neighborOffsets, 
   uint* neighborPointsetIndices, const uint nFluids, const uint nPointSets, const uint fluidModelIndex, const uint numParticles)
 {
  	// Boundary: Akinci2012
@@ -164,7 +171,7 @@ void computeDensitiesGPU(/*out*/ Real* const densities, const Real* const volume
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
 	forall_fluid_neighborsGPU(
-		density += volumes[pid] * kernelWeight(Vector3r(xi.x - xj.x, xi.y - xj.y, xi.z - xj.z), radius);
+		density += volumes[pid] * kernelWeightPrecomputed(Vector3r(xi.x - xj.x, xi.y - xj.y, xi.z - xj.z), kernelData);
 	)
 	
 
@@ -172,7 +179,7 @@ void computeDensitiesGPU(/*out*/ Real* const densities, const Real* const volume
 	// Boundary
 	//////////////////////////////////////////////////////////////////////////
   forall_boundary_neighborsGPU(
-		density += boundaryVolumes[boundaryVolumeIndices[pid - nFluids] + neighborIndex] * kernelWeight(Vector3r(xi.x - xj.x, xi.y - xj.y, xi.z - xj.z), radius);
+		density += boundaryVolumes[boundaryVolumeIndices[pid - nFluids] + neighborIndex] *  kernelWeightPrecomputed(Vector3r(xi.x - xj.x, xi.y - xj.y, xi.z - xj.z), kernelData);
 	)
 
 	density *= densities0[fluidModelIndex];

@@ -152,6 +152,7 @@ void TimeStepDFSPHGPU::step()
 	}
 
 	START_TIMING("compute the densities");
+	unsigned int sumActiveParticles = 0;
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
@@ -162,14 +163,15 @@ void TimeStepDFSPHGPU::step()
 
 		//computeDensities(fluidModelIndex);
 		computeDensitiesGPU<<<impl->getNumberOfBlocks(), impl->getThreadsPerBlock(), impl->getThreadsPerBlock() * sizeof(Real)>>>( d_fmDensities, CudaHelper::GetPointer(d_volumes), CudaHelper::GetPointer(d_boundaryVolumes), 
-			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_fmIndices), CudaHelper::GetPointer(d_densities0), W_zero, sim->getSupportRadius(), 
+			CudaHelper::GetPointer(d_boundaryVolumeIndices), CudaHelper::GetPointer(d_fmIndices), CudaHelper::GetPointer(d_densities0), W_zero, d_kernelData, 
 			CudaHelper::GetPointer(d_particles), d_neighbors, d_neighborCounts, d_neighborOffsets, d_neighborPointsetIndices, nModels, 
 			nPointSets, fluidModelIndex, numParticles);
 
 		CudaHelper::CheckLastError();	
 		CudaHelper::DeviceSynchronize();
 
-		CudaHelper::MemcpyDeviceToHost(d_fmDensities, &(model->getDensity(0)), sumParticles);
+		CudaHelper::MemcpyDeviceToHost(d_fmDensities + sumActiveParticles, &(model->getDensity(0)), sumParticles);
+		sumActiveParticles += numParticles;
 	}
 	STOP_TIMING_AVG;
 
@@ -206,12 +208,12 @@ void TimeStepDFSPHGPU::step()
 		divergenceSolve();
 		STOP_TIMING_AVG
 
-		unsigned int sumActiveParticles = 0;
+		sumActiveParticles = 0;
 		for(unsigned int fluidModelIndex = 0; fluidModelIndex < sim->numberOfFluidModels(); fluidModelIndex++)
 		{
 			FluidModel *fm_neighbor = sim->getFluidModel(fluidModelIndex);
 			CudaHelper::MemcpyDeviceToHost( CudaHelper::GetPointer(d_fmVelocities) + sumActiveParticles, &(fm_neighbor->getVelocity(0)), sim->getFluidModel(fluidModelIndex)->numActiveParticles());
-			sumActiveParticles += sim->getFluidModel(fluidModelIndex)->numActiveParticles();
+			sumActiveParticles += fm_neighbor->numActiveParticles();
 		}
 	}
 

@@ -13,8 +13,8 @@ const unsigned int PRECOMPUTED_KERNEL_SIZE = 10000;
 //////////////////////////////////////////////////////////////////
 
 struct KernelData{
-	Real* d_gradW;
-	Real radius, invStepSize;
+	Real *d_W, *d_gradW;
+	Real radius, radius2, invStepSize;
 
 	KernelData();
 	~KernelData();
@@ -27,10 +27,10 @@ void updateKernelData(KernelData &data);
 //////////////////////////////////////////////////////////////////
 
 __device__
-Vector3r gradKernelWeightPrecomputed(const Vector3r &r, const KernelData* const data);
+Real kernelWeightPrecomputed(const Vector3r &r, const KernelData* const data);
 
-__global__
-void testPrecomputedGrad(const KernelData* const data);
+__device__
+Vector3r gradKernelWeightPrecomputed(const Vector3r &r, const KernelData* const data);
 
 __device__ 
 Real kernelWeight(const Vector3r& rin, const Real m_radius);
@@ -45,7 +45,7 @@ void addForce(const Vector3r &pos, const Vector3r &f, /* output */ Vector3r* con
 
 __global__
 void computeDensitiesGPU(/*out*/ Real* const densities, const Real* const volumes, const Real* const boundaryVolumes, const uint* const boundaryVolumeIndices, 
-	const uint* const fmIndices, const Real* const densities0, const Real W_zero, const Real radius, /*start of forall-parameters*/ double3** particles, uint** neighbors, uint** neighborCounts, uint** neighborOffsets, 
+	const uint* const fmIndices, const Real* const densities0, const Real W_zero, const KernelData* const kernelData, /*start of forall-parameters*/ double3** particles, uint** neighbors, uint** neighborCounts, uint** neighborOffsets, 
 	uint* neighborPointsetIndices, const uint nFluids, const uint nPointSets, const uint fluidModelIndex, const uint numParticles);
 
 //////////////////////////////////////////////////////////////////

@@ -51,6 +51,37 @@ for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) \
 	} \
 }
 
+/** Loop over the fluid neighbors of all fluid phases. 
+* constructGpuData must have been called before. outer_loop for computing indices needed for inner_loop. 
+*/
+#define forall_fluid_neighborsGPU(code) \
+for(uint pid = 0; pid < nFluids; pid++) \
+{ \
+	const uint neighborsetIndex = neighborPointsetIndices[fluidModelIndex] + pid; \
+	for(uint j = 0; j < neighborCounts[neighborsetIndex][i]; j++) \
+	{ \
+		const uint neighborIndex = neighbors[neighborsetIndex][neighborOffsets[neighborsetIndex][i] + j]; \ 
+		const double3 &xj = particles[pid][neighborIndex]; \
+		code \
+	} \
+}
+
+
+/** Loop over the boundary neighbors of all fluid phases.
+* constructGpuData must have been called before.
+*/
+#define forall_boundary_neighborsGPU(code) \
+for (unsigned int pid = nFluids; pid < nPointSets; pid++) \
+{ \
+	const uint neighborsetIndex = neighborPointsetIndices[fluidModelIndex] + pid; \
+	for(unsigned int j = 0; j < neighborCounts[neighborsetIndex][i]; j++) \
+	{ \
+		const uint neighborIndex = neighbors[neighborsetIndex][neighborOffsets[neighborsetIndex][i] + j]; \ 
+		const double3 &xj = particles[pid][neighborIndex]; \
+		code \
+	} \
+}
+
 /** Loop over the boundary density maps.
 * Simulation *sim, unsigned int nBoundaries and unsigned int fluidModelIndex must be defined.
 */
@@ -254,6 +285,11 @@ namespace SPH
 			return static_cast<unsigned int>(m_neighborhoodSearch->point_set(pointSetIndex).n_neighbors(neighborPointSetIndex, index));
 		}
 
+		FORCE_INLINE std::vector<cuNSearch::PointSet> &getPointSets() const
+		{
+			return m_neighborhoodSearch->point_sets();
+		}
+
 		FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index, const unsigned int k) const
 		{
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor(neighborPointSetIndex, index, k);
@@ -261,11 +297,11 @@ namespace SPH
 
 		FORCE_INLINE const unsigned int * getNeighborList(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index) const
 		{
-			#ifdef GPU_NEIGHBORHOOD_SEARCH
+//			#ifdef GPU_NEIGHBORHOOD_SEARCH
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index);
-			#else
+/* 			#else
 			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index).data();
-			#endif
+			#endif */
 		}
 	};
 }

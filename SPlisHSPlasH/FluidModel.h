@@ -238,6 +238,11 @@ namespace SPH
 				m_x[i] = pos;
 			}
 
+			FORCE_INLINE std::vector<Vector3r> &getVelocities()
+			{
+				return m_v;
+			}
+
 			FORCE_INLINE Vector3r &getVelocity(const unsigned int i)
 			{
 				return m_v[i];
@@ -281,6 +286,11 @@ namespace SPH
 			FORCE_INLINE void setAcceleration(const unsigned int i, const Vector3r &accel)
 			{
 				m_a[i] = accel;
+			}
+
+			FORCE_INLINE std::vector<Real>& getMasses()
+			{
+				return m_masses;
 			}
 
 			FORCE_INLINE const Real getMass(const unsigned int i) const

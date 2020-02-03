@@ -8,7 +8,7 @@ else(BUILD_SHARED_LIBS)
 	set(LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif(BUILD_SHARED_LIBS)
 
-option(USE_GPU_NEIGHBORHOOD_SEARCH "Use GPU neighborhood search" OFF)
+option(USE_GPU_NEIGHBORHOOD_SEARCH "Use GPU neighborhood search" ON)
 
 if(USE_GPU_NEIGHBORHOOD_SEARCH)
 
@@ -24,8 +24,8 @@ if(USE_GPU_NEIGHBORHOOD_SEARCH)
 	ExternalProject_Add(
 	   Ext_NeighborhoodSearch
 	   PREFIX "${CMAKE_SOURCE_DIR}/extern/cuNSearch"
-	   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/cuNSearch.git
-	   GIT_TAG "aba3da18cb4f45cd05d729465d1725891ffc33da"
+	   GIT_REPOSITORY https://gitlab.com/R.Baumgartner/cunsearch_update.git
+	   GIT_TAG "9cd6d64c03a1b60d6eb99dcaf4fe647f90fe7020"
 	   INSTALL_DIR ${ExternalInstallDir}/NeighborhoodSearch
 	   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/NeighborhoodSearch -DCUNSEARCH_USE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION} -DBUILD_DEMO:BOOL=OFF
 	   )

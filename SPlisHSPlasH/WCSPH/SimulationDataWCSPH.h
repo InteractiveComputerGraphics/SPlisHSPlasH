@@ -54,7 +54,7 @@ namespace SPH
 			{
 				m_pressure[fluidIndex][i] = p;
 			}
-
+			
 			FORCE_INLINE Vector3r &getPressureAccel(const unsigned int fluidIndex, const unsigned int i)
 			{
 				return m_pressureAccel[fluidIndex][i];

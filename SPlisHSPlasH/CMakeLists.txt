@@ -1,11 +1,15 @@
 set(WCSPH_HEADER_FILES
 	WCSPH/SimulationDataWCSPH.h
 	WCSPH/TimeStepWCSPH.h
+
+	WCSPH/TimeStepWCSPHGPU.h
 	)
 	
 set(WCSPH_SOURCE_FILES
 	WCSPH/SimulationDataWCSPH.cpp
 	WCSPH/TimeStepWCSPH.cpp
+
+	WCSPH/TimeStepWCSPHGPU.cu
 	)		
 	
 set(PCISPH_HEADER_FILES
@@ -43,11 +47,15 @@ set(IISPH_SOURCE_FILES
 set(DFSPH_HEADER_FILES
 	DFSPH/SimulationDataDFSPH.h
 	DFSPH/TimeStepDFSPH.h
+
+	DFSPH/TimeStepDFSPHGPU.h
 	)
 	
 set(DFSPH_SOURCE_FILES
 	DFSPH/SimulationDataDFSPH.cpp
 	DFSPH/TimeStepDFSPH.cpp
+
+	DFSPH/TimeStepDFSPHGPU.cu
 	)	
 	
 set(PF_HEADER_FILES
@@ -58,6 +66,11 @@ set(PF_HEADER_FILES
 set(PF_SOURCE_FILES
 	PF/SimulationDataPF.cpp
 	PF/TimeStepPF.cpp
+	)
+
+set(GPU_UTILS
+	UtilitiesGPU/Kernels.cuh
+	UtilitiesGPU/Kernels.cu
 	)
 	
 set(SURFACETENSION_HEADER_FILES
@@ -178,7 +191,7 @@ include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
 ############################################################
 include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
 
-add_library(SPlisHSPlasH
+cuda_add_library(SPlisHSPlasH
 	Common.h
 	
 	NeighborhoodSearch.h
@@ -251,6 +264,8 @@ add_library(SPlisHSPlasH
 
 	${UTILS_HEADER_FILES}
 	${UTILS_SOURCE_FILES}
+
+	${GPU_UTILS}
 )
 
 add_dependencies(SPlisHSPlasH Ext_NeighborhoodSearch)

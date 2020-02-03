@@ -4,10 +4,12 @@
 #include "TimeStep.h"
 #include "EmitterSystem.h"
 #include "SPlisHSPlasH/WCSPH/TimeStepWCSPH.h"
+#include "SPlisHSPlasH/WCSPH/TimeStepWCSPHGPU.h"
 #include "SPlisHSPlasH/PCISPH/TimeStepPCISPH.h"
 #include "SPlisHSPlasH/PBF/TimeStepPBF.h"
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
+#include "SPlisHSPlasH/DFSPH/TimeStepDFSPHGPU.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
 #include "BoundaryModel_Akinci2012.h"
 #include "BoundaryModel_Bender2019.h"
@@ -58,6 +60,7 @@ int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
 int Simulation::ENUM_BENDER2019 = -1;
 
+bool TIMESTEP_GPU = true; // TODO: only for benchmarking purposes
 
 Simulation::Simulation () 
 {
@@ -499,7 +502,11 @@ void Simulation::setSimulationMethod(const int val)
 
 	if (method == SimulationMethods::WCSPH)
 	{
-		m_timeStep = new TimeStepWCSPH();
+		if (TIMESTEP_GPU)
+			m_timeStep = new TimeStepWCSPHGPU();
+		else
+			m_timeStep = new TimeStepWCSPH();
+
 		m_timeStep->init();
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
@@ -527,7 +534,11 @@ void Simulation::setSimulationMethod(const int val)
 	}
 	else if (method == SimulationMethods::DFSPH)
 	{
-		m_timeStep = new TimeStepDFSPH();
+		if (TIMESTEP_GPU)
+			m_timeStep = new TimeStepDFSPHGPU();
+		else
+			m_timeStep = new TimeStepDFSPH();
+
 		m_timeStep->init();
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);

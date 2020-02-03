@@ -64,12 +64,14 @@ add_definitions(-DTW_NO_LIB_PRAGMA -DTW_STATIC)
 
 include_directories(${PROJECT_PATH}/extern/freeglut/include)
 include_directories(${PROJECT_PATH}/extern/glew/include)
+include_directories(	${CUDA_INCLUDE_DIRS})
 
 set_target_properties(StaticBoundarySimulator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(StaticBoundarySimulator PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(StaticBoundarySimulator PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
 add_dependencies(StaticBoundarySimulator ${SIMULATION_DEPENDENCIES})
-target_link_libraries(StaticBoundarySimulator ${SIMULATION_LINK_LIBRARIES})
+target_link_libraries(StaticBoundarySimulator ${SIMULATION_LINK_LIBRARIES} ${CUDA_LIBRARIES})
+
 VIS_SOURCE_GROUPS()
 
 set_target_properties(StaticBoundarySimulator PROPERTIES FOLDER "Simulators")

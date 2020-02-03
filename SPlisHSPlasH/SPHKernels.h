@@ -608,6 +608,9 @@ namespace SPH
 		static Real m_invStepSize;
 		static Real m_W_zero;
 	public:
+		static Real* getWeightField() { return m_W; }
+		static Real* getGradField() { return m_gradW; }
+		static Real getInvStepSize() { return m_invStepSize; }
 		static Real getRadius() { return m_radius; }
 		static void setRadius(Real val)
 		{

@@ -46,6 +46,26 @@ namespace SPH
 			virtual void loadState(BinaryFileReader &binReader);
 
 			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
+
+			FORCE_INLINE const Vector3r &getRigidBodyPosition()
+			{
+				return m_rigidBody->getPosition();
+			}
+
+			FORCE_INLINE const bool isDynamic()
+			{
+				return m_rigidBody->isDynamic();
+			}
+
+			FORCE_INLINE std::vector<Vector3r> &getForcesPerThread()
+			{
+				return m_forcePerThread;
+			}
+
+			FORCE_INLINE std::vector<Vector3r> &getTorquesPerThread()
+			{
+				return m_torquePerThread;
+			}
 			
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{
@@ -77,6 +97,11 @@ namespace SPH
 				m_x[i] = pos;
 			}
 
+			FORCE_INLINE std::vector<Vector3r> &getVelocities()
+			{
+				return m_v;
+			}
+
 			FORCE_INLINE Vector3r &getVelocity(const unsigned int i)
 			{
 				return m_v[i];
@@ -90,6 +115,11 @@ namespace SPH
 			FORCE_INLINE void setVelocity(const unsigned int i, const Vector3r &vel)
 			{
 				m_v[i] = vel;
+			}
+
+			FORCE_INLINE std::vector<Real>& getVolumes()
+			{
+				return m_V;
 			}
 
 			FORCE_INLINE const Real& getVolume(const unsigned int i) const

@@ -9,10 +9,10 @@
 
 namespace Utilities
 {
-#define INCREASE_COUNTER(counterName, increaseBy) \
+	#define INCREASE_COUNTER(counterName, increaseBy) \
 		Utilities::Counting::increaseCounter(counterName, increaseBy);
 
-#define INIT_COUNTING \
+	#define INIT_COUNTING \
 		std::unordered_map<std::string, Utilities::AverageCount> Utilities::Counting::m_averageCounts; 
 
 	struct AverageCount

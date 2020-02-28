@@ -189,7 +189,7 @@ void TimeStepPBF::pressureSolve()
 		}
 		m_iterations++;
 	}
-	INCREASE_COUNTER("PBF - iterations", m_iterations);
+	INCREASE_COUNTER("PBF - iterations", static_cast<Real>(m_iterations));
 }
 
 void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err)
@@ -204,7 +204,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 	const Real invH2 = invH*invH;
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
-	const Real eps = 1.0e-6;
+	const Real eps = static_cast<Real>(1.0e-6);
 
 	const Real density0 = model->getDensity0();
 

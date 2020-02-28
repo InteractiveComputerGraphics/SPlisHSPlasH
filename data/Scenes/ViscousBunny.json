@@ -11,7 +11,7 @@
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
-		"maxError": 0.01,
+		"maxError": 0.1,
 		"maxIterationsV": 100,
 		"maxErrorV": 0.1,		
 		"stiffness": 50000,

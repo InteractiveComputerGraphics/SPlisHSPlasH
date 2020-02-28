@@ -79,6 +79,70 @@ void TimeStep::clearAccelerations(const unsigned int fluidModelIndex)
 	}
 }
 
+#ifdef USE_AVX
+
+void TimeStep::computeDensities(const unsigned int fluidModelIndex)
+{
+	Simulation *sim = Simulation::getCurrent();
+	FluidModel *model = sim->getFluidModel(fluidModelIndex);
+	const Real density0 = model->getDensity0();
+	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
+	
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int) numParticles; i++)
+		{
+			const Vector3r &xi = model->getPosition(i);
+			Real &density = model->getDensity(i);
+			density = model->getVolume(i) * CubicKernel_AVX::W_zero();
+
+			Scalarf8 density_avx(0.0f);
+			Vector3f8 xi_avx(xi);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors_avx(
+				const Scalarf8 V_avx = convert_zero(fm_neighbor->getVolume(0), count);
+				density_avx += V_avx *CubicKernel_AVX::W(xi_avx - xj_avx);
+			);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
+				forall_boundary_neighbors_avx(
+					const Scalarf8 V_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
+					density_avx += V_avx * CubicKernel_AVX::W(xi_avx - xj_avx);
+				);
+				density += density_avx.reduce();
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				density += density_avx.reduce();
+				forall_density_maps(
+					density += rho;
+				);
+			}
+			else   // Bender2019
+			{
+				density += density_avx.reduce();
+				forall_volume_maps(
+					density += Vj * sim->W(xi - xj);
+				);
+			}
+
+			density *= density0;
+		}
+	}
+}
+
+#else
+
 void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -133,6 +197,8 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 		}
 	}
 }
+
+#endif
 
 void TimeStep::reset()
 {
@@ -231,7 +297,7 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 		if ((dist > 0.1*particleRadius) && (dist < supportRadius))
 		{
 			const Real volume = static_cast<Real>(bm->getMap()->interpolate(1, localXi, cell, c0, N));
-			if ((volume > 1e-6) && (volume != numeric_limits<Real>::max()))
+			if ((volume > 1e-5) && (volume != numeric_limits<Real>::max()))
 			{
 				boundaryVolume = volume;
 
@@ -243,7 +309,7 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 #endif
 				normal = R.cast<double>() * normal;
 				const double nl = normal.norm();
-				if (nl > 1.0e-6)
+				if (nl > 1.0e-5)
 				{
 					normal /= nl;
  					boundaryXj = (xi - dist * normal.cast<Real>());
@@ -262,7 +328,7 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 		{
 			normal = R.cast<double>() * normal;
 			const double nl = normal.norm();
-			if (nl > 1.0e-6)
+			if (nl > 1.0e-5)
 			{
 				normal /= nl;
 				// project to surface
@@ -382,7 +448,7 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 		{
 			normal = R.cast<double>() * normal;
 			const double nl = normal.norm();
-			if (nl > 1.0e-6)
+			if (nl > 1.0e-5)
 			{
 				normal /= nl;
 				// project to surface

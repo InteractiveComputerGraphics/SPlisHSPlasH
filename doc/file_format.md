@@ -140,6 +140,7 @@ Example code:
   - 1: Use CFL condition
   - 2: Use CFL condition and consider number of pressure solver iterations
 * cflFactor (float): Factor to scale the CFL time step size.
+* cflMinTimeStepSize (float): Min. allowed time step size.
 * cflMaxTimeStepSize (float): Max. allowed time step size.
 
 ## FluidBlocks
@@ -265,7 +266,7 @@ Example code:
 * mapInvert (bool): Invert the map when using density or volume maps, flips inside/outside (default: false) 
 * mapThickness (float): Additional thickness of a volume or density map (default: 0.0)
 * mapResolution (vec3): Resolution of a volume or density map (defaut: [20,20,20])
-* samplingMode (int): Surface sampling mode. 0 Poisson disk sampling, 1 Regular triangle sampling (default: 1).
+* samplingMode (int): Surface sampling mode. 0 Poisson disk sampling, 1 Regular triangle sampling (default: 0).
 
 
 ## Fluid parameter block

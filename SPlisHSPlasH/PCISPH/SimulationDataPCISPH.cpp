@@ -51,7 +51,7 @@ void SimulationDataPCISPH::init()
  		Real sumGradW2 = 0.0;
  		const Real supportRadius = sim->getSupportRadius();
  		const Real particleRadius = sim->getParticleRadius();
- 		const Real diam = 2.0 * particleRadius;
+ 		const Real diam = static_cast<Real>(2.0) * particleRadius;
  		const Vector3r xi(0,0,0);
  
  		// use a regular sampling around (0,0,0)

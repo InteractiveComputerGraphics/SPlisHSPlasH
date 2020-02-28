@@ -958,7 +958,9 @@ class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 		]
 		SPHConfigurationNode.sphParameters["Export"] = [	
 			PluginFunctions.createBoolParam("enablePartioExport", "Partio export", "Enable/disable partio export.", False),
+			PluginFunctions.createBoolParam("enableRigidBodyExport", "Rigid body export", "Enable/disable rigid body export.", False),
 			PluginFunctions.createBoolParam("enableVTKExport", "VTK export", "Enable/disable VTK export.", False),
+			PluginFunctions.createBoolParam("enableRigidBodyVTKExport", "Rigid body VTK export", "Enable/disable rigid body VTK export.", False),
 			PluginFunctions.createFloatParam("dataExportFPS", "Export FPS", "Frame rate of particle export.", 25, 0.1, 1000),
 			PluginFunctions.createStringParam("particleAttributes", "Export attributes", "Attributes that are exported in the particle files (except id and position).", "velocity"),
 			PluginFunctions.createBoolParam("enableStateExport", "State export", "Enable/disable simulation state export.", False),
@@ -978,6 +980,7 @@ class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 		SPHConfigurationNode.sphParameters["CFL"] = [	
 			PluginFunctions.createEnumParam("cflMethod", "CFL - method", "CFL method used for adaptive time stepping.", 1, ["None", "CFL", "CFL - iterations"]),
 			PluginFunctions.createFloatParam("cflFactor", "CFL - factor", "Factor to scale the CFL time step size.", 0.5, 1e-6, 10.0, 0),
+			PluginFunctions.createFloatParam("cflMinTimeStepSize", "CFL - min. time step size", "Min. time step size.", 0.0001, 1e-7, 1.0, 0),
 			PluginFunctions.createFloatParam("cflMaxTimeStepSize", "CFL - max. time step size", "Max. time step size.", 0.005, 1e-6, 1.0, 0)
 		]
 		SPHConfigurationNode.sphParameters["Kernel"] = [	

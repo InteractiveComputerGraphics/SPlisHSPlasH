@@ -169,10 +169,10 @@ void Elasticity_Becker2009::computeStress()
 	// Elasticity tensor
 	Matrix6r C;
 	C.setZero();
-	const Real factor = m_youngsModulus / ((1.0 + m_poissonRatio)*(1.0 - 2.0 * m_poissonRatio));
-	C(0, 0) = C(1, 1) = C(2, 2) = factor * (1.0 - m_poissonRatio);
+	const Real factor = m_youngsModulus / ((static_cast<Real>(1.0) + m_poissonRatio)*(static_cast<Real>(1.0) - static_cast<Real>(2.0) * m_poissonRatio));
+	C(0, 0) = C(1, 1) = C(2, 2) = factor * (static_cast<Real>(1.0) - m_poissonRatio);
 	C(0, 1) = C(0, 2) = C(1, 0) = C(1, 2) = C(2, 0) = C(2, 1) = factor * (m_poissonRatio);
-	C(3, 3) = C(4, 4) = C(5, 5) = factor * 0.5*(1.0 - 2.0 * m_poissonRatio);
+	C(3, 3) = C(4, 4) = C(5, 5) = factor * static_cast<Real>(0.5)*(static_cast<Real>(1.0) - static_cast<Real>(2.0) * m_poissonRatio);
 
 	#pragma omp parallel default(shared)
 	{
@@ -213,9 +213,9 @@ void Elasticity_Becker2009::computeStress()
 			strain[0] = nablaU(0, 0);						// \epsilon_{00}
 			strain[1] = nablaU(1, 1);						// \epsilon_{11}
 			strain[2] = nablaU(2, 2);						// \epsilon_{22}
-			strain[3] = 0.5 * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
-			strain[4] = 0.5 * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
-			strain[5] = 0.5 * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
+			strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
+			strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
+			strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
 
 			// stress = C * epsilon
 			m_stress[i] = C * strain;

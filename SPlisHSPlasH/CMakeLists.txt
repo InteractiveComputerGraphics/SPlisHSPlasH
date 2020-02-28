@@ -133,6 +133,7 @@ set(ELASTICITY_SOURCE_FILES
 	)	
 	
 set(UTILS_HEADER_FILES
+	Utilities/AVX_math.h
 	Utilities/MathFunctions.h
 	Utilities/GaussQuadrature.h
 	Utilities/MatrixFreeSolver.h
@@ -160,24 +161,6 @@ set(UTILS_SOURCE_FILES
 	Utilities/WindingNumbers.cpp
 	)	
 	
-find_package( Eigen3 REQUIRED )
-include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR} )
-
-############################################################
-# CompactNSearch
-############################################################
-include_directories(${PROJECT_PATH}/extern/install/NeighborhoodSearch/include)
-
-############################################################
-# DiscreGrid
-############################################################
-include_directories(${PROJECT_PATH}/extern/install/Discregrid/include)
-
-############################################################
-# GenericParameters
-############################################################
-include_directories(${PROJECT_PATH}/extern/install/GenericParameters/include)
-
 add_library(SPlisHSPlasH
 	Common.h
 	
@@ -253,9 +236,27 @@ add_library(SPlisHSPlasH
 	${UTILS_SOURCE_FILES}
 )
 
-add_dependencies(SPlisHSPlasH Ext_NeighborhoodSearch)
-add_dependencies(SPlisHSPlasH Ext_GenericParameters)
-add_dependencies(SPlisHSPlasH Ext_Discregrid)
+add_dependencies(SPlisHSPlasH
+	Utilities
+	tinyexpr
+	Ext_NeighborhoodSearch
+	Ext_GenericParameters
+	Ext_Discregrid
+)
+
+target_include_directories(SPlisHSPlasH PUBLIC
+	${EIGEN3_INCLUDE_DIR}
+	${NEIGHBORHOOD_SEARCH_INCLUDE_DIR}
+	${GENERICPARAMETERS_INCLUDE_DIR}
+	${DISCREGRID_INCLUDE_DIR}
+)
+
+target_link_libraries(SPlisHSPlasH
+	PUBLIC Utilities tinyexpr
+	INTERFACE
+	${NEIGHBORHOOD_SEARCH_LIBRARIES}
+	${DISCREGRID_LIBRARIES}
+)
 
 source_group("Header Files\\WCSPH" FILES ${WCSPH_HEADER_FILES})
 source_group("Source Files\\WCSPH" FILES ${WCSPH_SOURCE_FILES})

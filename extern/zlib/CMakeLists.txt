@@ -22,8 +22,5 @@ add_library(zlib STATIC
 	src/zutil.c
 	src/zutil.h
 )
-
+target_include_directories(zlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set_target_properties(zlib PROPERTIES FOLDER "External Dependencies")
- 
-
-

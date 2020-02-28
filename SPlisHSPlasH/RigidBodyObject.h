@@ -27,6 +27,10 @@ namespace SPH
 		virtual void setAngularVelocity(const Vector3r &v) = 0;
 		virtual void addForce(const Vector3r &f) = 0;
 		virtual void addTorque(const Vector3r &t) = 0;
+
+		virtual const std::vector<Vector3r> &getVertices() const = 0;
+		virtual const std::vector<Vector3r> &getVertexNormals() const = 0;
+		virtual const std::vector<unsigned int> &getFaces() const = 0;
 	};
 }
 

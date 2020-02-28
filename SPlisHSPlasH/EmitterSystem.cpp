@@ -43,7 +43,7 @@ void EmitterSystem::reuseParticles()
 				(x[0] > m_boxMax[0]) || (x[1] > m_boxMax[1]) || (x[2] > m_boxMax[2]))
 			{
 				m_reusedParticles.push_back(i);
-				m_model->getVelocity(i) *= 0.95;	// make particles slow so that they don't influence
+				m_model->getVelocity(i) *= static_cast<Real>(0.95);	// make particles slow so that they don't influence
 													// the CFL condition
 													//model->getPosition(0, i) = Vector3r(1000 + i, 1000, 1000);
 			}

@@ -8,7 +8,7 @@ int VorticityBase::VORTICITY_COEFFICIENT = -1;
 VorticityBase::VorticityBase(FluidModel *model) :
 	NonPressureForceBase(model)
 {
-	m_vorticityCoeff = 0.01;
+	m_vorticityCoeff = static_cast<Real>(0.01);
 }
 
 VorticityBase::~VorticityBase(void)

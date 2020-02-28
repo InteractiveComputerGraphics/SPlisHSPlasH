@@ -55,7 +55,7 @@ void AnimationField::step()
 			FluidModel *fm = sim->getFluidModel(m);
 			const unsigned int numParticles = fm->numActiveParticles();
 
-			// find angular velocity field
+			// find animated field
 			const FieldDescription *particleField = nullptr;
 			for (unsigned int j = 0; j < fm->numberOfFields(); j++)
 			{
@@ -93,7 +93,7 @@ void AnimationField::step()
 					{
 						te_expr *expr_vx = te_compile(m_expression[0].c_str(), vars, numVars, &err);
 						if (expr_vx)
-							value[0] = te_eval(expr_vx);
+							value[0] = static_cast<Real>(te_eval(expr_vx));
 						te_free(expr_vx);
 
 						if (err != 0)
@@ -107,7 +107,7 @@ void AnimationField::step()
 					{
 						te_expr *expr_vy = te_compile(m_expression[1].c_str(), vars, numVars, &err);
 						if (expr_vy)
-							value[1] = te_eval(expr_vy);
+							value[1] = static_cast<Real>(te_eval(expr_vy));
 						te_free(expr_vy);
 
 						if (err != 0)
@@ -121,7 +121,7 @@ void AnimationField::step()
 					{
 						te_expr *expr_vz = te_compile(m_expression[2].c_str(), vars, numVars, &err);
 						if (expr_vz)
-							value[2] = te_eval(expr_vz);
+							value[2] = static_cast<Real>(te_eval(expr_vz));
 						te_free(expr_vz);
 
 						if (err != 0)

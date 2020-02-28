@@ -29,7 +29,7 @@ Elasticity_Peer2018::Elasticity_Peer2018(FluidModel *model) :
 
 	m_iterations = 0;
 	m_maxIter = 100;
-	m_maxError = 1.0e-4;
+	m_maxError = static_cast<Real>(1.0e-4);
 	m_alpha = 0.0;
 
 	initValues();
@@ -345,12 +345,12 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
  			// compute Cauchy strain: epsilon = 0.5 (F + F^T) - I
  			//////////////////////////////////////////////////////////////////////////
  			Vector6r strain;
- 			strain[0] = m_F[i](0, 0) - 1.0;						// \epsilon_{00}
- 			strain[1] = m_F[i](1, 1) - 1.0;						// \epsilon_{11}
- 			strain[2] = m_F[i](2, 2) - 1.0;						// \epsilon_{22}
- 			strain[3] = 0.5 * (m_F[i](0, 1) + m_F[i](1, 0));			// \epsilon_{01}
- 			strain[4] = 0.5 * (m_F[i](0, 2) + m_F[i](2, 0));			// \epsilon_{02}
- 			strain[5] = 0.5 * (m_F[i](1, 2) + m_F[i](2, 1));			// \epsilon_{12}
+ 			strain[0] = m_F[i](0, 0) - static_cast<Real>(1.0);						// \epsilon_{00}
+ 			strain[1] = m_F[i](1, 1) - static_cast<Real>(1.0);						// \epsilon_{11}
+ 			strain[2] = m_F[i](2, 2) - static_cast<Real>(1.0);						// \epsilon_{22}
+ 			strain[3] = static_cast<Real>(0.5) * (m_F[i](0, 1) + m_F[i](1, 0));			// \epsilon_{01}
+ 			strain[4] = static_cast<Real>(0.5) * (m_F[i](0, 2) + m_F[i](2, 0));			// \epsilon_{02}
+ 			strain[5] = static_cast<Real>(0.5) * (m_F[i](1, 2) + m_F[i](2, 1));			// \epsilon_{12}
 
 			//////////////////////////////////////////////////////////////////////////
 			// First Piola Kirchhoff stress = 2 mu epsilon + lambda trace(epsilon) I
@@ -505,9 +505,9 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
 			strain[0] = nablaU(0, 0);									// \epsilon_{00}
 			strain[1] = nablaU(1, 1);									// \epsilon_{11}
 			strain[2] = nablaU(2, 2);									// \epsilon_{22}
- 			strain[3] = 0.5 * (nablaU(0, 1) + nablaU(1, 0));			// \epsilon_{01}
- 			strain[4] = 0.5 * (nablaU(0, 2) + nablaU(2, 0));			// \epsilon_{02}
- 			strain[5] = 0.5 * (nablaU(1, 2) + nablaU(2, 1));			// \epsilon_{12}
+ 			strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0));			// \epsilon_{01}
+ 			strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0));			// \epsilon_{02}
+ 			strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1));			// \epsilon_{12}
 
 			//////////////////////////////////////////////////////////////////////////
 			// First Piola Kirchhoff stress = 2 mu epsilon + lambda trace(epsilon) I

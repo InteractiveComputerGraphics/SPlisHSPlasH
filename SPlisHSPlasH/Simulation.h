@@ -82,6 +82,52 @@ for (unsigned int pid = 0; pid < nBoundaries; pid++) \
 	} \
 }
 
+#ifdef USE_AVX
+/** Loop over the fluid neighbors of all fluid phases.
+* Simulation *sim and unsigned int fluidModelIndex must be defined.
+*/
+#define forall_fluid_neighbors_avx(code) \
+	for (unsigned int pid = 0; pid < nFluids; pid++) \
+	{ \
+		FluidModel *fm_neighbor = sim->getFluidModelFromPointSet(pid); \
+		const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, pid, i); \
+		for (unsigned int j = 0; j < maxN; j += 8) \
+		{ \
+			const unsigned int count = std::min(maxN - j, 8u); \
+			const Vector3f8 xj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &fm_neighbor->getPosition(0), count); \
+			code \
+		} \
+	} 
+
+/** Loop over the fluid neighbors of the same fluid phase.
+* Simulation *sim, unsigned int fluidModelIndex and FluidModel* model must be defined.
+*/
+#define forall_fluid_neighbors_in_same_phase_avx(code) \
+	const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i); \
+	for (unsigned int j = 0; j < maxN; j += 8) \
+	{ \
+		const unsigned int count = std::min(maxN - j, 8u); \
+		const Vector3f8 xj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getPosition(0), count); \
+		code \
+	} 
+
+/** Loop over the boundary neighbors of all fluid phases.
+* Simulation *sim and unsigned int fluidModelIndex must be defined.
+*/
+#define forall_boundary_neighbors_avx(code) \
+	for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) \
+	{ \
+		BoundaryModel_Akinci2012 *bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid)); \
+		const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, pid, i); \
+		for (unsigned int j = 0; j < maxN; j += 8) \
+		{ \
+			const unsigned int count = std::min(maxN - j, 8u); \
+			const Vector3f8 xj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getPosition(0), count); \
+			code \
+		} \
+	}
+
+#endif
 
 
 
@@ -101,6 +147,7 @@ namespace SPH
 		static int GRAVITATION;
 		static int CFL_METHOD;
 		static int CFL_FACTOR;
+		static int CFL_MIN_TIMESTEPSIZE;
 		static int CFL_MAX_TIMESTEPSIZE;
 		static int ENABLE_Z_SORT;
 
@@ -148,6 +195,7 @@ namespace SPH
 		AnimationFieldSystem *m_animationFieldSystem;
 		int m_cflMethod;
 		Real m_cflFactor;
+		Real m_cflMinTimeStepSize;
 		Real m_cflMaxTimeStepSize;
 		int m_kernelMethod;
 		int m_gradKernelMethod;
@@ -226,7 +274,7 @@ namespace SPH
 
 		/** Update time step size by CFL condition.
 		*/
-		void updateTimeStepSizeCFL(const Real minTimeStepSize);
+		void updateTimeStepSizeCFL();
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/

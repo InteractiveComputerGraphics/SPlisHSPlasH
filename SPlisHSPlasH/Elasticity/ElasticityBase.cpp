@@ -9,8 +9,8 @@ int ElasticityBase::POISSON_RATIO = -1;
 
 ElasticityBase::ElasticityBase(FluidModel *model) :
 	NonPressureForceBase(model),
-	m_youngsModulus(100000.0),
-	m_poissonRatio(0.3)
+	m_youngsModulus(static_cast<Real>(100000.0)),
+	m_poissonRatio(static_cast<Real>(0.3))
 {
 }
 
@@ -33,8 +33,8 @@ void ElasticityBase::initParameters()
 	setGroup(POISSON_RATIO, "Elasticity");
 	setDescription(POISSON_RATIO, "Ratio of transversal expansion and axial compression");
 	rparam = static_cast<RealParameter*>(getParameter(POISSON_RATIO));
-	rparam->setMinValue(-1.0 + 1e-4);
-	rparam->setMaxValue(0.5 - 1e-4);
+	rparam->setMinValue(static_cast<Real>(-1.0 + 1e-4));
+	rparam->setMaxValue(static_cast<Real>(0.5 - 1e-4));
 }
 
 

@@ -48,18 +48,39 @@ Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 	Vector3r size;
 	if (type == 0)
 	{
-		size = {
-			2 * supportRadius,
-			height * diam + 2 * animationMarginAround,
-			width * diam + 2 * animationMarginAround
-		};
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		{
+			size = {
+				2 * supportRadius,
+				height * diam + 2 * animationMarginAround,
+				width * diam + 2 * animationMarginAround
+			};
+		}
+		else
+		{
+			size = {
+				2 * supportRadius,
+				height * diam + static_cast<Real>(2.25) * animationMarginAround,
+				width * diam + static_cast<Real>(2.25) * animationMarginAround
+			};
+		}
 	}
 	else
 	{
-		// height and radius of cylinder
-		const Real h = 2 * supportRadius;
-		const Real r = 0.5f * width * diam + animationMarginAround;
-		size = { h, 2*r, 2*r };
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		{
+			// height and radius of cylinder
+			const Real h = 2 * supportRadius;
+			const Real r = 0.5f * width * diam + animationMarginAround;
+			size = { h, 2 * r, 2 * r };
+		}
+		else
+		{
+			// height and radius of cylinder
+			const Real h = static_cast<Real>(2.25) * supportRadius;
+			const Real r = 0.5f * width * diam + animationMarginAround;
+			size = { h, static_cast<Real>(2.25) * r, static_cast<Real>(2.25) * r };
+		}
 	}
 
 	return size;
@@ -86,9 +107,9 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 		const Vector3r & x0 = m_x;
 
 		const Real animationMarginAhead = sim->getSupportRadius();
-		const Vector3r size = getSize(m_width, m_height, m_type);
+		const Vector3r size = getSize(static_cast<Real>(m_width), static_cast<Real>(m_height), m_type);
 		const Vector3r halfSize = 0.5 * size;
-		const Vector3r pos = x0 + 0.5f * animationMarginAhead * emitDir;
+		const Vector3r pos = x0 + static_cast<Real>(0.5) * animationMarginAhead * emitDir;
 
 		const unsigned int nModels = sim->numberOfFluidModels();
 		for (unsigned int m = 0; m < nModels; m++)

@@ -295,7 +295,7 @@ void TimeStepIISPH::pressureSolve()
 
 		m_iterations++;
 	}
-	INCREASE_COUNTER("IISPH - iterations", m_iterations);
+	INCREASE_COUNTER("IISPH - iterations", static_cast<Real>(m_iterations));
 }
 
 void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err)

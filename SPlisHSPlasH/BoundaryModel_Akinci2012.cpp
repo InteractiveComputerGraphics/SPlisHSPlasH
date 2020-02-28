@@ -32,11 +32,16 @@ void BoundaryModel_Akinci2012::reset()
 {
 	BoundaryModel::reset();
 
-	// reset velocities and accelerations
-	for (int j = 0; j < (int)numberOfParticles(); j++)
+	// Note:
+	// positions and velocities are already updated by updateBoundaryParticles
+	if (!m_rigidBody->isDynamic())
 	{
-		m_x[j] = m_x0[j];
-		m_v[j].setZero();
+		// reset velocities and accelerations
+		for (int j = 0; j < (int)numberOfParticles(); j++)
+		{
+			m_x[j] = m_x0[j];
+			m_v[j].setZero();
+		}
 	}
 }
 

@@ -56,12 +56,12 @@ void TimeStepWCSPH::initParameters()
 	STIFFNESS = createNumericParameter("stiffness", "Stiffness", &m_stiffness);
 	setGroup(STIFFNESS, "WCSPH");
 	setDescription(STIFFNESS, "Stiffness coefficient of EOS.");
-	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(1e-6);
+	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(static_cast<Real>(1e-6));
 
 	EXPONENT = createNumericParameter("exponent", "Exponent (gamma)", &m_exponent);
 	setGroup(EXPONENT, "WCSPH");
 	setDescription(EXPONENT, "Exponent of EOS.");
-	static_cast<RealParameter*>(getParameter(EXPONENT))->setMinValue(1e-6);
+	static_cast<RealParameter*>(getParameter(EXPONENT))->setMinValue(static_cast<Real>(1e-6));
 
 }
 

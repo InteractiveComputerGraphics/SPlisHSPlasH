@@ -21,7 +21,7 @@ namespace SPH
 	protected:
 		SimulationDataDFSPH m_simulationData;
 		unsigned int m_counter;
-		const Real m_eps = 1.0e-5;
+		const Real m_eps = static_cast<Real>(1.0e-5);
 		bool m_enableDivergenceSolver;
 		unsigned int m_iterationsV;
 		Real m_maxErrorV;

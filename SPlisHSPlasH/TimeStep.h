@@ -1,5 +1,4 @@
-#ifndef __TimeStep_h__
-#define __TimeStep_h__
+#pragma once
 
 #include "Common.h"
 #include "ParameterObject.h"
@@ -58,4 +57,3 @@ namespace SPH
 	};
 }
 
-#endif

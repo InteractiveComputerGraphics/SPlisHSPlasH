@@ -57,13 +57,11 @@ add_library(freeglut SHARED
 	../include/GL/glut.h
 )
 
-add_definitions(-DFREEGLUT_EXPORTS)         
-add_definitions(-D_USRDLL)  
-add_definitions(-D_CRT_SECURE_NO_WARNINGS) 
+	target_compile_definitions(freeglut PRIVATE -DFREEGLUT_EXPORTS -D_USRDLL)
+	target_compile_definitions(freeglut PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+target_include_directories(freeglut PUBLIC ${PROJECT_SOURCE_DIR}/extern/freeglut/include)
 
 set_target_properties(freeglut PROPERTIES FOLDER "External Dependencies")
-include_directories(${PROJECT_PATH}/extern/freeglut/include)
-
 set_target_properties(freeglut PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(freeglut PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(freeglut PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})

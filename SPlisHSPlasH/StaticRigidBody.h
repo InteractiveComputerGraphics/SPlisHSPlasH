@@ -39,6 +39,10 @@ namespace SPH
 		virtual void addForce(const Vector3r &f) {}
 		virtual void addTorque(const Vector3r &t) {}
 
+		virtual const std::vector<Vector3r> &getVertices() const { return m_geometry.getVertices(); };
+		virtual const std::vector<Vector3r> &getVertexNormals() const { return m_geometry.getVertexNormals(); };
+		virtual const std::vector<unsigned int> &getFaces() const { return m_geometry.getFaces(); };
+
 		void setWorldSpacePosition(const Vector3r &x) { m_x_world = x; }
 		void setWorldSpaceRotation(const Matrix3r &r) { m_R_world = r; }
 		TriangleMesh& getGeometry() { return m_geometry; }

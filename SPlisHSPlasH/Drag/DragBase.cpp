@@ -9,7 +9,7 @@ int DragBase::DRAG_COEFFICIENT = -1;
 DragBase::DragBase(FluidModel *model) :
 	NonPressureForceBase(model)
 {
-	m_dragCoefficient = 0.01;
+	m_dragCoefficient = static_cast<Real>(0.01);
 }
 
 DragBase::~DragBase(void)

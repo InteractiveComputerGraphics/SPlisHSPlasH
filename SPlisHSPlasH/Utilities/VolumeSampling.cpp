@@ -27,7 +27,7 @@ void VolumeSampling::sampleMesh(const unsigned int numVertices, const Vector3r *
 
 	Discregrid::CubicLagrangeDiscreteGrid* sdf = SDFFunctions::generateSDF(numVertices, vertices, numFaces, faces, bbox, resolution, invert);
 
-	const Real diameter = 2.0 * radius;
+	const Real diameter = static_cast<Real>(2.0) * radius;
 
 	// sample object
 	const unsigned int numberOfSamplePoints = (((unsigned int)((1.0f / diameter) * (bbox.max()[2] - bbox.min()[2]))) + 1) *
@@ -42,11 +42,11 @@ void VolumeSampling::sampleMesh(const unsigned int numVertices, const Vector3r *
  	Real yshift = diameter;
  
  	if (sampleMode == 1)
- 		yshift = sqrt(3.0) * radius;
+ 		yshift = sqrt(static_cast<Real>(3.0)) * radius;
  	else if (sampleMode == 2)
  	{
- 		xshift = sqrt(3.0) * radius;
- 		yshift = sqrt(6.0) * diameter / 3.0;
+ 		xshift = sqrt(static_cast<Real>(3.0)) * radius;
+ 		yshift = sqrt(static_cast<Real>(6.0)) * diameter / static_cast<Real>(3.0);
  	}
  	for (Real z = bbox.min()[2]; z <= bbox.max()[2]; z += diameter)
  	{
@@ -69,12 +69,12 @@ void VolumeSampling::sampleMesh(const unsigned int numVertices, const Vector3r *
  					Vector3r shift_vec(0, 0, 0);
  					if (counter_x % 2)
  					{
- 						shift_vec[2] += diameter / (2.0 * (counter_y % 2 ? -1 : 1));
+ 						shift_vec[2] += diameter / (static_cast<Real>(2.0) * (counter_y % 2 ? -1 : 1));
  					}
  					if (counter_y % 2)
  					{
- 						shift_vec[0] += xshift / 2.0;
- 						shift_vec[2] += diameter / 2.0;
+ 						shift_vec[0] += xshift / static_cast<Real>(2.0);
+ 						shift_vec[2] += diameter / static_cast<Real>(2.0);
  					}
  					particlePosition += shift_vec;
  				}

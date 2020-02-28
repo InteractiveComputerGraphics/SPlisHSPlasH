@@ -46,7 +46,7 @@ namespace SPH
 				// and projection on x-axis is between 0 and h
 				const Real proj = xlocal.x();
 				const Real d2 = Vector2r(xlocal.y(), xlocal.z()).squaredNorm();
-				const Real hHalf = 0.5*h;
+				const Real hHalf = static_cast<Real>(0.5)*h;
 				return (proj > -hHalf) && (proj < hHalf) && (d2 < r2);
 			}
 

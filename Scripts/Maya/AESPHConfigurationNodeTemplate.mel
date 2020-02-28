@@ -18,7 +18,9 @@ global proc AESPHConfigurationNodeTemplate( string $nodeName )
 	
 	editorTemplate -beginLayout "Export" -collapse 0;
 	editorTemplate -l "Partio export" -addControl "enablePartioExport";
+	editorTemplate -l "Rigid body export" -addControl "enableRigidBodyExport";
 	editorTemplate -l "VTK export" -addControl "enableVTKExport";
+	editorTemplate -l "Rigid body VTK export" -addControl "enableRigidBodyVTKExport";
 	editorTemplate -l "Export FPS" -addControl "dataExportFPS";
 	editorTemplate -l "Export attributes" -addControl "particleAttributes";
 	editorTemplate -l "State export" -addControl "enableStateExport";
@@ -39,6 +41,7 @@ global proc AESPHConfigurationNodeTemplate( string $nodeName )
 	editorTemplate -beginLayout "CFL" -collapse 0;
 	editorTemplate -l "CFL - method" -addControl "cflMethod";
 	editorTemplate -l "CFL - factor" -addControl "cflFactor";
+	editorTemplate -l "CFL - min. time step size" -addControl "cflMinTimeStepSize";
 	editorTemplate -l "CFL - max. time step size" -addControl "cflMaxTimeStepSize";
 	editorTemplate -endLayout;
 

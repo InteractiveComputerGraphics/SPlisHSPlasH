@@ -1,8 +1,6 @@
 <img src="doc/images/logo.jpg" width="250">
 <br>
 
-<p align=center><img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-linux/badge.svg">&nbsp;&nbsp; <img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-windows/badge.svg"></p>
-
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension and vorticity. 
 
 The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [glew](http://glew.sourceforge.net/) and [AntTweakBar](http://anttweakbar.sourceforge.net/) (only for the demos). All external dependencies are included. 
@@ -41,6 +39,7 @@ SPlisHSPlasH implements:
 * an open-source SPH fluid simulation (2D & 3D)
 * several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * neighborhood search on CPU or GPU
+* supports vectorization using AVX
 * explicit and implicit viscosity methods
 * current surface tension approaches
 * different vorticity methods
@@ -106,7 +105,7 @@ The SPlisHSPlasH library implements the surface tension methods of the following
 * Markus Becker and Matthias Teschner. Weakly compressible SPH for free surface flows. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2007. Eurographics Association.
 
 * Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for SPH fluids. ACM Trans. Graph., 32(6):182:1–182:8, 2013. 
- 
+
 * Xiaowei He, Huamin Wang, Fengjun Zhang, Hongan Wang, Guoping Wang, and Kun Zhou, "Robust simulation of sparsely sampled thin features in SPH-based free surface flows", ACM Transactions on Graphics, 34(1), 2014.
 
 ## Vorticity
@@ -139,7 +138,7 @@ The SPlisHSPlasH library implements the following publication to realize multi-p
 
 
 ## Screenshots
-		
+
 |![](doc/images/SPlisHSPlasH2.jpg)|![](doc/images/SPlisHSPlasH1.jpg)|
 |--|--|
 |![](doc/images/SPlisHSPlasH3.jpg)|![](doc/images/SPlisHSPlasH4.jpg)|

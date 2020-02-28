@@ -1,3 +1,12 @@
+2.6.0
+	- performance improvement: added AVX support for TimeStepDFSPH, DragForce_Gissler2017, Viscosity_Standard, Viscosity_Weiler2018, MicropolarModel_Bender2017
+	- added AVX support for 2D simulations 
+	- added VTk export of rigid bodies
+	- added parameter to control min CFL step size
+	- cleaned up classes of graphical user interface
+	- exchanged Static/DynamicBoundarySimulator by SPHSimulator which can handle dynamic and static scenes
+	- added regular surface sampling
+	- updated to Eigen 3.3.7
 	- bugfixes
 
 2.5.0 

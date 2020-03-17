@@ -27,6 +27,7 @@ namespace SPH
 		std::vector<Matrix3r> m_rotations;
 		std::vector<Vector6r> m_stress;
 		std::vector<Matrix3r> m_L;
+		std::vector<Matrix3r> m_RL;
 		std::vector<Matrix3r> m_F;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;

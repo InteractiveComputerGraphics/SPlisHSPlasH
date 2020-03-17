@@ -25,6 +25,7 @@ Elasticity_Peer2018::Elasticity_Peer2018(FluidModel *model) :
 	m_rotations.resize(numParticles, Matrix3r::Identity());
 	m_stress.resize(numParticles);
 	m_L.resize(numParticles);
+	m_RL.resize(numParticles);
 	m_F.resize(numParticles);
 
 	m_iterations = 0;
@@ -240,6 +241,8 @@ void Elasticity_Peer2018::computeRotations()
  			Quaternionr q(m_rotations[i]);
  			MathFunctions::extractRotation(F, q, 10);
  			m_rotations[i] = q.matrix();
+
+			m_RL[i] = m_rotations[i] * m_L[i];
 		}
 	}
 }
@@ -334,7 +337,7 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
  				const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
  				const Vector3r xj_xi = xj - xi;
  				const Vector3r xi_xj_0 = xi0 - xj0;
- 				const Vector3r correctedRotatedKernel = m_rotations[i] * m_L[i] * sim->gradW(xi_xj_0);
+ 				const Vector3r correctedRotatedKernel = m_RL[i] * sim->gradW(xi_xj_0);
  				m_F[i] += m_restVolumes[neighborIndex] * xj_xi * correctedRotatedKernel.transpose();
  			}
 
@@ -386,8 +389,8 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
 
 				const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
 				const Vector3r xi_xj_0 = xi0 - xj0;
-				const Vector3r correctedRotatedKernel_i = m_rotations[i] * m_L[i] * sim->gradW(xi_xj_0);
-				const Vector3r correctedRotatedKernel_j = -m_rotations[neighborIndex] * m_L[neighborIndex] * sim->gradW(xi_xj_0);
+				const Vector3r correctedRotatedKernel_i = m_RL[i] * sim->gradW(xi_xj_0);
+				const Vector3r correctedRotatedKernel_j = -m_RL[neighborIndex] * sim->gradW(xi_xj_0);
 				Vector3r PWi, PWj;
 				symMatTimesVec(m_stress[i], correctedRotatedKernel_i, PWi);
 				symMatTimesVec(m_stress[neighborIndex], correctedRotatedKernel_j, PWj);
@@ -457,6 +460,7 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
 	const auto &restVolumes = elasticity->m_restVolumes;
 	const auto &rotations = elasticity->m_rotations;
 	const auto &L = elasticity->m_L;
+	const auto &RL = elasticity->m_RL;
 	auto &stress = elasticity->m_stress;
 	const Real youngsModulus = elasticity->m_youngsModulus;
 	const Real poissonRatio = elasticity->m_poissonRatio;
@@ -493,7 +497,7 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
  				const Vector3r &xj0 = model->getPosition0(neighborIndex0);
  				const Vector3r pj_pi = pj - pi;
  				const Vector3r xi_xj_0 = xi0 - xj0;
- 				const Vector3r correctedRotatedKernel = rotations[i] * L[i] * sim->gradW(xi_xj_0);
+ 				const Vector3r correctedRotatedKernel = RL[i] * sim->gradW(xi_xj_0);
 				nablaU += restVolumes[neighborIndex] * pj_pi * correctedRotatedKernel.transpose();
  			}
 			nablaU *= dt;
@@ -543,8 +547,9 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
 
 				const Vector3r &xj0 = model->getPosition0(neighborIndex0);
 				const Vector3r xi_xj_0 = xi0 - xj0;
-				const Vector3r correctedRotatedKernel_i = rotations[i] * L[i] * sim->gradW(xi_xj_0);
-				const Vector3r correctedRotatedKernel_j = -rotations[neighborIndex] * L[neighborIndex] * sim->gradW(xi_xj_0);
+				const Vector3r gradW = sim->gradW(xi_xj_0);
+				const Vector3r correctedRotatedKernel_i = RL[i] * gradW;
+				const Vector3r correctedRotatedKernel_j = -RL[neighborIndex] * gradW;
 				Vector3r PWi, PWj;
 				elasticity->symMatTimesVec(stress[i], correctedRotatedKernel_i, PWi);
 				elasticity->symMatTimesVec(stress[neighborIndex], correctedRotatedKernel_j, PWj);

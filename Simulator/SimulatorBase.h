@@ -67,6 +67,7 @@ namespace SPH
 		int m_argc;
 		char **m_argv;
 		std::string m_windowName;
+		std::vector<std::string> m_paramTokens;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
 #endif
@@ -80,6 +81,8 @@ namespace SPH
 		void buildModel();
 		void initSimulation();
 		void runSimulation();
+		void setCommandLineParameter();
+		void setCommandLineParameter(GenParam::ParameterObject *paramObj);
 
 	public:
 		static int PAUSE;

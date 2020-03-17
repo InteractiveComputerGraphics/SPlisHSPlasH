@@ -140,7 +140,9 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 	const Real startX = -static_cast<Real>(0.5)*(m_width  - 1)*diam;
 	const Real startZ = -static_cast<Real>(0.5)*(m_height - 1)*diam;
 
-	const Real dt = t - m_nextEmitTime;
+	// t-m_nextEmitTime is the time that has passed between the time the particle has been emitted and the current time step.
+	// timeStepSize is added because emission happens at the end of the time step, but the particles are not animated anymore.
+	const Real dt = t - m_nextEmitTime + timeStepSize;
 
 	const Vector3r velocityOffset = dt * emitVel;
 	const Vector3r offset = m_x + velocityOffset;
@@ -283,7 +285,9 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 	const Real startX = -static_cast<Real>(0.5)*(m_width - 1)*diam;
 	const Real startZ = -static_cast<Real>(0.5)*(m_width - 1)*diam;
 
-	const Real dt = t - m_nextEmitTime;
+	// t-m_nextEmitTime is the time that has passed between the time the particle has been emitted and the current time step.
+	// timeStepSize is added because emission happens at the end of the time step, but the particles are not animated anymore.
+	const Real dt = t - m_nextEmitTime + timeStepSize;
 	const Vector3r velocity = emitVel;
 	const Vector3r velocityOffset = dt * velocity;
 	const Vector3r offset = m_x + velocityOffset;

@@ -804,8 +804,8 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 				'translation': t,
 				'rotationAxis': axisAngle[0],
 				'rotationAngle': axisAngle[1],
-				'startTime': startTime,
-				'endTime': endTime,
+				'emitStartTime': startTime,
+				'emitEndTime': endTime,
 				'velocity' : velocity,
 				'type' : 0
 			}
@@ -837,8 +837,8 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 				'translation': t,
 				'rotationAxis': axisAngle[0],
 				'rotationAngle': axisAngle[1],
-				'startTime': startTime,
-				'endTime': endTime,
+				'emitStartTime': startTime,
+				'emitEndTime': endTime,
 				'velocity' : velocity,
 				'type' : 1
 			}
@@ -1066,7 +1066,7 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createFloatParam("renderMaxValue", "Max. value", "Maximal value used for color-coding the color field in the rendering process.", 5, -1000, 1000, -1000000)
 		]	
 		SPHFluidConfigurationNode.sphParameters["Emitters"] = [	
-			PluginFunctions.createIntParam("maxEmitterParticles", "Max. number of emitted particles", "Maximum number of emitted particles", 10000, 1, 10000000),
+			PluginFunctions.createIntParam("maxEmitterParticles", "Max. number of emitted particles", "Maximum number of emitted particles", 10000, 1, 10000000, 0, 100000000),
 			PluginFunctions.createBoolParam("emitterReuseParticles", "Reuse particles", "Reuse particles if they are outside of the bounding box defined by emitterBoxMin, emitterBoxMaRex.", False),
 			PluginFunctions.createVec3Param("emitterBoxMin", "Emitter box min.", "Minimum coordinates of an axis-aligned box (used in combination with emitterReuseParticles).", [0.0,0.0,0.0]),
 			PluginFunctions.createVec3Param("emitterBoxMax", "Emitter box max.", "Maximum coordinates of an axis-aligned box (used in combination with emitterReuseParticles).", [1.0,1.0,1.0])

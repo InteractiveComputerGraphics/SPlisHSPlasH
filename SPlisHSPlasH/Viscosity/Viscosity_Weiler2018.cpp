@@ -156,8 +156,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-							//const Real dist = 0.5*h;
+							const Real dist = 0.5*h;
 							const Vector3r x1 = xj - t1 * dist;
 							const Vector3r x2 = xj + t1 * dist;
 							const Vector3r x3 = xj - t2 * dist;
@@ -213,8 +212,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-							//const Real dist = 0.5*h;
+							const Real dist = 0.5*h;
 							const Vector3r x1 = xj - t1*dist;
 							const Vector3r x2 = xj + t1*dist;
 							const Vector3r x3 = xj - t2*dist;
@@ -347,8 +345,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-							//const Real dist = 0.25*h;
+							const Real dist = 0.5*h;
 							const Vector3r x1 = xj - t1 * dist;
 							const Vector3r x2 = xj + t1 * dist;
 							const Vector3r x3 = xj - t2 * dist;
@@ -404,8 +401,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-							//const Real dist = 0.25*h;
+							const Real dist = 0.5*h;
 							const Vector3r x1 = xj - t1*dist;
 							const Vector3r x2 = xj + t1*dist;
 							const Vector3r x3 = xj - t2*dist;
@@ -542,8 +538,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-					//const Real dist = 0.5*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;
@@ -584,8 +579,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-					//const Real dist = 0.5*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;
@@ -685,8 +679,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
- 					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-					//const Real dist = 0.25*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -727,8 +720,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
- 					const Real dist = (static_cast<Real>(1.0) - nl / h) * h;
-					//const Real dist = 0.25*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -831,8 +823,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
- 					const Real dist = (1.0 - nl / h) * h;
-					//const Real dist = 0.25*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -874,8 +865,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
- 					const Real dist = (1.0 - nl / h) * h;
-					//const Real dist = 0.25*h;
+					const Real dist = 0.5*h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;

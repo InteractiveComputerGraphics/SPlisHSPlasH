@@ -1,3 +1,7 @@
+	- performance improvements: Elasticity_Peer2018
+	- bugfixes
+	- new command line parameter to overwrite scene settings
+
 2.6.0
 	- performance improvement: added AVX support for TimeStepDFSPH, DragForce_Gissler2017, Viscosity_Standard, Viscosity_Weiler2018, MicropolarModel_Bender2017
 	- added AVX support for 2D simulations 

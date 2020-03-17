@@ -204,6 +204,13 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			("output-dir", "Output directory for log file and partio files.", cxxopts::value<std::string>())
 			("no-initial-pause", "Disable caching of boundary samples/maps.")
 			("no-gui", "Disable GUI.")
+			("stopAt", "Sets or overwrites the stopAt parameter of the scene.", cxxopts::value<Real>())
+			("param", "Sets or overwrites a parameter of the scene.\n\n" 
+					  "- Setting a fluid parameter:\n\t<fluid-id>:<parameter-name>:<value>\n"
+					  "- Example: --param Fluid:viscosity:0.01\n\n"
+					  "- Setting a configuration parameter:\n\t<parameter-name>:<value>\n"
+					  "- Example: --param cflMethod:1\n"
+					  , cxxopts::value<std::string>())
 			;
 
 		options.add_options("invisible")
@@ -226,6 +233,28 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 		if (result.count("no-gui"))
 		{
 			setUseGUI(false);
+		}
+
+		if (result.count("stopAt"))
+		{
+			m_stopAt = result["stopAt"].as<Real>();
+		}
+
+		if (result.count("param"))
+		{
+			const string paramStr = result["param"].as<std::string>();
+			Utilities::StringTools::tokenize(paramStr, m_paramTokens, ":");
+
+			// add third element to get a unified method for all parameters
+			if (m_paramTokens.size() == 2)
+				m_paramTokens.insert(m_paramTokens.begin(), "config");
+			if (m_paramTokens.size() != 3)
+			{
+				LOG_ERR << "--param has wrong syntax!";
+				LOG_ERR << "Example 1: --param Fluid:viscosity:0.01";
+				LOG_ERR << "Example 2: --param cflMethod:1";
+				exit(1);
+			}
 		}
 
 		if (result.count("data-path"))
@@ -406,6 +435,7 @@ void SimulatorBase::initSimulation()
 		Simulation::getCurrent()->setSimulationMethodChangedCallback([this]() { reset(); m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
 	}
 	readParameters();
+	setCommandLineParameter();
 
 	m_boundarySimulator->initBoundaryData();
 
@@ -474,7 +504,7 @@ void SimulatorBase::readParameters()
 	{
 		FluidModel *model = sim->getFluidModel(i);
 		const std::string &key = model->getId();
-		m_sceneLoader->readParameterObject(model->getId(), model);
+		m_sceneLoader->readParameterObject(key, model);
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getDragBase());
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
 		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getViscosityBase());
@@ -486,6 +516,110 @@ void SimulatorBase::readParameters()
 		setColorMapType(i, colorData.colorMapType);
 		setRenderMinValue(i, colorData.minVal);
 		setRenderMaxValue(i, colorData.maxVal);
+	}
+}
+
+void SimulatorBase::setCommandLineParameter()
+{
+	Simulation *sim = Simulation::getCurrent();
+	if (m_paramTokens.size() != 3)
+		return;
+
+	setCommandLineParameter((ParameterObject*)sim);
+	setCommandLineParameter((ParameterObject*)sim->getTimeStep());
+	
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel *model = sim->getFluidModel(i);
+		const std::string &key = model->getId();
+		
+		if (m_paramTokens[0] == key)
+		{			
+			setCommandLineParameter((ParameterObject*)model);
+ 			setCommandLineParameter((ParameterObject*)model->getDragBase());
+ 			setCommandLineParameter((ParameterObject*)model->getSurfaceTensionBase());
+			setCommandLineParameter((ParameterObject*)model->getViscosityBase());
+ 			setCommandLineParameter((ParameterObject*)model->getVorticityBase());
+ 			setCommandLineParameter((ParameterObject*)model->getElasticityBase());
+		}
+	}
+}
+
+void SimulatorBase::setCommandLineParameter(GenParam::ParameterObject *paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	const unsigned int numParams = paramObj->numParameters();
+	for (unsigned int j = 0; j < numParams; j++)
+	{
+		ParameterBase *paramBase = paramObj->getParameter(j);
+		if (m_paramTokens[1] == paramBase->getName())
+		{
+			if (paramBase->getType() == RealParameterType)
+			{
+				const Real val = stof(m_paramTokens[2]);
+				static_cast<NumericParameter<Real>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT32)
+			{
+				const unsigned int val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<unsigned int>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT16)
+			{
+				const unsigned short val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<unsigned short>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::UINT8)
+			{
+				const unsigned char val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<unsigned char>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT32)
+			{
+				const int val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<int>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT16)
+			{
+				const short val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<short>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::INT8)
+			{
+				const char val = stoi(m_paramTokens[2]);
+				static_cast<NumericParameter<char>*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::ENUM)
+			{
+				const int val = stoi(m_paramTokens[2]);
+				static_cast<EnumParameter*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == ParameterBase::BOOL)
+			{
+				const bool val = stoi(m_paramTokens[2]);
+				static_cast<BoolParameter*>(paramBase)->setValue(val);
+			}
+			else if (paramBase->getType() == RealVectorParameterType)
+			{
+ 				if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
+ 				{
+					vector<string> tokens;
+					Utilities::StringTools::tokenize(m_paramTokens[2], tokens, ",");
+					if (tokens.size() == 3)
+					{
+						Vector3r val(stof(tokens[0]), stof(tokens[1]), stof(tokens[2]));
+						static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
+					}
+ 				}
+			}
+			else if (paramBase->getType() == ParameterBase::STRING)
+			{
+				const std::string val = m_paramTokens[2];
+				static_cast<StringParameter*>(paramBase)->setValue(val);
+			}
+		}
 	}
 }
 
@@ -2400,7 +2534,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 
 		auto cell_diag = densityMap->cellSize().norm();
 		std::cout << "Generate density map..." << std::endl;
-		const bool no_reduction = true;
+		const bool no_reduction = false;
 		START_TIMING("Density Map Construction");
 		densityMap->addFunction(density_func, false, [&](Eigen::Vector3d const& x_)
 		{
@@ -2415,7 +2549,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 				return false;
 			}
 
-			return -6.0 * supportRadius < dist + cell_diag && dist - cell_diag < 2.0 * supportRadius;
+			return fabs(dist) < 2.5 * supportRadius;
 		});
 		STOP_TIMING_PRINT;
 
@@ -2423,9 +2557,15 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 		if (!no_reduction)
 		{
 			std::cout << "Reduce discrete fields...";
-			densityMap->reduceField(0u, [&](Eigen::Vector3d const &, double v)->double
+			densityMap->reduceField(0u, [&](const Eigen::Vector3d &, double v)
 			{
-				return 0.0 <= v && v <= 3.0;
+				return fabs(v) < 2.5 * supportRadius;
+			});
+			densityMap->reduceField(1u, [&](const Eigen::Vector3d &, double v)->double
+			{
+				if (v == std::numeric_limits<double>::max())
+					return false;
+				return true;
 			});
 			std::cout << "DONE" << std::endl;
 		}
@@ -2588,7 +2728,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 		auto cell_diag = volumeMap->cellSize().norm();
 		std::cout << "Generate volume map..." << std::endl;
-		const bool no_reduction = true;
+		const bool no_reduction = false;
 		START_TIMING("Volume Map Construction");
 		volumeMap->addFunction(volume_func, false, [&](Eigen::Vector3d const& x_)
 		{
@@ -2603,7 +2743,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 				return false;
 			}
 
-			return -6.0 * supportRadius < dist + cell_diag && dist - cell_diag < 2.0 * supportRadius;
+			return fabs(dist) < 2.5 * supportRadius;
 		});
 		STOP_TIMING_PRINT;
 
@@ -2611,9 +2751,15 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 		if (!no_reduction)
 		{
 			std::cout << "Reduce discrete fields...";
-			volumeMap->reduceField(0u, [&](Eigen::Vector3d const &, double v)->double
+			volumeMap->reduceField(0u, [&](const Eigen::Vector3d &, double v)
 			{
-				return 0.0 <= v && v <= 3.0;
+				return fabs(v) < 2.5 * supportRadius;
+			});
+			volumeMap->reduceField(1u, [&](const Eigen::Vector3d &, double v)->double
+			{
+				if (v == std::numeric_limits<double>::max())
+					return false;				
+				return true;
 			});
 			std::cout << "DONE" << std::endl;
 		}

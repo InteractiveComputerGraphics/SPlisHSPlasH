@@ -296,10 +296,10 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 
 		if ((dist > 0.1*particleRadius) && (dist < supportRadius))
 		{
-			const Real volume = static_cast<Real>(bm->getMap()->interpolate(1, localXi, cell, c0, N));
-			if ((volume > 1e-5) && (volume != numeric_limits<Real>::max()))
+			const double volume = bm->getMap()->interpolate(1, localXi, cell, c0, N);
+			if ((volume > 1e-5) && (volume != numeric_limits<double>::max()))
 			{
-				boundaryVolume = volume;
+				boundaryVolume = static_cast<Real>(volume);
 
 #ifdef USE_FD_NORMAL
 				if (sim2D)

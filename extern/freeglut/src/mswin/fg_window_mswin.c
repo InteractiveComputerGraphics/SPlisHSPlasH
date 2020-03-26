@@ -145,7 +145,7 @@ void fgNewWGLCreateContext( SFG_Window* window )
     PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
     /* If nothing fancy has been required, leave the context as it is */
-    if ( fghIsLegacyContextRequested() )
+    if ( fghIsLegacyContextRequested(window) )
     {
         return;
     }
@@ -239,7 +239,7 @@ static void fghFillPFD( PIXELFORMATDESCRIPTOR *ppfd, HDC hdc, unsigned char laye
   ppfd->dwLayerMask = 0;
   ppfd->dwVisibleMask = 0;
   ppfd->dwDamageMask = 0;
-  
+
   ppfd->cColorBits = (BYTE) GetDeviceCaps( hdc, BITSPIXEL );
 }
 
@@ -291,7 +291,7 @@ GLboolean fgSetupPixelFormat( SFG_Window* window, GLboolean checkOnly,
     /* windows hack for multismapling/sRGB */
     if ( ( fgState.DisplayMode & GLUT_MULTISAMPLE ) ||
          ( fgState.DisplayMode & GLUT_SRGB ) )
-    {        
+    {
         HGLRC rc, rc_before=wglGetCurrentContext();
         HWND hWnd;
         HDC hDC, hDC_before=wglGetCurrentDC();
@@ -430,7 +430,7 @@ void fghComputeWindowRectFromClientArea_UseStyle( RECT *clientRect, const DWORD 
         windowRect.left     = clientRect->left;
         windowRect.top      = clientRect->top;
     }
-    
+
     /* done, copy windowRect to output */
     CopyRect(clientRect,&windowRect);
 }
@@ -467,7 +467,7 @@ void fghGetClientArea( RECT *clientRect, const SFG_Window *window, BOOL posIsOut
     POINT topLeftClient = {0,0};
 
     freeglut_return_if_fail((window && window->Window.Handle));
-    
+
     /* Get size of client rect */
     GetClientRect(window->Window.Handle, clientRect);
     if (posIsOutside)
@@ -497,9 +497,9 @@ typedef struct
 } m_proc_t;
 
 static BOOL CALLBACK m_proc(HMONITOR mon,
-			    HDC hdc,
-			    LPRECT rect,
-			    LPARAM data)
+                HDC hdc,
+                LPRECT rect,
+                LPARAM data)
 {
       m_proc_t *dp=(m_proc_t *)data;
       MONITORINFOEX info;
@@ -518,7 +518,7 @@ static BOOL CALLBACK m_proc(HMONITOR mon,
       return TRUE;
 }
 
-/* 
+/*
  * this function returns the origin of the screen identified by
  * fgDisplay.pDisplay.DisplayName, and 0 otherwise.
  * This is used in fgOpenWindow to open the gamemode window on the screen
@@ -727,9 +727,9 @@ void fgPlatformOpenWindow( SFG_Window* window, const char* title,
 
     /* Enable multitouch: additional flag TWF_FINETOUCH, TWF_WANTPALM */
     #ifdef WM_TOUCH
-        if (fghRegisterTouchWindow == (pRegisterTouchWindow)0xDEADBEEF) 
-			fghRegisterTouchWindow = (pRegisterTouchWindow)GetProcAddress(GetModuleHandle("user32"),"RegisterTouchWindow");
-		if (fghRegisterTouchWindow)
+        if (fghRegisterTouchWindow == (pRegisterTouchWindow)0xDEADBEEF)
+            fghRegisterTouchWindow = (pRegisterTouchWindow)GetProcAddress(GetModuleHandle("user32"),"RegisterTouchWindow");
+        if (fghRegisterTouchWindow)
              fghRegisterTouchWindow( window->Window.Handle, TWF_FINETOUCH | TWF_WANTPALM );
     #endif
 

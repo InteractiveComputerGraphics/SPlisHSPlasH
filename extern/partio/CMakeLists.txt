@@ -33,13 +33,13 @@
 
 
 ## Setup platform specific helper defines build variants
-IF(WIN32)
+IF(MSVC)
   ADD_DEFINITIONS (-DPARTIO_WIN32 -D_USE_MATH_DEFINES)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
-ELSE(WIN32)
+ELSE(MSVC)
   ADD_DEFINITIONS (-Wextra -Wno-unused-parameter)
   SET( CMAKE_CXX_FLAGS "-fPIC -w")
-ENDIF(WIN32)
+ENDIF(MSVC)
 
 include_directories(../zlib/src)
 

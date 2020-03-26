@@ -19,12 +19,14 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"viscosity": 0.01,
-		"viscosityMethod": 1, 
-		"colorMapType": 1
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"viscosity": 0.01,
+			"viscosityMethod": 1, 
+			"colorMapType": 1
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

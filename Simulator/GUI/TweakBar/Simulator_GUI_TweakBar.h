@@ -57,6 +57,7 @@ namespace SPH
 			virtual void cleanup();
 			virtual void run();
 			virtual void stop();
+			virtual void addKeyFunc(char k, std::function<void()> const& func);
 
 			TwBar * getTweakBar() const { return m_tweakBar; }
 	};

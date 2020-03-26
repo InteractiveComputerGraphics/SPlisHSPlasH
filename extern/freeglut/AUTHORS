@@ -32,6 +32,9 @@ John Tsiombikas <nuclear@member.fsf.org>
 Sylvain Beucler
     support for Android, X11/EGL, OpenGL(ES) 2.x, misc fixes
 
+Manuel Bachmann
+    support for Wayland
+
 Diederick C. Niehorster
 Chris Marshall
 Clive McCarthy

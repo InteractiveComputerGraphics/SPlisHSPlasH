@@ -49,7 +49,7 @@ SFG_Structure fgStructure = { { NULL, NULL },  /* The list of windows       */
 /* -- PRIVATE FUNCTIONS ---------------------------------------------------- */
 
 extern void fgPlatformCreateWindow ( SFG_Window *window );
-extern void fghDefaultReshape(int width, int height);
+extern void fghDefaultReshape(int width, int height, FGCBUserData userData);
 
 static void fghClearCallBacks( SFG_Window *window )
 {
@@ -57,7 +57,10 @@ static void fghClearCallBacks( SFG_Window *window )
     {
         int i;
         for( i = 0; i < TOTAL_CALLBACKS; ++i )
+        {
             window->CallBacks[ i ] = NULL;
+            window->CallbackDatas[ i ] = NULL;
+        }
     }
 }
 
@@ -75,10 +78,15 @@ SFG_Window* fgCreateWindow( SFG_Window* parent, const char* title,
     /* Have the window object created */
     SFG_Window *window = (SFG_Window *)calloc( 1, sizeof(SFG_Window) );
 
-	fgPlatformCreateWindow ( window );
+    if( !window )
+    {
+        fgError( "Out of memory. Could not create window." );
+    }
+
+    fgPlatformCreateWindow ( window );
 
     fghClearCallBacks( window );
-    SET_WCB( *window, Reshape, fghDefaultReshape);
+    SET_WCB( *window, Reshape, fghDefaultReshape, NULL);
 
     /* Initialize the object properties */
     window->ID = ++fgStructure.WindowID;
@@ -111,7 +119,7 @@ SFG_Window* fgCreateWindow( SFG_Window* parent, const char* title,
 /*
  * This private function creates a menu and adds it to the menus list
  */
-SFG_Menu* fgCreateMenu( FGCBMenu menuCallback )
+SFG_Menu* fgCreateMenu( FGCBMenuUC menuCallback, FGCBUserData userData )
 {
     SFG_Window *current_window = fgStructure.CurrentWindow;
 
@@ -129,10 +137,11 @@ SFG_Menu* fgCreateMenu( FGCBMenu menuCallback )
     fgSetWindow( current_window );
 
     /* Initialize the object properties: */
-    menu->ID       = ++fgStructure.MenuID;
-    menu->Callback = menuCallback;
-    menu->ActiveEntry = NULL;
-    menu->Font     = fgState.MenuFont;
+    menu->ID           = ++fgStructure.MenuID;
+    menu->Callback     = menuCallback;
+    menu->CallbackData = userData;
+    menu->ActiveEntry  = NULL;
+    menu->Font         = fgState.MenuFont;
 
     fgListInit( &menu->Entries );
     fgListAppend( &fgStructure.Menus, &menu->Node );
@@ -168,10 +177,16 @@ void fgAddToWindowDestroyList( SFG_Window* window )
      * to ensure that they are no longer called after this point.
      */
     {
-        FGCBDestroy destroy = (FGCBDestroy)FETCH_WCB( *window, Destroy );
+        FGCBDestroyUC destroy = (FGCBDestroyUC)FETCH_WCB( *window, Destroy );
+        FGCBUserData destroyData = FETCH_USER_DATA_WCB( *window, Destroy );
         fghClearCallBacks( window );
-        SET_WCB( *window, Destroy, destroy );
+        SET_WCB( *window, Destroy, destroy, destroyData );
     }
+
+    /*
+     * Similarly, clear all work set for the window, none of this has to be executed anymore
+     */
+    window->State.WorkMask = 0;
 }
 
 /*
@@ -297,7 +312,7 @@ void fgDestroyMenu( SFG_Menu* menu )
     {
         SFG_Menu *activeMenu=fgStructure.CurrentMenu;
         fgStructure.CurrentMenu = menu;
-        menu->Destroy( );
+        menu->Destroy( menu->DestroyData );
         fgStructure.CurrentMenu = activeMenu;
     }
 

@@ -53,7 +53,7 @@ namespace SPH
 		bool m_doPause;
 		std::vector<Fluid> m_fluids;
 		std::vector<Boundary> m_boundaries;		
-		std::string m_exePath, m_dataPath, m_outPath;		
+		std::string m_exePath, m_outPath;		
 		bool m_usePlane;
 		bool m_useRBData;
 		Eigen::AlignedBox3f m_fluidBoundingBox;	

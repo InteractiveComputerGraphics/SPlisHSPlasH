@@ -19,11 +19,13 @@
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true		
 	},
-	"Fluid":
-	{
-		"dragMethod": 2,
-		"drag": 10.0
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"dragMethod": 2,
+			"drag": 10.0
+		}
+	],
     "FluidBlocks": [
         {
             "denseMode": 0,

@@ -27,7 +27,7 @@ void saveParticleCloudVTK(const std::string & path, const Partio::ParticlesDataM
 std::string inputFile = "";
 int startFrame = -1;
 int endFrame = -1;
-std::string exePath, dataPath, outDir;
+std::string exePath,  outDir;
 
 template<typename T>
 inline void swapByteOrder(T*v)
@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 	LOG_INFO << "Git status: " << GIT_LOCAL_STATUS;
 
 	exePath = FileSystem::getProgramPath();
-	dataPath = FileSystem::normalizePath(exePath + "/" + std::string(SPH_DATA_PATH));
 
 	try
 	{

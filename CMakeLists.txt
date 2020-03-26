@@ -20,7 +20,6 @@ if (NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 endif()
 
 set(TOPLEVEL_INCLUDE_DIR ${PROJECT_SOURCE_DIR})
-set(SPH_DATA_PATH "\"../data\"")
 
 ################################################################################
 # foreign external libraries
@@ -35,6 +34,9 @@ if (NOT SPH_LIBS_ONLY)
 	if(WIN32)
 		add_subdirectory(extern/freeglut)
 	endif()
+	if (USE_PYTHON_BINDINGS)
+		add_subdirectory(extern/pybind)
+	endif ()
 endif()
 
 ## Eigen3 is used by most of the libraries that follow
@@ -59,4 +61,7 @@ if (NOT SPH_LIBS_ONLY)
 	add_subdirectory(Tools)
 	add_subdirectory(Simulator)
 	add_subdirectory(Tests)
+	if (USE_PYTHON_BINDINGS)
+		add_subdirectory(PySPlasH)
+	endif ()
 endif()

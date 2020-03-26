@@ -49,7 +49,6 @@ add_executable(PartioViewer
 )
 
 target_compile_definitions(PartioViewer PRIVATE -DTW_NO_LIB_PRAGMA -DTW_STATIC)
-target_compile_definitions(PartioViewer PUBLIC -DSPH_DATA_PATH=${SPH_DATA_PATH})
 
 
 add_dependencies(PartioViewer ${VIEWER_DEPENDENCIES})

@@ -122,6 +122,10 @@ void FGAPIENTRY glutSetOption( GLenum eWhat, int value )
       fgState.StrokeFontDrawJoinDots = !!value;
       break;
 
+    case GLUT_ALLOW_NEGATIVE_WINDOW_POSITION:
+      fgState.AllowNegativeWindowPosition = !!value;
+      break;
+
     default:
         fgWarning( "glutSetOption(): missing enum handle %d", eWhat );
         break;
@@ -225,6 +229,9 @@ int FGAPIENTRY glutGet( GLenum eWhat )
     case GLUT_STROKE_FONT_DRAW_JOIN_DOTS:
         return fgState.StrokeFontDrawJoinDots;
 
+    case GLUT_ALLOW_NEGATIVE_WINDOW_POSITION:
+        return fgState.AllowNegativeWindowPosition;
+
     default:
         return fgPlatformGlutGet ( eWhat );
         break;
@@ -263,7 +270,7 @@ int FGAPIENTRY glutDeviceGet( GLenum eWhat )
     case GLUT_NUM_DIALS:
         if ( fgState.InputDevsInitialised ) return 8;
         return 0;
- 
+
     case GLUT_NUM_BUTTON_BOX_BUTTONS:
         return 0;
 
@@ -286,7 +293,7 @@ int FGAPIENTRY glutDeviceGet( GLenum eWhat )
         return fgState.KeyRepeat;
 
     default:
-		return fgPlatformGlutDeviceGet ( eWhat );
+        return fgPlatformGlutDeviceGet ( eWhat );
     }
 }
 

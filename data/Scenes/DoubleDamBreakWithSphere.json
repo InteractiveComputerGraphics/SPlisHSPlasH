@@ -8,7 +8,7 @@
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
-		"cflFactor": 1,
+		"cflFactor": 0.5,
 		"cflMaxTimeStepSize": 0.005,
 		"maxIterations": 100,
 		"maxError": 0.01,
@@ -20,12 +20,14 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"colorMapType": 1
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"colorMapType": 1
+		}
+	],
 	"Simulation": 
 	{
 		"timeStepSize": 0.005,

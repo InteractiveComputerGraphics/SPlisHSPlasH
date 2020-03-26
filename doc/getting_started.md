@@ -2,25 +2,35 @@
 
 This page should give you a short overview of SPlisHSPlasH.
 
-SPlisHSPlasH currently consists of different simulators and tools which are introduced in the following:
+SPlisHSPlasH currently consists of a simulators and different tools which are introduced in the following:
 
-## Simulators 
+## SPHSimulator
 
-### StaticBoundarySimulator
-
-This application reads a SPlisHSPlasH scene file and performs a simulation of the scene. It assumes that only static boundary objects are in the scenario which increases the performance. If you want to simulation dynamic boundaries, you can use "DynamicBoundarySimulator". 
+This application reads a SPlisHSPlasH scene file and performs a simulation of the scene. 
 
 The scene file format is explained [here.](file_format.md)
 
 ##### Command line options:
 
 * -h, --help: Print help text.
+
 * --no-cache: Disable caching of boundary samples/maps.
+
 * --state-file: Load a simulation state of the corresponding scene.
-* --data-path: Path of the data directory (location of the scene files, etc.)
+
 * --output-dir: Output directory for log file and partio files.
+
 * --no-initial-pause: Disable caching of boundary samples/maps.
-* --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file.
+
+* --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file or by the next parameter.
+
+* --stopAt arg: Sets or overwrites the stopAt parameter of the scene.
+
+* --param arg: Sets or overwrites a parameter of the scene.
+	- Setting a fluid parameter: <fluid-id>:<parameter-name>:<value>
+		- Example: --param Fluid:viscosity:0.01
+	- Setting a configuration parameter: <parameter-name>:<value>
+		- Example: --param cflMethod:1
 
 ##### Hotkeys
 
@@ -32,31 +42,22 @@ The scene file format is explained [here.](file_format.md)
 * l: load simulation state (currently only Windows)
 * ESC: exit
 
-### DynamicBoundarySimulator
+## Python bindings 
 
-This application can also simulate SPlisHSPlasH scenes but in contrast to the StaticBoundarySimulator it can handle dynamic boundaries. The dynamic rigid bodies are simulated using our [PositionBasedDynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) which is automatically included in the build process. If a scene only contains static bodies, you should use "StaticBoundarySimulator" since it is faster. 
+SPlisHSPlasH implements bindings for python using [pybind11](https://github.com/pybind/pybind11).
+See the [getting started guide](./pysplash/getting_started.md).
 
-The scene file format is explained [here.](file_format.md)
+### Impatient installation guide
 
-##### Command line options:
+In order to install, simply clone the repository and run pip install on the repository.
+It is recommended, that you set up a **virtual environment** for this, because cache files will be stored in the directory of the python installation along with models and scene files.
 
-* -h, --help: Print help text.
-* --no-cache: Disable caching of boundary samples/maps.
-* --state-file: Load a simulation state of the corresponding scene.
-* --data-path: Path of the data directory (location of the scene files, etc.)
-* --output-dir: Output directory for log file and partio files.
-* --no-initial-pause: Disable caching of boundary samples/maps.
-* --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file.
+```shell script
+git clone https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git
+pip install SPlisHSPlasH/
+```
 
-##### Hotkeys
 
-* Space: pause/contiunue simulation
-* r: reset simulation
-* w: wireframe rendering of meshes
-* i: print all field information of the selected particles to the console
-* s: save current simulation state
-* l: load simulation state (currently only Windows)
-* ESC: exit
 
 ## Tools
 

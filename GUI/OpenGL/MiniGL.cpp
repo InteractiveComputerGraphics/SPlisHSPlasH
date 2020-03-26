@@ -695,7 +695,7 @@ void MiniGL::setClientIdleFunc (IdleFct func)
 	}
 }
 
-void MiniGL::addKeyFunc (unsigned char k, std::function<void()> func)
+void MiniGL::addKeyFunc (unsigned char k, std::function<void()> const& func)
 {
 	if (func == nullptr)
 		return;

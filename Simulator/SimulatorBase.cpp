@@ -86,6 +86,7 @@ SimulatorBase::SimulatorBase()
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
 	m_particleAttributes = "velocity";
+	m_timeStepCB = nullptr;
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
@@ -176,6 +177,17 @@ void SimulatorBase::run()
 	cleanup();
 }
 
+void SimulatorBase::init(std::vector<std::string> argv, const std::string &windowName){
+	m_argc = argv.size();
+	m_argv_vec.clear();
+	m_argv_vec.reserve(argv.size());
+	for (auto & a : argv)
+		m_argv_vec.push_back(&a[0]);
+
+	m_argv = m_argv_vec.data();
+	init(m_argc, m_argv, windowName);
+}
+
 void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 {
 	m_argc = argc;
@@ -184,9 +196,6 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 
 	initParameters();
 	m_exePath = FileSystem::getProgramPath();
-	m_dataPath = std::string(SPH_DATA_PATH);
-	if (FileSystem::isRelativePath(m_dataPath))
-		m_dataPath = FileSystem::normalizePath(getExePath() + "/" + m_dataPath);
 	setUseParticleCaching(true);
 
 	try
@@ -200,9 +209,8 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			("h,help", "Print help")
 			("no-cache", "Disable caching of boundary samples/maps.")
 			("state-file", "State file (state_<time>.bin) that should be loaded.", cxxopts::value<std::string>())
-			("data-path", "Path of the data directory.", cxxopts::value<std::string>())
 			("output-dir", "Output directory for log file and partio files.", cxxopts::value<std::string>())
-			("no-initial-pause", "Disable caching of boundary samples/maps.")
+			("no-initial-pause", "Disable initial pause when starting the simulation.")
 			("no-gui", "Disable GUI.")
 			("stopAt", "Sets or overwrites the stopAt parameter of the scene.", cxxopts::value<Real>())
 			("param", "Sets or overwrites a parameter of the scene.\n\n" 
@@ -257,12 +265,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			}
 		}
 
-		if (result.count("data-path"))
-		{
-			m_dataPath = result["data-path"].as<std::string>();
-		}
-
-		m_sceneFile = getDataPath() + "/Scenes/DoubleDamBreak.json";
+		m_sceneFile = "";
 
 		if (result.count("scene-file"))
 		{
@@ -273,7 +276,9 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 #ifdef WIN32
 		else
 		{
-			std::string scenePath = FileSystem::normalizePath(m_dataPath + "/Scenes/");
+			std::string scenePath = FileSystem::normalizePath(m_exePath + "/../data/Scenes/");
+			if (!FileSystem::isDirectory(scenePath))
+				scenePath = m_exePath;
 			std::replace(scenePath.begin(), scenePath.end(), '/', '\\');
 			m_sceneFile = FileSystem::fileDialog(0, scenePath.c_str(), "*.json");
 
@@ -424,11 +429,11 @@ void SimulatorBase::initSimulation()
 		{
 			FluidModel *model = sim->getFluidModel(i);
 			const std::string &key = model->getId();
-			model->setDragMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject(model->getId(), (ParameterObject*)model->getDragBase()); });
-			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase()); });
-			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase()); });
-			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase()); });
-			model->setElasticityMethodChangedCallback([this, model]() { reset(); m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
+			model->setDragMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getDragBase()); });
+			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase()); });
+			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase()); });
+			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase()); });
+			model->setElasticityMethodChangedCallback([this, model]() { reset(); m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
 		}
 
 		m_gui->initSimulationParameterGUI();
@@ -436,15 +441,15 @@ void SimulatorBase::initSimulation()
 	}
 	readParameters();
 	setCommandLineParameter();
-
-	m_boundarySimulator->initBoundaryData();
-
-	if (getStateFile() != "")
-		loadState(getStateFile());
 }
 
 void SimulatorBase::runSimulation()
 {
+	m_boundarySimulator->initBoundaryData();
+
+	if (getStateFile() != "")
+		loadState(getStateFile());
+
 	if (!m_useGUI)
 	{
 		const Real stopAt = getValue<Real>(SimulatorBase::STOP_AT);
@@ -504,18 +509,23 @@ void SimulatorBase::readParameters()
 	{
 		FluidModel *model = sim->getFluidModel(i);
 		const std::string &key = model->getId();
-		m_sceneLoader->readParameterObject(key, model);
-		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getDragBase());
-		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
-		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getViscosityBase());
-		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getVorticityBase());
-		m_sceneLoader->readParameterObject(key, (ParameterObject*) model->getElasticityBase());
+		m_sceneLoader->readMaterialParameterObject(key, model);
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getDragBase());
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getViscosityBase());
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getVorticityBase());
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getElasticityBase());
 
-		SceneLoader::ColoringData colorData = m_sceneLoader->readColoringInfo(key);
-		setColorField(i, colorData.colorField);
-		setColorMapType(i, colorData.colorMapType);
-		setRenderMinValue(i, colorData.minVal);
-		setRenderMaxValue(i, colorData.maxVal);
+		for (auto material : m_scene.materials)
+		{
+			if (material->id == key)
+			{
+				setColorField(i, material->colorField);
+				setColorMapType(i, material->colorMapType);
+				setRenderMinValue(i, material->minVal);
+				setRenderMaxValue(i, material->maxVal);
+			}
+		}
 	}
 }
 
@@ -717,6 +727,9 @@ void SimulatorBase::timeStep()
 				}
 			}
 		}
+
+		if (m_timeStepCB)
+			m_timeStepCB();
 	}
 }
 
@@ -753,6 +766,8 @@ bool SimulatorBase::timeStepNoGUI()
 			}
 		}
 	}
+	if (m_timeStepCB)
+		m_timeStepCB();
 	return true;
 }
 
@@ -923,8 +938,12 @@ void SimulatorBase::initFluidData()
 	{
 		const unsigned int index = it->second;
 
-		unsigned int maxEmitterParticles = 1000;
-		m_sceneLoader->readValue(it->first, "maxEmitterParticles", maxEmitterParticles);
+		unsigned int maxEmitterParticles = 10000;
+		for (auto material : m_scene.materials)
+		{
+			if (material->id == it->first)
+				maxEmitterParticles = material->maxEmitterParticles;
+		}
 		sim->addFluidModel(it->first, (unsigned int)fluidParticles[index].size(), fluidParticles[index].data(), fluidVelocities[index].data(), maxEmitterParticles);
 		nParticles += (unsigned int)fluidParticles[index].size();
 	}
@@ -995,27 +1014,28 @@ void SimulatorBase::createEmitters()
 				emitterBoundary->scale[2] = 2 * supportRadius;
 
 			if (ed->type == 0)
-				emitterBoundary->meshFile = FileSystem::normalizePath(getDataPath() + "/models/EmitterBox.obj");
+				emitterBoundary->meshFile = FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterBox.obj");
 			else if (ed->type == 1)
-				emitterBoundary->meshFile = FileSystem::normalizePath(getDataPath() + "/models/EmitterCylinder.obj");
+				emitterBoundary->meshFile = FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterCylinder.obj");
 			m_scene.boundaryModels.push_back(emitterBoundary);
 			
 			// reuse particles if they are outside of a bounding box
 			bool emitterReuseParticles = false;
-			m_sceneLoader->readValue(model->getId(), "emitterReuseParticles", emitterReuseParticles);
+			Vector3r emitterBoxMin(-1.0, -1.0, -1.0);
+			Vector3r emitterBoxMax(1.0, 1.0, 1.0);
+			for (auto material : m_scene.materials)
+			{
+				if (material->id == model->getId())
+				{
+					emitterReuseParticles = material->emitterReuseParticles;
+					emitterBoxMin = material->emitterBoxMin;
+					emitterBoxMax = material->emitterBoxMax;
+				}
+			}
 
 			if (emitterReuseParticles)
-			{
-				// boxMin
-				Vector3r emitterBoxMin(-1.0, -1.0, -1.0);
-				m_sceneLoader->readVector(model->getId(), "emitterBoxMin", emitterBoxMin);
-
-				// boxMax
-				Vector3r emitterBoxMax(1.0, 1.0, 1.0);
-				m_sceneLoader->readVector(model->getId(), "emitterBoxMax", emitterBoxMax);
-
 				model->getEmitterSystem()->enableReuseParticles(emitterBoxMin, emitterBoxMax);
-			}
+
 			emitter->setEmitStartTime(ed->emitStartTime);
 			emitter->setEmitEndTime(ed->emitEndTime);
 		}
@@ -2534,7 +2554,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 
 		auto cell_diag = densityMap->cellSize().norm();
 		std::cout << "Generate density map..." << std::endl;
-		const bool no_reduction = false;
+		const bool no_reduction = true;
 		START_TIMING("Density Map Construction");
 		densityMap->addFunction(density_func, false, [&](Eigen::Vector3d const& x_)
 		{
@@ -2728,7 +2748,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 		auto cell_diag = volumeMap->cellSize().norm();
 		std::cout << "Generate volume map..." << std::endl;
-		const bool no_reduction = false;
+		const bool no_reduction = true;
 		START_TIMING("Volume Map Construction");
 		volumeMap->addFunction(volume_func, false, [&](Eigen::Vector3d const& x_)
 		{
@@ -2743,7 +2763,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 				return false;
 			}
 
-			return fabs(dist) < 2.5 * supportRadius;
+			return fabs(dist) < 4.0 * supportRadius;
 		});
 		STOP_TIMING_PRINT;
 
@@ -2753,7 +2773,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 			std::cout << "Reduce discrete fields...";
 			volumeMap->reduceField(0u, [&](const Eigen::Vector3d &, double v)
 			{
-				return fabs(v) < 2.5 * supportRadius;
+				return fabs(v) < 4.0 * supportRadius;
 			});
 			volumeMap->reduceField(1u, [&](const Eigen::Vector3d &, double v)->double
 			{

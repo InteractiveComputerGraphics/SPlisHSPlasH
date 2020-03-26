@@ -16,7 +16,7 @@ ExternalProject_Add(
 	GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/Discregrid.git
 	GIT_TAG "0b69062ff9c56fbb6dcecd296652028bedbacf0e"
 	INSTALL_DIR ${ExternalInstallDir}/Discregrid
-	CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/Discregrid -DBUILD_CMD_EXECUTABLE:BOOL=0 -DEIGEN3_INCLUDE_DIR:PATH=${EIGEN3_INCLUDE_DIR}
+	CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/Discregrid -DBUILD_CMD_EXECUTABLE:BOOL=0 -DEIGEN3_INCLUDE_DIR:PATH=${EIGEN3_INCLUDE_DIR} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 )
 ExternalProject_Get_Property(Ext_Discregrid INSTALL_DIR)
 set(DISCREGRID_INCLUDE_DIR ${INSTALL_DIR}/include)
@@ -35,7 +35,7 @@ ExternalProject_Add(
 	GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/GenericParameters.git
 	GIT_TAG "5e43547e9d7099ac0759b75fa5e4e2115ca9cc9f"
 	INSTALL_DIR ${ExternalInstallDir}/GenericParameters
-	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1
+	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 )
 ExternalProject_Get_Property(Ext_GenericParameters INSTALL_DIR)
 set(GENERICPARAMETERS_INCLUDE_DIR ${INSTALL_DIR}/include)
@@ -47,7 +47,7 @@ ExternalProject_Add(
 	Ext_PBD
 	PREFIX "${CMAKE_BINARY_DIR}/extern/PositionBasedDynamics"
 	GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-	GIT_TAG "b142aad449337cc091611d79a5f1fff85ccc6c40"
+	GIT_TAG "5376b9f88c4d2eef56f4b5271ddb36c5dfe1d1d0"
 	INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
 	DEPENDS Ext_GenericParameters Ext_Discregrid
 	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE}
@@ -59,6 +59,7 @@ ExternalProject_Add(
 	-DDiscregrid_INCLUDE_DIR:PATH=${DISCREGRID_INCLUDE_DIR}
 	-DDiscregrid_DEBUG_LIB:FILEPATH=${DISCREGRID_DEBUG_LIB}
 	-DDiscregrid_LIB:FILEPATH=${DISCREGRID_LIB}
+	-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 )
 ExternalProject_Get_Property(Ext_PBD INSTALL_DIR)
 set(PBD_INCLUDE_DIR ${INSTALL_DIR}/include)

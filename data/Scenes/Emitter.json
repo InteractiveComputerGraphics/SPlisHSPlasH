@@ -22,17 +22,19 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"maxEmitterParticles": 8000,
-		"emitterReuseParticles": false,
-		"emitterBoxMin": [-2.0,-2.5,-2.0],
-		"emitterBoxMax": [1.0,4,2.0],
-		"viscosityMethod": 1,
-		"viscosity": 0.01,
-		"dragMethod": 0, 
-		"colorMapType": 1
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"maxEmitterParticles": 8000,
+			"emitterReuseParticles": false,
+			"emitterBoxMin": [-2.0,-2.5,-2.0],
+			"emitterBoxMax": [1.0,4,2.0],
+			"viscosityMethod": 1,
+			"viscosity": 0.01,
+			"dragMethod": 0, 
+			"colorMapType": 1
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

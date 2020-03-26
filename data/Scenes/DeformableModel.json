@@ -20,17 +20,19 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"elasticityMethod": 2,
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"surfaceTension": 0.02,
-		"surfaceTensionMethod": 0,
-		"youngsModulus": 250000.0,
-		"poissonsRatio": 0.33, 
-		"alpha": 0.1
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"elasticityMethod": 2,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfaceTension": 0.02,
+			"surfaceTensionMethod": 0,
+			"youngsModulus": 250000.0,
+			"poissonsRatio": 0.33, 
+			"alpha": 0.1
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

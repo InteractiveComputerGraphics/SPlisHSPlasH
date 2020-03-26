@@ -15,6 +15,8 @@ namespace Utilities
 	protected:
 		nlohmann::json m_jsonData;
 
+		void readParameterObject(nlohmann::json& config, GenParam::ParameterObject* paramObj);
+
 	public:
 		/** \brief Struct for an AABB */
 		struct Box
@@ -95,6 +97,20 @@ namespace Utilities
 			Real endTime;
 		};
 
+		/** \brief Struct to store particle coloring information */
+		struct MaterialData
+		{
+			std::string id;
+			std::string colorField;
+			unsigned int colorMapType;
+			Real minVal;
+			Real maxVal;
+			unsigned int maxEmitterParticles;
+			bool emitterReuseParticles;
+			Vector3r emitterBoxMin;
+			Vector3r emitterBoxMax;
+		};
+
 		/** \brief Struct to store scene information */
 		struct Scene
 		{
@@ -103,22 +119,13 @@ namespace Utilities
 			std::vector<FluidBlock*> fluidBlocks;
 			std::vector<EmitterData*> emitters;
 			std::vector<AnimationFieldData*> animatedFields;
+			std::vector<MaterialData*> materials;
 			Real particleRadius;
 			bool sim2D;
 			Real timeStepSize;
 			Vector3r camPosition;
 			Vector3r camLookat;
 		};
-
-		/** \brief Struct to store particle coloring information */
-		struct ColoringData
-		{
-			std::string colorField;
-			unsigned int colorMapType;
-			Real minVal;
-			Real maxVal;
-		};
-
 
 		void readScene(const char *fileName, Scene &scene);
 
@@ -184,8 +191,8 @@ namespace Utilities
 			return false;
 		}
 
+		void readMaterialParameterObject(const std::string& key, GenParam::ParameterObject* paramObj);
 		void readParameterObject(const std::string &key, GenParam::ParameterObject *paramObj);
-		ColoringData readColoringInfo(const std::string &key);
 	};
 
 	template <>

@@ -85,7 +85,7 @@ void fgPlatformCheckMenuDeactivate(HWND newFocusWnd)
             /* window that got focus was not one of the active menus. That means we'll
              * close the active menu's unless the window that got focus was their parent */
             menu = fgGetActiveMenu();
-            
+
             if (newFocusWnd != menu->ParentWindow->Window.Handle)
             {
                 /* focus shifted to another window than the menu's parent, close menus */
@@ -106,3 +106,8 @@ int FGAPIENTRY __glutCreateMenuWithExit( void(* callback)( int ), void (__cdecl 
   return glutCreateMenu( callback );
 }
 
+int FGAPIENTRY __glutCreateMenuUcallWithExit(void(*callback)(int, void*), void(__cdecl *exit_function)(int), void* user_data)
+{
+    __glutExitFunc = exit_function;
+    return glutCreateMenuUcall(callback, user_data);
+}

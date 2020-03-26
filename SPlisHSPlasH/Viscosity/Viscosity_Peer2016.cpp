@@ -3,6 +3,9 @@
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
 #include "../Simulation.h"
+#include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
+#include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
 using namespace GenParam;
@@ -18,6 +21,7 @@ int Viscosity_Peer2016::MAX_ERROR_OMEGA = -1;
 Viscosity_Peer2016::Viscosity_Peer2016(FluidModel *model) :
 	ViscosityBase(model)
 {
+	m_density.resize(model->numParticles(), 0.0);
 	m_targetNablaV.resize(model->numParticles(), Matrix3r::Zero());
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 
@@ -37,6 +41,7 @@ Viscosity_Peer2016::~Viscosity_Peer2016(void)
 	m_model->removeFieldByName("target nablaV");
 	m_model->removeFieldByName("omega (visco)");
 
+	m_density.clear();
 	m_targetNablaV.clear();
 	m_omega.clear();
 }
@@ -78,10 +83,67 @@ void Viscosity_Peer2016::initParameters()
 	rparam->setMinValue(1e-6);
 }
 
+void Viscosity_Peer2016::computeDensities()
+{
+	Simulation* sim = Simulation::getCurrent();
+	FluidModel* model = m_model;
+	const unsigned int fluidModelIndex = model->getPointSetIndex();
+	const Real density0 = model->getDensity0();
+	const unsigned int numParticles = model->numActiveParticles();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
+
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)  
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			Real& density = m_density[i];
+
+			// Compute current density for particle i
+			density = model->getVolume(i) * sim->W_zero();
+			const Vector3r& xi = model->getPosition(i);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			forall_fluid_neighbors(
+				density += fm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+			);
+
+			//////////////////////////////////////////////////////////////////////////
+			// Boundary
+			//////////////////////////////////////////////////////////////////////////
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			{
+				forall_boundary_neighbors(
+					// Boundary: Akinci2012
+					density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+				);
+			}
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			{
+				forall_density_maps(
+					density += rho;
+				);
+			}
+			else   // Bender2019
+			{
+				forall_volume_maps(
+					density += Vj * sim->W(xi - xj);
+				);
+			}
+
+			density *= density0;
+		}
+	}
+}
+
 void Viscosity_Peer2016::matrixVecProdV(const Real* vec, Real *result, void *userData)
 {
 	Simulation *sim = Simulation::getCurrent();
-	FluidModel *model = (FluidModel*)userData;
+	Viscosity_Peer2016* visco = (Viscosity_Peer2016*)userData;
+	FluidModel* model = visco->getModel();
 	const unsigned int numParticles = model->numActiveParticles();
 	if (numParticles == 0)
 		return;
@@ -96,7 +158,7 @@ void Viscosity_Peer2016::matrixVecProdV(const Real* vec, Real *result, void *use
 		{
 			// Diagonal element
 			const Vector3r &xi = model->getPosition(i);
-			result[i] = (model->getDensity(i) - model->getMass(i) * sim->W_zero()) * vec[i];
+			result[i] = (visco->m_density[i] - model->getMass(i) * sim->W_zero()) * vec[i];
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
@@ -111,9 +173,10 @@ void Viscosity_Peer2016::matrixVecProdV(const Real* vec, Real *result, void *use
 void Viscosity_Peer2016::diagonalMatrixElementV(const unsigned int i, Real &result, void *userData)
 {
 	// Diagonal element
-	FluidModel *model = (FluidModel*)userData;
+	Viscosity_Peer2016* visco = (Viscosity_Peer2016*)userData;
+	FluidModel* model = visco->getModel();
 	Simulation *sim = Simulation::getCurrent();
-	result = model->getDensity(i) - model->getMass(i) * sim->W_zero();
+	result = visco->m_density[i] - model->getMass(i) * sim->W_zero();
 }
 
 void Viscosity_Peer2016::matrixVecProdOmega(const Real* vec, Real *result, void *userData)
@@ -199,8 +262,8 @@ void Viscosity_Peer2016::step()
 	//////////////////////////////////////////////////////////////////////////
 	// Init linear system solver and preconditioner
 	//////////////////////////////////////////////////////////////////////////
-	MatrixReplacement A(m_model->numActiveParticles(), matrixVecProdV, (void*)m_model);
-	m_solverV.preconditioner().init(m_model->numActiveParticles(), diagonalMatrixElementV, (void*)m_model);
+	MatrixReplacement A(m_model->numActiveParticles(), matrixVecProdV, (void*)this);
+	m_solverV.preconditioner().init(m_model->numActiveParticles(), diagonalMatrixElementV, (void*)this);
 	m_solverV.setTolerance(m_maxErrorV);
 	m_solverV.setMaxIterations(m_maxIterV);
 	m_solverV.compute(A);
@@ -221,6 +284,10 @@ void Viscosity_Peer2016::step()
 	VectorXr g1(numParticles);
 	VectorXr g2(numParticles);
 
+	// this method computes its own density values since
+	// it is very sensitive to small deviations (like they
+	// appear when using AVX)
+	computeDensities();
 
 	#pragma omp parallel default(shared)
 	{

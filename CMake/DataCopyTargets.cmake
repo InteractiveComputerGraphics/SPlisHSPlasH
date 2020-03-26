@@ -6,6 +6,14 @@ add_custom_target(CopySPlisHSPlasHShaders
 )
 set_target_properties(CopySPlisHSPlasHShaders PROPERTIES FOLDER "Data copy")
 
+add_custom_target(CopyEmitterModels
+	${CMAKE_COMMAND} -E copy_directory
+	${PROJECT_SOURCE_DIR}/data/emitter_boundary
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/emitter_boundary
+	COMMENT "Copying SPlisHSPlasH emitter models"
+)
+set_target_properties(CopyEmitterModels PROPERTIES FOLDER "Data copy")
+
 add_custom_target(CopyPBDShaders
 	${CMAKE_COMMAND} -E copy_directory
 	${PBD_INCLUDE_DIR}/data/shaders

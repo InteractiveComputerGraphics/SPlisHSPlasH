@@ -19,30 +19,35 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"first_fluid":
-	{
-		"density0": 1000, 
-		"viscosity": 0.02,
-		"viscosityMethod": 1,
-		"viscoMaxIter": 200, 
-		"viscoMaxError": 0.05,
-		"maxEmitterParticles": 6000
-	},
-	"second_fluid":
-	{
-		"density0": 500, 
-		"viscosity": 0.02,
-		"viscosityMethod": 1
-	},
-	"third_fluid":
-	{
-		"density0": 250, 
-		"viscosity": 0.02,
-		"maxEmitterParticles": 1000,
-		"emitterReuseParticles": false,
-		"emitterBoxMin": [-4.0,-1.0,-4.0],
-		"emitterBoxMax": [0.0,4,4.0]
-	},
+	"Materials": [
+		{
+			"id": "first_fluid",
+			"density0": 1000, 
+			"viscosity": 0.02,
+			"viscosityMethod": 1,
+			"viscoMaxIter": 200, 
+			"viscoMaxError": 0.05,
+			"maxEmitterParticles": 6000,
+			"colorMapType": 0
+		},
+		{
+			"id": "second_fluid",
+			"density0": 500, 
+			"viscosity": 0.02,
+			"viscosityMethod": 1,
+			"colorMapType": 0
+		},
+		{
+			"id": "third_fluid",
+			"density0": 250, 
+			"viscosity": 0.02,
+			"maxEmitterParticles": 1000,
+			"emitterReuseParticles": false,
+			"emitterBoxMin": [-4.0,-1.0,-4.0],
+			"emitterBoxMax": [0.0,4,4.0],
+			"colorMapType": 0
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

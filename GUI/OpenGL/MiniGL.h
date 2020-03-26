@@ -150,7 +150,7 @@ namespace SPH
 		static void setClientSceneFunc (SceneFct func);
 		static void display ();
 		static void setClientIdleFunc (IdleFct func);
-		static void addKeyFunc(unsigned char k, std::function<void()> func);
+		static void addKeyFunc(unsigned char k, std::function<void()> const& func);
 		static std::vector<KeyFunction> &getKeyFunc() { return keyfunc; }
 		static void init(int argc, char **argv, const int width, const int height, const int posx, const int posy, const char *name);
 		static void destroy ();

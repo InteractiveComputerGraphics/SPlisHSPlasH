@@ -1,5 +1,6 @@
 
 add_library(freeglut SHARED
+	fg_callback_macros.h
 	fg_callbacks.c
 	fg_cursor.c
 	fg_display.c
@@ -54,18 +55,22 @@ add_library(freeglut SHARED
 	../include/GL/freeglut.h
 	../include/GL/freeglut_ext.h
 	../include/GL/freeglut_std.h
+	../include/GL/freeglut_ucall.h
 	../include/GL/glut.h
 )
 
-	target_compile_definitions(freeglut PRIVATE -DFREEGLUT_EXPORTS -D_USRDLL)
-	target_compile_definitions(freeglut PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+if (MINGW)
+	find_package(OpenGL REQUIRED)
+	target_link_libraries(freeglut PRIVATE ${OPENGL_gl_LIBRARY} winmm)
+	target_include_directories(freeglut PRIVATE ${OPENGL_INCLUDE_DIR})
+endif ()
+
+target_compile_definitions(freeglut PRIVATE -DFREEGLUT_EXPORTS -D_USRDLL)
+target_compile_definitions(freeglut PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 target_include_directories(freeglut PUBLIC ${PROJECT_SOURCE_DIR}/extern/freeglut/include)
 
 set_target_properties(freeglut PROPERTIES FOLDER "External Dependencies")
 set_target_properties(freeglut PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(freeglut PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(freeglut PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
-
-
-
 

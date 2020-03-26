@@ -62,7 +62,6 @@ int PartioViewer::run(int argc, char **argv)
 	LOG_INFO << "Git status: " << GIT_LOCAL_STATUS;
 
 	m_exePath = FileSystem::getProgramPath();
-	m_dataPath = FileSystem::normalizePath(m_exePath + "/" + std::string(SPH_DATA_PATH));
 	m_gui = new PartioViewer_GUI_TweakBar(this);
 
 	try

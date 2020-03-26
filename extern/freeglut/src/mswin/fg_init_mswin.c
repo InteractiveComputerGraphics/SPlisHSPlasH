@@ -102,17 +102,17 @@ void fgPlatformInitialize( const char* displayName )
         HDC context = CreateDC(fgDisplay.pDisplay.DisplayName,0,0,0);
         if( context )
         {
-	    fgDisplay.ScreenWidth  = GetDeviceCaps( context, HORZRES );
-	    fgDisplay.ScreenHeight = GetDeviceCaps( context, VERTRES );
-	    fgDisplay.ScreenWidthMM  = GetDeviceCaps( context, HORZSIZE );
-	    fgDisplay.ScreenHeightMM = GetDeviceCaps( context, VERTSIZE );
-	    DeleteDC(context);
+        fgDisplay.ScreenWidth  = GetDeviceCaps( context, HORZRES );
+        fgDisplay.ScreenHeight = GetDeviceCaps( context, VERTRES );
+        fgDisplay.ScreenWidthMM  = GetDeviceCaps( context, HORZSIZE );
+        fgDisplay.ScreenHeightMM = GetDeviceCaps( context, VERTSIZE );
+        DeleteDC(context);
         }
         else
-	    fgWarning("fgPlatformInitialize: "
-		      "CreateDC failed, Screen size info may be incorrect\n"
+        fgWarning("fgPlatformInitialize: "
+              "CreateDC failed, Screen size info may be incorrect\n"
           "This is quite likely caused by a bad '-display' parameter");
-      
+
     }
     /* Set the timer granularity to 1 ms */
     timeBeginPeriod ( 1 );
@@ -142,7 +142,7 @@ void fgPlatformInitialize( const char* displayName )
 void fgPlatformDeinitialiseInputDevices ( void )
 {
 #if !defined(_WIN32_WCE)
-	fghCloseInputDevices ();
+    fghCloseInputDevices ();
 #endif /* !defined(_WIN32_WCE) */
     fgState.JoysticksInitialised = GL_FALSE;
     fgState.InputDevsInitialised = GL_FALSE;
@@ -162,7 +162,7 @@ void fgPlatformCloseDisplay ( void )
 
 void fgPlatformDestroyContext ( SFG_PlatformDisplay pDisplay, SFG_WindowContextType MContext )
 {
-	/* Do nothing -- this is required for X11 */
+    /* Do nothing -- this is required for X11 */
 }
 
 /* -- PLATFORM-SPECIFIC INTERFACE FUNCTION -------------------------------------------------- */

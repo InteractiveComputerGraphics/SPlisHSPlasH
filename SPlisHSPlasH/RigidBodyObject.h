@@ -2,6 +2,7 @@
 #define __RigidBodyObject_h__
 
 #include "Common.h"
+#include <vector>
 
 namespace SPH 
 {	

@@ -154,7 +154,7 @@ static void fghcbProcessWork( SFG_Window *window,
                               SFG_Enumerator *enumerator )
 {
     if( window->State.WorkMask )
-		fgProcessWork ( window );
+        fgProcessWork ( window );
 
     fgEnumSubWindows( window, fghcbProcessWork, enumerator );
 }
@@ -179,7 +179,7 @@ static void fghcbCheckJoystickPolls( SFG_Window *window,
                                      SFG_Enumerator *enumerator )
 {
     fg_time_t checkTime;
-    
+
     if (window->State.JoystickPollRate > 0 && FETCH_WCB( *window, Joystick ))
     {
         /* This window has a joystick to be polled (if pollrate <= 0, user needs to poll manually with glutForceJoystickFunc */
@@ -200,7 +200,7 @@ static void fghcbCheckJoystickPolls( SFG_Window *window,
 
 /*
  * Check all windows for joystick polling
- * 
+ *
  * The real way to do this is to make use of the glutTimer() API
  * to more cleanly re-implement the joystick API.  Then, this code
  * and all other "joystick timer" code can be yanked.
@@ -233,22 +233,22 @@ static void fghCheckTimers( void )
         fgListRemove( &fgState.Timers, &timer->Node );
         fgListAppend( &fgState.FreeTimers, &timer->Node );
 
-        timer->Callback( timer->ID );
+        timer->Callback( timer->ID, timer->CallbackData );
     }
 }
 
- 
+
 /* Platform-dependent time in milliseconds, as an unsigned 64-bit integer.
  * This doesn't overflow in any reasonable time, so no need to worry about
  * that. The GLUT API return value will however overflow after 49.7 days,
  * which means you will still get in trouble when running the
  * application for more than 49.7 days.
- */  
+ */
 fg_time_t fgSystemTime(void)
 {
-	return fgPlatformSystemTime();
+    return fgPlatformSystemTime();
 }
-  
+
 /*
  * Elapsed Time
  */
@@ -269,7 +269,7 @@ void fgError( const char *fmt, ... )
         va_start( ap, fmt );
 
         /* call user set error handler here */
-        fgState.ErrorFunc(fmt, ap);
+        fgState.ErrorFunc(fmt, ap, fgState.ErrorFuncData);
 
         va_end( ap );
 
@@ -302,7 +302,7 @@ void fgWarning( const char *fmt, ... )
         va_start( ap, fmt );
 
         /* call user set warning handler here */
-        fgState.WarningFunc(fmt, ap);
+        fgState.WarningFunc(fmt, ap, fgState.WarningFuncData);
 
         va_end( ap );
 
@@ -376,10 +376,10 @@ static void fghSleepForEvents( void )
     msec = fghNextTimer( );
     /* XXX Should use GLUT timers for joysticks... */
     /* XXX Dumb; forces granularity to .01sec */
-    if( fgState.NumActiveJoysticks>0 && ( msec > 10 ) )     
+    if( fgState.NumActiveJoysticks>0 && ( msec > 10 ) )
         msec = 10;
 
-	fgPlatformSleepForEvents ( msec );
+    fgPlatformSleepForEvents ( msec );
 }
 
 
@@ -400,7 +400,7 @@ void fgProcessWork(SFG_Window *window)
             fgPlatformInitWork(window);
 
             /* Call init context callback */
-            INVOKE_WCB( *window, InitContext, ());
+            INVOKE_WCB( *window, InitContext, ( ) );
 
             /* Lastly, check if we have a display callback, error out if not
              * This is the right place to do it, as the redisplay will be
@@ -446,7 +446,7 @@ void fgProcessWork(SFG_Window *window)
 void FGAPIENTRY glutMainLoopEvent( void )
 {
     /* Process input */
-	fgPlatformProcessSingleEvent ();
+    fgPlatformProcessSingleEvent ();
 
     if( fgState.Timers.First )
         fghCheckTimers( );
@@ -479,14 +479,16 @@ void FGAPIENTRY glutMainLoop( void )
     if (!fgStructure.Windows.First)
         fgError(" ERROR:  glutMainLoop called with no windows created.");
 
-	fgPlatformMainLoopPreliminaryWork ();
+    fgPlatformMainLoopPreliminaryWork ();
 
     fgState.ExecState = GLUT_EXEC_STATE_RUNNING ;
-    while( fgState.ExecState == GLUT_EXEC_STATE_RUNNING )
+    for(;;)
     {
         SFG_Window *window;
 
         glutMainLoopEvent( );
+        if( fgState.ExecState != GLUT_EXEC_STATE_RUNNING )
+            break;
         /*
          * Step through the list of windows, seeing if there are any
          * that are not menus
@@ -507,7 +509,7 @@ void FGAPIENTRY glutMainLoop( void )
                     fgStructure.CurrentWindow->IsMenu )
                     /* fail safe */
                     fgSetWindow( window );
-                fgState.IdleCallback( );
+                fgState.IdleCallback( fgState.IdleCallbackData );
             }
             else
                 fghSleepForEvents( );

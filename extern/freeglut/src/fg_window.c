@@ -62,9 +62,15 @@ extern void fgPlatformGlutSetIconTitle( const char* title );
 
 /* -- PRIVATE FUNCTIONS ---------------------------------------------------- */
 
-int fghIsLegacyContextRequested( void )
+int fghIsLegacyContextRequested( SFG_Window *win )
 {
-    return fgState.MajorVersion < 2 || (fgState.MajorVersion == 2 && fgState.MinorVersion <= 1);
+	int vmajor = fgState.MajorVersion;
+	int vminor = fgState.MinorVersion;
+	/* XXX: menu windows are drawn with the fixed function pipeline, therefore
+	 * the context created for them can't be a modern core-profile context.
+	 * Force the traditional context creation for menu windows.
+	 */
+    return vmajor < 2 || (vmajor == 2 && vminor <= 1) || win->IsMenu;
 }
 
 int fghNumberOfAuxBuffersRequested( void )
@@ -177,12 +183,12 @@ int FGAPIENTRY glutCreateWindow( const char* title )
      * XXX application has not already done so.  The "freeglut" community
      * XXX decided not to go this route (freeglut-developer e-mail from
      * XXX Steve Baker, 12/16/04, 4:22 PM CST, "Re: [Freeglut-developer]
-     * XXX Desired 'freeglut' behaviour when there is no current window"
+     * XXX Desired 'freeglut' behaviour when there is no current window")
      */
     FREEGLUT_EXIT_IF_NOT_INITIALISED ( "glutCreateWindow" );
 
-    return fgCreateWindow( NULL, title, fgState.Position.Use,
-                           fgState.Position.X, fgState.Position.Y,
+    return fgCreateWindow( NULL, title, 
+                           fgState.Position.Use, fgState.Position.X, fgState.Position.Y,
                            fgState.Size.Use, fgState.Size.X, fgState.Size.Y,
                            GL_FALSE, GL_FALSE )->ID;
 }
@@ -199,33 +205,51 @@ int FGAPIENTRY glutCreateSubWindow( int parentID, int x, int y, int w, int h )
     FREEGLUT_EXIT_IF_NOT_INITIALISED ( "glutCreateSubWindow" );
     parent = fgWindowByID( parentID );
     freeglut_return_val_if_fail( parent != NULL, 0 );
-    if ( x < 0 )
+
+    if ( fgState.AllowNegativeWindowPosition )
     {
-        x = parent->State.Width + x ;
-        if ( w >= 0 ) x -= w ;
+        /* XXX This results in different widths/heights than if AllowNegativeWindowPosition
+         * XXX was false. The "freeglut" community defined this logic.
+         * XXX (freeglut-developer e-mail from Diederick C. Niehorster, 11/15/2015, 4:06 PM EST.
+         * XXX "Re: [Freeglut-developer] glutInitWindowPosition with negative coordinate(s)")
+         */
+
+        if ( w < 0 ) w = parent->State.Width + w ;
+        if ( h < 0 ) h = parent->State.Height + h ;
+    }
+    else
+    {
+        if ( ( x < 0 ) )
+        {
+            x = parent->State.Width + x ;
+            if ( w > 0 ) x -= w ;
+        }
+
+        if ( w < 0 ) w = parent->State.Width - x + w ;
+        if ( w < 0 )
+        {
+            x += w ;
+            w = -w ;
+        }
+
+        if ( ( y < 0 ) )
+        {
+            y = parent->State.Height + y ;
+            if ( h > 0 ) y -= h ;
+        }
+
+        if ( h < 0 ) h = parent->State.Height - y + h ;
+        if ( h < 0 )
+        {
+            y += h ;
+            h = -h ;
+        }
     }
 
-    if ( w < 0 ) w = parent->State.Width - x + w ;
-    if ( w < 0 )
-    {
-        x += w ;
-        w = -w ;
-    }
-
-    if ( y < 0 )
-    {
-        y = parent->State.Height + y ;
-        if ( h >= 0 ) y -= h ;
-    }
-
-    if ( h < 0 ) h = parent->State.Height - y + h ;
-    if ( h < 0 )
-    {
-        y += h ;
-        h = -h ;
-    }
-
-    window = fgCreateWindow( parent, "", GL_TRUE, x, y, GL_TRUE, w, h, GL_FALSE, GL_FALSE );
+    window = fgCreateWindow( parent, "", 
+                             GL_TRUE, x, y, 
+                             GL_TRUE, w, h, 
+                             GL_FALSE, GL_FALSE );
     ret = window->ID;
 
     return ret;

@@ -16,6 +16,7 @@ namespace SPH
 	class Viscosity_Peer2015 : public ViscosityBase
 	{
 	protected: 
+		std::vector<Real> m_density;
 		std::vector<Matrix3r> m_targetNablaV;
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner1D> Solver;
 		Solver m_solver;
@@ -24,6 +25,7 @@ namespace SPH
 		Real m_maxError;
 
 		virtual void initParameters();
+		void computeDensities();
 
 	public:
 		static int ITERATIONS;

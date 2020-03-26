@@ -29,7 +29,6 @@ namespace SPH
 	protected:
 		unsigned int m_numberOfStepsPerRenderUpdate;
 		std::string m_exePath;
-		std::string m_dataPath;
 		std::string m_stateFile;
 		std::string m_outputPath;
 		std::string m_sceneFile;
@@ -65,9 +64,11 @@ namespace SPH
 		BoundarySimulator *m_boundarySimulator;
 		Simulator_GUI_Base *m_gui;
 		int m_argc;
+		std::vector<char*> m_argv_vec;
 		char **m_argv;
 		std::string m_windowName;
 		std::vector<std::string> m_paramTokens;
+		std::function<void()> m_timeStepCB;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
 #endif
@@ -79,8 +80,6 @@ namespace SPH
 		void createEmitters();
 		void createAnimationFields();
 		void buildModel();
-		void initSimulation();
-		void runSimulation();
 		void setCommandLineParameter();
 		void setCommandLineParameter(GenParam::ParameterObject *paramObj);
 
@@ -106,15 +105,22 @@ namespace SPH
 		static int ENUM_WALLS_GEOMETRY_NO_WALLS;
 
 		SimulatorBase();
+		SimulatorBase(const SimulatorBase&) = delete;
+        SimulatorBase& operator=(const SimulatorBase&) = delete;
 		virtual ~SimulatorBase();
 
 		void run();
+		void init(std::vector<std::string> argv, const std::string &windowName);
 		void init(int argc, char **argv, const std::string &windowName);
+        void initSimulation();
+		void runSimulation();
 		void cleanup();
 
 		void reset();
 		void timeStep();
 		bool timeStepNoGUI();
+
+		void setTimeStepCB(std::function<void()> const& callBackFct) { m_timeStepCB = callBackFct; }
 
 		static void particleInfo(std::vector<std::vector<unsigned int>> &particles);
 
@@ -153,7 +159,6 @@ namespace SPH
 		Utilities::SceneLoader *getSceneLoader() { return m_sceneLoader.get(); }
 
 		const std::string& getExePath() const { return m_exePath; }
-		const std::string& getDataPath() const { return m_dataPath; }
 		const std::string& getSceneFile() const { return m_sceneFile; }
 
 		Utilities::SceneLoader::Scene& getScene() { return m_scene; }

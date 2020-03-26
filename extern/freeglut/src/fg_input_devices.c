@@ -71,11 +71,11 @@ typedef struct _serialport SERIALPORT;
 
 /*****************************************************************/
 
-extern SERIALPORT *serial_open ( const char *device );
-extern void serial_close ( SERIALPORT *port );
-extern int serial_getchar ( SERIALPORT *port );
-extern int serial_putchar ( SERIALPORT *port, unsigned char ch );
-extern void serial_flush ( SERIALPORT *port );
+extern SERIALPORT *fg_serial_open ( const char *device );
+extern void fg_serial_close ( SERIALPORT *port );
+extern int fg_serial_getchar ( SERIALPORT *port );
+extern int fg_serial_putchar ( SERIALPORT *port, unsigned char ch );
+extern void fg_serial_flush ( SERIALPORT *port );
 
 extern void fgPlatformRegisterDialDevice ( const char *dial_device );
 static void send_dial_event(int dial, int value);
@@ -111,11 +111,11 @@ void fgInitialiseInputDevices ( void )
     {
         const char *dial_device=NULL;
         dial_device = getenv ( "GLUT_DIALS_SERIAL" );
-		fgPlatformRegisterDialDevice ( dial_device );
+        fgPlatformRegisterDialDevice ( dial_device );
 
         if ( !dial_device ) return;
-        if ( !( dialbox_port = serial_open ( dial_device ) ) ) return;
-        serial_putchar(dialbox_port,DIAL_INITIALIZE);
+        if ( !( dialbox_port = fg_serial_open ( dial_device ) ) ) return;
+        fg_serial_putchar(dialbox_port,DIAL_INITIALIZE);
         glutTimerFunc ( 10, poll_dials, 0 );
         fgState.InputDevsInitialised = GL_TRUE;
     }
@@ -128,7 +128,7 @@ void fgInputDeviceClose( void )
 {
     if ( fgState.InputDevsInitialised )
     {
-        serial_close ( dialbox_port );
+        fg_serial_close ( dialbox_port );
         dialbox_port = NULL;
         fgState.InputDevsInitialised = GL_FALSE;
     }
@@ -165,7 +165,7 @@ static void poll_dials ( int id )
 
     if ( !dialbox_port ) return;
 
-    while ( (data=serial_getchar(dialbox_port)) != EOF )
+    while ( (data=fg_serial_getchar(dialbox_port)) != EOF )
     {
         if ( ( dial_state > DIAL_WHICH_DEVICE ) || IS_DIAL_EVENT ( data ) )
         {
@@ -194,12 +194,12 @@ static void poll_dials ( int id )
         {
             fgState.InputDevsInitialised = GL_TRUE;
             dial_state = DIAL_WHICH_DEVICE;
-            serial_putchar(dialbox_port,DIAL_SET_AUTO_DIALS);
-            serial_putchar(dialbox_port,0xff);
-            serial_putchar(dialbox_port,0xff);
+            fg_serial_putchar(dialbox_port,DIAL_SET_AUTO_DIALS);
+            fg_serial_putchar(dialbox_port,0xff);
+            fg_serial_putchar(dialbox_port,0xff);
         }
         else  /* Unknown data; try flushing. */
-            serial_flush(dialbox_port);
+            fg_serial_flush(dialbox_port);
     }
 
     glutTimerFunc ( 2, poll_dials, 0 );

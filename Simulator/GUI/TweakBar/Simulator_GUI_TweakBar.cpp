@@ -191,6 +191,7 @@ void Simulator_GUI_TweakBar::cleanup()
 {
 	TwDeleteBar(getTweakBar());
 	TwTerminate();
+	MiniGL::getKeyFunc().clear();
 }
 
 void Simulator_GUI_TweakBar::render()
@@ -326,6 +327,11 @@ void Simulator_GUI_TweakBar::run()
 void Simulator_GUI_TweakBar::stop()
 {
 	glutLeaveMainLoop();
+}
+
+void Simulator_GUI_TweakBar::addKeyFunc(char k, std::function<void()> const& func)
+{
+	MiniGL::addKeyFunc(k, func);
 }
 
 void TW_CALL Simulator_GUI_TweakBar::setTimeCB(const void *value, void *clientData)

@@ -20,17 +20,19 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0,
-		"viscosity": 0.05,
-		"viscosityMethod": 5,
-		"viscoMaxIter": 200, 
-		"viscoMaxError": 0.08,
-		"viscoMaxIterOmega": 200, 
-		"viscoMaxErrorOmega": 0.01
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.2,
+			"surfaceTensionMethod": 0,
+			"viscosity": 0.05,
+			"viscosityMethod": 5,
+			"viscoMaxIter": 200, 
+			"viscoMaxError": 0.08,
+			"viscoMaxIterOmega": 200, 
+			"viscoMaxErrorOmega": 0.01
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

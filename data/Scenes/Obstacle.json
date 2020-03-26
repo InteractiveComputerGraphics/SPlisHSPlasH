@@ -21,17 +21,19 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"vorticityMethod": 1,
-		"viscosity": 0.01,
-		"vorticity": 0.15,
-		"viscosityOmega": 0.2,
-		"inertiaInverse": 0.5,
-		"viscosityMethod": 1,
-		"surfaceTension": 0.02,
-		"surfaceTensionMethod": 0
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"vorticityMethod": 1,
+			"viscosity": 0.01,
+			"vorticity": 0.15,
+			"viscosityOmega": 0.2,
+			"inertiaInverse": 0.5,
+			"viscosityMethod": 1,
+			"surfaceTension": 0.02,
+			"surfaceTensionMethod": 0
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

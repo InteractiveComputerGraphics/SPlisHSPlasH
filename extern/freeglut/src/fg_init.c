@@ -29,8 +29,6 @@
 #include <GL/freeglut.h>
 #include "fg_internal.h"
 
-#define NEED_XPARSEGEOMETRY_IMPL
-
 /*
  * TODO BEFORE THE STABLE RELEASE:
  *
@@ -72,9 +70,11 @@ SFG_State fgState = { { -1, -1, GL_FALSE },  /* Position */
                       { NULL, NULL },         /* Timers */
                       { NULL, NULL },         /* FreeTimers */
                       NULL,                   /* IdleCallback */
+                      NULL,                   /* IdleCallbackData */
                       0,                      /* ActiveMenus */
                       NULL,                   /* MenuStateCallback */
                       NULL,                   /* MenuStatusCallback */
+                      NULL,                   /* MenuStatusCallbackData */
                       FREEGLUT_MENU_FONT,
                       { -1, -1, GL_TRUE },    /* GameModeSize */
                       -1,                     /* GameModeDepth */
@@ -90,13 +90,16 @@ SFG_State fgState = { { -1, -1, GL_FALSE },  /* Position */
                       4,                      /* SampleNumber */
                       GL_FALSE,               /* SkipStaleMotion */
                       GL_FALSE,               /* StrokeFontDrawJoinDots */
+                      GL_FALSE,               /* AllowNegativeWindowPosition */
                       1,                      /* OpenGL context MajorVersion */
                       0,                      /* OpenGL context MinorVersion */
                       0,                      /* OpenGL ContextFlags */
                       0,                      /* OpenGL ContextProfile */
                       0,                      /* HasOpenGL20 */
                       NULL,                   /* ErrorFunc */
-                      NULL                    /* WarningFunc */
+                      NULL,                   /* ErrorFuncData */
+                      NULL,                   /* WarningFunc */
+                      NULL                    /* WarningFuncData */
 };
 
 
@@ -299,9 +302,11 @@ void fgDeinitialize( void )
     fgListInit( &fgState.Timers );
     fgListInit( &fgState.FreeTimers );
 
-    fgState.IdleCallback = NULL;
-    fgState.MenuStateCallback = ( FGCBMenuState )NULL;
-    fgState.MenuStatusCallback = ( FGCBMenuStatus )NULL;
+    fgState.IdleCallback           = ( FGCBIdleUC )NULL;
+    fgState.IdleCallbackData       = NULL;
+    fgState.MenuStateCallback      = ( FGCBMenuState )NULL;
+    fgState.MenuStatusCallback     = ( FGCBMenuStatusUC )NULL;
+    fgState.MenuStatusCallbackData = NULL;
 
     fgState.SwapCount   = 0;
     fgState.SwapTime    = 0;
@@ -320,7 +325,7 @@ void fgDeinitialize( void )
 
 
 /* -- INTERFACE FUNCTIONS -------------------------------------------------- */
-#if defined(NEED_XPARSEGEOMETRY_IMPL)
+#if defined(NEED_XPARSEGEOMETRY_IMPL) || defined(TARGET_HOST_MS_WINDOWS)
 #   include "util/xparsegeometry_repl.h"
 #endif
 
@@ -359,7 +364,7 @@ void FGAPIENTRY glutInit( int* pargc, char** argv )
      * size.
      */
 
-    if (geometry )
+    if ( geometry )
     {
         unsigned int parsedWidth, parsedHeight;
         int mask = XParseGeometry( geometry,
@@ -372,10 +377,10 @@ void FGAPIENTRY glutInit( int* pargc, char** argv )
         if( (mask & (WidthValue|HeightValue)) == (WidthValue|HeightValue) )
             fgState.Size.Use = GL_TRUE;
 
-        if( mask & XNegative )
+        if( ( mask & XNegative ) && !fgState.AllowNegativeWindowPosition )
             fgState.Position.X += fgDisplay.ScreenWidth - fgState.Size.X;
 
-        if( mask & YNegative )
+        if( ( mask & YNegative ) && !fgState.AllowNegativeWindowPosition )
             fgState.Position.Y += fgDisplay.ScreenHeight - fgState.Size.Y;
 
         if( (mask & (XValue|YValue)) == (XValue|YValue) )
@@ -399,7 +404,7 @@ void FGAPIENTRY glutInitWindowPosition( int x, int y )
     fgState.Position.X = x;
     fgState.Position.Y = y;
 
-    if( ( x >= 0 ) && ( y >= 0 ) )
+    if( ( ( x >= 0 ) && ( y >= 0 ) ) || fgState.AllowNegativeWindowPosition )
         fgState.Position.Use = GL_TRUE;
     else
         fgState.Position.Use = GL_FALSE;
@@ -669,19 +674,59 @@ void FGAPIENTRY glutInitContextProfile( int profile )
 /*
  * Sets the user error handler (note the use of va_list for the args to the fmt)
  */
-void FGAPIENTRY glutInitErrorFunc( FGError callback )
+void FGAPIENTRY glutInitErrorFuncUcall( FGErrorUC callback, FGCBUserData userData )
 {
     /* This allows user programs to handle freeglut errors */
     fgState.ErrorFunc = callback;
+    fgState.ErrorFuncData = userData;
+}
+
+static void fghInitErrorFuncCallback( const char *fmt, va_list ap, FGCBUserData userData )
+{
+    FGError* callback = (FGError*)&userData;
+    (*callback)( fmt, ap );
+}
+
+void FGAPIENTRY glutInitErrorFunc( FGError callback )
+{
+    if (callback)
+    {
+        FGError* reference = &callback;
+        glutInitErrorFuncUcall( fghInitErrorFuncCallback, *((FGCBUserData*)reference) );
+    }
+    else
+    {
+        glutInitErrorFuncUcall( NULL, NULL );
+    }
 }
 
 /*
  * Sets the user warning handler (note the use of va_list for the args to the fmt)
  */
-void FGAPIENTRY glutInitWarningFunc( FGWarning callback )
+void FGAPIENTRY glutInitWarningFuncUcall( FGWarningUC callback, FGCBUserData userData )
 {
     /* This allows user programs to handle freeglut warnings */
     fgState.WarningFunc = callback;
+    fgState.WarningFuncData = userData;
+}
+
+static void fghInitWarningFuncCallback( const char *fmt, va_list ap, FGCBUserData userData )
+{
+    FGWarning* callback = (FGWarning*)&userData;
+    (*callback)( fmt, ap );
+}
+
+void FGAPIENTRY glutInitWarningFunc( FGWarning callback )
+{
+    if (callback)
+    {
+        FGWarning* reference = &callback;
+        glutInitWarningFuncUcall( fghInitWarningFuncCallback, *((FGCBUserData*)reference) );
+    }
+    else
+    {
+        glutInitWarningFuncUcall( NULL, NULL );
+    }
 }
 
 /*** END OF FILE ***/

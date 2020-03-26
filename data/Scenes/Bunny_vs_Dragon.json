@@ -18,13 +18,15 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"viscosity": 0.01,
-		"viscosityMethod": 1,		
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"viscosity": 0.01,
+			"viscosityMethod": 1,		
+			"surfaceTension": 0.2,
+			"surfaceTensionMethod": 0
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

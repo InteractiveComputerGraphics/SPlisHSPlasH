@@ -4,8 +4,6 @@ add_executable(partio2vtk
 add_dependencies(partio2vtk SPlisHSPlasH)
 target_link_libraries(partio2vtk PRIVATE SPlisHSPlasH)
 
-target_compile_definitions(partio2vtk PUBLIC -DSPH_DATA_PATH=${SPH_DATA_PATH})
-
 set_target_properties(partio2vtk PROPERTIES FOLDER "Tools")
 set_target_properties(partio2vtk PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(partio2vtk PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})

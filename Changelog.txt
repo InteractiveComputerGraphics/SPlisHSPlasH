@@ -1,3 +1,6 @@
+2.7.0
+	- added Python binding using pybind (thanks to Stefan Jeske)
+	- added Python examples
 	- performance improvements: Elasticity_Peer2018
 	- bugfixes
 	- new command line parameter to overwrite scene settings

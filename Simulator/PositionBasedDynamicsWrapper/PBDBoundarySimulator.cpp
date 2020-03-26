@@ -71,12 +71,12 @@ void PBDBoundarySimulator::initBoundaryData()
 		rb.friction = 0.1;
 		if (ed->type == 0)
 		{
-			rb.objFile = FileSystem::normalizePath(m_base->getDataPath() + "/models/EmitterBox.obj");
+			rb.objFile = FileSystem::normalizePath(m_base->getExePath() + "/resources/emitter_boundary/EmitterBox.obj");
 			rb.collisionType = 2;
 		}
 		else if (ed->type == 1)
 		{
-			rb.objFile = FileSystem::normalizePath(m_base->getDataPath() + "/models/EmitterCylinder.obj");
+			rb.objFile = FileSystem::normalizePath(m_base->getExePath() + "/resources/emitter_boundary/EmitterCylinder.obj");
 			rb.collisionType = 5;
 		}
 		additionalRBs.push_back(rb);

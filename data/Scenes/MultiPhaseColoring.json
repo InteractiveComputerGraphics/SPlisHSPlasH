@@ -19,44 +19,46 @@
 		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2
 	},
-	"first_fluid":
-	{
-		"density0": 1000, 
-		"viscosity": 0.02,
-		"viscosityMethod": 1,
-		"viscoMaxIter": 200, 
-		"viscoMaxError": 0.05,
-		"maxEmitterParticles": 6000,
-		"colorField": "velocity",
-		"colorMapType": 1,
-		"renderMinValue": 0.0,
-		"renderMaxValue": 6.0
-	},
-	"second_fluid":
-	{
-		"density0": 500, 
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"vorticityMethod": 1, 
-		"vorticity": 0.1,
-		"colorField": "angular velocity",
-		"colorMapType": 2,
-		"renderMinValue": 0.0,
-		"renderMaxValue": 2.0
-	},
-	"third_fluid":
-	{
-		"density0": 250, 
-		"viscosity": 0.015,
-		"maxEmitterParticles": 1000,
-		"emitterReuseParticles": false,
-		"emitterBoxMin": [-4.0,-1.0,-4.0],
-		"emitterBoxMax": [0.0,4,4.0],
-		"colorField": "position",
-		"colorMapType": 1,
-		"renderMinValue": 0.0,
-		"renderMaxValue": 2.0
-	},
+	"Materials": [
+		{
+			"id": "first_fluid",
+			"density0": 1000, 
+			"viscosity": 0.02,
+			"viscosityMethod": 1,
+			"viscoMaxIter": 200, 
+			"viscoMaxError": 0.05,
+			"maxEmitterParticles": 6000,
+			"colorField": "velocity",
+			"colorMapType": 1,
+			"renderMinValue": 0.0,
+			"renderMaxValue": 6.0		
+		},
+		{
+			"id": "second_fluid",
+			"density0": 500, 
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"vorticityMethod": 1, 
+			"vorticity": 0.1,
+			"colorField": "angular velocity",
+			"colorMapType": 2,
+			"renderMinValue": 0.0,
+			"renderMaxValue": 2.0
+		},
+		{
+			"id": "third_fluid",
+			"density0": 250, 
+			"viscosity": 0.015,
+			"maxEmitterParticles": 1000,
+			"emitterReuseParticles": false,
+			"emitterBoxMin": [-4.0,-1.0,-4.0],
+			"emitterBoxMax": [0.0,4,4.0],
+			"colorField": "position",
+			"colorMapType": 1,
+			"renderMinValue": 0.0,
+			"renderMaxValue": 2.0
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

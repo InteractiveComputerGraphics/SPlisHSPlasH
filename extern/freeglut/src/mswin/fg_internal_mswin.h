@@ -127,6 +127,12 @@ struct tagSFG_PlatformJoystick
 #define  FREEGLUT_MENU_PEN_HBACK_COLORS  {0.15f, 0.15f, 0.45f, 1.0f}
 
 
+/* -- PRIVATE FUNCTION DECLARATIONS ---------------------------------------- */
+/* Spaceball device functions, defined in fg_spaceball_mswin.c */
+//Added by Jinrong Xie <stonexjr at gmail.com> 12/24/2014
+int  fgIsSpaceballWinEvent(HWND hwnd, WPARAM wParam, LPARAM lParam);
+void fgSpaceballHandleWinEvent(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
 /* Function to be called on exit */
 extern void (__cdecl *__glutExitFunc)( int return_value );
 

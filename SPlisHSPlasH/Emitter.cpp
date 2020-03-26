@@ -59,9 +59,9 @@ Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 		else
 		{
 			size = {
-				2 * supportRadius,
-				height * diam + static_cast<Real>(2.25) * animationMarginAround,
-				width * diam + static_cast<Real>(2.25) * animationMarginAround
+				static_cast<Real>(2.0)* supportRadius,
+				height * diam + static_cast<Real>(2.5) * animationMarginAround,
+				width * diam + static_cast<Real>(2.5) * animationMarginAround
 			};
 		}
 	}

@@ -24,19 +24,21 @@
 		"particleAttributes": "velocity;density",
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0,		
-		"viscosity": 0.01,
-		"viscosityMethod": 1, 
-		"vorticityMethod": 1, 
-		"vorticity": 0.1, 
-		"viscosityOmega": 0.05,
-		"inertiaInverse": 0.5,
-		"colorMapType": 1,
-		"renderMaxValue": 0.5
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.2,
+			"surfaceTensionMethod": 0,		
+			"viscosity": 0.01,
+			"viscosityMethod": 1, 
+			"vorticityMethod": 1, 
+			"vorticity": 0.1, 
+			"viscosityOmega": 0.05,
+			"inertiaInverse": 0.5,
+			"colorMapType": 1,
+			"renderMaxValue": 0.5
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

@@ -5,7 +5,7 @@
 
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension and vorticity. 
 
-The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [glew](http://glew.sourceforge.net/) and [AntTweakBar](http://anttweakbar.sourceforge.net/) (only for the demos). All external dependencies are included. 
+The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glew](http://glew.sourceforge.net/) and [AntTweakBar](http://anttweakbar.sourceforge.net/) (only for the demos). All external dependencies are included. 
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
@@ -33,15 +33,20 @@ Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on 
 * [Getting started](doc/getting_started.md)
 * [Scene file format](doc/file_format.md)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
+* Python binding:
+	* [Getting started](doc/pysplash/getting_started.md)
+	* [Creating scenes](doc/pysplash/creating_scenes.md)
+	* [Restrictions](doc/pysplash/restrictions.md)
 * The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features
 
 SPlisHSPlasH implements:
 * an open-source SPH fluid simulation (2D & 3D)
-* several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * neighborhood search on CPU or GPU
 * supports vectorization using AVX
+* Python binding (thanks to Stefan Jeske)
+* several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * explicit and implicit viscosity methods
 * current surface tension approaches
 * different vorticity methods

@@ -335,6 +335,47 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 			scene.animatedFields.push_back(data);
 		}
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// read animation fields
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find("Materials") != m_jsonData.end())
+	{
+		nlohmann::json materials = m_jsonData["Materials"];
+		for (auto& material : materials)
+		{
+			MaterialData* data = new MaterialData();
+
+			data->id = "Fluid";
+			readValue(material["id"], data->id);
+
+			data->minVal = 0.0;
+			readValue(material["renderMinValue"], data->minVal);
+
+			data->maxVal = 10.0;
+			readValue(material["renderMaxValue"], data->maxVal);
+
+			data->colorField = "velocity";
+			readValue(material["colorField"], data->colorField);
+
+			data->colorMapType = 1;
+			readValue(material["colorMapType"], data->colorMapType);
+
+			data->maxEmitterParticles = 10000;
+			readValue(material["maxEmitterParticles"], data->maxEmitterParticles);
+
+			data->emitterReuseParticles = false;
+			readValue(material["emitterReuseParticles"], data->emitterReuseParticles);
+
+			data->emitterBoxMin = Vector3r(-1.0, -1.0, -1.0);
+			readVector(material["emitterBoxMin"], data->emitterBoxMin);
+
+			data->emitterBoxMax = Vector3r(1.0, 1.0, 1.0);
+			readVector(material["emitterBoxMax"], data->emitterBoxMax);
+
+			scene.materials.push_back(data);
+		}
+	}
 }
 
 
@@ -354,106 +395,31 @@ bool SceneLoader::readValue(const nlohmann::json &j, bool &v)
 	return true;
 }
 
-void SceneLoader::readParameterObject(const std::string &key, ParameterObject *paramObj)
+void SceneLoader::readMaterialParameterObject(const std::string &key, ParameterObject *paramObj)
 {
 	if (paramObj == nullptr)
 		return;
 
-	const unsigned int numParams = paramObj->numParameters();
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// read configuration 
-	//////////////////////////////////////////////////////////////////////////
-	if (m_jsonData.find(key) != m_jsonData.end())
+	if (m_jsonData.find("Materials") != m_jsonData.end())
 	{
-		nlohmann::json config = m_jsonData[key];
-		std::vector<std::string> newParamList;
-
-		for (unsigned int i = 0; i < numParams; i++)
+		nlohmann::json materials = m_jsonData["Materials"];
+		for (auto& material : materials)
 		{
-			ParameterBase *paramBase = paramObj->getParameter(i);
+			string id = "";
+			readValue(material["id"], id);
 
-			if (paramBase->getType() == RealParameterType)
+			if (key == id)
 			{
-				Real val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<Real>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::UINT32)
-			{
-				unsigned int val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<unsigned int>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::UINT16)
-			{
-				unsigned short val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<unsigned short>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::UINT8)
-			{
-				unsigned char val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<unsigned char>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::INT32)
-			{
-				int val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<int>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::INT16)
-			{
-				short val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<short>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::INT8)
-			{
-				char val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<NumericParameter<char>*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::ENUM)
-			{
-				int val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<EnumParameter*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == ParameterBase::BOOL)
-			{
-				bool val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<BoolParameter*>(paramBase)->setValue(val);
-			}
-			else if (paramBase->getType() == RealVectorParameterType)
-			{
-				if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
-				{
-					Vector3r val;
-					if (readVector(config[paramBase->getName()], val))
-						static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
-				}
-			}
-			else if (paramBase->getType() == ParameterBase::STRING)
-			{
-				std::string val;
-				if (readValue(config[paramBase->getName()], val))
-					static_cast<StringParameter*>(paramBase)->setValue(val);
+				readParameterObject(material, paramObj);
 			}
 		}
 	}
 }
 
-Utilities::SceneLoader::ColoringData Utilities::SceneLoader::readColoringInfo(const std::string &key)
+void SceneLoader::readParameterObject(const std::string& key, ParameterObject* paramObj)
 {
-	ColoringData data;
-	data.colorField = "velocity";
-	data.colorMapType = 0;
-	data.minVal = 0.0;
-	data.maxVal = 5.0;
+	if (paramObj == nullptr)
+		return;
 
 	//////////////////////////////////////////////////////////////////////////
 	// read configuration 
@@ -461,11 +427,89 @@ Utilities::SceneLoader::ColoringData Utilities::SceneLoader::readColoringInfo(co
 	if (m_jsonData.find(key) != m_jsonData.end())
 	{
 		nlohmann::json config = m_jsonData[key];
-#
-		readValue(config["renderMinValue"], data.minVal);
-		readValue(config["renderMaxValue"], data.maxVal);
-		readValue(config["colorField"], data.colorField);
-		readValue(config["colorMapType"], data.colorMapType);
+		readParameterObject(config, paramObj);
 	}
-	return data;
 }
+
+void SceneLoader::readParameterObject(nlohmann::json& config, ParameterObject* paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	const unsigned int numParams = paramObj->numParameters();
+	for (unsigned int i = 0; i < numParams; i++)
+	{
+		ParameterBase* paramBase = paramObj->getParameter(i);
+
+		if (paramBase->getType() == RealParameterType)
+		{
+			Real val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<Real>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::UINT32)
+		{
+			unsigned int val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<unsigned int>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::UINT16)
+		{
+			unsigned short val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<unsigned short>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::UINT8)
+		{
+			unsigned char val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<unsigned char>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::INT32)
+		{
+			int val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<int>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::INT16)
+		{
+			short val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<short>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::INT8)
+		{
+			char val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<NumericParameter<char>*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::ENUM)
+		{
+			int val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<EnumParameter*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == ParameterBase::BOOL)
+		{
+			bool val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<BoolParameter*>(paramBase)->setValue(val);
+		}
+		else if (paramBase->getType() == RealVectorParameterType)
+		{
+			if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
+			{
+				Vector3r val;
+				if (readVector(config[paramBase->getName()], val))
+					static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
+			}
+		}
+		else if (paramBase->getType() == ParameterBase::STRING)
+		{
+			std::string val;
+			if (readValue(config[paramBase->getName()], val))
+				static_cast<StringParameter*>(paramBase)->setValue(val);
+		}
+	}
+}
+

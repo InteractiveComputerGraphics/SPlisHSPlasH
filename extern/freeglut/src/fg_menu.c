@@ -135,7 +135,7 @@ static void fghDeactivateSubMenu( SFG_MenuEntry *menuEntry )
 static GLvoid fghGetVMaxExtent( SFG_Window* window, int* x, int* y )
 {
     if( fgStructure.GameModeWindow )
-		fgPlatformGetGameModeVMaxExtent ( window, x, y );
+        fgPlatformGetGameModeVMaxExtent ( window, x, y );
     else
     {
         *x = fgDisplay.ScreenWidth;
@@ -531,7 +531,7 @@ static void fghActivateMenu( SFG_Window* window, int button )
             fgState.MenuStateCallback(GLUT_MENU_IN_USE);
         if (fgState.MenuStatusCallback)
             /* window->State.MouseX and window->State.MouseY are relative to client area origin, as needed */
-            fgState.MenuStatusCallback(GLUT_MENU_IN_USE, window->State.MouseX, window->State.MouseY);
+            fgState.MenuStatusCallback(GLUT_MENU_IN_USE, window->State.MouseX, window->State.MouseY, fgState.MenuStatusCallbackData);
     }
 
     fgSetWindow( menu->Window );
@@ -609,7 +609,7 @@ GLboolean fgCheckActiveMenu ( SFG_Window *window, int button, GLboolean pressed,
 
                 /* Deactivate menu and then call callback (we don't want menu to stay in view while callback is executing, and user should be able to change menus in callback) */
                 fgDeactivateMenu( parent_window );
-                active_menu->Callback( active_entry->ID );
+                active_menu->Callback( active_entry->ID, active_menu->CallbackData );
 
                 /* Restore the current window and menu */
                 fgSetWindow( save_window );
@@ -725,7 +725,7 @@ void fgDeactivateMenu( SFG_Window *window )
             SFG_XYUse mouse_pos;
             fghPlatformGetCursorPos(parent_window, GL_TRUE, &mouse_pos);
 
-            fgState.MenuStatusCallback(GLUT_MENU_NOT_IN_USE, mouse_pos.X, mouse_pos.Y);
+            fgState.MenuStatusCallback(GLUT_MENU_NOT_IN_USE, mouse_pos.X, mouse_pos.Y, fgState.MenuStatusCallbackData);
         }
     }
 }
@@ -780,14 +780,35 @@ void fghCalculateMenuBoxSize( void )
 /*
  * Creates a new menu object, adding it to the freeglut structure
  */
-int FGAPIENTRY glutCreateMenu( FGCBMenu callback )
+int FGAPIENTRY glutCreateMenuUcall( FGCBMenuUC callback, FGCBUserData userData )
 {
     /* The menu object creation code resides in fg_structure.c */
-    FREEGLUT_EXIT_IF_NOT_INITIALISED ( "glutCreateMenu" );
+    FREEGLUT_EXIT_IF_NOT_INITIALISED ( "glutCreateMenuUcall" );
     if (fgState.ActiveMenus)
-        fgError("Menu manipulation not allowed while menus in use.");
+    {
+        fgError( "Menu manipulation not allowed while menus in use." );
+    }
 
-    return fgCreateMenu( callback )->ID;
+    return fgCreateMenu( callback, userData )->ID;
+}
+
+/* Standard glutCreateMenu */
+static void fghCreateMenuCallback( int menu, FGCBUserData userData )
+{
+    FGCBMenu* callback = (FGCBMenu*)&userData;
+    (*callback)( menu );
+}
+
+int FGAPIENTRY glutCreateMenu( FGCBMenu callback )
+{
+    FGCBMenu* reference;
+    FREEGLUT_EXIT_IF_NOT_INITIALISED ( "glutCreateMenu" );
+    if (!callback)
+    {
+        return glutCreateMenuUcall( NULL, NULL );
+    }
+    reference = &callback;
+    return glutCreateMenuUcall( fghCreateMenuCallback, *((FGCBUserData*)reference) );
 }
 
 /*

@@ -23,27 +23,29 @@
 		"renderWalls": 1,
 		"boundaryHandlingMethod": 0
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 0,		
-		"viscosity": 0.01,
-		"viscosityMethod": 1, 
-		"vorticityMethod": 0, 
-		"vorticity": 0.1, 
-		"viscosityOmega": 0.05,
-		"inertiaInverse": 0.5,
-		"colorMapType": 0,
-		"renderMaxValue": 5.0
-	},
-	"Viscous":
-	{
-		"viscosityMethod": 7,
-		"viscosity": 1000,
-		"viscosityBoundary": 0,
-		"colorMapType": 0,
-		"renderMaxValue": 5.0
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.2,
+			"surfaceTensionMethod": 0,		
+			"viscosity": 0.01,
+			"viscosityMethod": 1, 
+			"vorticityMethod": 0, 
+			"vorticity": 0.1, 
+			"viscosityOmega": 0.05,
+			"inertiaInverse": 0.5,
+			"colorMapType": 0,
+			"renderMaxValue": 5.0
+		},
+		{
+			"id": "Viscous",
+			"viscosityMethod": 7,
+			"viscosity": 1000,
+			"viscosityBoundary": 0,
+			"colorMapType": 0,
+			"renderMaxValue": 5.0
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

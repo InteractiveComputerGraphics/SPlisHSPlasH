@@ -41,6 +41,6 @@ jobs:
         python-versions: 'cp37-cp37m'
         # python-versions: 'cp27-cp27m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
         build-requirements: ''
-        system-packages: 'cmake3 freeglut-devel'
+        system-packages: 'cmake3 freeglut-devel libXi-devel libXmu-devel'
         package-path: ''
         pip-wheel-args: '--manylinux-build'

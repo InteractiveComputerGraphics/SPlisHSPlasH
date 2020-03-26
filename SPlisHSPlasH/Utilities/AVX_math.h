@@ -8,7 +8,7 @@
 #include <immintrin.h>
 
 #ifdef __linux__
-#include <malloc.h>
+#include <stdlib.h>
 #endif
 
 #include "SPlisHSPlasH/Common.h"

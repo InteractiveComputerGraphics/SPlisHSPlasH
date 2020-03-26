@@ -35,7 +35,24 @@ jobs:
       run: cd bin;./KernelTests
       shell: pwsh
 
-        
+  # Build the python wheel in parallel
+  build-windows-python:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+        # python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+
+    steps:
+    # Checkout repo
+    - uses: actions/checkout@v1
+
+    # Set up python
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
     # Install python dependencies
     - name: Install dependencies
       run: python -m pip install --upgrade pip setuptools wheel twine

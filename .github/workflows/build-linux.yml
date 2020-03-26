@@ -17,3 +17,30 @@ jobs:
       run: cmake --build build-release
     - name: tests
       run: cd bin && ./KernelTests
+
+  build-manylinux-python:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    # Set up python
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+      # Install dependencies
+    - name: Install dependencies
+      run: python -m pip install --upgrade twine
+
+    - name: Build manylinux Python wheels
+      uses: digitalillusions/python-wheels-manylinux-build@master
+      with:
+        python-versions: 'cp37-cp37m'
+        # python-versions: 'cp27-cp27m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+        build-requirements: ''
+        system-packages: 'cmake3 freeglut-devel'
+        package-path: ''
+        pip-wheel-args: '--manylinux-build'

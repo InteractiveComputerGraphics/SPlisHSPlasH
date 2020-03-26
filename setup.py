@@ -14,6 +14,7 @@ from distutils.version import LooseVersion
 parser = argparse.ArgumentParser()
 parser.add_argument("-D", action='append', dest='cmake',
                     help="CMake Options")
+parser.add_argument("--manylinux-build", action='store_true', dest='manylinux_build')
 args, other_args = parser.parse_known_args(sys.argv)
 cmake_clargs = args.cmake
 sys.argv = other_args
@@ -81,8 +82,13 @@ class CMakeBuild(build_ext):
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
-        subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
+
+        if not args.manylinux_build:
+            subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+            subprocess.check_call(['cmake', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
+        else:
+            subprocess.check_call(['cmake3', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+            subprocess.check_call(['cmake3', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
 
         # Copy dlls to ext directory so they are installed alongside the bindings
         if platform.system() == "Windows":

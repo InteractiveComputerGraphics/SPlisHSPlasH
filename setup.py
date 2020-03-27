@@ -75,10 +75,14 @@ class CMakeBuild(build_ext):
 
         # Add position independent code flags if using gcc on linux probably
         if platform.system() == "Linux":
-            cmake_args += ['-DCMAKE_CXX_FLAGS=-fPIC', '-DCMAKE_C_FLAGS=-fPIC',
-                           '-DCMAKE_INSTALL_RPATH={}'.format("$ORIGIN"),
-                           '-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON',
-                           '-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=OFF']
+            cmake_args += ['-DCMAKE_CXX_FLAGS=-fPIC', '-DCMAKE_C_FLAGS=-fPIC']
+
+            # Using relative rpath messes up repairing the wheel file. The relative rpath is only necessary when
+            # building locally from source
+            if not args.manylinux_build:
+                cmake_args += ['-DCMAKE_INSTALL_RPATH={}'.format("$ORIGIN"),
+                               '-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON',
+                               '-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=OFF']
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)

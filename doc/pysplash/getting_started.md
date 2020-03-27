@@ -36,9 +36,7 @@ source venv/bin/activate
 Now you can clone the repository by
 
 ```shell script
-git clone <URL-to-SPlisHSPlasH>
-git checkout sjeske/pybind
-git pull
+git clone https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git
 ```
 
 And finally you should be able to install SPlisHSPlasH using pip. 

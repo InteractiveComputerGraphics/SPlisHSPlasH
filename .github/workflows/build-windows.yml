@@ -60,3 +60,11 @@ jobs:
     # Change directory and run setup py
     - name: Run setup py
       run: python setup.py bdist_wheel
+
+    # Upload artifacts
+    - name: Upload compiled wheel
+      uses: actions/upload-artifact@master
+      with:
+        name: pysplash-windows-${{ matrix.python-version }}
+        path: build/dist
+      if: always()

@@ -44,3 +44,11 @@ jobs:
         system-packages: 'cmake3 freeglut-devel libXi-devel libXmu-devel'
         package-path: ''
         pip-wheel-args: '--manylinux-build'
+
+    # Upload artifacts
+    - name: Upload compiled wheel
+      uses: actions/upload-artifact@master
+      with:
+        name: pysplash-linux
+        path: wheelhouse
+      if: always()

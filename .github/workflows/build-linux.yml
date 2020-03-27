@@ -38,8 +38,8 @@ jobs:
     - name: Build manylinux Python wheels
       uses: digitalillusions/python-wheels-manylinux-build@master
       with:
-        python-versions: 'cp37-cp37m'
-        # python-versions: 'cp27-cp27m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+        # python-versions: 'cp37-cp37m'
+        python-versions: 'cp27-cp27m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
         build-requirements: ''
         system-packages: 'cmake3 freeglut-devel libXi-devel libXmu-devel'
         package-path: ''

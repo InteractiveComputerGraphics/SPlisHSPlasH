@@ -21,6 +21,10 @@ jobs:
   build-manylinux-python:
 
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # python-version: [3.7]
+        python-version: [cp27-cp27m, cp35-cp35m, cp36-cp36m, cp37-cp37m, cp38-cp38]
 
     steps:
     - uses: actions/checkout@v1
@@ -39,7 +43,7 @@ jobs:
       uses: digitalillusions/python-wheels-manylinux-build@master
       with:
         # python-versions: 'cp37-cp37m'
-        python-versions: 'cp27-cp27m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38'
+        python-versions: '${{ matrix.python-version }}'
         build-requirements: ''
         system-packages: 'cmake3 freeglut-devel libXi-devel libXmu-devel'
         package-path: ''

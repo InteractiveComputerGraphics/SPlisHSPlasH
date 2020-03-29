@@ -47,7 +47,7 @@ jobs:
         build-requirements: ''
         system-packages: 'cmake3 freeglut-devel libXi-devel libXmu-devel'
         package-path: ''
-        pip-wheel-args: '--manylinux-build'
+        pip-wheel-args: '--manylinux-build -DUSE_AVX=Off'
 
     # Upload artifacts
     - name: Upload compiled wheel

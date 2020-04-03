@@ -20,7 +20,7 @@ cmake_clargs = args.cmake
 sys.argv = other_args
 
 # Project binding name
-name = "pysplash"
+name = "pySPlisHSPlasH"
 
 
 class CMakeExtension(Extension):
@@ -122,7 +122,7 @@ setup(
     ext_modules=[CMakeExtension(name)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
-    entry_points={'console_scripts': 'splash = PySPlasH.scripts.simulator:main'},
+    entry_points={'console_scripts': 'splash = pySPlisHSPlasH.scripts.simulator:main'},
     data_files=[(models_dest, [m for m in models if os.path.isfile(m)]),
                 (scenes_dest, [s for s in Scenes if os.path.isfile(s)]),
                 (shaders_dest, [s for s in shaders if os.path.isfile(s)]),

@@ -169,7 +169,7 @@ Example code:
   - 1: more dense sampling
   - 2: dense sampling
 * initialVelocity (vec3): The initial velocity is set for all particles in the block.
-* id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
+* id (string): This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
 
 ## FluidModels
 
@@ -269,31 +269,36 @@ Example code:
 * samplingMode (int): Surface sampling mode. 0 Poisson disk sampling, 1 Regular triangle sampling (default: 0).
 
 
-## Fluid parameter block
+## Materials
 
 ```json
-"Fluid":
-{
-    "density0": 1000, 
-    "colorField": "velocity",
-	"colorMapType": 1,
-	"renderMinValue": 0.0,
-	"renderMaxValue": 5.0,
-    "surfaceTension": 0.2,
-    "surfaceTensionMethod": 0,		
-    "viscosity": 0.01,
-    "viscosityMethod": 1, 
-    "vorticityMethod": 1, 
-    "vorticity": 0.15, 
-    "viscosityOmega": 0.05,
-    "inertiaInverse": 0.5,
-    "maxEmitterParticles": 1000,
-    "emitterReuseParticles": false,
-    "emitterBoxMin": [-4.0,-1.0,-4.0],
-    "emitterBoxMax": [0.0,4,4.0],
-}
+"Materials": [
+	{
+        "id": "Fluid",
+        "density0": 1000, 
+        "colorField": "velocity",
+        "colorMapType": 1,
+        "renderMinValue": 0.0,
+        "renderMaxValue": 5.0,
+        "surfaceTension": 0.2,
+        "surfaceTensionMethod": 0,		
+        "viscosity": 0.01,
+        "viscosityMethod": 1, 
+        "vorticityMethod": 1, 
+        "vorticity": 0.15, 
+        "viscosityOmega": 0.05,
+        "inertiaInverse": 0.5,
+        "maxEmitterParticles": 1000,
+        "emitterReuseParticles": false,
+        "emitterBoxMin": [-4.0,-1.0,-4.0],
+        "emitterBoxMax": [0.0,4,4.0]
+	}
+]
 ```
 
+##### General
+
+* id (string): Defines the id of the material.  You have to give the same id to a FluidBlock, a FluidModel or an Emitter if they should have the defined material behavior.
 * density0 (float): Rest density of the corresponding fluid.
 
 ##### Particle Coloring 

@@ -1,5 +1,5 @@
-import pysplash as sph
-import pysplash.Utilities.SceneLoaderStructs as Scenes
+import pysplishsplash as sph
+import pysplishsplash.Utilities.SceneLoaderStructs as Scenes
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 

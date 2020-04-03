@@ -1,7 +1,7 @@
 # Note that for this example you have to install matplotlib by:
 # pip install matplotlib
  
-import pysplash as sph
+import pysplishsplash as sph
 import matplotlib.pyplot as plt
 import numpy as np
 

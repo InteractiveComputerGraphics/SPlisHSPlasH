@@ -34,9 +34,9 @@ Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on 
 * [Scene file format](doc/file_format.md)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 * Python binding:
-	* [Getting started](doc/pysplash/getting_started.md)
-	* [Creating scenes](doc/pysplash/creating_scenes.md)
-	* [Restrictions](doc/pysplash/restrictions.md)
+	* [Getting started](doc/pysplishsplash/getting_started.md)
+	* [Creating scenes](doc/pysplishsplash/creating_scenes.md)
+	* [Restrictions](doc/pysplishsplash/restrictions.md)
 * The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features

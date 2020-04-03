@@ -45,7 +45,7 @@ The scene file format is explained [here.](file_format.md)
 ## Python bindings 
 
 SPlisHSPlasH implements bindings for python using [pybind11](https://github.com/pybind/pybind11).
-See the [getting started guide](./pysplash/getting_started.md).
+See the [getting started guide](./pysplishsplash/getting_started.md).
 
 ### Impatient installation guide
 

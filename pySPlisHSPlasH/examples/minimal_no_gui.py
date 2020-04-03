@@ -1,4 +1,4 @@
-import pysplash as sph
+import pysplishsplash as sph
 
 
 def main():

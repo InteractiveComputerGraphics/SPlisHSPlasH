@@ -1,4 +1,4 @@
-import pysplash as sph
+import pysplishsplash as sph
 import argparse
 from argparse import RawTextHelpFormatter
 

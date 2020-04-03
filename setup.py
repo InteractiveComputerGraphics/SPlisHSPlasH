@@ -21,6 +21,7 @@ sys.argv = other_args
 
 # Project binding name
 name = "pySPlisHSPlasH"
+internal_name = "pysplishsplash"
 
 
 class CMakeExtension(Extension):
@@ -89,10 +90,10 @@ class CMakeBuild(build_ext):
 
         if not args.manylinux_build:
             subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-            subprocess.check_call(['cmake', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
+            subprocess.check_call(['cmake', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
         else:
             subprocess.check_call(['cmake3', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-            subprocess.check_call(['cmake3', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
+            subprocess.check_call(['cmake3', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
 
         # Copy dlls to ext directory so they are installed alongside the bindings
         if platform.system() == "Windows":

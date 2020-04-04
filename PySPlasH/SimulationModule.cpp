@@ -196,6 +196,23 @@ void SimulationModule(py::module m_sub){
     m_sub = m_sub.def_submodule("Exec");
 
     // ---------------------------------------
+    // Exporter class
+    // ---------------------------------------
+    py::class_<Exporter>(m_sub, "Exporter")
+            .def_readwrite_static("PARTIO_EXPORT", &Exporter::PARTIO_EXPORT)
+            .def_readwrite_static("VTK_EXPORT", &Exporter::VTK_EXPORT)
+            .def_readwrite_static("RB_VTK_EXPORT", &Exporter::RB_VTK_EXPORT)
+            .def_readwrite_static("RB_EXPORT", &Exporter::RB_EXPORT)
+            .def_readwrite_static("DATA_EXPORT_FPS", &Exporter::DATA_EXPORT_FPS)
+            .def_readwrite_static("PARTICLE_EXPORT_ATTRIBUTES", &Exporter::PARTICLE_EXPORT_ATTRIBUTES)
+            .def("particleExport", &Exporter::particleExport)
+            .def("rigidBodyExport", &Exporter::rigidBodyExport)
+            .def("writeParticlesPartio", &Exporter::writeParticlesPartio)
+            .def("writeParticlesVTK", &Exporter::writeParticlesVTK)
+            .def("writeRigidBodiesBIN", &Exporter::writeRigidBodiesBIN)
+            .def("writeRigidBodiesVTK", &Exporter::writeRigidBodiesVTK);
+
+    // ---------------------------------------
     // Simulator Base class
     // ---------------------------------------
     py::class_<SPH::SimulatorBase::SimulationMethod>(m_sub, "SimulationMethod")
@@ -208,12 +225,6 @@ void SimulationModule(py::module m_sub){
             .def_readwrite_static("PAUSE_AT", &SPH::SimulatorBase::PAUSE_AT)
             .def_readwrite_static("STOP_AT", &SPH::SimulatorBase::STOP_AT)
             .def_readwrite_static("NUM_STEPS_PER_RENDER", &SPH::SimulatorBase::NUM_STEPS_PER_RENDER)
-            .def_readwrite_static("PARTIO_EXPORT", &SPH::SimulatorBase::PARTIO_EXPORT)
-            .def_readwrite_static("VTK_EXPORT", &SPH::SimulatorBase::VTK_EXPORT)
-            .def_readwrite_static("RB_VTK_EXPORT", &SPH::SimulatorBase::RB_VTK_EXPORT)
-            .def_readwrite_static("RB_EXPORT", &SPH::SimulatorBase::RB_EXPORT)
-            .def_readwrite_static("DATA_EXPORT_FPS", &SPH::SimulatorBase::DATA_EXPORT_FPS)
-            .def_readwrite_static("PARTICLE_EXPORT_ATTRIBUTES", &SPH::SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES)
             .def_readwrite_static("STATE_EXPORT", &SPH::SimulatorBase::STATE_EXPORT)
             .def_readwrite_static("STATE_EXPORT_FPS", &SPH::SimulatorBase::STATE_EXPORT_FPS)
             .def_readwrite_static("RENDER_WALLS", &SPH::SimulatorBase::RENDER_WALLS)
@@ -259,12 +270,6 @@ void SimulationModule(py::module m_sub){
             .def("initVolumeMap", &SPH::SimulatorBase::initVolumeMap)
 
             .def("readParameters", &SPH::SimulatorBase::readParameters)
-            .def("particleExport", &SPH::SimulatorBase::particleExport)
-            .def("rigidBodyExport", &SPH::SimulatorBase::rigidBodyExport)
-            .def("writeParticlesPartio", &SPH::SimulatorBase::writeParticlesPartio)
-            .def("writeParticlesVTK", &SPH::SimulatorBase::writeParticlesVTK)
-            .def("writeRigidBodiesBIN", &SPH::SimulatorBase::writeRigidBodiesBIN)
-            .def("writeRigidBodiesVTK", &SPH::SimulatorBase::writeRigidBodiesVTK)
             .def("step", &SPH::SimulatorBase::step)
 
             .def("saveState", &SPH::SimulatorBase::saveState)

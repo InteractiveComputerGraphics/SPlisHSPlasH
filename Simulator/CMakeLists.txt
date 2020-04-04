@@ -60,6 +60,9 @@ add_library(SimulatorBase
 
 	${PBDWRAPPER_SOURCE_FILES}
 	${PBDWRAPPER_HEADER_FILES}
+	
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter.h
 )
 
 target_compile_definitions(SimulatorBase PRIVATE -DUSE_PBD -DTW_NO_LIB_PRAGMA -DTW_STATIC)

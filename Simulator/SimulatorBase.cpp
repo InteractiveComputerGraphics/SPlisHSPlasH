@@ -37,12 +37,6 @@ int SimulatorBase::PAUSE = -1;
 int SimulatorBase::PAUSE_AT = -1;
 int SimulatorBase::STOP_AT = -1;
 int SimulatorBase::NUM_STEPS_PER_RENDER = -1;
-int SimulatorBase::PARTIO_EXPORT = -1;
-int SimulatorBase::VTK_EXPORT = -1;
-int SimulatorBase::RB_VTK_EXPORT = -1;
-int SimulatorBase::RB_EXPORT = -1;
-int SimulatorBase::DATA_EXPORT_FPS = -1;
-int SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES = -1;
 int SimulatorBase::STATE_EXPORT = -1;
 int SimulatorBase::STATE_EXPORT_FPS = -1;
 int SimulatorBase::RENDER_WALLS = -1;
@@ -52,7 +46,7 @@ int SimulatorBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_ALL = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
 
- 
+
 SimulatorBase::SimulatorBase()
 {
 	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
@@ -68,24 +62,17 @@ SimulatorBase::SimulatorBase()
 	m_stopAt = -1.0;
 	m_useParticleCaching = true;
 	m_useGUI = true;
-	m_enablePartioExport = false;
-	m_enableVTKExport = false;
-	m_enableRigidBodyVTKExport = false;
-	m_enableRigidBodyExport = false;
 	m_enableStateExport = false;
-	m_framesPerSecond = 25;
 	m_framesPerSecondState = 1;
 	m_nextFrameTime = 0.0;
 	m_nextFrameTimeState = 0.0;
 	m_frameCounter = 1;
 	m_isFirstFrame = true;
-	m_isFirstFrameVTK = true;
 	m_firstState = true;
 	m_colorField.resize(1, "velocity");
 	m_colorMapType.resize(1, 0);
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
-	m_particleAttributes = "velocity";
 	m_timeStepCB = nullptr;
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
@@ -135,25 +122,25 @@ void SimulatorBase::initParameters()
 	enumParam->addEnumValue("Geometry (all)", ENUM_WALLS_GEOMETRY_ALL);
 	enumParam->addEnumValue("Geometry (no walls)", ENUM_WALLS_GEOMETRY_NO_WALLS);
 
-	PARTIO_EXPORT = createBoolParameter("enablePartioExport", "Partio export", &m_enablePartioExport);
-	setGroup(PARTIO_EXPORT, "Export");
-	setDescription(PARTIO_EXPORT, "Enable/disable partio export.");
+	Exporter::PARTIO_EXPORT = createBoolParameter("enablePartioExport", "Partio export", &Exporter::enablePartioExport);
+	setGroup(Exporter::PARTIO_EXPORT, "Export");
+	setDescription(Exporter::PARTIO_EXPORT, "Enable/disable partio export.");
 
-	RB_EXPORT = createBoolParameter("enableRigidBodyExport", "Rigid body export", &m_enableRigidBodyExport);
-	setGroup(RB_EXPORT, "Export");
-	setDescription(RB_EXPORT, "Enable/disable rigid body export.");
+	Exporter::RB_EXPORT = createBoolParameter("enableRigidBodyExport", "Rigid body export", &Exporter::enableRigidBodyExport);
+	setGroup(Exporter::RB_EXPORT, "Export");
+	setDescription(Exporter::RB_EXPORT, "Enable/disable rigid body export.");
 
-	VTK_EXPORT = createBoolParameter("enableVTKExport", "VTK export", &m_enableVTKExport);
-	setGroup(VTK_EXPORT, "Export");
-	setDescription(VTK_EXPORT, "Enable/disable VTK export.");
+	Exporter::VTK_EXPORT = createBoolParameter("enableVTKExport", "VTK export", &Exporter::enableVTKExport);
+	setGroup(Exporter::VTK_EXPORT, "Export");
+	setDescription(Exporter::VTK_EXPORT, "Enable/disable VTK export.");
 
-	RB_VTK_EXPORT = createBoolParameter("enableRigidBodyVTKExport", "Rigid body VTK export", &m_enableRigidBodyVTKExport);
-	setGroup(RB_VTK_EXPORT, "Export");
-	setDescription(RB_VTK_EXPORT, "Enable/disable rigid body VTK export.");
+	Exporter::RB_VTK_EXPORT = createBoolParameter("enableRigidBodyVTKExport", "Rigid body VTK export", &Exporter::enableRigidBodyVTKExport);
+	setGroup(Exporter::RB_VTK_EXPORT, "Export");
+	setDescription(Exporter::RB_VTK_EXPORT, "Enable/disable rigid body VTK export.");
 
-	DATA_EXPORT_FPS = createNumericParameter("dataExportFPS", "Export FPS", &m_framesPerSecond);
-	setGroup(DATA_EXPORT_FPS, "Export");
-	setDescription(DATA_EXPORT_FPS, "Frame rate of partio, vtk and rigid body export.");
+	Exporter::DATA_EXPORT_FPS = createNumericParameter("dataExportFPS", "Export FPS", &Exporter::framesPerSecond);
+	setGroup(Exporter::DATA_EXPORT_FPS, "Export");
+	setDescription(Exporter::DATA_EXPORT_FPS, "Frame rate of partio, vtk and rigid body export.");
 
 	STATE_EXPORT = createBoolParameter("enableStateExport", "Simulation state export", &m_enableStateExport);
 	setGroup(STATE_EXPORT, "Export");
@@ -164,10 +151,12 @@ void SimulatorBase::initParameters()
 	setDescription(STATE_EXPORT_FPS, "Frame rate of simulation state export.");
 
 
-	PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("particleAttributes", "Export attributes", &m_particleAttributes);
-	getParameter(PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
-	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export");
-	setDescription(PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
+	Exporter::PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("particleAttributes", "Export attributes", &Exporter::particleAttributes);
+	getParameter(Exporter::PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
+	setGroup(Exporter::PARTICLE_EXPORT_ATTRIBUTES, "Export");
+	setDescription(Exporter::PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
+
+
 }
 
 void SimulatorBase::run()
@@ -213,12 +202,12 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			("no-initial-pause", "Disable initial pause when starting the simulation.")
 			("no-gui", "Disable GUI.")
 			("stopAt", "Sets or overwrites the stopAt parameter of the scene.", cxxopts::value<Real>())
-			("param", "Sets or overwrites a parameter of the scene.\n\n" 
-					  "- Setting a fluid parameter:\n\t<fluid-id>:<parameter-name>:<value>\n"
-					  "- Example: --param Fluid:viscosity:0.01\n\n"
-					  "- Setting a configuration parameter:\n\t<parameter-name>:<value>\n"
-					  "- Example: --param cflMethod:1\n"
-					  , cxxopts::value<std::string>())
+			("param", "Sets or overwrites a parameter of the scene.\n\n"
+				"- Setting a fluid parameter:\n\t<fluid-id>:<parameter-name>:<value>\n"
+				"- Example: --param Fluid:viscosity:0.01\n\n"
+				"- Setting a configuration parameter:\n\t<parameter-name>:<value>\n"
+				"- Example: --param cflMethod:1\n"
+				, cxxopts::value<std::string>())
 			;
 
 		options.add_options("invisible")
@@ -326,6 +315,8 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 		LOG_INFO << "Boundary cache disabled.";
 	LOG_INFO << "Output directory: " << m_outputPath;
 
+	exporter.m_outputPath = m_outputPath;
+
 	//////////////////////////////////////////////////////////////////////////
 	// read scene
 	//////////////////////////////////////////////////////////////////////////
@@ -362,7 +353,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 void SimulatorBase::initSimulation()
 {
 #ifdef DL_OUTPUT
-		// copy scene files in output so that the simulation can be reproduced
+	// copy scene files in output so that the simulation can be reproduced
 	std::string sceneFilePath = FileSystem::normalizePath(m_outputPath + "/scene");
 	FileSystem::makeDirs(sceneFilePath);
 	FileSystem::copyFile(m_sceneFile, sceneFilePath + "/" + FileSystem::getFileNameWithExt(m_sceneFile));
@@ -401,7 +392,7 @@ void SimulatorBase::initSimulation()
 	std::string progFilePath = FileSystem::normalizePath(m_outputPath + "/program");
 	FileSystem::makeDirs(progFilePath);
 	FileSystem::copyFile(m_argv[0], progFilePath + "/" + FileSystem::getFileNameWithExt(m_argv[0]));
-	#endif
+#endif
 
 	Simulation *sim = Simulation::getCurrent();
 	sim->init(getScene().particleRadius, getScene().sim2D);
@@ -472,6 +463,8 @@ void SimulatorBase::runSimulation()
 
 void SimulatorBase::cleanup()
 {
+	exporter.saveParticleSnapshot();
+
 	for (unsigned int i = 0; i < m_scene.boundaryModels.size(); i++)
 		delete m_scene.boundaryModels[i];
 	m_scene.boundaryModels.clear();
@@ -537,20 +530,20 @@ void SimulatorBase::setCommandLineParameter()
 
 	setCommandLineParameter((ParameterObject*)sim);
 	setCommandLineParameter((ParameterObject*)sim->getTimeStep());
-	
+
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 	{
 		FluidModel *model = sim->getFluidModel(i);
 		const std::string &key = model->getId();
-		
+
 		if (m_paramTokens[0] == key)
-		{			
+		{
 			setCommandLineParameter((ParameterObject*)model);
- 			setCommandLineParameter((ParameterObject*)model->getDragBase());
- 			setCommandLineParameter((ParameterObject*)model->getSurfaceTensionBase());
+			setCommandLineParameter((ParameterObject*)model->getDragBase());
+			setCommandLineParameter((ParameterObject*)model->getSurfaceTensionBase());
 			setCommandLineParameter((ParameterObject*)model->getViscosityBase());
- 			setCommandLineParameter((ParameterObject*)model->getVorticityBase());
- 			setCommandLineParameter((ParameterObject*)model->getElasticityBase());
+			setCommandLineParameter((ParameterObject*)model->getVorticityBase());
+			setCommandLineParameter((ParameterObject*)model->getElasticityBase());
 		}
 	}
 }
@@ -613,8 +606,8 @@ void SimulatorBase::setCommandLineParameter(GenParam::ParameterObject *paramObj)
 			}
 			else if (paramBase->getType() == RealVectorParameterType)
 			{
- 				if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
- 				{
+				if (static_cast<VectorParameter<Real>*>(paramBase)->getDim() == 3)
+				{
 					vector<string> tokens;
 					Utilities::StringTools::tokenize(m_paramTokens[2], tokens, ",");
 					if (tokens.size() == 3)
@@ -622,7 +615,7 @@ void SimulatorBase::setCommandLineParameter(GenParam::ParameterObject *paramObj)
 						Vector3r val(stof(tokens[0]), stof(tokens[1]), stof(tokens[2]));
 						static_cast<VectorParameter<Real>*>(paramBase)->setValue(val.data());
 					}
- 				}
+				}
 			}
 			else if (paramBase->getType() == ParameterBase::STRING)
 			{
@@ -679,7 +672,7 @@ void SimulatorBase::reset()
 	m_nextFrameTimeState = 0.0;
 	m_frameCounter = 1;
 	m_isFirstFrame = true;
-	m_isFirstFrameVTK = true;
+	exporter.reset();
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
@@ -687,13 +680,20 @@ void SimulatorBase::reset()
 
 void SimulatorBase::timeStep()
 {
+	// Check stopping criteria.
+	// Always export after stopAt and pauseAt.
+	//TODO Do a fraction of time step if necessary to capture exact stop time.
 	const Real stopAt = getValue<Real>(SimulatorBase::STOP_AT);
-	if (m_gui && (stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
+	if (m_gui && (stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime())) {
+		exporter.saveParticleSnapshot();
 		m_gui->stop();
+	}
 
 	const Real pauseAt = getValue<Real>(SimulatorBase::PAUSE_AT);
-	if ((pauseAt > 0.0) && (pauseAt < TimeManager::getCurrent()->getTime()))
+	if ((pauseAt > 0.0) && (pauseAt < TimeManager::getCurrent()->getTime())) {
+		exporter.saveParticleSnapshot();
 		setValue(SimulatorBase::PAUSE, true);
+	}
 
 	if (getValue<bool>(SimulatorBase::PAUSE))
 		return;
@@ -766,8 +766,6 @@ bool SimulatorBase::timeStepNoGUI()
 			}
 		}
 	}
-	if (m_timeStepCB)
-		m_timeStepCB();
 	return true;
 }
 
@@ -904,7 +902,7 @@ void SimulatorBase::initFluidData()
 				std::array<unsigned int, 3> resolutionSDF = m_scene.fluidModels[i]->resolutionSDF;
 
 				LOG_INFO << "SDF resolution: " << resolutionSDF[0] << ", " << resolutionSDF[1] << ", " << resolutionSDF[2];
-					
+
 				START_TIMING("Volume sampling");
 				Utilities::VolumeSampling::sampleMesh(mesh.numVertices(), mesh.getVertices().data(), mesh.numFaces(), mesh.getFaces().data(),
 					m_scene.particleRadius, nullptr, resolutionSDF, invert, mode, fluidParticles[fluidIndex]);
@@ -1012,7 +1010,7 @@ void SimulatorBase::createEmitters()
 
 			if (sim->is2DSimulation())
 				emitterBoundary->scale[2] = 2 * supportRadius;
-
+			
 			if (ed->type == 0)
 				emitterBoundary->meshFile = FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterBox.obj");
 			else if (ed->type == 1)
@@ -1194,514 +1192,23 @@ void SimulatorBase::particleInfo(std::vector<std::vector<unsigned int>> &particl
 					for (unsigned int k = 1; k < 6; k++)
 						LOG_INFO << std::left << std::setw(maxWidth) << std::setfill(' ') << " " << mat.row(k);
 				}
- 			}
+			}
 			LOG_INFO << "---------------------------------------------------------------------------\n";
 		}
 	}
-}
-
-void SimulatorBase::rigidBodyExport()
-{
-	std::string exportPath = FileSystem::normalizePath(m_outputPath + "/rigid_bodies");
-	std::string exportPathVTK = FileSystem::normalizePath(m_outputPath + "/vtk");
-	if (m_enableRigidBodyExport)
-	{
-		FileSystem::makeDirs(exportPath);
-		writeRigidBodiesBIN(exportPath);
-	}
-	if (m_enableRigidBodyVTKExport)
-	{
-		FileSystem::makeDirs(exportPathVTK);
-		writeRigidBodiesVTK(exportPathVTK);
-	}
-}
-
-void SimulatorBase::particleExport()
-{	
-	std::string partioExportPath = FileSystem::normalizePath(m_outputPath + "/partio");
-	std::string vtkExportPath = FileSystem::normalizePath(m_outputPath + "/vtk");
-	if (m_enablePartioExport)
-		FileSystem::makeDirs(partioExportPath);
-	if (m_enableVTKExport)
-		FileSystem::makeDirs(vtkExportPath);
-
-	Simulation *sim = Simulation::getCurrent();
-	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
-	{
-		FluidModel *model = sim->getFluidModel(i);
-		std::string fileName = "ParticleData";
-		fileName = fileName + "_" + model->getId() + "_" + std::to_string(m_frameCounter);
-
-		if (m_enablePartioExport)
-		{
-			std::string exportFileName = FileSystem::normalizePath(partioExportPath + "/" + fileName);
-			writeParticlesPartio(exportFileName + ".bgeo", model);
-		}
-		if (m_enableVTKExport)
-		{
-			std::string exportFileName = FileSystem::normalizePath(vtkExportPath + "/" + fileName);
-			writeParticlesVTK(exportFileName + ".vtk", model);
-		}
-	}
-}
-
-
-void SimulatorBase::writeParticlesPartio(const std::string &fileName, FluidModel *model)
-{
-	Partio::ParticlesDataMutable& particleData = *Partio::create();
-	Partio::ParticleAttribute posAttr = particleData.addAttribute("position", Partio::VECTOR, 3);
-	Partio::ParticleAttribute idAttr = particleData.addAttribute("id", Partio::INT, 1);
-
-	// add attributes
-	std::vector<std::string> attributes;
-	StringTools::tokenize(m_particleAttributes, attributes, ";");
-
- 	std::map<unsigned int, int> attrMap;
- 	std::map<unsigned int, Partio::ParticleAttribute> partioAttrMap;
- 	for (unsigned int i = 0; i < attributes.size(); i++)
- 	{
- 		// position is exported anyway
-		if (attributes[i] == "position")
-		{
-			attrMap[i] = -1;
-			continue;
-		}
- 
- 		bool found = false;
- 		for (unsigned int j = 0; j < model->numberOfFields(); j++)
- 		{
- 			const FieldDescription &field = model->getField(j);
- 			if (field.name == attributes[i])
- 			{
- 				found = true;
- 				if (field.type == Scalar)
- 				{
- 					attrMap[i] = j;
- 					partioAttrMap[i] = particleData.addAttribute(attributes[i].c_str(), Partio::FLOAT, 1);
- 				}
-				else if (field.type == UInt)
-				{
-					attrMap[i] = j;
-					partioAttrMap[i] = particleData.addAttribute(attributes[i].c_str(), Partio::INT, 1);
-				}
- 				else if (field.type == Vector3)
- 				{
- 					attrMap[i] = j;
- 					partioAttrMap[i] = particleData.addAttribute(attributes[i].c_str(), Partio::VECTOR, 3);
- 				}
- 				else
- 				{
- 					attrMap[i] = -1;
- 					LOG_WARN << "Only scalar and vector fields are currently supported by the partio exporter.";
- 				}
- 				break;
- 			}
- 		}
-		if (!found)
-		{
-			attrMap[i] = -1;
-			LOG_WARN << "Unknown field cannot be exported in partio file: " << attributes[i];
-		}
- 	}
-
-	const unsigned int numParticles = model->numActiveParticles();
-
-	for (unsigned int i = 0; i < numParticles; i++)
-	{
-		Partio::ParticleIndex index = particleData.addParticle();
-		float* pos = particleData.dataWrite<float>(posAttr, index);
-		int* id = particleData.dataWrite<int>(idAttr, index);
-
-		const Vector3r &x = model->getPosition(i);
-		pos[0] = (float)x[0];
-		pos[1] = (float)x[1];
-		pos[2] = (float)x[2];
-	
-		id[0] = model->getParticleId(i);
-
- 		for (unsigned int j = 0; j < attributes.size(); j++)
- 		{
- 			const int fieldIndex = attrMap[j];
- 			if (fieldIndex != -1)
- 			{
- 				const FieldDescription &field = model->getField(fieldIndex);
- 				if (field.type == FieldType::Scalar)
- 				{
- 					float* val = particleData.dataWrite<float>(partioAttrMap[j], index);
- 					*val = (float) *((Real*) field.getFct(i));
- 				}
-				else if (field.type == FieldType::UInt)
-				{
-					int* val = particleData.dataWrite<int>(partioAttrMap[j], index);
-					*val = (int) *((unsigned int*)field.getFct(i));
-				}
- 				else if (field.type == FieldType::Vector3)
- 				{
- 					float* val = particleData.dataWrite<float>(partioAttrMap[j], index);
-					Eigen::Map<Vector3r> vec((Real*) field.getFct(i));
- 					val[0] = (float)vec[0];
- 					val[1] = (float)vec[1];
- 					val[2] = (float)vec[2];
- 				}
- 			}
- 		}
-	}
-
-	Partio::write(fileName.c_str(), particleData, true);
-	particleData.release();
-}
-
-void SPH::SimulatorBase::writeParticlesVTK(const std::string &fileName, FluidModel *model)
-{
-	const unsigned int numParticles = model->numActiveParticles();
-	if (0 == numParticles)
-		return;
-
-#ifdef USE_DOUBLE
-	const char * real_str = " double\n";
-#else 
-	const char * real_str = " float\n";
-#endif
-
-	// Open the file
-	std::ofstream outfile{ fileName, std::ios::binary };
-	if (!outfile.is_open()) 
-	{
-		LOG_WARN << "Cannot open a file to save VTK particles.";
-		return;
-	}
-
-	outfile << "# vtk DataFile Version 4.1\n";
-	outfile << "SPlisHSPlasH particle data\n"; // title of the data set, (any string up to 256 characters+\n)
-	outfile << "BINARY\n";
-	outfile << "DATASET UNSTRUCTURED_GRID\n";
-
-	// add attributes
-	std::vector<std::string> attributes;
-	StringTools::tokenize(m_particleAttributes, attributes, ";");
-
-	//////////////////////////////////////////////////////////////////////////
-	// positions and ids exported anyways
-	attributes.erase(
-		std::remove_if(attributes.begin(), attributes.end(), [](const std::string&s) { return (s == "position" || s == "id"); }),
-		attributes.end());
-
-	//////////////////////////////////////////////////////////////////////////
-	// export position attribute as POINTS
-	{
-		std::vector<Vector3r> positions;
-		positions.reserve(numParticles);
-		for (unsigned int i = 0u; i < numParticles; i++)
-			positions.emplace_back(model->getPosition(i));
-		// swap endianess
-		for (unsigned int i = 0; i < numParticles; i++)
-			for (unsigned int c = 0; c < 3; c++)
-				swapByteOrder(&positions[i][c]);
-		// export to vtk
-		outfile << "POINTS " << numParticles << real_str;
-		outfile.write(reinterpret_cast<char*>(positions[0].data()), 3 * numParticles * sizeof(Real));
-		outfile << "\n";
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// export particle IDs as CELLS
-	{
-		std::vector<Eigen::Vector2i> cells;
-		cells.reserve(numParticles);
-		unsigned int nodes_per_cell_swapped = 1;
-		swapByteOrder(&nodes_per_cell_swapped);
-		for (unsigned int i = 0u; i < numParticles; i++)
-		{
-			unsigned int idSwapped = model->getParticleId(i);
-			swapByteOrder(&idSwapped);
-			cells.emplace_back(nodes_per_cell_swapped, idSwapped);
-		}
-
-		// particles are cells with one element and the index of the particle
-		outfile << "CELLS " << numParticles << " " << 2 * numParticles << "\n";
-		outfile.write(reinterpret_cast<char*>(cells[0].data()), 2 * numParticles * sizeof(unsigned int));
-		outfile << "\n";
-	}
-	//////////////////////////////////////////////////////////////////////////
-	// export cell types
-	{
-		// the type of a particle cell is always 1
-		std::vector<int> cellTypes;
-		int cellTypeSwapped = 1;
-		swapByteOrder(&cellTypeSwapped);
-		cellTypes.resize(numParticles, cellTypeSwapped);
-		outfile << "CELL_TYPES " << numParticles << "\n";
-		outfile.write(reinterpret_cast<char*>(cellTypes.data()), numParticles * sizeof(int));
-		outfile << "\n";
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// write additional attributes as per-particle data
-	{
-		outfile << "POINT_DATA " << numParticles << "\n";
-		// write IDs
-		outfile << "SCALARS id unsigned_int 1\n";
-		outfile << "LOOKUP_TABLE id_table\n";
-		// copy data
-		std::vector<unsigned int> attrData;
-		attrData.reserve(numParticles);
-		for (unsigned int i = 0u; i < numParticles; i++)
-			attrData.emplace_back(model->getParticleId(i));
-		// swap endianess
-		for (unsigned int i = 0; i < numParticles; i++)
-			swapByteOrder(&attrData[i]);
-		// export to vtk
-		outfile.write(reinterpret_cast<char*>(attrData.data()), numParticles * sizeof(unsigned int));
-		outfile << "\n";
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// per point fields (all attributes except for positions)
-	const auto numFields = attributes.size();
-	outfile << "FIELD FieldData " << std::to_string(numFields) << "\n";
-
-	// iterate over attributes
-	for (const std::string & a : attributes)
-	{
-		const FieldDescription & field = model->getField(a);
-
-		std::string attrNameVTK;
-		std::regex_replace(std::back_inserter(attrNameVTK), a.begin(), a.end(), std::regex("\\s+"), "_");
-
-		if (field.type == FieldType::Scalar)
-		{
-			// write header information
-			outfile << attrNameVTK << " 1 " << numParticles << real_str;
-
-			// copy data
-			std::vector<Real> attrData;
-			attrData.reserve(numParticles);
-			for (unsigned int i = 0u; i < numParticles; i++)
-				attrData.emplace_back(*((Real*) field.getFct(i)));
-			// swap endianess
-			for (unsigned int i = 0; i < numParticles; i++)
-				swapByteOrder(&attrData[i]);
-			// export to vtk
-			outfile.write(reinterpret_cast<char*>(attrData.data()), numParticles * sizeof(Real));
-		}
-		else if (field.type == FieldType::Vector3)
-		{
-			// write header information
-			outfile << attrNameVTK << " 3 " << numParticles << real_str;
-
-			// copy from partio data
-			std::vector<Vector3r> attrData;
-			attrData.reserve(numParticles);
-			for (unsigned int i = 0u; i < numParticles; i++)
-				attrData.emplace_back((Real*) field.getFct(i));
-			// swap endianess
-			for (unsigned int i = 0; i < numParticles; i++)
-				for (unsigned int c = 0; c < 3; c++)
-					swapByteOrder(&attrData[i][c]);
-			// export to vtk
-			outfile.write(reinterpret_cast<char*>(attrData[0].data()), 3 * numParticles * sizeof(Real));
-		}
-		// TODO support other field types
-		else
-		{
-			LOG_WARN << "Skipping attribute " << a << ", because it is of unsupported type\n";
-			continue;
-		}
-		// end of block
-		outfile << "\n";
-	}
-	outfile.close();
-}
-
-void SimulatorBase::writeRigidBodiesBIN(const std::string &exportPath)
-{
-	std::string fileName = "rb_data_";
-	fileName = fileName + std::to_string(m_frameCounter) + ".bin";
-	std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
-
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nBoundaryModels = sim->numberOfBoundaryModels();
-
-	std::string scene_path = FileSystem::getFilePath(getSceneFile());
-
-	// check if we have a static model
-	bool isStatic = true;
-	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
-		{
-			isStatic = false;
-			break;
-		}
-	}
-
-	BinaryFileWriter binWriter;
-	if (m_isFirstFrame || !isStatic)
-		binWriter.openFile(exportFileName.c_str());
-
-	if (m_isFirstFrame)
-	{
-		binWriter.write(nBoundaryModels);
-
-		for (unsigned int i = 0; i < m_scene.boundaryModels.size(); i++)
-		{
-			std::string meshFileName = m_scene.boundaryModels[i]->meshFile;
-			if (FileSystem::isRelativePath(meshFileName))
-				meshFileName = FileSystem::normalizePath(scene_path + "/" + meshFileName);
-
-			const string fileName = Utilities::FileSystem::getFileNameWithExt(meshFileName);
-			binWriter.write(fileName);
-			Eigen::Vector3f s = m_scene.boundaryModels[i]->scale.template cast<float>();
-			binWriter.writeMatrix(s);
-			std::string targetFilePath = exportPath + "/" + fileName;
-			if (!Utilities::FileSystem::fileExists(targetFilePath))
-			{
-				Utilities::FileSystem::copyFile(meshFileName, targetFilePath);
-			}
-			binWriter.write((char)m_scene.boundaryModels[i]->isWall);
-			binWriter.writeMatrix(m_scene.boundaryModels[i]->color);
-		}
-	}
-
-	if (m_isFirstFrame || !isStatic)
-	{
-		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-		{
-			BoundaryModel *bm = sim->getBoundaryModel(i);
-			const Vector3r &x = bm->getRigidBodyObject()->getWorldSpacePosition();
-			const Eigen::Vector3f x_f = x.template cast<float>();
-			binWriter.writeMatrix(x_f);
-
-			const Matrix3r &R = bm->getRigidBodyObject()->getWorldSpaceRotation();
-			//const Eigen::Matrix3f RT = R.transpose().template cast<float>();
-			binWriter.writeMatrix(R);
-		}
-		binWriter.closeFile();
-	}
-
-	m_isFirstFrame = false;
-}
-
-void SimulatorBase::writeRigidBodiesVTK(const std::string &exportPath)
-{
-	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nBoundaryModels = sim->numberOfBoundaryModels();
-
-	// check if we have a static model
-	bool isStatic = true;
-	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-	{
-		BoundaryModel *bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
-		{
-			isStatic = false;
-			break;
-		}
-	}
-
-#ifdef USE_DOUBLE
-	const char * real_str = " double\n";
-#else 
-	const char * real_str = " float\n";
-#endif
-
-	if (m_isFirstFrameVTK || !isStatic)
-	{
-		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-		{
-			std::string fileName = "rb_data_";
-			fileName = fileName + std::to_string(i) + "_" + std::to_string(m_frameCounter) + ".vtk";
-			std::string exportFileName = FileSystem::normalizePath(exportPath + "/" + fileName);
-
-			// Open the file
-			std::ofstream outfile(exportFileName, std::ios::binary);
-			if (!outfile)
-			{
-				LOG_WARN << "Cannot open a file to save VTK mesh.";
-				return;
-			}
-
-			// Header
-			outfile << "# vtk DataFile Version 4.2\n";
-			outfile << "SPlisHSPlasH mesh data\n";
-			outfile << "BINARY\n";
-			outfile << "DATASET UNSTRUCTURED_GRID\n";
-
-			BoundaryModel *bm = sim->getBoundaryModel(i);
-			const std::vector<Vector3r> &vertices = bm->getRigidBodyObject()->getVertices();
-			const std::vector<unsigned int> &faces = bm->getRigidBodyObject()->getFaces();
-			int n_vertices = (int)vertices.size();
-			int n_triangles = (int)faces.size() / 3;
-
-			// Vertices
-			{
-				std::vector<Vector3r> positions;
-				positions.reserve(n_vertices);
-				for (int j = 0u; j < n_vertices; j++)
-				{
-					Vector3r x = vertices[j];
-					swapByteOrder(&x[0]);
-					swapByteOrder(&x[1]);
-					swapByteOrder(&x[2]);
-					positions.emplace_back(x);
-				}
-				// export to vtk
-				outfile << "POINTS " << n_vertices << real_str;
-				outfile.write(reinterpret_cast<char*>(positions[0].data()), 3 * n_vertices * sizeof(Real));
-				outfile << "\n";
-			}
-
-			// Connectivity
-			{
-				std::vector<int> connectivity_to_write;
-				connectivity_to_write.reserve(4 * n_triangles);
-				for (int tri_i = 0; tri_i < n_triangles; tri_i++)
-				{
-					int val = 3;
-					swapByteOrder(&val);
-					connectivity_to_write.push_back(val);
-					val = faces[3 * tri_i + 0];
-					swapByteOrder(&val);
-					connectivity_to_write.push_back(val);
-					val = faces[3 * tri_i + 1];
-					swapByteOrder(&val);
-					connectivity_to_write.push_back(val);
-					val = faces[3 * tri_i + 2];
-					swapByteOrder(&val);
-					connectivity_to_write.push_back(val);
-				}
-				// export to vtk
-				outfile << "CELLS " << n_triangles << " " << 4 * n_triangles << "\n";
-				outfile.write(reinterpret_cast<char*>(&connectivity_to_write[0]), connectivity_to_write.size() * sizeof(int));
-				outfile << "\n";
-			}
-
-			// Cell types
-			{
-				outfile << "CELL_TYPES " << n_triangles << "\n";
-				int cell_type_swapped = 5;
-				swapByteOrder(&cell_type_swapped);
-				std::vector<int> cell_type_arr(n_triangles, cell_type_swapped);
-				outfile.write(reinterpret_cast<char*>(&cell_type_arr[0]), cell_type_arr.size() * sizeof(int));
-				outfile << "\n";
-			}
-			outfile.close();
-		}
-	}
-
-	m_isFirstFrameVTK = false;
 }
 
 void SimulatorBase::step()
 {
 	if (TimeManager::getCurrent()->getTime() >= m_nextFrameTime)
 	{
-		m_nextFrameTime += static_cast<Real>(1.0) / m_framesPerSecond;
-		if (m_enablePartioExport || m_enableVTKExport)
-			particleExport();
-		if (m_enableRigidBodyExport || m_enableRigidBodyVTKExport)
-			rigidBodyExport();
+		m_nextFrameTime += static_cast<Real>(1.0) / Exporter::framesPerSecond;
+		if (exporter.isTrackingParticles())
+			exporter.particleExport("ParticleData", std::to_string(m_frameCounter));
+		if (exporter.isTrackingRigidBodies()) {
+			exporter.rigidBodyExport(FileSystem::getFilePath(getSceneFile()), std::to_string(m_frameCounter), m_isFirstFrame, m_scene);
+			m_isFirstFrame = false;
+		}
 		m_frameCounter++;
 	}
 	if (TimeManager::getCurrent()->getTime() >= m_nextFrameTimeState)
@@ -1736,9 +1243,9 @@ void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 		RigidBodyObject *rbo = bm->getRigidBodyObject();
 		if (rbo->isDynamic() || forceUpdate)
 		{
-			#pragma omp parallel default(shared)
+#pragma omp parallel default(shared)
 			{
-				#pragma omp for schedule(static)  
+#pragma omp for schedule(static)  
 				for (int j = 0; j < (int)bm->numberOfParticles(); j++)
 				{
 					bm->getPosition(j) = rbo->getRotation() * bm->getPosition0(j) + rbo->getPosition();
@@ -1748,11 +1255,11 @@ void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 						bm->getVelocity(j).setZero();
 				}
 			}
-			#ifdef GPU_NEIGHBORHOOD_SEARCH
+#ifdef GPU_NEIGHBORHOOD_SEARCH
 			// copy the particle data to the GPU
 			if (forceUpdate)
 				sim->getNeighborhoodSearch()->update_point_sets();
-			#endif 
+#endif 
 		}
 	}
 }
@@ -1810,7 +1317,7 @@ void SPH::SimulatorBase::saveState()
 	FileSystem::makeDirs(stateFilePath);
 
 	string md5Str = FileSystem::getFileMD5(m_sceneFile);
-
+	
 	Simulation *sim = Simulation::getCurrent();
 
 	const Real time = TimeManager::getCurrent()->getTime();
@@ -1826,7 +1333,7 @@ void SPH::SimulatorBase::saveState()
 	binWriter.write(m_nextFrameTimeState);
 	binWriter.write(m_frameCounter);
 	binWriter.write(m_isFirstFrame);
-	
+
 	writeParameterState(binWriter);
 	TimeManager::getCurrent()->saveState(binWriter);
 	Simulation::getCurrent()->saveState(binWriter);
@@ -1961,7 +1468,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 			bm->getRigidBodyObject()->setAngularVelocity(v);
 
 			dynamic = true;
-		}		
+		}
 	}
 	if (dynamic)
 	{
@@ -2014,24 +1521,24 @@ void SimulatorBase::writeParameterObjectState(BinaryFileWriter &binWriter, GenPa
 
 		if (paramBase->getType() == RealParameterType)
 			binWriter.write(static_cast<NumericParameter<Real>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::UINT32)
- 			binWriter.write(static_cast<NumericParameter<unsigned int>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::UINT16)
- 			binWriter.write(static_cast<NumericParameter<unsigned short>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::UINT8)
- 			binWriter.write(static_cast<NumericParameter<unsigned char>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::INT32)
- 			binWriter.write(static_cast<NumericParameter<int>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::INT16)
- 			binWriter.write(static_cast<NumericParameter<short>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::INT8)
- 			binWriter.write(static_cast<NumericParameter<char>*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::ENUM)
- 			binWriter.write(static_cast<EnumParameter*>(paramBase)->getValue());
- 		else if (paramBase->getType() == ParameterBase::BOOL)
- 			binWriter.write(static_cast<BoolParameter*>(paramBase)->getValue());
- 		else if (paramBase->getType() == RealVectorParameterType)
- 		{
+		else if (paramBase->getType() == ParameterBase::UINT32)
+			binWriter.write(static_cast<NumericParameter<unsigned int>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::UINT16)
+			binWriter.write(static_cast<NumericParameter<unsigned short>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::UINT8)
+			binWriter.write(static_cast<NumericParameter<unsigned char>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::INT32)
+			binWriter.write(static_cast<NumericParameter<int>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::INT16)
+			binWriter.write(static_cast<NumericParameter<short>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::INT8)
+			binWriter.write(static_cast<NumericParameter<char>*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::ENUM)
+			binWriter.write(static_cast<EnumParameter*>(paramBase)->getValue());
+		else if (paramBase->getType() == ParameterBase::BOOL)
+			binWriter.write(static_cast<BoolParameter*>(paramBase)->getValue());
+		else if (paramBase->getType() == RealVectorParameterType)
+		{
  			VectorParameter<Real> *vec = static_cast<VectorParameter<Real>*>(paramBase);
  			binWriter.writeBuffer((char*)vec->getValue(), vec->getDim() * sizeof(Real));;
  		}
@@ -2130,14 +1637,14 @@ void SimulatorBase::readParameterObjectState(BinaryFileReader &binReader, GenPar
 			binReader.read(val);
 			static_cast<EnumParameter*>(paramBase)->setValue(val);
 		}
- 		else if (paramBase->getType() == ParameterBase::BOOL)
+		else if (paramBase->getType() == ParameterBase::BOOL)
 		{
 			bool val;
 			binReader.read(val);
 			static_cast<BoolParameter*>(paramBase)->setValue(val);
 		}
- 		else if (paramBase->getType() == RealVectorParameterType)
- 		{
+		else if (paramBase->getType() == RealVectorParameterType)
+		{
  			VectorParameter<Real> *vec = static_cast<VectorParameter<Real>*>(paramBase);
  			binReader.readBuffer((char*)vec->getValue(), vec->getDim() * sizeof(Real));;
  		}
@@ -2161,7 +1668,7 @@ void SimulatorBase::writeFluidParticlesState(const std::string &fileName, FluidM
 		const FieldDescription &field = model->getField(j);
 		if (field.storeData)
 		{
-//			LOG_INFO << "Store field: " << field.name;
+			//			LOG_INFO << "Store field: " << field.name;
 			if (field.type == Scalar)
 			{
 				partioAttr.push_back({ j, particleData.addAttribute(field.name.c_str(), Partio::FLOAT, 1) });
@@ -2449,7 +1956,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 	string densityMapFileName = "";
 	if (isDynamic)
 		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_dm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
-	else 
+	else
 		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_dm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
 
 	// check MD5 if cache file is available
@@ -2510,7 +2017,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 		densityMap->addFunction(func, false);
 		STOP_TIMING_AVG
 
-		const bool sim2D = sim->is2DSimulation();
+			const bool sim2D = sim->is2DSimulation();
 
 		//////////////////////////////////////////////////////////////////////////
 		// Generate density map of object using Discregrid
@@ -2548,7 +2055,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 				res = 0.8 * SimpleQuadrature::integrate(integrand);
 			else
 				res = 0.8 * GaussQuadrature::integrate(integrand, int_domain, 50);
-			
+
 			return res;
 		};
 
@@ -2557,20 +2064,20 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 		const bool no_reduction = true;
 		START_TIMING("Density Map Construction");
 		densityMap->addFunction(density_func, false, [&](Eigen::Vector3d const& x_)
-		{
-			if (no_reduction)
 			{
-				return true;
-			}
-			auto x = x_.cwiseMax(densityMap->domain().min()).cwiseMin(densityMap->domain().max());
-			auto dist = densityMap->interpolate(0u, x);
-			if (dist == std::numeric_limits<double>::max())
-			{
-				return false;
-			}
+				if (no_reduction)
+				{
+					return true;
+				}
+				auto x = x_.cwiseMax(densityMap->domain().min()).cwiseMin(densityMap->domain().max());
+				auto dist = densityMap->interpolate(0u, x);
+				if (dist == std::numeric_limits<double>::max())
+				{
+					return false;
+				}
 
-			return fabs(dist) < 2.5 * supportRadius;
-		});
+				return fabs(dist) < 2.5 * supportRadius;
+			});
 		STOP_TIMING_PRINT;
 
 		// reduction
@@ -2582,11 +2089,11 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 				return fabs(v) < 2.5 * supportRadius;
 			});
 			densityMap->reduceField(1u, [&](const Eigen::Vector3d &, double v)->double
-			{
-				if (v == std::numeric_limits<double>::max())
-					return false;
-				return true;
-			});
+				{
+					if (v == std::numeric_limits<double>::max())
+						return false;
+					return true;
+				});
 			std::cout << "DONE" << std::endl;
 		}
 
@@ -2637,7 +2144,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 	string volumeMapFileName = "";
 	if (isDynamic)
 		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_vm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
-	else 
+	else
 		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_vm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
 
 	// check MD5 if cache file is available
@@ -2732,9 +2239,9 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 				if (dist <= 0.0)
 					return 1.0 - 0.1 * dist / supportRadius;
-  				if (dist < 1.0 / factor * supportRadius)
-  					return static_cast<double>(CubicKernel::W(factor * static_cast<Real>(dist)) / CubicKernel::W_zero());
- 				return 0.0;
+				if (dist < 1.0 / factor * supportRadius)
+					return static_cast<double>(CubicKernel::W(factor * static_cast<Real>(dist)) / CubicKernel::W_zero());
+				return 0.0;
 			};
 
 			double res = 0.0;
@@ -2764,7 +2271,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 			}
 
 			return fabs(dist) < 4.0 * supportRadius;
-		});
+			});
 		STOP_TIMING_PRINT;
 
 		// reduction
@@ -2776,11 +2283,11 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 				return fabs(v) < 4.0 * supportRadius;
 			});
 			volumeMap->reduceField(1u, [&](const Eigen::Vector3d &, double v)->double
-			{
-				if (v == std::numeric_limits<double>::max())
-					return false;				
-				return true;
-			});
+				{
+					if (v == std::numeric_limits<double>::max())
+						return false;
+					return true;
+				});
 			std::cout << "DONE" << std::endl;
 		}
 

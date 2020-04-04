@@ -11,6 +11,7 @@
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "BoundarySimulator.h"
+#include "Exporter.h"
 
 namespace SPH
 {
@@ -40,21 +41,14 @@ namespace SPH
 		bool m_doPause;
 		Real m_pauseAt;
 		Real m_stopAt;
-		bool m_enablePartioExport;
-		bool m_enableVTKExport;
-		bool m_enableRigidBodyVTKExport;
-		bool m_enableRigidBodyExport;
 		bool m_enableStateExport;
-		Real m_framesPerSecond;
 		Real m_framesPerSecondState;
-		std::string m_particleAttributes;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
 		Real m_nextFrameTimeState;
 		bool m_firstState;
 		unsigned int m_frameCounter;
 		bool m_isFirstFrame;
-		bool m_isFirstFrameVTK;
 		std::vector<std::string> m_colorField;
 		std::vector<int> m_colorMapType;
 		std::vector<Real> m_renderMaxValue;
@@ -63,6 +57,8 @@ namespace SPH
 		unsigned int m_colorMapLength;
 		BoundarySimulator *m_boundarySimulator;
 		Simulator_GUI_Base *m_gui;
+		Exporter exporter;
+
 		int m_argc;
 		std::vector<char*> m_argv_vec;
 		char **m_argv;
@@ -88,12 +84,6 @@ namespace SPH
 		static int PAUSE_AT;
 		static int STOP_AT;
 		static int NUM_STEPS_PER_RENDER;
-		static int PARTIO_EXPORT;
-		static int VTK_EXPORT;
-		static int RB_VTK_EXPORT;
-		static int RB_EXPORT;
-		static int DATA_EXPORT_FPS;
-		static int PARTICLE_EXPORT_ATTRIBUTES;
 		static int STATE_EXPORT;
 		static int STATE_EXPORT_FPS;
 		static int RENDER_WALLS;
@@ -119,7 +109,7 @@ namespace SPH
 		void reset();
 		void timeStep();
 		bool timeStepNoGUI();
-
+		
 		void setTimeStepCB(std::function<void()> const& callBackFct) { m_timeStepCB = callBackFct; }
 
 		static void particleInfo(std::vector<std::vector<unsigned int>> &particles);
@@ -129,12 +119,6 @@ namespace SPH
 		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
 
 		void readParameters();
-		void particleExport();
-		void rigidBodyExport();
-		void writeParticlesPartio(const std::string &fileName, FluidModel *model);
-		void writeParticlesVTK(const std::string &fileName, FluidModel *model);
-		void writeRigidBodiesBIN(const std::string &exportPath);
-		void writeRigidBodiesVTK(const std::string &exportPath);
 		void step();
 
 		void saveState();
@@ -178,16 +162,6 @@ namespace SPH
 		Real getRenderMinValue(const unsigned int fluidModelIndex) const { return m_renderMinValue[fluidModelIndex]; }
 		void setRenderMinValue(const unsigned int fluidModelIndex, Real val) { m_renderMinValue[fluidModelIndex] = val; }
 		std::string getOutputPath() const { return m_outputPath; }
-
-		// VTK expects big endian
-		template<typename T>
-		inline void swapByteOrder(T*v)
-		{
-			constexpr size_t n = sizeof(T);
-			uint8_t * bytes = reinterpret_cast<uint8_t*>(v);
-			for (unsigned int c = 0u; c < n / 2; c++)
-				std::swap(bytes[c], bytes[n - c - 1]);
-		}
 
 		std::string getStateFile() const { return m_stateFile; }
 		void setStateFile(std::string val) { m_stateFile = val; }

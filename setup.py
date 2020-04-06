@@ -115,7 +115,7 @@ emitter_boundary_dest = 'resources/emitter_boundary' if platform.system() == "Wi
 
 # Get Readme text for long description
 cur_dir = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(cur_dir, "README.md"), encoding="utf-8") as f:
+with open(os.path.join(cur_dir, "README.md"), 'r') as f:
     long_description = f.read()
 
 setup(

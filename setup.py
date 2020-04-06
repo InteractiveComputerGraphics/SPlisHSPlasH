@@ -113,13 +113,19 @@ scenes_dest = 'data/Scenes' if platform.system() == "Windows" else "bin/data/Sce
 shaders_dest = 'resources/shaders' if platform.system() == "Windows" else 'bin/resources/shaders'
 emitter_boundary_dest = 'resources/emitter_boundary' if platform.system() == "Windows" else 'bin/resources/emitter_boundary'
 
+# Get Readme text for long description
+cur_dir = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(cur_dir, "README.md"), encoding="utf-8") as f:
+    long_description = f.read()
+
 setup(
     name=name,
-    version='2.7.0',
+    version='2.7.1',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',
-    long_description='SPH Simulations using the SPlisHSPlasH package natively from python',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     ext_modules=[CMakeExtension(name)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),

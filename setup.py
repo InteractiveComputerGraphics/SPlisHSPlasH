@@ -120,12 +120,15 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 
 setup(
     name=name,
-    version='2.7.1',
+    version='2.7.2',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',
     long_description=long_description,
     long_description_content_type='text/markdown',
+    url='https://github.com/InteractiveComputerGraphics/SPlisHSPlasH',
+    license="MIT",
+    keywords="sph fluids sph-fluids smoothed-particle-hydrodynamics fluid-simulation fluid-dynamics multiphase-flow viscous-fluids deformable-solids simulation",
     ext_modules=[CMakeExtension(name)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),

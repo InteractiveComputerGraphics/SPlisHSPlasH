@@ -120,7 +120,7 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 
 setup(
     name=name,
-    version='2.7.2',
+    version='2.7.0',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',

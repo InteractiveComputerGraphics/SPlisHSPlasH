@@ -68,3 +68,10 @@ jobs:
         name: pysplishsplash-windows-${{ matrix.python-version }}
         path: build/dist
       if: always()
+
+    # Upload wheel to pypi
+    - name: Upload wheel to pypi
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: twine upload build/dist/* --skip-existing

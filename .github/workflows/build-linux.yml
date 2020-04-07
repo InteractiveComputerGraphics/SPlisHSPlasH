@@ -1,6 +1,10 @@
 name: build-linux
 
-on: [push]
+on:
+  push:
+    branches: [ digitalillusions-patch-ci ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build-ubuntu:
@@ -56,3 +60,11 @@ jobs:
         name: pysplishsplash-linux-${{ matrix.python-version }}
         path: wheelhouse
       if: always()
+
+    # Publish to pypi
+    - name: Publish wheels to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        twine upload wheelhouse/*-manylinux*.whl --skip-existing

@@ -14,12 +14,14 @@ from distutils.version import LooseVersion
 parser = argparse.ArgumentParser()
 parser.add_argument("-D", action='append', dest='cmake',
                     help="CMake Options")
+parser.add_argument("--manylinux-build", action='store_true', dest='manylinux_build')
 args, other_args = parser.parse_known_args(sys.argv)
 cmake_clargs = args.cmake
 sys.argv = other_args
 
 # Project binding name
-name = "pysplash"
+name = "pySPlisHSPlasH"
+internal_name = "pysplishsplash"
 
 
 class CMakeExtension(Extension):
@@ -74,15 +76,24 @@ class CMakeBuild(build_ext):
 
         # Add position independent code flags if using gcc on linux probably
         if platform.system() == "Linux":
-            cmake_args += ['-DCMAKE_CXX_FLAGS=-fPIC', '-DCMAKE_C_FLAGS=-fPIC',
-                           '-DCMAKE_INSTALL_RPATH={}'.format("$ORIGIN"),
-                           '-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON',
-                           '-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=OFF']
+            cmake_args += ['-DCMAKE_CXX_FLAGS=-fPIC', '-DCMAKE_C_FLAGS=-fPIC']
+
+            # Using relative rpath messes up repairing the wheel file. The relative rpath is only necessary when
+            # building locally from source
+            if not args.manylinux_build:
+                cmake_args += ['-DCMAKE_INSTALL_RPATH={}'.format("$ORIGIN"),
+                               '-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON',
+                               '-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=OFF']
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
-        subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.', '--target', name] + build_args, cwd=self.build_temp)
+
+        if not args.manylinux_build:
+            subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+            subprocess.check_call(['cmake', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
+        else:
+            subprocess.check_call(['cmake3', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+            subprocess.check_call(['cmake3', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
 
         # Copy dlls to ext directory so they are installed alongside the bindings
         if platform.system() == "Windows":
@@ -102,17 +113,26 @@ scenes_dest = 'data/Scenes' if platform.system() == "Windows" else "bin/data/Sce
 shaders_dest = 'resources/shaders' if platform.system() == "Windows" else 'bin/resources/shaders'
 emitter_boundary_dest = 'resources/emitter_boundary' if platform.system() == "Windows" else 'bin/resources/emitter_boundary'
 
+# Get Readme text for long description
+cur_dir = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(cur_dir, "README.md"), 'r') as f:
+    long_description = f.read()
+
 setup(
     name=name,
     version='2.7.0',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',
-    long_description='SPH Simulations using the SPlisHSPlasH package natively from python',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/InteractiveComputerGraphics/SPlisHSPlasH',
+    license="MIT",
+    keywords="sph fluids sph-fluids smoothed-particle-hydrodynamics fluid-simulation fluid-dynamics multiphase-flow viscous-fluids deformable-solids simulation",
     ext_modules=[CMakeExtension(name)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
-    entry_points={'console_scripts': 'splash = PySPlasH.scripts.simulator:main'},
+    entry_points={'console_scripts': 'splash = pySPlisHSPlasH.scripts.simulator:main'},
     data_files=[(models_dest, [m for m in models if os.path.isfile(m)]),
                 (scenes_dest, [s for s in Scenes if os.path.isfile(s)]),
                 (shaders_dest, [s for s in shaders if os.path.isfile(s)]),

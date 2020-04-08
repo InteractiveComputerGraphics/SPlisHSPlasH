@@ -1,4 +1,4 @@
-import pysplash as sph
+import pysplishsplash as sph
 import sys
 import os
 import tkinter as tk

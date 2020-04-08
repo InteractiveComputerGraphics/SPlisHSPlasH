@@ -43,7 +43,7 @@ void WCSPHModule(py::module);
 void ExtrasModule(py::module);
 
 
-PYBIND11_MODULE(pysplash, m) {
+PYBIND11_MODULE(pysplishsplash, m) {
     ParameterObjectModule(m);
     SPHKernelsModule(m);
     AnimationFieldModule(m);

@@ -25,7 +25,7 @@ using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
 
 void py_init_simulator(SPH::SimulatorBase& obj,
                        std::string sceneFile = "data/Scenes/DoubleDamBreak.json", // TODO: change to empty default
-                       std::string programName = "PySplash", 
+                       std::string programName = "pySPlisHSPlasH",
                        bool useCache = true, 
                        std::string stateFile = "",
                        std::string outputDir = "",
@@ -54,7 +54,7 @@ void py_init_simulator(SPH::SimulatorBase& obj,
                            }
                            if(!initialPause) argv.push_back("--no-initial-pause");
                            if(!useGui) argv.push_back("--no-gui");
-                           obj.init(argv, "PySplash");
+                           obj.init(argv, "pySPlisHSPlasH");
                        };
 
 void SimulationModule(py::module m_sub){
@@ -237,7 +237,7 @@ void SimulationModule(py::module m_sub){
             .def("init", overload_cast_<std::vector<std::string>, const std::string&>()(&SPH::SimulatorBase::init))
             .def("init", &py_init_simulator, 
                             "sceneFile"_a = "data/Scenes/DoubleDamBreak.json",
-                            "programName"_a = "PySplash", 
+                            "programName"_a = "pySPlisHSPlasH",
                             "useCache"_a = true,
                             "stateFile"_a = "",
                             "outputDir"_a = "",

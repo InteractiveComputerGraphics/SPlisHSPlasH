@@ -5,8 +5,8 @@
 Right now the easiest way to create a custom scene without specifying a `Scene.json` file, is to load the predefined empty scene.
 
 ```python
-import pysplash as sph
-import pysplash.Utilities.SceneLoaderStructs as Scenes
+import pysplishsplash as sph
+import pysplishsplash.Utilities.SceneLoaderStructs as Scenes
 
 base = sph.Exec.SimulatorBase()
 base.init(sceneFile=Scenes.Empty)
@@ -39,8 +39,8 @@ The following shows a script detailing how to build and run a custom double dam 
 Follow the instruction from before to activate/ deactivate the GUI.
 
 ```python
-import pysplash as sph
-import pysplash.Utilities.SceneLoaderStructs as Scenes
+import pysplishsplash as sph
+import pysplishsplash.Utilities.SceneLoaderStructs as Scenes
 
 def main():
     # Set up the simulator

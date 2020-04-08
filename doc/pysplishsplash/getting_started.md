@@ -1,4 +1,4 @@
-# PySplash
+# pySPlisHSPlasH
 
 ## Python bindings for the SPlisHSPlasH library
 
@@ -36,9 +36,7 @@ source venv/bin/activate
 Now you can clone the repository by
 
 ```shell script
-git clone <URL-to-SPlisHSPlasH>
-git checkout sjeske/pybind
-git pull
+git clone https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git
 ```
 
 And finally you should be able to install SPlisHSPlasH using pip. 
@@ -59,12 +57,13 @@ pip install -I build/dist/*.whl
 ```
 
 When building a new version of SPlisHSPlasH simply run these commands again and the installation will be updated.
-The compile times will be lower, because the build files from previous installations remain.
+The compile times will be lower, because the build files from previous installations remain. 
+If you are getting compile errors please try to compile the pysplishsplash target of the CMake project separately.
 
 Now check your installation by running
 
 ```shell script
-python -c "import PySplash"
+python -c "import pysplishsplash"
 ```
 
 **Note**: You may have to install numpy. 
@@ -98,7 +97,7 @@ If you want to load other scene files, be sure to place them into the SPlisHSPla
 **With GUI**
 
 ```python
-import pysplash as sph
+import pysplishsplash as sph
 
 def main():
     base = sph.Exec.SimulatorBase()
@@ -114,7 +113,7 @@ if __name__ == "__main__":
 **Without GUI**
 
 ```python
-import pysplash as sph
+import pysplishsplash as sph
 
 def main():
     base = sph.Exec.SimulatorBase()
@@ -128,8 +127,8 @@ if __name__ == "__main__":
 
 **Outputting the results to a specific directory without GUI**
 ```python
-import pysplash as sph
-from pysplash.Extras import Scenes
+import pysplishsplash as sph
+from pysplishsplash.Extras import Scenes
 import os
 
 def main():
@@ -156,13 +155,13 @@ As such, it is possible to change components of the simulation dynamically.
 In the following example, the second cube in the well known double dam break scenario is replaced with a slightly larger cube.
 
 ```python
-import pysplash
-import pysplash.Utilities.SceneLoaderStructs as Scene
+import pysplishsplash
+import pysplishsplash.Utilities.SceneLoaderStructs as Scene
 
 def main():
-    base = pysplash.Exec.SimulatorBase()
+    base = pysplishsplash.Exec.SimulatorBase()
     args = base.init()
-    gui = pysplash.GUI.Simulator_GUI_TweakBar(base)
+    gui = pysplishsplash.GUI.Simulator_GUI_TweakBar(base)
     base.setGui(gui)
     scene = base.getScene()
     add_block = Scene.FluidBlock('Fluid', Scene.Box([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]), 0, [0.0, 0.0, 0.0])

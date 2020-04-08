@@ -1,4 +1,4 @@
-<img src="doc/images/logo.jpg" width="250">
+<img src="https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/logo.jpg" width="250">
 <br>
 
 <p align=center><img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-linux/badge.svg">&nbsp;&nbsp; <img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-windows/badge.svg"></p>
@@ -28,15 +28,31 @@ This project is based on [CMake](https://cmake.org/). Simply generate project, M
 
 Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on a 64-bit OS are not supported.
 
+## Python Installation Instruction
+
+For Windows and Linux targets there exists prebuilt python wheel files which can be installed using
+```
+pip install pysplishsplash
+```
+These are available for Python Versions: 2.7, 3.5, 3.6, 3.7, 3.8.
+If you do not meet these conditions please refer to the build instructions and to the python binding 
+[Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md).
+
+The command line simulator is available by running one of the following
+```
+splash
+splash --help
+```
+
 ## Documentation
 
-* [Getting started](doc/getting_started.md)
-* [Scene file format](doc/file_format.md)
+* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/getting_started.md)
+* [Scene file format](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/file_format.md)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 * Python binding:
-	* [Getting started](doc/pysplash/getting_started.md)
-	* [Creating scenes](doc/pysplash/creating_scenes.md)
-	* [Restrictions](doc/pysplash/restrictions.md)
+	* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md)
+	* [Creating scenes](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/creating_scenes.md)
+	* [Restrictions](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/restrictions.md)
 * The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features
@@ -146,9 +162,9 @@ The SPlisHSPlasH library implements the following publication to realize multi-p
 
 ## Screenshots
 
-|![](doc/images/SPlisHSPlasH2.jpg)|![](doc/images/SPlisHSPlasH1.jpg)|
+|![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/SPlisHSPlasH2.jpg)|![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/SPlisHSPlasH1.jpg)|
 |--|--|
-|![](doc/images/SPlisHSPlasH3.jpg)|![](doc/images/SPlisHSPlasH4.jpg)|
+|![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/SPlisHSPlasH3.jpg)|![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/SPlisHSPlasH4.jpg)|
 
 ## Videos
 

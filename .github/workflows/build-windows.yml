@@ -2,7 +2,7 @@ name: build-windows
 
 on:
   push:
-    branches: [ digitalillusions-patch-ci ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 

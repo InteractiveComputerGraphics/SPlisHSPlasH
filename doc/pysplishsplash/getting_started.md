@@ -57,7 +57,8 @@ pip install -I build/dist/*.whl
 ```
 
 When building a new version of SPlisHSPlasH simply run these commands again and the installation will be updated.
-The compile times will be lower, because the build files from previous installations remain.
+The compile times will be lower, because the build files from previous installations remain. 
+If you are getting compile errors please try to compile the pysplishsplash target of the CMake project separately.
 
 Now check your installation by running
 

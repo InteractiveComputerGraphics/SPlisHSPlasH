@@ -28,6 +28,22 @@ This project is based on [CMake](https://cmake.org/). Simply generate project, M
 
 Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on a 64-bit OS are not supported.
 
+## Python Installation Instruction
+
+For Windows and Linux targets there exists prebuilt python wheel files which can be installed using
+```
+pip install pysplishsplash
+```
+These are available for Python Versions: 2.7, 3.5, 3.6, 3.7, 3.8.
+If you do not meet these conditions please refer to the build instructions and to the python binding 
+[Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md).
+
+The command line simulator is available by running one of the following
+```
+splash
+splash --help
+```
+
 ## Documentation
 
 * [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/getting_started.md)

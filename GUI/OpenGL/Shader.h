@@ -3,7 +3,7 @@
 
 #include <map>
 #include <string>
-#include "GL/glew.h"
+#include <glad/gl.h>
 
 namespace SPH
 {

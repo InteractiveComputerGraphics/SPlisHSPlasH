@@ -178,7 +178,7 @@ void SimulatorBase::run()
 }
 
 void SimulatorBase::init(std::vector<std::string> argv, const std::string &windowName){
-	m_argc = argv.size();
+	m_argc = static_cast<int>(argv.size());
 	m_argv_vec.clear();
 	m_argv_vec.reserve(argv.size());
 	for (auto & a : argv)
@@ -877,7 +877,7 @@ void SimulatorBase::initFluidData()
 
 			std::string mode = to_string(m_scene.fluidModels[i]->mode);
 			const string scaleStr = real2String(m_scene.fluidModels[i]->scale[0]) + "_" + real2String(m_scene.fluidModels[i]->scale[1]) + "_" + real2String(m_scene.fluidModels[i]->scale[2]);
-			const string resStr = real2String(m_scene.fluidModels[i]->resolutionSDF[0]) + "_" + real2String(m_scene.fluidModels[i]->resolutionSDF[1]) + "_" + real2String(m_scene.fluidModels[i]->resolutionSDF[2]);
+			const string resStr = to_string(m_scene.fluidModels[i]->resolutionSDF[0]) + "_" + to_string(m_scene.fluidModels[i]->resolutionSDF[1]) + "_" + to_string(m_scene.fluidModels[i]->resolutionSDF[2]);
 			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_fluid_" + real2String(m_scene.particleRadius) + "_m" + mode + "_s" + scaleStr + "_r" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
@@ -2442,7 +2442,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 
 	Eigen::Matrix<unsigned int, 3, 1> resolutionSDF = boundaryData->mapResolution;
 	const string scaleStr = "s" + real2String(boundaryData->scale[0]) + "_" + real2String(boundaryData->scale[1]) + "_" + real2String(boundaryData->scale[2]);
-	const string resStr = "r" + real2String(resolutionSDF[0]) + "_" + real2String(resolutionSDF[1]) + "_" + real2String(resolutionSDF[2]);
+	const string resStr = "r" + to_string(resolutionSDF[0]) + "_" + to_string(resolutionSDF[1]) + "_" + to_string(resolutionSDF[2]);
 	const string invertStr = "i" + to_string((int)boundaryData->mapInvert);
 	const string thicknessStr = "t" + real2String(boundaryData->mapThickness);
 	const string kernelStr = "k" + to_string(sim->getKernel());
@@ -2631,7 +2631,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 	Eigen::Matrix<unsigned int, 3, 1> resolutionSDF = boundaryData->mapResolution;
 	const string scaleStr = "s" + real2String(boundaryData->scale[0]) + "_" + real2String(boundaryData->scale[1]) + "_" + real2String(boundaryData->scale[2]);
-	const string resStr = "r" + real2String(resolutionSDF[0]) + "_" + real2String(resolutionSDF[1]) + "_" + real2String(resolutionSDF[2]);
+	const string resStr = "r" + to_string(resolutionSDF[0]) + "_" + to_string(resolutionSDF[1]) + "_" + to_string(resolutionSDF[2]);
 	const string invertStr = "i" + to_string((int)boundaryData->mapInvert);
 	const string thicknessStr = "t" + real2String(boundaryData->mapThickness);
 	string volumeMapFileName = "";

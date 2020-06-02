@@ -29,9 +29,9 @@ void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &sc
 string exePath;
 string inputFile = "";
 string outputFile = "";
-Real radius = 0.025f;
-Real scale = 1.0;
-Real diameter = radius*2.0;
+Real radius = static_cast<Real>(0.025);
+Real scale = static_cast<Real>(1.0);
+Real diameter = radius*static_cast<Real>(2.0);
 int mode = 0;
 AlignedBox3r region;
 bool useRegion = false;

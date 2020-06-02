@@ -757,20 +757,19 @@ namespace SPH
  		static Vector3f8 gradW(const Vector3f8 &r)
  		{
 			Vector3f8 res;
-			res.setZero();
  			const Scalarf8 rl = r.norm();
  			const Scalarf8 q = rl * m_invRadius;
 
 			// q <= 0.5
-			const Vector3f8 res1 = r * m_l * m_invRadius2 * (Scalarf8(3.0f)*q - Scalarf8(2.0f));
+			const Vector3f8 res1 = r * (m_l * m_invRadius2 * (Scalarf8(3.0f)*q - Scalarf8(2.0f)));
 
 			// 0.5 <= q <= 1
 			const Scalarf8 v = m_one - q;
-			const Vector3f8 gradq = r / rl * m_invRadius;
-			const Vector3f8 res2 = -gradq * m_l * (v*v);
+			const Vector3f8 gradq = r * (m_invRadius / rl);
+			const Vector3f8 res2 = gradq * (-m_l * (v*v));
 
 
-			res = Vector3f8::blend(q <= m_one, res2, res);
+			res = Vector3f8::blend(q <= m_one, res2, m_zeroVec);
 			res = Vector3f8::blend(q <= m_half, res1, res);
 			res = Vector3f8::blend(rl > m_eps, res, m_zeroVec);
 

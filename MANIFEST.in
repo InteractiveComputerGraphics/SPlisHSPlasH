@@ -1,0 +1,2 @@
+recursive-include data *
+recursive-exclude data/Scenes/Cache *

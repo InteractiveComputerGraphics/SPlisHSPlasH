@@ -1,22 +1,51 @@
 include(${PROJECT_SOURCE_DIR}/GUI/OpenGL/CMakeLists.txt)
-include(${PROJECT_SOURCE_DIR}/GUI/TweakBar/CMakeLists.txt)
 
-set(SIMULATION_LINK_LIBRARIES Utilities AntTweakBar glew SPlisHSPlasH ${PBD_LIBRARIES}	PBD_includes)
-set(SIMULATION_DEPENDENCIES Utilities AntTweakBar glew SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels)
+if (USE_IMGUI)
+	include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
+	set(SIMULATION_LINK_LIBRARIES imgui SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
+	set(SIMULATION_DEPENDENCIES imgui SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
+	
+	set(GUI_SOURCE_FILES 
+		${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
+		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.cpp
+	)
+	set(GUI_HEADER_FILES
+		${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.h
+		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h
+	)
+	
+	source_group("Header Files\\GUI\\imgui" FILES ${GUI_HEADER_FILES})
+	source_group("Source Files\\GUI\\imgui" FILES ${GUI_SOURCE_FILES})
+else()
+	include(${PROJECT_SOURCE_DIR}/GUI/TweakBar/CMakeLists.txt)
+	set(SIMULATION_LINK_LIBRARIES AntTweakBar glfw SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
+	set(SIMULATION_DEPENDENCIES AntTweakBar glfw SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels)
+	
+	set(GUI_SOURCE_FILES 
+		${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.cpp
+		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.cpp
+	)
+	set(GUI_HEADER_FILES
+		${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h
+		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h
+	)
+	
+	source_group("Header Files\\GUI\\TweakBar" FILES ${GUI_HEADER_FILES})
+	source_group("Source Files\\GUI\\TweakBar" FILES ${GUI_SOURCE_FILES})
+endif()
+
 
 if(WIN32)
-  set(SIMULATION_LINK_LIBRARIES freeglut opengl32.lib glu32.lib ${SIMULATION_LINK_LIBRARIES})
-  set(SIMULATION_DEPENDENCIES freeglut ${SIMULATION_DEPENDENCIES})
+  set(SIMULATION_LINK_LIBRARIES opengl32.lib glu32.lib ${SIMULATION_LINK_LIBRARIES})
+  set(SIMULATION_DEPENDENCIES ${SIMULATION_DEPENDENCIES})
 else()
   set(OpenGL_GL_PREFERENCE GLVND)
-  find_package(GLUT REQUIRED)
   find_package(OpenGL REQUIRED)
 
-  include_directories( ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+  include_directories( ${OPENGL_INCLUDE_DIRS})
 
   set(SIMULATION_LINK_LIBRARIES
 	${SIMULATION_LINK_LIBRARIES}
-	${GLUT_LIBRARIES}
 	${OPENGL_LIBRARIES}
   )
 endif()
@@ -31,15 +60,6 @@ set(PBDWRAPPER_HEADER_FILES
 	PositionBasedDynamicsWrapper/PBDBoundarySimulator.h
 )
 
-set(GUI_TWEAKBAR_SOURCE_FILES 
-	${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.cpp
-	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.cpp
-)
-set(GUI_TWEAKBAR_HEADER_FILES
-	${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h
-	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h
-)
-
 add_library(SimulatorBase
 	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.h
@@ -52,8 +72,8 @@ add_library(SimulatorBase
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h
 
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/Simulator_GUI_Base.h
-	${GUI_TWEAKBAR_SOURCE_FILES}
-	${GUI_TWEAKBAR_HEADER_FILES}
+	${GUI_SOURCE_FILES}
+	${GUI_HEADER_FILES}
 
 	${VIS_FILES}
 	${GUI_FILES}
@@ -62,9 +82,16 @@ add_library(SimulatorBase
 	${PBDWRAPPER_HEADER_FILES}
 )
 
-target_compile_definitions(SimulatorBase PRIVATE -DUSE_PBD -DTW_NO_LIB_PRAGMA -DTW_STATIC)
+if (NOT USE_IMGUI)
+	target_compile_definitions(SimulatorBase PRIVATE -DTW_NO_LIB_PRAGMA -DTW_STATIC)
+endif()
+
 if(DL_OUTPUT)
-	target_compile_definitions(SimulatorBase PRIVATE -DDL_OUTPUT)
+	target_compile_definitions(SimulatorBase PUBLIC -DDL_OUTPUT)
+endif()
+
+if (USE_IMGUI)
+	target_compile_definitions(SimulatorBase PUBLIC -DUSE_IMGUI)
 endif()
 
 
@@ -72,14 +99,12 @@ set_target_properties(SimulatorBase PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTF
 set_target_properties(SimulatorBase PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(SimulatorBase PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
 add_dependencies(SimulatorBase ${SIMULATION_DEPENDENCIES})
-target_link_libraries(SimulatorBase ${SIMULATION_LINK_LIBRARIES})
+target_link_libraries(SimulatorBase PUBLIC ${SIMULATION_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 GUI_SOURCE_GROUPS()
 
 source_group("Header Files\\PBD" FILES ${PBDWRAPPER_HEADER_FILES})
 source_group("Source Files\\PBD" FILES ${PBDWRAPPER_SOURCE_FILES})
-source_group("Header Files\\GUI\\TweakBar" FILES ${GUI_TWEAKBAR_HEADER_FILES})
-source_group("Source Files\\GUI\\TweakBar" FILES ${GUI_TWEAKBAR_SOURCE_FILES})
 source_group("Header Files\\GUI\\OpenGL" FILES ${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h)
 source_group("Source Files\\GUI\\OpenGL" FILES ${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp)
 

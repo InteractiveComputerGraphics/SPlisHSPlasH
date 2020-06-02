@@ -52,7 +52,7 @@ void Viscosity_Standard::step()
 	if (sim->is2DSimulation())
 		d = 8.0;
 
-	const Scalarf8 dvisc(d * m_viscosity);
+	const Scalarf8 dvisc(d * m_viscosity * density0);
 	const Scalarf8 dbvisc(d * m_boundaryViscosity);
 	const Scalarf8 h2_avx(0.01f*h2);
 	const Scalarf8 density0_avx(density0);
@@ -78,14 +78,15 @@ void Viscosity_Standard::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			////////////////////////////////////////////////////////////////////////
- 			forall_fluid_neighbors_in_same_phase_avx(
+			forall_fluid_neighbors_in_same_phase_avx(
+				compute_Vj(model);
+				compute_Vj_gradW_samephase();
  				const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getVelocity(0), count);
  
  				// Viscosity
  				const Scalarf8 density_j_avx = convert_one(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getDensity(0), count);
  				const Vector3f8 xixj = xi_avx - xj_avx;
- 				const Scalarf8 mj_avx = convert_zero(model->getMass(0), count);			// all particles have the same mass
-				delta_ai += CubicKernel_AVX::gradW(xixj) * (dvisc * (mj_avx / density_j_avx) * (vi_avx - vj_avx).dot(xixj) / (xixj.squaredNorm() + h2_avx));
+				delta_ai += V_gradW * ((dvisc / density_j_avx) * (vi_avx - vj_avx).dot(xixj) / (xixj.squaredNorm() + h2_avx));
  			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -96,7 +97,7 @@ void Viscosity_Standard::step()
  				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
  				{
  					forall_boundary_neighbors_avx(
-						const Vector3f8 vj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
+						const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
 						const Scalarf8 Vj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
 						const Vector3f8 xixj = xi_avx - xj_avx;
  						const Vector3f8 delta_a = CubicKernel_AVX::gradW(xixj) * (dbvisc * (density0_avx * Vj_avx / density_i_avx) * (vi_avx - vj_avx).dot(xixj) / (xixj.squaredNorm() + h2_avx));

@@ -5,7 +5,7 @@
 
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension and vorticity. 
 
-The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glew](http://glew.sourceforge.net/) and [AntTweakBar](http://anttweakbar.sourceforge.net/) (only for the demos). All external dependencies are included. 
+The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), and [imgui](https://github.com/ocornut/imgui) or [AntTweakBar](http://anttweakbar.sourceforge.net/). All external dependencies are included. 
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
@@ -14,7 +14,7 @@ Furthermore we use our own libraries:
 - [cuNSearch](https://github.com/InteractiveComputerGraphics/cuNSearch) to perform the neighborhood search on the GPU
 - [GenericParameters](https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
-SPlisHSPlasH can export the particle data in the partio format. If you want to import partio files in Maya, try out our Maya plugin: 
+SPlisHSPlasH can export the particle data in the partio and vtk format. If you want to import partio files in Maya, try out our Maya plugin: 
 - [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
 
 
@@ -48,6 +48,7 @@ splash --help
 
 * [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/getting_started.md)
 * [Scene file format](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/file_format.md)
+* [CMake Options](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/cmake_options.md)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 * Python binding:
 	* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md)

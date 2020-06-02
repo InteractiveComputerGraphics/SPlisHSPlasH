@@ -76,7 +76,7 @@ void MicropolarModel_Bender2017::step()
 	const Real h2 = h*h;
 	const Scalarf8 density0_avx(density0);
 
-	const Scalarf8 factor_avx(invDt * m_inertiaInverse * zeta);
+	const Scalarf8 factor_avx(invDt * m_inertiaInverse * zeta *density0);
 
 	//Real d = 10.0;
 	//if (sim->is2DSimulation())
@@ -113,22 +113,23 @@ void MicropolarModel_Bender2017::step()
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors_in_same_phase_avx(
-				const Vector3f8 vj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getVelocity(0), count);
-				const Vector3f8 omegaj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &m_omega[0], count);
+				const Scalarf8 Vj_avx = convert_zero(model->getVolume(0), count);
+				compute_Vj_gradW_samephase();
+
+				const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getVelocity(0), count);
+				const Vector3f8 omegaj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &m_omega[0], count);
 
 				// Viscosity
 				const Scalarf8 density_j_avx = convert_one(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getDensity(0), count);
-				const Vector3f8 xixj = xi_avx - xj_avx;
 				const Vector3f8 omegaij = omegai_avx - omegaj_avx;
-				const Scalarf8 mj_avx = convert_zero(model->getMass(0), count);			// all particles have the same mass
-				const Vector3f8 gradW = CubicKernel_AVX::gradW(xixj);
 
 				// XSPH for angular velocity field
-				delta_angAcceli_avx -= omegaij * factor_avx * (mj_avx / density_j_avx) * CubicKernel_AVX::W(xixj);
+				const Scalarf8 mj_avx = convert_zero(model->getMass(0), count);
+				delta_angAcceli_avx -= omegaij * factor_avx * (Vj_avx / density_j_avx) * CubicKernel_AVX::W(xi_avx - xj_avx);
 
 				// difference curl 
-				delta_ai_avx += (omegaij % gradW) * (nut_density_i * mj_avx);
-				delta_angAcceli_avx += ((vi_avx - vj_avx) % gradW) * (nut_density_i_intertiaInverse * mj_avx);
+				delta_ai_avx += (omegaij % V_gradW) * (nut_density_i * density0_avx);
+				delta_angAcceli_avx += ((vi_avx - vj_avx) % V_gradW) * (nut_density_i_intertiaInverse * density0_avx);
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -137,7 +138,7 @@ void MicropolarModel_Bender2017::step()
 			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 			{
 				forall_boundary_neighbors_avx(
-					const Vector3f8 vj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
+					const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
 
 					// Viscosity
 					const Vector3f8 xixj = xi_avx - xj_avx;

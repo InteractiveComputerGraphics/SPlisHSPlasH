@@ -19,16 +19,12 @@ namespace SPH
 		protected:
 			PartioViewer *m_viewer;
 			unsigned int m_currentFluidModel;
-			unsigned int m_colorField;
-			float m_renderMinValue;
-			float m_renderMaxValue;
-			unsigned int m_colorMapType;
 			bool m_renderWalls;
 			bool m_showBBox;
 			Vector3r m_camPos;
 			Vector3r m_camLookat;
 			TwBar *m_tweakBar;
-			std::vector<std::string> m_colorFieldNames;
+			std::map<int, int> m_mapColorField2Attr;
 
 			void initTweakBar();
 			void initTweakBarParameters();
@@ -57,6 +53,8 @@ namespace SPH
 			static void TW_CALL getEndFrame(void *value, void *clientData);
 			static void TW_CALL setFPS(const void *value, void *clientData);
 			static void TW_CALL getFPS(void *value, void *clientData);
+			static void TW_CALL setCurrentFluidModel(const void* value, void* clientData);
+			static void TW_CALL getCurrentFluidModel(void* value, void* clientData);
 					   
 
 		public:

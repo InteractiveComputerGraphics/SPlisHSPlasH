@@ -64,6 +64,10 @@ void TimeStepIISPH::step()
 
 	performNeighborhoodSearch();
 
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+	precomputeValues();
+#endif
+
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)

@@ -22,6 +22,12 @@ if (USE_AVX)
 	add_definitions(-DUSE_AVX)
 endif()
 
+cmake_dependent_option(USE_PERFORMANCE_OPTIMIZATION "Optimize performance (higher memory consumption)" ON "USE_AVX" OFF)
+if (USE_PERFORMANCE_OPTIMIZATION)
+	add_definitions( -DUSE_PERFORMANCE_OPTIMIZATION)	
+endif (USE_PERFORMANCE_OPTIMIZATION)
+
+
 find_package(Python COMPONENTS Interpreter QUIET)
 cmake_dependent_option(USE_PYTHON_BINDINGS "Generate Python Bindings using PyBind11" ON "Python_FOUND OR PYTHON_EXECUTABLE" OFF)
 if (USE_PYTHON_BINDINGS AND UNIX)

@@ -9,6 +9,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 
+
 // ----------------------------------------------------------------------------------------------
 //vector of 8 float values to represent 8 scalars
 class Scalarf8
@@ -74,6 +75,10 @@ public:
 		return _mm_cvtss_f32(x32);
 	}
 };
+
+inline Scalarf8 operator - (Scalarf8& a) {
+	return _mm256_sub_ps(_mm256_set1_ps(0.0), a.v);
+}
 
 static inline Scalarf8 operator + (Scalarf8 const & a, Scalarf8 const & b) {
 	return _mm256_add_ps(a.v, b.v);
@@ -159,63 +164,80 @@ static inline Scalarf8 blend(Scalarf8 const & c, Scalarf8 const & a, Scalarf8 co
 	return _mm256_blendv_ps(b.v, a.v, c.v);
 }
 
-static inline Scalarf8 convert_zero(const unsigned int *indices, const Real *values, const unsigned char count = 8u)
+static inline Scalarf8 convert_zero(const unsigned int *idx, const Real *x, const unsigned char count = 8u)
 {
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = values[indices[i]];
-	for (unsigned char i = count; i < 8u; i++)
-		x[i] = 0.0f;
-	return Scalarf8(x);
+	Scalarf8 v;
+	switch (count)
+	{
+	case 1u:
+		v.v = _mm256_setr_ps(x[idx[0]], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 2u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 3u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 4u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 5u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], 0.0f, 0.0f, 0.0f); break;
+	case 6u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], 0.0f, 0.0f); break;
+	case 7u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], x[idx[6]], 0.0f); break;
+	case 8u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], x[idx[6]], x[idx[7]]); break;
+	}
+	return v;
 }
 
-static inline Scalarf8 convert_zero(const Real *values, const unsigned char count = 8u)
+static inline Scalarf8 convert_zero(const Real x, const unsigned char count = 8u)
 {
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = values[i];
-	for (unsigned char i = count; i < 8u; i++)
-		x[i] = 0.0f;
-	return Scalarf8(x);
+	Scalarf8 v;
+	switch (count)
+	{
+	case 1u:
+		v.v = _mm256_setr_ps(x, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 2u:
+		v.v = _mm256_setr_ps(x, x, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 3u:
+		v.v = _mm256_setr_ps(x, x, x, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 4u:
+		v.v = _mm256_setr_ps(x, x, x, x, 0.0f, 0.0f, 0.0f, 0.0f); break;
+	case 5u:
+		v.v = _mm256_setr_ps(x, x, x, x, x, 0.0f, 0.0f, 0.0f); break;
+	case 6u:
+		v.v = _mm256_setr_ps(x, x, x, x, x, x, 0.0f, 0.0f); break;
+	case 7u:
+		v.v = _mm256_setr_ps(x, x, x, x, x, x, x, 0.0f); break;
+	case 8u:
+		v.v = _mm256_setr_ps(x, x, x, x, x, x, x, x); break;
+	}
+	return v;
 }
 
-static inline Scalarf8 convert_zero(const Real value, const unsigned char count = 8u)
+static inline Scalarf8 convert_one(const unsigned int *idx, const Real *x, const unsigned char count = 8u)
 {
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = value;
-	for (unsigned char i = count; i < 8u; i++)
-		x[i] = 0.0f;
-	return Scalarf8(x);
+	Scalarf8 v;
+	switch (count)
+	{
+	case 1u:
+		v.v = _mm256_setr_ps(x[idx[0]], 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 2u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 3u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], 1.0f, 1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 4u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], 1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 5u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], 1.0f, 1.0f, 1.0f); break;
+	case 6u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], 1.0f, 1.0f); break;
+	case 7u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], x[idx[6]], 1.0f); break;
+	case 8u:
+		v.v = _mm256_setr_ps(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]], x[idx[4]], x[idx[5]], x[idx[6]], x[idx[7]]); break;
+	}
+	return v;
 }
-
-static inline Scalarf8 convert(const Real *values, const unsigned char count = 8u)
-{
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = values[i];
-	return Scalarf8(x);
-}
-
-static inline Scalarf8 convert_one(const unsigned int *indices, const Real *values, const unsigned char count = 8u)
-{
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = values[indices[i]];
-	for (unsigned char i = count; i < 8u; i++)
-		x[i] = 1.0f;
-	return Scalarf8(x);
-}
-
-
-static inline Scalarf8 convert(const unsigned int *indices, const Real *values, const unsigned char count = 8u)
-{
-	float x[8];
-	for (unsigned char i = 0; i < count; i++)
-		x[i] = values[indices[i]];
-	return Scalarf8(x);
-}
-
 
 // ----------------------------------------------------------------------------------------------
 //3 dimensional vector of Scalar8f to represent 8 3d vectors
@@ -229,7 +251,12 @@ public:
 	Vector3f8(const bool ) { v[0] = Scalarf8(0.0f); v[1] = Scalarf8(0.0f); v[2] = Scalarf8(0.0f); }
 	Vector3f8(const Scalarf8 &x, const Scalarf8 &y, const Scalarf8 &z) { v[0] = x; v[1] = y; v[2] = z; }
 	Vector3f8(const Scalarf8 &x) { v[0] = v[1] = v[2] = x; }
-	Vector3f8(const Vector3f &x) { v[0] = Scalarf8(x[0]); v[1] = Scalarf8(x[1]); v[2] = Scalarf8(x[2]); }
+	Vector3f8(const Vector3f &x) 
+	{
+		v[0].v = _mm256_set1_ps(x[0]); 
+		v[1].v = _mm256_set1_ps(x[1]);
+		v[2].v = _mm256_set1_ps(x[2]);
+	}
 	Vector3f8(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &v3, const Vector3f &v4, const Vector3f &v5, const Vector3f &v6, const Vector3f &v7)
 	{
 		Scalarf8 x(v0[0], v1[0], v2[0], v3[0], v4[0], v5[0], v6[0], v7[0]);
@@ -245,10 +272,11 @@ public:
 		v[0] = vx; v[1] = vy; v[2] = vz;
 	}
 
-	inline void setZero() { v[0] = Scalarf8(0.0f); v[1] = Scalarf8(0.0f); v[2] = Scalarf8(0.0f); }
+	inline void setZero() { v[0].v = _mm256_setzero_ps(); v[1].v = _mm256_setzero_ps(); v[2].v = _mm256_setzero_ps();
+	}
 
 	inline Scalarf8& operator [] (int i) { return v[i]; }
-	inline Scalarf8 operator [] (int i) const { return v[i]; }
+	inline const Scalarf8& operator [] (int i) const { return v[i]; }
 
 	inline Scalarf8& x() { return v[0]; }
 	inline Scalarf8& y() { return v[1]; }
@@ -259,12 +287,16 @@ public:
 	inline const Scalarf8& z() const { return v[2]; }
 	
 	inline Scalarf8 dot(const Vector3f8& a) const {
-		return v[0] * a.v[0] + v[1] * a.v[1] + v[2] * a.v[2];
+		Scalarf8 res; 
+		res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		return res;
 	}
 
 	//dot product
 	inline Scalarf8 operator * (const Vector3f8& a) const {
-		return v[0] * a.v[0] + v[1] * a.v[1] + v[2] * a.v[2];
+		Scalarf8 res;
+		res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		return res;
 	}
 
 	inline void cross(const Vector3f8& a, const Vector3f8& b) {
@@ -278,10 +310,6 @@ public:
 		return Vector3f8(v[1] * a.v[2] - v[2] * a.v[1],
 			v[2] * a.v[0] - v[0] * a.v[2],
 			v[0] * a.v[1] - v[1] * a.v[0]);
-	}
-
-	inline const Vector3f8 operator * (const Scalarf8 &s) const {
-		return Vector3f8(v[0] * s, v[1] * s, v[2] * s);
 	}
 
 	inline Vector3f8& operator *= (const Scalarf8 &s) {
@@ -300,21 +328,6 @@ public:
 		v[1] = v[1] / s;
 		v[2] = v[2] / s;
 		return *this;
-	}
-
-	inline const Vector3f8 operator + (const Vector3f8& a) const {
-		return Vector3f8(v[0] + a.v[0], v[1] + a.v[1], v[2] + a.v[2]);
-	}
-
-	inline Vector3f8& operator += (const Vector3f8& a) {
-		v[0] += a.v[0];
-		v[1] += a.v[1];
-		v[2] += a.v[2];
-		return *this;
-	}
-
-	inline const Vector3f8 operator - (const Vector3f8& a) const {
-		return Vector3f8(v[0] - a.v[0], v[1] - a.v[1], v[2] - a.v[2]);
 	}
 
 	inline Vector3f8& operator -= (const Vector3f8& a) {
@@ -379,79 +392,132 @@ public:
 	}
 };
 
-static inline Vector3f8 convertVec(const unsigned int *indices, const Real *values, const unsigned char count = 8u)
-{
-	float x[8], y[8], z[8];
-	for (unsigned char i = 0; i < count; i++)
-	{
-		x[i] = values[3*indices[i]];
-		y[i] = values[3*indices[i]+1];
-		z[i] = values[3*indices[i]+2];
-	}
-	return Vector3f8(Scalarf8(x), Scalarf8(y), Scalarf8(z));
+inline Vector3f8 operator + (Vector3f8 const& a, Vector3f8 const& b) {
+	Vector3f8 res;
+	res.v[0].v = _mm256_add_ps(a[0].v, b[0].v);
+	res.v[1].v = _mm256_add_ps(a[1].v, b[1].v);
+	res.v[2].v = _mm256_add_ps(a[2].v, b[2].v);
+	return res;
 }
 
-static inline Vector3f8 convertVec(const unsigned int *indices, const Vector3r *values, const unsigned char count = 8u)
-{
-	float x[8], y[8], z[8];
-	for (unsigned char i = 0; i < count; i++)
-	{
-		x[i] = values[indices[i]][0];
-		y[i] = values[indices[i]][1];
-		z[i] = values[indices[i]][2];
-	}
-	return Vector3f8(Scalarf8(x), Scalarf8(y), Scalarf8(z));
+inline Vector3f8 operator - (Vector3f8 const& a, Vector3f8 const& b) {
+	Vector3f8 res;
+	res.v[0].v = _mm256_sub_ps(a[0].v, b[0].v);
+	res.v[1].v = _mm256_sub_ps(a[1].v, b[1].v);
+	res.v[2].v = _mm256_sub_ps(a[2].v, b[2].v);
+	return res;
 }
 
-static inline Vector3f8 convertVec_zero(const unsigned int *indices, const Vector3r *values, const unsigned char count = 8u)
-{
-	float x[8], y[8], z[8];
-	for (unsigned char i = 0; i < count; i++)
-	{
-		x[i] = values[indices[i]][0];
-		y[i] = values[indices[i]][1];
-		z[i] = values[indices[i]][2];
-	}
-	for (unsigned char i = count; i < 8u; i++)
-	{
-		x[i] = 0.0f;
-		y[i] = 0.0f;
-		z[i] = 0.0f;
-	}
-	return Vector3f8(Scalarf8(x), Scalarf8(y), Scalarf8(z));
+inline Vector3f8& operator += (Vector3f8& a, Vector3f8 const& b) {
+	a[0].v = _mm256_add_ps(a[0].v, b[0].v);
+	a[1].v = _mm256_add_ps(a[1].v, b[1].v);
+	a[2].v = _mm256_add_ps(a[2].v, b[2].v);
+	return a;
 }
 
-static inline Vector3f8 convertVec_zero(const Vector3r *values, const unsigned char count = 8u)
-{
-	float x[8], y[8], z[8];
-	for (unsigned char i = 0; i < count; i++)
-	{
-		x[i] = values[i][0];
-		y[i] = values[i][1];
-		z[i] = values[i][2];
-	}
-	for (unsigned char i = count; i < 8u; i++)
-	{
-		x[i] = 0.0f;
-		y[i] = 0.0f;
-		z[i] = 0.0f;
-	}
-	return Vector3f8(Scalarf8(x), Scalarf8(y), Scalarf8(z));
+inline Vector3f8 operator * (Vector3f8 const& a, const Scalarf8& s) {
+	Vector3f8 res;
+	res.v[0].v = _mm256_mul_ps(a[0].v, s.v);
+	res.v[1].v = _mm256_mul_ps(a[1].v, s.v);
+	res.v[2].v = _mm256_mul_ps(a[2].v, s.v);
+	return res;
 }
 
-static inline Vector3f8 convertVec(const Vector3r *values, const unsigned char count = 8u)
+inline Vector3f8 convertVec_zero(const unsigned int* idx, const Real* v, const unsigned char count = 8u)
 {
-	float x[8], y[8], z[8];
-	for (unsigned char i = 0; i < count; i++)
+	Vector3f8 x;
+	switch (count)
 	{
-		x[i] = values[i][0];
-		y[i] = values[i][1];
-		z[i] = values[i][2];
+	case 1u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 2u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 3u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 4u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], v[3*idx[3]+0], 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], v[3*idx[3]+1], 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], v[3*idx[3]+2], 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 5u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], v[3*idx[3]+0], v[3*idx[4]+0], 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], v[3*idx[3]+1], v[3*idx[4]+1], 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], v[3*idx[3]+2], v[3*idx[4]+2], 0.0f, 0.0f, 0.0f);
+		break;
+	case 6u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], v[3*idx[3]+0], v[3*idx[4]+0], v[3*idx[5]+0], 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], v[3*idx[3]+1], v[3*idx[4]+1], v[3*idx[5]+1], 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], v[3*idx[3]+2], v[3*idx[4]+2], v[3*idx[5]+2], 0.0f, 0.0f);
+		break;
+	case 7u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], v[3*idx[3]+0], v[3*idx[4]+0], v[3*idx[5]+0], v[3*idx[6]+0], 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], v[3*idx[3]+1], v[3*idx[4]+1], v[3*idx[5]+1], v[3*idx[6]+1], 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], v[3*idx[3]+2], v[3*idx[4]+2], v[3*idx[5]+2], v[3*idx[6]+2], 0.0f);
+		break;
+	case 8u:
+		x.v[0].v = _mm256_setr_ps(v[3*idx[0]+0], v[3*idx[1]+0], v[3*idx[2]+0], v[3*idx[3]+0], v[3*idx[4]+0], v[3*idx[5]+0], v[3*idx[6]+0], v[3*idx[7]+0]);
+		x.v[1].v = _mm256_setr_ps(v[3*idx[0]+1], v[3*idx[1]+1], v[3*idx[2]+1], v[3*idx[3]+1], v[3*idx[4]+1], v[3*idx[5]+1], v[3*idx[6]+1], v[3*idx[7]+1]);
+		x.v[2].v = _mm256_setr_ps(v[3*idx[0]+2], v[3*idx[1]+2], v[3*idx[2]+2], v[3*idx[3]+2], v[3*idx[4]+2], v[3*idx[5]+2], v[3*idx[6]+2], v[3*idx[7]+2]);
 	}
-	return Vector3f8(Scalarf8(x), Scalarf8(y), Scalarf8(z));
+	return x;
 }
 
-
+static inline Vector3f8 convertVec_zero(const unsigned int *idx, const Vector3r *v, const unsigned char count = 8u)
+{
+	Vector3f8 x;
+	switch (count)
+	{
+	case 1u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 2u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 3u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 4u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], v[idx[3]][0], 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], v[idx[3]][1], 0.0f, 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], v[idx[3]][2], 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 5u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], v[idx[3]][0], v[idx[4]][0], 0.0f, 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], v[idx[3]][1], v[idx[4]][1], 0.0f, 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], v[idx[3]][2], v[idx[4]][2], 0.0f, 0.0f, 0.0f);
+		break;
+	case 6u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], v[idx[3]][0], v[idx[4]][0], v[idx[5]][0], 0.0f, 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], v[idx[3]][1], v[idx[4]][1], v[idx[5]][1], 0.0f, 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], v[idx[3]][2], v[idx[4]][2], v[idx[5]][2], 0.0f, 0.0f);
+		break;
+	case 7u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], v[idx[3]][0], v[idx[4]][0], v[idx[5]][0], v[idx[6]][0], 0.0f);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], v[idx[3]][1], v[idx[4]][1], v[idx[5]][1], v[idx[6]][1], 0.0f);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], v[idx[3]][2], v[idx[4]][2], v[idx[5]][2], v[idx[6]][2], 0.0f);
+		break;
+	case 8u:
+		x.v[0].v = _mm256_setr_ps(v[idx[0]][0], v[idx[1]][0], v[idx[2]][0], v[idx[3]][0], v[idx[4]][0], v[idx[5]][0], v[idx[6]][0], v[idx[7]][0]);
+		x.v[1].v = _mm256_setr_ps(v[idx[0]][1], v[idx[1]][1], v[idx[2]][1], v[idx[3]][1], v[idx[4]][1], v[idx[5]][1], v[idx[6]][1], v[idx[7]][1]);
+		x.v[2].v = _mm256_setr_ps(v[idx[0]][2], v[idx[1]][2], v[idx[2]][2], v[idx[3]][2], v[idx[4]][2], v[idx[5]][2], v[idx[6]][2], v[idx[7]][2]);
+	}
+	return x;
+}
 
 // ----------------------------------------------------------------------------------------------
 //3x3 dimensional matrix of Scalar8f to represent 8 3x3 matrices

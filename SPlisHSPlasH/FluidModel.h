@@ -7,7 +7,44 @@
 #include "RigidBodyObject.h"
 #include "SPHKernels.h"
 #include "ParameterObject.h"
+#ifdef USE_AVX
+#include "SPlisHSPlasH/Utilities/AVX_math.h"
+#endif
 #include "Utilities/BinaryFileReaderWriter.h"
+
+
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+	// compute the value xj (empty in the optimized version)
+	#define compute_xj(fm_neighbor, pid) 
+
+	// compute the value Vj (empty in the optimized version)
+	#define compute_Vj(fm_neighbor)
+
+	// compute the value Vj * gradW 
+	#define compute_Vj_gradW() \
+		const Vector3f8& V_gradW = model->get_precomputed_V_gradW()[model->get_precomputed_indices()[i] + idx];
+
+	// compute the value Vj * gradW 
+	#define compute_Vj_gradW_samephase() \
+		const Vector3f8& V_gradW = model->get_precomputed_V_gradW()[model->get_precomputed_indices_same_phase()[i] + j / 8];
+#else 
+	// compute the value xj
+	#define compute_xj(fm_neighbor, pid) \
+		const Vector3f8 xj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &fm_neighbor->getPosition(0), count);
+
+	// compute the value Vj
+	#define compute_Vj(fm_neighbor) \
+		const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count); 
+
+	// compute the value Vj * gradW assuming that xj and Vj are already available
+	#define compute_Vj_gradW() \
+		const Vector3f8 &V_gradW = CubicKernel_AVX::gradW(xi_avx - xj_avx) * Vj_avx;
+
+	// compute the value Vj * gradW assuming that xj and Vj are already available
+	#define compute_Vj_gradW_samephase() \
+		const Vector3f8 &V_gradW = CubicKernel_AVX::gradW(xi_avx - xj_avx) * Vj_avx;
+#endif
+
 
 namespace SPH 
 {	
@@ -107,6 +144,12 @@ namespace SPH
 			std::vector<unsigned int> m_particleId;
 			std::vector<ParticleState> m_particleState;
 			Real m_V;
+
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+			std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> m_precomp_V_gradW;
+			std::vector<unsigned int> m_precompIndices;
+			std::vector<unsigned int> m_precompIndicesSamePhase;
+#endif
 
 			SurfaceTensionMethods m_surfaceTensionMethod;
 			SurfaceTensionBase *m_surfaceTension;
@@ -209,6 +252,11 @@ namespace SPH
 			void saveState(BinaryFileWriter &binWriter);
 			void loadState(BinaryFileReader &binReader);
 
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+			std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> & get_precomputed_V_gradW() { return m_precomp_V_gradW; }
+			std::vector<unsigned int>& get_precomputed_indices() { return m_precompIndices; }
+			std::vector<unsigned int>& get_precomputed_indices_same_phase() { return m_precompIndicesSamePhase; }
+#endif
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{

@@ -1,13 +1,11 @@
 #include "Simulator_GUI_TweakBar.h"
 #include "GUI/OpenGL/MiniGL.h"
-#include "GL/glut.h"
 #include "GUI/TweakBar/TweakBarParameters.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/TimeManager.h"
 #include "../OpenGL/Simulator_OpenGL.h"
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
 #include "GUI/OpenGL/Selection.h"
-#include "GL/freeglut_ext.h"
 
 using namespace SPH;
 using namespace Utilities;
@@ -25,7 +23,7 @@ Simulator_GUI_TweakBar::~Simulator_GUI_TweakBar(void)
 
 void Simulator_GUI_TweakBar::init(int argc, char **argv, const char *name)
 {
-	MiniGL::init(argc, argv, 1280, 960, 0, 0, name);
+	MiniGL::init(argc, argv, 1280, 960, name);
 	MiniGL::initLights();
 
 	auto scene = m_simulatorBase->getScene();
@@ -44,11 +42,10 @@ void Simulator_GUI_TweakBar::init(int argc, char **argv, const char *name)
 	if (MiniGL::checkOpenGLVersion(3, 3))
 		Simulator_OpenGL::initShaders(m_simulatorBase->getExePath() + "/resources/shaders");
 
-	const int width = glutGet(GLUT_WINDOW_WIDTH);
-	const int height = glutGet(GLUT_WINDOW_HEIGHT);
+	const int width = MiniGL::getWidth();
+	const int height = MiniGL::getHeight();
 
 	// Initialize AntTweakBar
-	// (note that AntTweakBar could also be initialized after GLUT, no matter)
 	if (!TwInit(TW_OPENGL, NULL))
 	{
 		// A fatal error occured    
@@ -58,18 +55,12 @@ void Simulator_GUI_TweakBar::init(int argc, char **argv, const char *name)
 	TwWindowSize(width, height);
 	initTweakBar();
 
-	// after GLUT initialization
-	// directly redirect GLUT events to AntTweakBar
-	glutPassiveMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT); // same as MouseMotion
-
-	// send the ''glutGetModifers'' function pointer to AntTweakBar
-	TwGLUTModifiersFunc(glutGetModifiers);
-
 	MiniGL::addReshapeFunc([](int width, int height) { TwWindowSize(width, height); });
-	MiniGL::addKeyboardFunc([](unsigned char k, int x, int y) -> bool { return TwEventKeyboardGLUT(k, x, y); });
-	MiniGL::addSpecialFunc([](int k, int x, int y) -> bool { return TwEventSpecialGLUT(k, x, y); });
-	MiniGL::addMousePressFunc([](int button, int state, int x, int y) -> bool { return TwEventMouseButtonGLUT(button, state, x, y); });
-	MiniGL::addMouseMoveFunc([](int x, int y) -> bool { return TwEventMouseMotionGLUT(x, y); });
+	MiniGL::addKeyboardFunc([](int key, int scancode, int action, int mods) -> bool { return TwEventKeyGLFW(key, action); });
+	MiniGL::addCharFunc([](int key, int action) -> bool { return TwEventCharGLFW(key, action); });
+	MiniGL::addMousePressFunc([](int button, int action, int mods) -> bool { return TwEventMouseButtonGLFW(button, action); });
+	MiniGL::addMouseMoveFunc([](int x, int y) -> bool { return TwEventMousePosGLFW(x, y); });
+	MiniGL::addMouseWheelFunc([](int pos, double xoffset, double yoffset) -> bool { return TwEventMouseWheelGLFW(pos); });
 
 	MiniGL::setClientIdleFunc(std::bind(&SimulatorBase::timeStep, m_simulatorBase));
 	MiniGL::addKeyFunc('r', std::bind(&SimulatorBase::reset, m_simulatorBase));
@@ -282,7 +273,7 @@ void Simulator_GUI_TweakBar::selection(const Vector2i &start, const Vector2i &en
 		}
 	}
 	if (selected)
-		MiniGL::setMouseMoveFunc(GLUT_MIDDLE_BUTTON, mouseMove);
+		MiniGL::setMouseMoveFunc(2, mouseMove);
 	else
 		MiniGL::setMouseMoveFunc(-1, NULL);
 
@@ -321,12 +312,12 @@ void Simulator_GUI_TweakBar::particleInfo()
 
 void Simulator_GUI_TweakBar::run()
 {
-	glutMainLoop();
+	MiniGL::mainLoop();
 }
 
 void Simulator_GUI_TweakBar::stop()
 {
-	glutLeaveMainLoop();
+	MiniGL::leaveMainLoop();
 }
 
 void Simulator_GUI_TweakBar::addKeyFunc(char k, std::function<void()> const& func)

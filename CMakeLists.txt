@@ -21,6 +21,8 @@ endif()
 
 set(TOPLEVEL_INCLUDE_DIR ${PROJECT_SOURCE_DIR})
 
+option(USE_IMGUI "Use imgui instead of AntTweakBar"	ON)
+
 ################################################################################
 # foreign external libraries
 ################################################################################
@@ -30,10 +32,8 @@ add_subdirectory(extern/md5)
 add_subdirectory(extern/tinyexpr)
 if (NOT SPH_LIBS_ONLY)
 	add_subdirectory(extern/AntTweakBar)
-	add_subdirectory(extern/glew)
-	if(WIN32)
-		add_subdirectory(extern/freeglut)
-	endif()
+	add_subdirectory(extern/glfw)
+	add_subdirectory(extern/imgui)
 	if (USE_PYTHON_BINDINGS)
 		add_subdirectory(extern/pybind)
 	endif ()
@@ -41,6 +41,7 @@ endif()
 
 ## Eigen3 is used by most of the libraries that follow
 find_package(Eigen3 REQUIRED)
+add_definitions(-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
 
 ################################################################################
 # own external libraries

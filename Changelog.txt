@@ -1,3 +1,11 @@
+2.8.0
+	- performance improvements
+	- added GUI based on the imgui library
+	- added GLFW
+	- removed dependency on glew
+	- removed dependency on freeglut
+	- bugfixes
+
 2.7.0
 	- added Python binding using pybind (thanks to Stefan Jeske)
 	- added Python examples

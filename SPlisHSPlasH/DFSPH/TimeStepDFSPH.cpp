@@ -83,8 +83,6 @@ void TimeStepDFSPH::initParameters()
 	setDescription(USE_DIVERGENCE_SOLVER, "Turn divergence solver on/off.");
 }
 
-
-
 void TimeStepDFSPH::step()
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -93,6 +91,10 @@ void TimeStepDFSPH::step()
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	performNeighborhoodSearch();
+
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+	precomputeValues();
+#endif
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
@@ -368,7 +370,7 @@ void TimeStepDFSPH::divergenceSolve()
  	FluidModel *model = sim->getFluidModel(fluidModelIndex);
  	const int numParticles = (int)model->numActiveParticles();
  	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
- 
+
  	#pragma omp parallel default(shared)
  	{
  		//////////////////////////////////////////////////////////////////////////
@@ -393,11 +395,13 @@ void TimeStepDFSPH::divergenceSolve()
  			//////////////////////////////////////////////////////////////////////////
  			// Fluid
  			//////////////////////////////////////////////////////////////////////////
- 			forall_fluid_neighbors_avx(
- 				const Scalarf8 V_avx = convert_zero(fm_neighbor->getVolume(0), count);
- 				const Vector3f8 gradC_j = CubicKernel_AVX::gradW(xj_avx - xi_avx) * V_avx;
+			forall_fluid_neighbors_avx_nox(
+				compute_xj(fm_neighbor, pid);
+				compute_Vj(fm_neighbor);
+				compute_Vj_gradW();
+				const Vector3f8 &gradC_j = V_gradW;
  				sum_grad_p_k_avx += gradC_j.squaredNorm();
- 				grad_p_i_avx -= gradC_j;
+ 				grad_p_i_avx += gradC_j;
  			);
  
  			//////////////////////////////////////////////////////////////////////////
@@ -456,6 +460,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 	FluidModel *model = sim->getFluidModel(fluidModelIndex);
 	const Real density0 = model->getDensity0();
 	const int numParticles = (int)model->numActiveParticles();
+	const Scalarf8 h_avx(h);
 	if (numParticles == 0)
 		return;
 
@@ -501,14 +506,16 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 				//////////////////////////////////////////////////////////////////////////
 				// Fluid
 				//////////////////////////////////////////////////////////////////////////
-				forall_fluid_neighbors_avx(
+				forall_fluid_neighbors_avx_nox(
+					compute_xj(fm_neighbor, pid);
+					compute_Vj(fm_neighbor);
+					compute_Vj_gradW();
 					const Scalarf8 densityFrac_avx(fm_neighbor->getDensity0() / density0);
-					const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
 					const Scalarf8 kj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getKappa(pid, 0), count);
 					const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
 
 					// Directly update velocities instead of storing pressure accelerations
-					delta_vi -= CubicKernel_AVX::gradW(xj_avx - xi_avx) * (Vj_avx * Scalarf8(h) * kSum_avx);			// ki, kj already contain inverse density	
+					delta_vi += V_gradW * (h_avx * kSum_avx);			// ki, kj already contain inverse density	
 				);
 
 				//////////////////////////////////////////////////////////////////////////
@@ -574,6 +581,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 	const Real invH = static_cast<Real>(1.0) / h;
 	Real density_error = 0.0;
 	const Scalarf8 invH_avx(invH);
+	const Scalarf8 h_avx(h);
 
 	#pragma omp parallel default(shared)
 	{
@@ -607,9 +615,11 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
-			forall_fluid_neighbors_avx(
+			forall_fluid_neighbors_avx_nox(
+				compute_xj(fm_neighbor, pid);
+				compute_Vj(fm_neighbor);
+				compute_Vj_gradW();
 				const Scalarf8 densityFrac_avx(fm_neighbor->getDensity0() / density0);
-				const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
 				const Scalarf8 densityAdvj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getDensityAdv(pid, 0), count);;
 				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);;
 					
@@ -618,7 +628,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 				const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
 
 				// Directly update velocities instead of storing pressure accelerations
-				delta_vi -= CubicKernel_AVX::gradW(xj_avx - xi_avx) * (Vj_avx * Scalarf8(h) * kSum_avx);			// ki, kj already contain inverse density	
+				delta_vi += V_gradW * (h_avx * kSum_avx);			// ki, kj already contain inverse density	
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -674,10 +684,10 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 		{
 			computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
 
-			density_error += density0 * m_simulationData.getDensityAdv(fluidModelIndex, i) - density0;
+			density_error += m_simulationData.getDensityAdv(fluidModelIndex, i) - static_cast<Real>(1.0);
 		}
 	}
-	avg_density_err = density_error / numParticles;
+	avg_density_err = density0 * density_error / numParticles;
 }
 
 #ifdef USE_WARMSTART_V
@@ -731,14 +741,16 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 				//////////////////////////////////////////////////////////////////////////
 				// Fluid
 				//////////////////////////////////////////////////////////////////////////
-				forall_fluid_neighbors_avx(
+				forall_fluid_neighbors_avx_nox(
+					compute_xj(fm_neighbor, pid);
+					compute_Vj(fm_neighbor);
+					compute_Vj_gradW();
 					const Scalarf8 densityFrac_avx(fm_neighbor->getDensity0() / density0);
-					const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
 					const Scalarf8 kj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getKappaV(pid, 0), count);;
 					const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
 
 					// Directly update velocities instead of storing pressure accelerations
-					delta_vi -= CubicKernel_AVX::gradW(xj_avx - xi_avx) * (Vj_avx * h_avx * kSum_avx);			// ki, kj already contain inverse density	
+					delta_vi += V_gradW * ( h_avx * kSum_avx);			// ki, kj already contain inverse density	
 				);
 
 				//////////////////////////////////////////////////////////////////////////
@@ -836,10 +848,12 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 
 			//////////////////////////////////////////////////////////////////////////
 			// Fluid
-			//////////////////////////////////////////////////////////////////////////
-			forall_fluid_neighbors_avx(
+			//////////////////////////////////////////////////////////////////////////			
+			forall_fluid_neighbors_avx_nox(
+				compute_xj(fm_neighbor, pid);
+				compute_Vj(fm_neighbor);
+				compute_Vj_gradW();
 				const Scalarf8 densityFrac_avx(fm_neighbor->getDensity0() / density0);
-				const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
 				const Scalarf8 densityAdvj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getDensityAdv(pid, 0), count);
 				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);
 
@@ -847,7 +861,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 				const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
 
 				// Directly update velocities instead of storing pressure accelerations
-				delta_vi -= CubicKernel_AVX::gradW(xj_avx - xi_avx) * (Vj_avx * h_avx * kSum_avx);			// ki, kj already contain inverse density	
+				delta_vi += V_gradW * (h_avx * kSum_avx);			// ki, kj already contain inverse density	
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -901,10 +915,10 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			computeDensityChange(fluidModelIndex, i, h);
-			density_error += density0 * m_simulationData.getDensityAdv(fluidModelIndex, i);
+			density_error += m_simulationData.getDensityAdv(fluidModelIndex, i);
 		}
 	}
-	avg_density_err = density_error/numParticles;
+	avg_density_err = density0 * density_error/numParticles;
 }
 
 void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const unsigned int i, const int numParticles, const Real h, const Real density0)
@@ -920,16 +934,18 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const 
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	Scalarf8 delta_avx(0.0f);
-	Vector3f8 xi_avx(xi);
+	const Vector3f8 xi_avx(xi);
 	Vector3f8 vi_avx(vi);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
-	forall_fluid_neighbors_avx(	
-		const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
+	forall_fluid_neighbors_avx_nox(
+		compute_xj(fm_neighbor, pid);
+		compute_Vj(fm_neighbor);
+		compute_Vj_gradW();
 		const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &fm_neighbor->getVelocity(0), count);
-		delta_avx += Vj_avx * (vi_avx - vj_avx).dot(CubicKernel_AVX::gradW(xi_avx - xj_avx));
+		delta_avx += (vi_avx - vj_avx).dot(V_gradW);
 	);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -978,16 +994,18 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	Scalarf8 densityAdv_avx(0.0f);
-	Vector3f8 xi_avx(xi);
+	const Vector3f8 xi_avx(xi);
 	Vector3f8 vi_avx(vi);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fluid
 	//////////////////////////////////////////////////////////////////////////
-	forall_fluid_neighbors_avx(
-		const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
+	forall_fluid_neighbors_avx_nox(
+		compute_xj(fm_neighbor, pid);
+		compute_Vj(fm_neighbor);
+		compute_Vj_gradW();
 		const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &fm_neighbor->getVelocity(0), count);
-		densityAdv_avx += Vj_avx * (vi_avx - vj_avx).dot(CubicKernel_AVX::gradW(xi_avx - xj_avx));
+		densityAdv_avx += (vi_avx - vj_avx).dot(V_gradW);
 	);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -1029,8 +1047,16 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 		numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
 
 	// in case of particle deficiency do not perform a divergence solve
-	if (numNeighbors < 20)
+	if (!sim->is2DSimulation())
+	{
+		if (numNeighbors < 20)
 		densityAdv = 0.0;
+	}
+	else 
+	{
+		if (numNeighbors < 7)
+		densityAdv = 0.0;
+	}
 }
 
 #else
@@ -1621,8 +1647,16 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 		numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
 
 	// in case of particle deficiency do not perform a divergence solve
-	if (numNeighbors < 20)
-		densityAdv = 0.0;
+	if (!sim->is2DSimulation())
+	{
+		if (numNeighbors < 20)
+			densityAdv = 0.0;
+	}
+	else
+	{
+		if (numNeighbors < 7)
+			densityAdv = 0.0;
+	}
 }
 
 #endif

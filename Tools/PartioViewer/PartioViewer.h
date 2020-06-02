@@ -16,6 +16,10 @@ namespace SPH
 		std::string inputFile;
 		std::string currentFile;
 		unsigned int posIndex;
+		unsigned int m_colorField;
+		float m_renderMinValue;
+		float m_renderMaxValue;
+		unsigned int m_colorMapType;
 	};
 
 	struct Boundary
@@ -39,7 +43,6 @@ namespace SPH
 		Real m_particleRadius;
 		Eigen::Vector3f m_planeNormal;
 		Eigen::Vector3f m_planePoint;
-		std::string m_colorFieldName;
 		bool m_renderSequence;
 		bool m_renderVideo;
 		bool m_overWrite;
@@ -61,6 +64,10 @@ namespace SPH
 		PartioViewer_GUI_Base *m_gui;
 		int m_argc;
 		char **m_argv;
+		std::string m_defaultColorFieldName;
+		float m_defaultRenderMinValue;
+		float m_defaultRenderMaxValue;
+		unsigned int m_defaultColorMapType;
 
 		void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 		bool readPartioFile(const std::string &fileName, Partio::ParticlesDataMutable* &partioData, unsigned int &posIndex, const bool printInfo = false);
@@ -106,8 +113,6 @@ namespace SPH
 		void setParticleRadius(Real val) { m_particleRadius = val; }
 		Eigen::AlignedBox3f getFluidBoundingBox() const { return m_fluidBoundingBox; }
 		void setFluidBoundingBox(const Eigen::AlignedBox3f &val) { m_fluidBoundingBox = val; }
-		std::string getColorFieldName() const { return m_colorFieldName; }
-		void setColorFieldName(const std::string &val) { m_colorFieldName = val; }
 		std::string getExePath() const { return m_exePath; }
 		void setExePath(const std::string &val) { m_exePath = val; }
 		void setStartFrame(const int val) { m_startFrame = val; }

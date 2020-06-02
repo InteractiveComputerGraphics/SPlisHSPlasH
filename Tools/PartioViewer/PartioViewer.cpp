@@ -5,10 +5,14 @@
 #include "Utilities/BinaryFileReaderWriter.h"
 #include "Utilities/Version.h"
 #include "extern/cxxopts/cxxopts.hpp"
-#include "GUI/TweakBar/PartioViewer_GUI_TweakBar.h"
 #include "Utilities/Timing.h"
 #include "extern/toojpeg/toojpeg.h"
 #include "GUI/OpenGL/PartioViewer_OpenGL.h"
+#ifdef USE_IMGUI
+#include "GUI/imgui/PartioViewer_GUI_imgui.h"
+#else
+#include "GUI/TweakBar/PartioViewer_GUI_TweakBar.h"
+#endif
 
 using namespace std;
 using namespace SPH;
@@ -27,7 +31,6 @@ PartioViewer::PartioViewer()
 	m_particleRadius = 0.025;
 	m_planeNormal = Vector3f(0, 0, -1);
 	m_planePoint.setZero();
-	m_colorFieldName = "velocity";
 	m_renderSequence = false;
 	m_renderVideo = false;
 	m_overWrite = true;
@@ -62,7 +65,11 @@ int PartioViewer::run(int argc, char **argv)
 	LOG_INFO << "Git status: " << GIT_LOCAL_STATUS;
 
 	m_exePath = FileSystem::getProgramPath();
+#ifdef USE_IMGUI
+	m_gui = new PartioViewer_GUI_imgui(this);
+#else
 	m_gui = new PartioViewer_GUI_TweakBar(this);
+#endif
 
 	try
 	{
@@ -87,7 +94,10 @@ int PartioViewer::run(int argc, char **argv)
 			("r,radius", "Particle radius", cxxopts::value<Real>()->default_value("0.025"))
 			("s,startFrame", "Start frame (only used if value is >= 0)", cxxopts::value<int>()->default_value("-1"))
 			("e,endFrame", "End frame (only used if value is >= 0)", cxxopts::value<int>()->default_value("-1"))
-			("colorField", "Name of field that is used for the color.", cxxopts::value<std::string>()->default_value("velocity"))
+			("colorField", "Name of field that is used as default for the color.", cxxopts::value<std::string>()->default_value("velocity"))
+			("colorMapType", "Default color map (0=None, 1=Jet, 2=Plasma)", cxxopts::value<unsigned int>()->default_value("1"))
+			("renderMinValue", "Default min value of field.", cxxopts::value<float>()->default_value("0.0"))
+			("renderMaxValue", "Default max value of field.", cxxopts::value<float>()->default_value("10.0"))
 			;
 
 		m_gui->addOptions(options);
@@ -246,10 +256,6 @@ int PartioViewer::run(int argc, char **argv)
 		if (result.count("renderVideo"))
 			m_renderVideo = true;
 
-		m_colorFieldName = "velocity";
-		if (result.count("colorField"))
-			m_colorFieldName = result["colorField"].as<std::string>();
-
 		if (result.count("width"))
 			m_width = result["width"].as<int>();
 
@@ -258,6 +264,22 @@ int PartioViewer::run(int argc, char **argv)
 
 		if (result.count("fps"))
 			m_fps = result["fps"].as<int>();
+
+		m_defaultColorFieldName = "velocity";
+		if (result.count("colorField"))
+			m_defaultColorFieldName = result["colorField"].as<std::string>();
+
+		m_defaultColorMapType = 1;
+		if (result.count("colorMapType"))
+			m_defaultColorMapType = result["colorMapType"].as<unsigned int>();
+
+		m_defaultRenderMinValue = 0.0;
+		if (result.count("renderMinValue"))
+			m_defaultRenderMinValue = result["renderMinValue"].as<float>();
+
+		m_defaultRenderMaxValue = 10.0;
+		if (result.count("renderMaxValue"))
+			m_defaultRenderMaxValue = result["renderMaxValue"].as<float>();
 
 		m_gui->parseOptions(result);
 
@@ -280,6 +302,43 @@ int PartioViewer::run(int argc, char **argv)
 		LOG_ERR << "Unable to read partio file or did not find position data.";
 		exit(1);
 	}
+
+	// set default color field
+	for (auto i = 0; i < m_fluids.size(); i++)
+	{
+		if (m_fluids[i].partioData)
+		{
+			bool found = false;
+			int idx = 0;
+			int velIdx = 0;
+			for (int j = 0; j < m_fluids[i].partioData->numAttributes(); j++)
+			{
+				Partio::ParticleAttribute attr;
+				m_fluids[i].partioData->attributeInfo(j, attr);
+				if ((attr.type == Partio::FLOAT) || (attr.type == Partio::VECTOR))
+				{
+					// select the default color field name
+					if (attr.name == m_defaultColorFieldName)
+					{
+						m_fluids[i].m_colorField = idx;
+						found = true;
+						break;
+					}
+					if (attr.name == "velocity")
+						velIdx = idx;
+
+					idx++;
+				}
+			}
+			// if default color field name was not found, use velocity as default
+			if (!found)
+				m_fluids[i].m_colorField = velIdx;
+			m_fluids[i].m_colorMapType = m_defaultColorMapType;
+			m_fluids[i].m_renderMinValue = m_defaultRenderMinValue;
+			m_fluids[i].m_renderMaxValue = m_defaultRenderMaxValue;
+		}
+	}
+
 
 	m_gui->init();
 
@@ -424,7 +483,7 @@ bool PartioViewer::readRigidBodyData(std::string fileName, const bool first)
 		binReader.readMatrix(m_boundaries[i].t);
 		binReader.readMatrix(m_boundaries[i].R);
 		for (unsigned int j = 0; j < m_boundaries[i].x0.size(); j++)
-			m_boundaries[i].mesh.getVertices()[j] = m_boundaries[i].R.transpose().cast<Real>() * m_boundaries[i].x0[j] + m_boundaries[i].t.cast<Real>();
+			m_boundaries[i].mesh.getVertices()[j] = m_boundaries[i].R.cast<Real>() * m_boundaries[i].x0[j] + m_boundaries[i].t.cast<Real>();
 
 		m_boundaries[i].mesh.updateNormals();
 		m_boundaries[i].mesh.updateVertexNormals();
@@ -553,7 +612,7 @@ bool PartioViewer::updateData()
 			getFluids()[i].visibleParticles.reserve(getFluids()[i].partioData->numParticles());
 			Vector3f normal = m_planeNormal;
 			normal.normalize();
-			for (unsigned int j = 0; j < getFluids()[i].partioData->numParticles(); j++)
+			for (auto j = 0; j < getFluids()[i].partioData->numParticles(); j++)
 			{
 				const Eigen::Map<const Eigen::Vector3f> vec(&partioX[3 * j]);
 				if ((vec.dot(normal) - m_planePoint.dot(normal)) > 0)
@@ -745,14 +804,17 @@ void PartioViewer::updateBoundingBox()
 	m_fluidBoundingBox.setEmpty();
 	for (size_t i = 0; i < m_fluids.size(); i++)
 	{
-		//	const Real r2 = particleRadius*0.5;
-		Partio::ParticleAttribute posAttr;
-		m_fluids[i].partioData->attributeInfo(m_fluids[i].posIndex, posAttr);
-		const float* partioX = m_fluids[i].partioData->data<float>(posAttr, 0);
-		for (int j = 0; j < m_fluids[i].partioData->numParticles(); j++)
+		if (m_fluids[i].partioData)
 		{
-			const Eigen::Map<const Eigen::Vector3f> vec(&partioX[3 * j]);
-			m_fluidBoundingBox.extend(vec);
+			//	const Real r2 = particleRadius*0.5;
+			Partio::ParticleAttribute posAttr;
+			m_fluids[i].partioData->attributeInfo(m_fluids[i].posIndex, posAttr);
+			const float* partioX = m_fluids[i].partioData->data<float>(posAttr, 0);
+			for (int j = 0; j < m_fluids[i].partioData->numParticles(); j++)
+			{
+				const Eigen::Map<const Eigen::Vector3f> vec(&partioX[3 * j]);
+				m_fluidBoundingBox.extend(vec);
+			}
 		}
 	}
 	m_fluidBoundingBox.extend(m_fluidBoundingBox.max() + m_particleRadius * Vector3f::Ones());

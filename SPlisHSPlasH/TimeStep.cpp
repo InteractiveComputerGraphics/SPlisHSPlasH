@@ -89,7 +89,7 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 	const unsigned int numParticles = model->numActiveParticles();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
-	
+
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
@@ -106,8 +106,8 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors_avx(
-				const Scalarf8 V_avx = convert_zero(fm_neighbor->getVolume(0), count);
-				density_avx += V_avx *CubicKernel_AVX::W(xi_avx - xj_avx);
+				const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
+				density_avx += Vj_avx * CubicKernel_AVX::W(xi_avx - xj_avx);
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -468,4 +468,74 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 		}
 	}
 }
+
+
+#ifdef USE_PERFORMANCE_OPTIMIZATION
+
+void TimeStep::precomputeValues()
+{
+	Simulation* sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
+	{
+		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		model->get_precomputed_indices().clear();
+		model->get_precomputed_indices_same_phase().clear();
+		model->get_precomputed_V_gradW().clear();
+		const int numParticles = (int)model->numActiveParticles();
+
+		auto& precomputed_indices = model->get_precomputed_indices();
+		auto& precomputed_indices_same_phase = model->get_precomputed_indices_same_phase();
+		auto& precomputed_V_gradW = model->get_precomputed_V_gradW();
+		precomputed_indices.reserve(numParticles);
+		precomputed_indices.push_back(0);
+
+		precomputed_indices_same_phase.reserve(numParticles);
+
+		unsigned int sumNeighborParticles = 0;
+		unsigned int sumNeighborParticlesSamePhase = 0;
+		for (int i = 0; i < numParticles; i++)
+		{
+			for (unsigned int pid = 0; pid < nFluids; pid++)
+			{
+				FluidModel* fm_neighbor = sim->getFluidModelFromPointSet(pid);
+				const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, pid, i);
+
+				// same phase
+				if (pid == fluidModelIndex)
+					precomputed_indices_same_phase.push_back(sumNeighborParticles);
+
+				// steps of 8 values due to avx
+				sumNeighborParticles += maxN / 8;
+				if (maxN % 8 != 0)
+					sumNeighborParticles++;
+			}
+			precomputed_indices.push_back(sumNeighborParticles);
+		}
+	
+		if (sumNeighborParticles > precomputed_V_gradW.capacity())
+			precomputed_V_gradW.reserve(static_cast<int>(1.5 * sumNeighborParticles));
+		precomputed_V_gradW.resize(sumNeighborParticles);
+
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for schedule(static) 
+			for (int i = 0; i < (int)numParticles; i++)
+			{
+				const Vector3r& xi = model->getPosition(i);
+				const Vector3f8 xi_avx(xi);
+				unsigned int base = precomputed_indices[i];
+				unsigned int idx = 0;
+				forall_fluid_neighbors_avx(
+					const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);
+					precomputed_V_gradW[base + idx] = CubicKernel_AVX::gradW(xi_avx - xj_avx) * Vj_avx;
+					idx++;
+				);
+			}
+		}
+	}
+}
+
+#endif
 

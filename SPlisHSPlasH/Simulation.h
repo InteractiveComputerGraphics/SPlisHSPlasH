@@ -99,6 +99,23 @@ for (unsigned int pid = 0; pid < nBoundaries; pid++) \
 		} \
 	} 
 
+/** Loop over the fluid neighbors of all fluid phases.
+* Simulation *sim and unsigned int fluidModelIndex must be defined.
+*/
+#define forall_fluid_neighbors_avx_nox(code) \
+	unsigned int idx = 0; \
+	for (unsigned int pid = 0; pid < nFluids; pid++) \
+	{ \
+		FluidModel *fm_neighbor = sim->getFluidModelFromPointSet(pid); \
+		const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, pid, i); \
+		for (unsigned int j = 0; j < maxN; j += 8) \
+		{ \
+			const unsigned int count = std::min(maxN - j, 8u); \
+			code \
+			idx++; \
+		} \
+	} 
+
 /** Loop over the fluid neighbors of the same fluid phase.
 * Simulation *sim, unsigned int fluidModelIndex and FluidModel* model must be defined.
 */
@@ -108,6 +125,17 @@ for (unsigned int pid = 0; pid < nBoundaries; pid++) \
 	{ \
 		const unsigned int count = std::min(maxN - j, 8u); \
 		const Vector3f8 xj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getPosition(0), count); \
+		code \
+	} 
+
+/** Loop over the fluid neighbors of the same fluid phase.
+* Simulation *sim, unsigned int fluidModelIndex and FluidModel* model must be defined.
+*/
+#define forall_fluid_neighbors_in_same_phase_avx_nox(code) \
+	const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i); \
+	for (unsigned int j = 0; j < maxN; j += 8) \
+	{ \
+		const unsigned int count = std::min(maxN - j, 8u); \
 		code \
 	} 
 

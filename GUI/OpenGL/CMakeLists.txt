@@ -8,7 +8,8 @@ set(VIS_HEADER_FILES
 
 	
 set(VIS_SOURCE_FILES
-	${PROJECT_SOURCE_DIR}/GUI/OpenGL/MiniGL.cpp                       
+	${PROJECT_SOURCE_DIR}/extern/glfw/deps/glad_gl.c
+	${PROJECT_SOURCE_DIR}/GUI/OpenGL/MiniGL.cpp
 	${PROJECT_SOURCE_DIR}/GUI/OpenGL/Shader.cpp
 	) 
 	

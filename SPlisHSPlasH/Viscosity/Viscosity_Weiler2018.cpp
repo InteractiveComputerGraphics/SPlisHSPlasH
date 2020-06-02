@@ -87,7 +87,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 	if (sim->is2DSimulation())
 		d = 8.0;
 
-	const Scalarf8 d_mu(d * mu);
+	const Scalarf8 d_mu(d * mu * density0);
 	const Scalarf8 d_mub(d * mub);
 	const Scalarf8 h2_001(0.01f*h2);
 	const Scalarf8 density0_avx(density0);
@@ -115,13 +115,13 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors_in_same_phase_avx(
+				compute_Vj(model);
+				compute_Vj_gradW_samephase();
 				const Scalarf8 density_j_avx = convert_one(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &model->getDensity(0), count);
 				const Vector3f8 xixj = xi_avx - xj_avx;
-				const Vector3f8 gradW = CubicKernel_AVX::gradW(xixj);
-				const Vector3f8 vj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &vec[0], count);
-				const Scalarf8 mj_avx = convert_zero(model->getMass(0), count);			// all particles have the same mass
+				const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, fluidModelIndex, i)[j], &vec[0], count);
 
-				delta_ai_avx += gradW * (d_mu * (mj_avx / density_j_avx) * (vi_avx - vj_avx).dot(xixj) / (xixj.squaredNorm() + h2_001));
+				delta_ai_avx += V_gradW * ((d_mu / density_j_avx) * (vi_avx - vj_avx).dot(xixj) / (xixj.squaredNorm() + h2_001));
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 				{
 					forall_boundary_neighbors_avx(
-						const Vector3f8 vj_avx = convertVec(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
+						const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
 						const Vector3f8 xixj = xi_avx - xj_avx;
 						const Vector3f8 gradW = CubicKernel_AVX::gradW(xixj);
 						const Scalarf8 Vj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
@@ -156,7 +156,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = 0.5*h;
+							const Real dist = static_cast<Real>(0.5)*h;
 							const Vector3r x1 = xj - t1 * dist;
 							const Vector3r x2 = xj + t1 * dist;
 							const Vector3r x3 = xj - t2 * dist;
@@ -212,7 +212,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = 0.5*h;
+							const Real dist = static_cast<Real>(0.5)*h;
 							const Vector3r x1 = xj - t1*dist;
 							const Vector3r x2 = xj + t1*dist;
 							const Vector3r x3 = xj - t2*dist;
@@ -538,7 +538,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = static_cast<Real>(0.5)*h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;
@@ -579,7 +579,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = static_cast<Real>(0.5)*h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;

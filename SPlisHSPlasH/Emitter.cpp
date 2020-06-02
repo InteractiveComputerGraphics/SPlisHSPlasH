@@ -246,7 +246,7 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 		const Vector3r & x0 = m_x;
 
 		const Real animationMarginAhead = sim->getSupportRadius();
-		const Vector3r size = getSize(m_width, m_height, m_type);
+		const Vector3r size = getSize(static_cast<Real>(m_width), static_cast<Real>(m_height), m_type);
 		const Real h = size[0];
  		const Real r = 0.5f * size[1];
 		const Real r2 = r * r;

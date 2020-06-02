@@ -1,12 +1,11 @@
 #include "PartioViewer_GUI_TweakBar.h"
 #include "GUI/OpenGL/MiniGL.h"
-#include "GL/glut.h"
 #include "GUI/TweakBar/TweakBarParameters.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "../../PartioViewer.h"
 #include "../OpenGL/PartioViewer_OpenGL.h"
 #include "GUI/OpenGL/Selection.h"
-#include "GL/freeglut_ext.h"
+#include "Utilities/FileSystem.h"
 
 using namespace SPH;
 
@@ -24,10 +23,6 @@ PartioViewer_GUI_TweakBar::PartioViewer_GUI_TweakBar(PartioViewer *viewer) :
 	m_tweakBar = nullptr;
 	m_simulatorBase = nullptr;
 	m_currentFluidModel = 0;
-	m_colorField = 0;
-	m_renderMinValue = 0.0;
-	m_renderMaxValue = 10.0;
-	m_colorMapType = 1;
 	m_renderWalls = false;
 	m_showBBox = false;
 	m_camPos = Vector3r(0.0, 3.0, 10.0);
@@ -41,7 +36,7 @@ PartioViewer_GUI_TweakBar::~PartioViewer_GUI_TweakBar(void)
 void PartioViewer_GUI_TweakBar::init()
 {
 	// OpenGL
-	MiniGL::init(m_viewer->getArgc(), m_viewer->getArgv(), m_viewer->getWidth(), m_viewer->getHeight(), 0, 0, "Partio Viewer");
+	MiniGL::init(m_viewer->getArgc(), m_viewer->getArgv(), m_viewer->getWidth(), m_viewer->getHeight(), "Partio Viewer");
 	MiniGL::initLights();
 	MiniGL::setViewport(40.0, 0.1f, 500.0, m_camPos, m_camLookat);
 
@@ -58,8 +53,8 @@ void PartioViewer_GUI_TweakBar::init()
 
 	MiniGL::setClientIdleFunc(std::bind(&PartioViewer::timeStep, m_viewer));	
 
-	const int width = glutGet(GLUT_WINDOW_WIDTH);
-	const int height = glutGet(GLUT_WINDOW_HEIGHT);
+	const int width = MiniGL::getWidth();
+	const int height = MiniGL::getHeight();
 
 	// Initialize AntTweakBar
 	// (note that AntTweakBar could also be initialized after GLUT, no matter)
@@ -72,28 +67,22 @@ void PartioViewer_GUI_TweakBar::init()
 	TwWindowSize(width, height);
 	initTweakBar();
 
-	// after GLUT initialization
-	// directly redirect GLUT events to AntTweakBar
-	glutPassiveMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT); // same as MouseMotion
-
-	// send the ''glutGetModifers'' function pointer to AntTweakBar
-	TwGLUTModifiersFunc(glutGetModifiers);
-
 	MiniGL::addReshapeFunc([](int width, int height) { TwWindowSize(width, height); });
-	MiniGL::addKeyboardFunc([](unsigned char k, int x, int y) -> bool { return TwEventKeyboardGLUT(k, x, y); });
-	MiniGL::addSpecialFunc([](int k, int x, int y) -> bool { return TwEventSpecialGLUT(k, x, y); });
-	MiniGL::addMousePressFunc([](int button, int state, int x, int y) -> bool { return TwEventMouseButtonGLUT(button, state, x, y); });
-	MiniGL::addMouseMoveFunc([](int x, int y) -> bool { return TwEventMouseMotionGLUT(x, y); });
+	MiniGL::addKeyboardFunc([](int key, int scancode, int action, int mods) -> bool { return TwEventKeyGLFW(key, action); });
+	MiniGL::addCharFunc([](int key, int action) -> bool { return TwEventCharGLFW(key, action); });
+	MiniGL::addMousePressFunc([](int button, int action, int mods) -> bool { return TwEventMouseButtonGLFW(button, action); });
+	MiniGL::addMouseMoveFunc([](int x, int y) -> bool { return TwEventMousePosGLFW(x, y); });
+	MiniGL::addMouseWheelFunc([](int pos, double xoffset, double yoffset) -> bool { return TwEventMouseWheelGLFW(pos); });
 }
 
 void PartioViewer_GUI_TweakBar::run()
 {
-	glutMainLoop();
+	MiniGL::mainLoop();
 }
 
 void PartioViewer_GUI_TweakBar::stop()
 {
-	glutLeaveMainLoop();
+	MiniGL::leaveMainLoop();
 }
 
 void PartioViewer_GUI_TweakBar::addOptions(cxxopts::Options &options)
@@ -101,9 +90,6 @@ void PartioViewer_GUI_TweakBar::addOptions(cxxopts::Options &options)
  	options.add_options()
 		("camPos", "Camera position (e.g. --camPos \"0 1 5\")", cxxopts::value<Vector3r>()->default_value("0 3 10"))
 		("camLookat", "Camera lookat (e.g. --camLookat \"0 0 0\")", cxxopts::value<Vector3r>()->default_value("0 0 0"))
-		("colorMapType", "Color map (0=None, 1=Jet, 2=Plasma)", cxxopts::value<unsigned int>()->default_value("1"))
- 		("renderMinValue", "Min value of field.", cxxopts::value<float>()->default_value("0.0"))
- 		("renderMaxValue", "Max value of field.", cxxopts::value<float>()->default_value("10.0"))
  		;
 }
 
@@ -114,18 +100,6 @@ void PartioViewer_GUI_TweakBar::parseOptions(cxxopts::ParseResult &result)
 
 	if (result.count("camLookat"))
 		m_camLookat = result["camLookat"].as<Vector3r>();
-
-	m_colorMapType = 1;
-	if (result.count("colorMapType"))
-		m_colorMapType = result["colorMapType"].as<unsigned int>();
-
-	m_renderMinValue = 0.0;
-	if (result.count("renderMinValue"))
-		m_renderMinValue = result["renderMinValue"].as<float>();
-
-	m_renderMaxValue = 10.0;
-	if (result.count("renderMaxValue"))
-		m_renderMaxValue = result["renderMaxValue"].as<float>();
 }
 
 void PartioViewer_GUI_TweakBar::initTweakBar()
@@ -166,52 +140,61 @@ void PartioViewer_GUI_TweakBar::initParameterGUI()
 	TwAddVarCB(getTweakBar(), "planePoint", TW_TYPE_DIR3F, setPlanePoint, getPlanePoint, m_viewer, " label='Plane point' group=Visualization");
 	TwAddVarCB(getTweakBar(), "planeNormal", TW_TYPE_DIR3F, setPlaneNormal, getPlaneNormal, m_viewer, " label='Plane normal' group=Visualization");
 	  	
-	  
-	TwType enumType = TwDefineEnum("ColorFieldEnum", NULL, 0);
-	std::ostringstream oss;
-	int idx = 0;
-	int velIdx = 0;
-	  
+	    
 	std::vector<SPH::Fluid>& fluids = m_viewer->getFluids();
-	if (fluids[0].partioData)
+	if (fluids.size() > 0)
 	{
-	  	bool found = false;
-		for (int i = 0; i < fluids[0].partioData->numAttributes(); i++)
+		// Select fluid model
 		{
-			Partio::ParticleAttribute attr;
-			fluids[0].partioData->attributeInfo(i, attr);
-			if ((attr.type == Partio::FLOAT) || (attr.type == Partio::VECTOR))
+			TwType enumType = TwDefineEnum("CurrentFluidModel", NULL, 0);
+			std::ostringstream oss;
+			int idx = 0;
+			for (unsigned int j = 0; j < fluids.size(); j++)
 			{
 				if (idx != 0)
 					oss << ", ";
-				oss << idx << " {" << attr.name.c_str() << "}";
-
-				if (attr.name == m_viewer->getColorFieldName())
-				{
-					m_colorField = idx;
-					found = true;
-				}
-				if (attr.name == "velocity")
-					velIdx = idx;
+				oss << idx << " {" << Utilities::FileSystem::getFileName(fluids[j].inputFile) << "}";
+				idx++;
 			}
-			idx++;
+			std::string enumStr = " label='Current fluid model' enum='" + oss.str() + "' group='Visualization'";
+			enumStr = enumStr + " help='Select a fluid model to set its parameters below.'";
+			TwAddVarCB(getTweakBar(), "CurrentFluidModel", enumType, setCurrentFluidModel, getCurrentFluidModel, this, enumStr.c_str());
 		}
-		// Choose velocity as default
-		if (!found)
-			m_colorField = velIdx;
-  	}
-	  	
-	std::string enumStr = " label='Color field' enum='" + oss.str() + "' group='Visualization'";
-	enumStr = enumStr + " help='Choose vector or scalar field for particle coloring.'";
-	TwAddVarRW(getTweakBar(), "ColorField", enumType, &m_colorField, enumStr.c_str());
-	  
+
+		// show GUI only for currently selected fluid model
+		if (fluids[m_currentFluidModel].partioData)
+		{
+			TwType enumType = TwDefineEnum("ColorFieldEnum", NULL, 0);
+			std::ostringstream oss;
+			m_mapColorField2Attr.clear();
+			int idx = 0;
+			for (int i = 0; i < fluids[m_currentFluidModel].partioData->numAttributes(); i++)
+			{
+				Partio::ParticleAttribute attr;
+				fluids[m_currentFluidModel].partioData->attributeInfo(i, attr);
+				if ((attr.type == Partio::FLOAT) || (attr.type == Partio::VECTOR))
+				{
+					m_mapColorField2Attr[idx] = i;
+					if (idx != 0)
+						oss << ", ";
+					oss << idx << " {" << attr.name.c_str() << "}";
+					idx++;
+				}
+			}
+
+			std::string enumStr = " label='Color field' enum='" + oss.str() + "' group='Visualization'";
+			enumStr = enumStr + " help='Choose vector or scalar field for particle coloring.'";
+			TwAddVarRW(getTweakBar(), "ColorField", enumType, &fluids[m_currentFluidModel].m_colorField, enumStr.c_str());
+		}
+	}
+		  
 	TwType enumType2 = TwDefineEnum("ColorMapTypeEnum", NULL, 0);
 	std::string str = " label='Color map' enum='0 {None}, 1 {Jet}, 2 {Plasma}' group='Visualization' help='Choose a color map.'";
-	TwAddVarRW(getTweakBar(), "ColorMapType", enumType2, &m_colorMapType, str.c_str());
+	TwAddVarRW(getTweakBar(), "ColorMapType", enumType2, &fluids[m_currentFluidModel].m_colorMapType, str.c_str());
 	str = " label='Min. value (shader)' step=0.001 precision=3 group='Visualization' help='Minimal value used for color-coding the color field in the rendering process.'";
-	TwAddVarRW(getTweakBar(), "RenderMinValue", TW_TYPE_FLOAT, &m_renderMinValue, str.c_str());
+	TwAddVarRW(getTweakBar(), "RenderMinValue", TW_TYPE_FLOAT, &fluids[m_currentFluidModel].m_renderMinValue, str.c_str());
 	str = " label='Max. value (shader)' step=0.001 precision=3 group='Visualization' help='Maximal value used for color-coding the color field in the rendering process.'";
-	TwAddVarRW(getTweakBar(), "RenderMaxValue", TW_TYPE_FLOAT, &m_renderMaxValue, str.c_str());
+	TwAddVarRW(getTweakBar(), "RenderMaxValue", TW_TYPE_FLOAT, &fluids[m_currentFluidModel].m_renderMaxValue, str.c_str());
 	  
 	TwAddVarCB(getTweakBar(), "StartFrame", TW_TYPE_INT32, setStartFrame, getStartFrame, m_viewer, " label='Start frame' min=0 group=Export");
 	TwAddVarCB(getTweakBar(), "EndFrame", TW_TYPE_INT32, setEndFrame, getEndFrame, m_viewer, " label='End frame' min=0 group=Export");
@@ -232,8 +215,9 @@ void PartioViewer_GUI_TweakBar::renderScene()
 	{
 		float fluidColor[4] = { 0.3f, 0.5f, 0.9f, 1.0f };
 		PartioViewer_OpenGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
-		PartioViewer_OpenGL::render(fluids[i], m_viewer->getParticleRadius(), fluidColor, m_colorMapType, m_colorField,
-			m_renderMinValue, m_renderMaxValue, m_viewer->getUsePlane());
+		PartioViewer_OpenGL::render(fluids[i], m_viewer->getParticleRadius(), fluidColor, 
+			fluids[i].m_colorMapType, m_mapColorField2Attr[fluids[i].m_colorField],
+			fluids[i].m_renderMinValue, fluids[i].m_renderMaxValue, m_viewer->getUsePlane());
 	}
 
 	float boundaryColor[4] = { 0.4f, 0.4f, 0.4f, 1.0f };
@@ -254,7 +238,7 @@ void PartioViewer_GUI_TweakBar::render()
 {
 	MiniGL::viewport();
 	renderScene();
-	glutSwapBuffers();
+	MiniGL::swapBuffers();
 }
 
 void PartioViewer_GUI_TweakBar::update()
@@ -466,6 +450,20 @@ void TW_CALL PartioViewer_GUI_TweakBar::getFPS(void *value, void *clientData)
 {
 	PartioViewer *viewer = (PartioViewer*)clientData;
 	*(int *)(value) = viewer->getFPS();
+}
+
+void TW_CALL PartioViewer_GUI_TweakBar::setCurrentFluidModel(const void* value, void* clientData)
+{
+	PartioViewer_GUI_TweakBar* pv = (PartioViewer_GUI_TweakBar*)clientData;
+	const int val = *(const int*)(value);
+	pv->m_currentFluidModel = val;
+	pv->initParameterGUI();
+}
+
+void TW_CALL PartioViewer_GUI_TweakBar::getCurrentFluidModel(void* value, void* clientData)
+{
+	PartioViewer_GUI_TweakBar* pv = (PartioViewer_GUI_TweakBar*)clientData;
+	*(int*)(value) = pv->m_currentFluidModel;
 }
 
 unsigned int PartioViewer_GUI_TweakBar::getWidth() const

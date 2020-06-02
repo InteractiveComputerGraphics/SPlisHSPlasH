@@ -33,4 +33,5 @@ set_target_properties(pysplishsplash PROPERTIES
         RELWITHDEBINFO_POSTFIX ""
         MINSIZEREL_POSTFIX "")
 
-target_link_libraries(pysplishsplash PRIVATE SPlisHSPlasH SimulatorBase)
+target_link_libraries(pysplishsplash PRIVATE SimulatorBase)
+add_dependencies(pysplishsplash SimulatorBase)

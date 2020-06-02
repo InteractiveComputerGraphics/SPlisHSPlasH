@@ -95,11 +95,6 @@ class CMakeBuild(build_ext):
             subprocess.check_call(['cmake3', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
             subprocess.check_call(['cmake3', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
 
-        # Copy dlls to ext directory so they are installed alongside the bindings
-        if platform.system() == "Windows":
-            subprocess.check_call(['cmake', '-E', 'copy', os.path.join(bin_dir_windows, "glew.dll"), extdir])
-            subprocess.check_call(['cmake', '-E', 'copy', os.path.join(bin_dir_windows, "freeglut.dll"), extdir])
-
 
 # List the files that should be installed alongside the package
 models = [os.path.join('data/models/', file) for file in os.listdir('data/models/')]
@@ -120,7 +115,7 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 
 setup(
     name=name,
-    version='2.7.0',
+    version='2.8.0',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',

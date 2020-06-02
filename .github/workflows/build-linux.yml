@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install libxrandr
-      run: sudo apt-get -y install libxrandr-dev
+      run: sudo apt-get -y install xorg-dev 
     - name: configure
       run: mkdir build-release && cd build-release && cmake -DCMAKE_BUILD_TYPE=Release ..
     - name: build
@@ -49,7 +49,7 @@ jobs:
         # python-versions: 'cp37-cp37m'
         python-versions: '${{ matrix.python-version }}'
         build-requirements: ''
-        system-packages: 'cmake3 libXrandr-devel libXi-devel libXmu-devel'
+        system-packages: 'cmake3 xorg-x11-proto-devel libXrandr-devel libXi-devel libXmu-devel'
         package-path: ''
         pip-wheel-args: '--manylinux-build -DUSE_AVX=Off'
 

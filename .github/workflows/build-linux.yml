@@ -49,7 +49,7 @@ jobs:
         # python-versions: 'cp37-cp37m'
         python-versions: '${{ matrix.python-version }}'
         build-requirements: ''
-        system-packages: 'cmake3 libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel mesa-libGL-devel libXi-devel'
+        system-packages: 'cmake3 libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel freeglut-devel libXi-devel'
         package-path: ''
         pip-wheel-args: '--manylinux-build -DUSE_AVX=Off'
 

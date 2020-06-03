@@ -17,7 +17,7 @@ def main():
     else:
         base.init(sys.argv, "[Python] SPlisHSPlasH")
 
-    gui = sph.GUI.Simulator_GUI_TweakBar(base)
+    gui = sph.GUI.Simulator_GUI_imgui(base)
     base.setGui(gui)
 
     base.run()

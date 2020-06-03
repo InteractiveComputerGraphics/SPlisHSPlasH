@@ -101,12 +101,14 @@ models = [os.path.join('data/models/', file) for file in os.listdir('data/models
 Scenes = [os.path.join('data/Scenes/', file) for file in os.listdir('data/Scenes/')]
 shaders = [os.path.join('data/shaders/', file) for file in os.listdir('data/shaders/')]
 emitter_boundary = [os.path.join('data/emitter_boundary/', file) for file in os.listdir('data/emitter_boundary/')]
+fonts = ['extern/imgui/misc/fonts/Roboto-Medium.ttf']
 
 # Install paths depending on system
 models_dest = 'data/models' if platform.system() == "Windows" else "bin/data/models"
 scenes_dest = 'data/Scenes' if platform.system() == "Windows" else "bin/data/Scenes"
 shaders_dest = 'resources/shaders' if platform.system() == "Windows" else 'bin/resources/shaders'
 emitter_boundary_dest = 'resources/emitter_boundary' if platform.system() == "Windows" else 'bin/resources/emitter_boundary'
+fonts_dest = 'resources/fonts' if platform.system() == "Windows" else 'bin/resources/fonts'
 
 # Get Readme text for long description
 cur_dir = os.path.abspath(os.path.dirname(__file__))
@@ -115,7 +117,7 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 
 setup(
     name=name,
-    version='2.8.0',
+    version='2.8.1',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',
@@ -131,6 +133,7 @@ setup(
     data_files=[(models_dest, [m for m in models if os.path.isfile(m)]),
                 (scenes_dest, [s for s in Scenes if os.path.isfile(s)]),
                 (shaders_dest, [s for s in shaders if os.path.isfile(s)]),
-				(emitter_boundary_dest, [s for s in emitter_boundary if os.path.isfile(s)])],
+				(emitter_boundary_dest, [s for s in emitter_boundary if os.path.isfile(s)]),
+				(fonts_dest, [f for f in fonts if os.path.isfile(f)])],
     zip_safe=False,
 )

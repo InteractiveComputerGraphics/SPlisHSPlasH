@@ -117,7 +117,7 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 
 setup(
     name=name,
-    version='2.8.1',
+    version='2.8.2',
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',

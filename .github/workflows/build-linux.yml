@@ -2,8 +2,6 @@ name: build-linux
 
 on:
   push:
-    branches: [ master, fix-ci-linux ]
-  pull_request:
     branches: [ master ]
 
 jobs:

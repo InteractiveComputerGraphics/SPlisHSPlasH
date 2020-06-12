@@ -3,8 +3,6 @@ name: build-linux
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
   build-ubuntu:
@@ -49,7 +47,7 @@ jobs:
         # python-versions: 'cp37-cp37m'
         python-versions: '${{ matrix.python-version }}'
         build-requirements: ''
-        system-packages: 'cmake3 libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel freeglut-devel libXi-devel'
+        system-packages: 'cmake3 libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGLU-devel'
         package-path: ''
         pip-wheel-args: '--manylinux-build -DUSE_AVX=Off'
 

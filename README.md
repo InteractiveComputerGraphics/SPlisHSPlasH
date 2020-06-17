@@ -1,7 +1,7 @@
 <img src="https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/logo.jpg" width="250">
 <br>
 
-<p align=center><img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-linux/badge.svg">&nbsp;&nbsp; <img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-windows/badge.svg">
+<p align=center><img src='https://readthedocs.org/projects/splishsplash/badge/?version=latest' alt='Documentation Status' />&nbsp;&nbsp; <img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-linux/badge.svg">&nbsp;&nbsp; <img src="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/workflows/build-windows/badge.svg">
 </p>
 <p align=center>
  <img src="https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/teaser.gif">

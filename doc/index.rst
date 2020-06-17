@@ -17,7 +17,7 @@
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Developer Guide:
 
    cmake_options

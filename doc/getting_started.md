@@ -13,19 +13,13 @@ The scene file format is explained [here.](file_format.md)
 ##### Command line options:
 
 * -h, --help: Print help text.
-
+* -v, --version: Print version.
 * --no-cache: Disable caching of boundary samples/maps.
-
 * --state-file: Load a simulation state of the corresponding scene.
-
 * --output-dir: Output directory for log file and partio files.
-
 * --no-initial-pause: Disable caching of boundary samples/maps.
-
 * --no-gui: Disable graphical user interface. The simulation is run only in the command line without graphical output. The "stopAt" option must be set in the scene file or by the next parameter.
-
 * --stopAt arg: Sets or overwrites the stopAt parameter of the scene.
-
 * --param arg: Sets or overwrites a parameter of the scene.
 	- Setting a fluid parameter: <fluid-id>:<parameter-name>:<value>
 		- Example: --param Fluid:viscosity:0.01

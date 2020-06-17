@@ -9,16 +9,18 @@
 
 .. toctree::
    :maxdepth: 2
-    :caption: About SPlisHSPlasH:
+   :caption: Introduction:
    
    about
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting Started:
-
    getting_started
    file_format
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer Guide:
+
+   cmake_options
 
 
 .. toctree::

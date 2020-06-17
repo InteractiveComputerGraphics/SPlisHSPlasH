@@ -273,9 +273,9 @@ void Elasticity_Becker2009::computeForces()
 			if (m_alpha != 0.0)
 			{
 				//////////////////////////////////////////////////////////////////////////
-				// Ganzenm�ller, G.C. 2015. An hourglass control algorithm for Lagrangian 
+				// Ganzenmüller, G.C. 2015. An hourglass control algorithm for Lagrangian
 				// Smooth Particle Hydrodynamics. Computer Methods in Applied Mechanics and 
-				// Engineering 286, 87�106.
+				// Engineering 286, 87.106.
 				//////////////////////////////////////////////////////////////////////////
 				Vector3r fi_hg;
 				fi_hg.setZero();

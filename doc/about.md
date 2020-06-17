@@ -1,4 +1,4 @@
-![logo](images/logo_small.jpg)
+![logo](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/logo_small.jpg)
 
 # About SPlisHSPlasH
 

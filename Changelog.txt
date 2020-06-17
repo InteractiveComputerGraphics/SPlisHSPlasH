@@ -1,3 +1,6 @@
+	- improved documentation
+	- added version file
+
 2.8.0
 	- performance improvements
 	- added GUI based on the imgui library

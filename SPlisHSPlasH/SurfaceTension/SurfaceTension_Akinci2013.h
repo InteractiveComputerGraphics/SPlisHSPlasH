@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the surface tension method introduced
-	* by Akinci et al. \cite Akinci:2013.
+	* by Akinci et al. [ATT13].
+	*
+	* References:
+	* - [AAT13] Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for sph fluids. ACM Trans. Graph., 32(6):182:1-182:8, November 2013. URL: http://doi.acm.org/10.1145/2508363.2508395
 	*/
 	class SurfaceTension_Akinci2013 : public SurfaceTensionBase
 	{

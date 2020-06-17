@@ -11,7 +11,10 @@ namespace SPH
 	class SimulationDataWCSPH;
 
 	/** \brief This class implements the Weakly Compressible SPH for Free Surface Flows approach introduced
-	* by Becker and Teschner \cite Becker:2007.
+	* by Becker and Teschner [BT07].
+	*
+	* References: 
+	* - [BT07] Markus Becker and Matthias Teschner. Weakly compressible SPH for free surface flows. In ACM SIGGRAPH/Eurographics Symposium on Computer Animation, SCA '07, 209-217. Aire-la-Ville, Switzerland, Switzerland, 2007. Eurographics Association. URL: http://dl.acm.org/citation.cfm?id=1272690.1272719
 	*/
 	class TimeStepWCSPH : public TimeStep
 	{

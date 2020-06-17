@@ -114,10 +114,15 @@ fonts_dest = 'resources/fonts' if platform.system() == "Windows" else 'bin/resou
 cur_dir = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(cur_dir, "README.md"), 'r') as f:
     long_description = f.read()
+	
+# read version	
+f = open("version", "r")
+splishsplash_version = f.readline()
+f.close() 
 
 setup(
     name=name,
-    version='2.8.2',
+    version=splishsplash_version,
     author='Interactive Computer Graphics',
     author_email='',
     description='SPlisHSPlasH Project Python Bindings',

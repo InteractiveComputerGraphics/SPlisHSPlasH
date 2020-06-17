@@ -23,6 +23,7 @@ Viscosity_Weiler2018::Viscosity_Weiler2018(FluidModel *model) :
 	m_maxError = static_cast<Real>(0.01);
 	m_iterations = 0;
 	m_boundaryViscosity = 0.0;
+	m_tangentialDistanceFactor = static_cast<Real>(0.5);
 
 	m_vDiff.resize(model->numParticles(), Vector3r::Zero());
 
@@ -156,7 +157,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = static_cast<Real>(0.5)*h;
+							const Real dist = visco->m_tangentialDistanceFactor * h;
 							const Vector3r x1 = xj - t1 * dist;
 							const Vector3r x2 = xj + t1 * dist;
 							const Vector3r x3 = xj - t2 * dist;
@@ -212,7 +213,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = static_cast<Real>(0.5)*h;
+							const Real dist = visco->m_tangentialDistanceFactor * h;
 							const Vector3r x1 = xj - t1*dist;
 							const Vector3r x2 = xj + t1*dist;
 							const Vector3r x3 = xj - t2*dist;
@@ -345,7 +346,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = 0.5*h;
+							const Real dist = visco->m_tangentialDistanceFactor * h;
 							const Vector3r x1 = xj - t1 * dist;
 							const Vector3r x2 = xj + t1 * dist;
 							const Vector3r x3 = xj - t2 * dist;
@@ -401,7 +402,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 							Vector3r t2;
 							MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-							const Real dist = 0.5*h;
+							const Real dist = visco->m_tangentialDistanceFactor * h;
 							const Vector3r x1 = xj - t1*dist;
 							const Vector3r x2 = xj + t1*dist;
 							const Vector3r x3 = xj - t2*dist;
@@ -538,7 +539,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = static_cast<Real>(0.5)*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;
@@ -579,7 +580,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = static_cast<Real>(0.5)*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1 * dist;
 					const Vector3r x2 = xj + t1 * dist;
 					const Vector3r x3 = xj - t2 * dist;
@@ -679,7 +680,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -720,7 +721,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -823,7 +824,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;
@@ -865,7 +866,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 					Vector3r t2;
 					MathFunctions::getOrthogonalVectors(normal, t1, t2);
 
-					const Real dist = 0.5*h;
+					const Real dist = visco->m_tangentialDistanceFactor * h;
 					const Vector3r x1 = xj - t1*dist;
 					const Vector3r x2 = xj + t1*dist;
 					const Vector3r x3 = xj - t2*dist;

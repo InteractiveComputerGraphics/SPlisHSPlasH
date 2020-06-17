@@ -22,7 +22,10 @@ copyright = '2020, Interactive Computer Graphics'
 author = 'Interactive Computer Graphics'
 
 # The full version, including alpha/beta/rc tags
-release = '2.8.2'
+f = open("../version", "r")
+release = f.readline()
+f.close() 
+os.environ["SPH_VERSION"] = release
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,7 +37,8 @@ extensions = [
     'breathe',
     'exhale',
     'sphinx_rtd_theme',
-    'recommonmark'
+    'recommonmark',
+	'sphinxcontrib.bibtex'
 ]
 
 # Setup the breathe extension

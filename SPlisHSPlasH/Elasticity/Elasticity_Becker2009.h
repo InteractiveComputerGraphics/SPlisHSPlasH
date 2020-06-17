@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the corotated SPH method for deformable solids introduced
-	* by Becker et al. \cite Becker:2009.
+	* by Becker et al. [BIT09].
+	*
+	* References: 
+	* - [BIT09] Markus Becker, Markus Ihmsen, and Matthias Teschner. Corotated SPH for deformable solids. In Proceedings of Eurographics Conference on Natural Phenomena, 27-34. 2009. URL: http://dx.doi.org/10.2312EG/DL/conf/EG2009/nph/027-034
 	*/
 	class Elasticity_Becker2009 : public ElasticityBase
 	{

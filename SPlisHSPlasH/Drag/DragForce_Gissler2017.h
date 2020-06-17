@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the drag force computation introduced
-	* by Gissler et al. \cite Gissler:2017.
+	* by Gissler et al. [GBP+17].
+	*
+	* References:
+	* - [GPB+17] Christoph Gissler, Stefan Band, Andreas Peer, Markus Ihmsen, and Matthias Teschner. Approximate air-fluid interactions for SPH. In Virtual Reality Interactions and Physical Simulations, 1-10. April 2017. URL: http://dx.doi.org/10.2312/vriphys.20171081
 	*/
 	class DragForce_Gissler2017 : public DragBase
 	{

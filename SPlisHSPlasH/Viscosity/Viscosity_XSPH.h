@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the XSPH method descibed by
-	* Schechter and Bridson \cite Schechter:2012.
+	* Schechter and Bridson [SB12].
+	*
+	* References:
+	* - [SB12] Hagit Schechter and Robert Bridson. Ghost sph for animating water. ACM Trans. Graph., 31(4):61:1-61:8, July 2012. URL: http://doi.acm.org/10.1145/2185520.2185557
 	*/
 	class Viscosity_XSPH : public ViscosityBase
 	{

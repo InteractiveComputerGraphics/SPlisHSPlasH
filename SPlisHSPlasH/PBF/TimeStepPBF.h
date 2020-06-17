@@ -12,7 +12,12 @@ namespace SPH
 
 
 	/** \brief This class implements the position-based fluids approach introduced 
-	* by Macklin and Mueller \cite Macklin:2013:PBF, \cite BMOTM2014, \cite BMM2015.
+	* by Macklin and Mueller [MM13,BMO+14,BMM15].
+	*
+	* References:
+	* - [MM13] Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1-104:12, July 2013. URL: http://doi.acm.org/10.1145/2461912.2461984
+	* - [BMO+14] Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, and Miles Macklin. A survey on position-based simulation methods in computer graphics. Computer Graphics Forum, 33(6):228-251, 2014. URL: http://dx.doi.org/10.1111/cgf.12346
+	* - [BMM15] Jan Bender, Matthias Müller, and Miles Macklin. Position-based simulation methods in computer graphics. In EUROGRAPHICS 2015 Tutorials. Eurographics Association, 2015. URL: http://dx.doi.org/10.2312/egt.20151045
 	*/
 	class TimeStepPBF : public TimeStep
 	{

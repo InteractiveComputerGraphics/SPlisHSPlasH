@@ -328,7 +328,10 @@ namespace SPH
 		}
 	};
 
-	/** \brief Cohesion kernel used for the surface tension method of Akinci el al. \cite Akinci:2013.
+	/** \brief Cohesion kernel used for the surface tension method of Akinci el al. [ATT13].
+	*
+	* References:
+	* - [AAT13] Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for sph fluids. ACM Trans. Graph., 32(6):182:1-182:8, November 2013. URL: http://doi.acm.org/10.1145/2508363.2508395
 	*/
 	class CohesionKernel
 	{
@@ -396,7 +399,10 @@ namespace SPH
 		}
 	};
 
-	/** \brief Adhesion kernel used for the surface tension method of Akinci el al. \cite Akinci:2013.
+	/** \brief Adhesion kernel used for the surface tension method of Akinci el al. [ATT13].
+	*
+	* References:
+	* - [AAT13] Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for sph fluids. ACM Trans. Graph., 32(6):182:1-182:8, November 2013. URL: http://doi.acm.org/10.1145/2508363.2508395
 	*/
 	class AdhesionKernel
 	{
@@ -595,9 +601,13 @@ namespace SPH
 	};
 
 
-	/** \brief Precomputed kernel which is based on a lookup table as described by Bender and Koschier \cite Bender:2015, \cite Bender2017.
+	/** \brief Precomputed kernel which is based on a lookup table as described by Bender and Koschier [BK15,BK17].
 	*
 	* The lookup tables can be used in combination with any kernel. 
+	*
+	* References:
+	* - [BK15] Jan Bender and Dan Koschier. Divergence-free smoothed particle hydrodynamics. In ACM SIGGRAPH / Eurographics Symposium on Computer Animation, SCA '15, 147-155. New York, NY, USA, 2015. ACM. URL: http://doi.acm.org/10.1145/2786784.2786796
+	* - [BK17] Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 23(3):1193-1206, 2017. URL: http://dx.doi.org/10.1109/TVCG.2016.2578335
 	*/
 	template<typename KernelType, unsigned int resolution = 10000u>
 	class PrecomputedKernel

@@ -50,15 +50,8 @@ splash --help
 
 ## Documentation
 
-* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/getting_started.md)
-* [Scene file format](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/file_format.md)
-* [CMake Options](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/cmake_options.md)
+* [Documentation](https://splishsplash.readthedocs.io)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
-* Python binding:
-	* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_getting_started.md)
-	* [Creating scenes](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_creating_scenes.md)
-	* [Restrictions](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_restrictions.md)
-* The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features
 

@@ -8,7 +8,10 @@
 namespace SPH 
 {	
 	/** \brief Simulation data which is required by the method Predictive-corrective Incompressible SPH introduced
-	* by Solenthaler and Pajarola \cite Solenthaler:2009.
+	* by Solenthaler and Pajarola [SP09].
+	*
+	* References:
+	* - [SP09] B. Solenthaler and R. Pajarola. Predictive-corrective incompressible SPH. ACM Trans. Graph., 28(3):40:1-40:6, July 2009. URL: http://doi.acm.org/10.1145/1531326.1531346
 	*/
 	class SimulationDataPCISPH
 	{

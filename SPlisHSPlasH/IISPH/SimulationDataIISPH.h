@@ -8,7 +8,10 @@
 namespace SPH 
 {	
 	/** \brief Simulation data which is required by the method Implicit Incompressible SPH introduced
-	* by Ihmsen et al. \cite Ihmsen:2014.
+	* by Ihmsen et al. [ICS+14].
+	*
+	* References:
+	* - [ICS+14] Markus Ihmsen, Jens Cornelis, Barbara Solenthaler, Christopher Horvath, and Matthias Teschner. Implicit incompressible SPH. IEEE Transactions on Visualization and Computer Graphics, 20(3):426-435, March 2014. URL: http://dx.doi.org/10.1109/TVCG.2013.105
 	*/
 	class SimulationDataIISPH
 	{

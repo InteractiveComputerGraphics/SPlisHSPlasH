@@ -8,7 +8,11 @@
 namespace SPH 
 {	
 	/** \brief Simulation data which is required by the method Divergence-free Smoothed Particle Hydrodynamics introduced
-	* by Bender and Koschier \cite Bender:2015, \cite Bender2017.
+	* by Bender and Koschier [BK15,BK17].
+	*
+	* References:
+	* - [BK15] Jan Bender and Dan Koschier. Divergence-free smoothed particle hydrodynamics. In ACM SIGGRAPH / Eurographics Symposium on Computer Animation, SCA '15, 147-155. New York, NY, USA, 2015. ACM. URL: http://doi.acm.org/10.1145/2786784.2786796
+	* - [BK17] Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 23(3):1193-1206, 2017. URL: http://dx.doi.org/10.1109/TVCG.2016.2578335
 	*/
 	class SimulationDataDFSPH
 	{
@@ -17,7 +21,7 @@ namespace SPH
 			virtual ~SimulationDataDFSPH();
 
 		protected:	
-			/** \brief factor \f$\alpha_i\f$ \cite Bender:2015 */
+			/** \brief factor \f$\alpha_i\f$ */
 			std::vector<std::vector<Real>> m_factor;
 			/** \brief stores \f$\kappa\f$ value of last time step for a warm start of the pressure solver */
 			std::vector<std::vector<Real>> m_kappa;

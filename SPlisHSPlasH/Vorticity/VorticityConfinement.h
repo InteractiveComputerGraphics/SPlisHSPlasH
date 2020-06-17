@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the vorticity confinement method introduced
-	* by Macklin and Mueller \cite Macklin:2013:PBF.
+	* by Macklin and Mueller [MM13].
+	*
+	* References:
+	* - [MM13] Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1-104:12, July 2013. URL: http://doi.acm.org/10.1145/2461912.2461984
 	*/
 	class VorticityConfinement : public VorticityBase
 	{

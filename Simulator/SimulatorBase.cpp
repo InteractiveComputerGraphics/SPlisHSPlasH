@@ -207,6 +207,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 
 		options.add_options()
 			("h,help", "Print help")
+			("v,version", "Print version")
 			("no-cache", "Disable caching of boundary samples/maps.")
 			("state-file", "State file (state_<time>.bin) that should be loaded.", cxxopts::value<std::string>())
 			("output-dir", "Output directory for log file and partio files.", cxxopts::value<std::string>())
@@ -230,6 +231,12 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 		if (result.count("help"))
 		{
 			std::cout << options.help({ "" }) << std::endl;
+			exit(0);
+		}
+
+		if (result.count("version"))
+		{
+			std::cout << SPLISHSPLASH_VERSION << std::endl;
 			exit(0);
 		}
 
@@ -317,10 +324,11 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 	FileSystem::makeDirs(logPath);
 	Utilities::logger.addSink(unique_ptr<Utilities::FileSink>(new Utilities::FileSink(Utilities::LogLevel::DEBUG, logPath + "/SPH_log.txt")));
 
-	LOG_DEBUG << "Git refspec: " << GIT_REFSPEC;
-	LOG_DEBUG << "Git SHA1:    " << GIT_SHA1;
-	LOG_DEBUG << "Git status:  " << GIT_LOCAL_STATUS;
-	LOG_DEBUG << "Host name:   " << SystemInfo::getHostName();
+	LOG_INFO  << "SPlisHSPlasH version: " << SPLISHSPLASH_VERSION;
+	LOG_DEBUG << "Git refspec:          " << GIT_REFSPEC;
+	LOG_DEBUG << "Git SHA1:             " << GIT_SHA1;
+	LOG_DEBUG << "Git status:           " << GIT_LOCAL_STATUS;
+	LOG_DEBUG << "Host name:            " << SystemInfo::getHostName();
 
 	if (!getUseParticleCaching())
 		LOG_INFO << "Boundary cache disabled.";

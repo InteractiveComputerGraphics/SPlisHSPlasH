@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the surface tension method introduced
-	* by He et al. \cite He:2014.
+	* by He et al. [HWZ+14].
+	*
+	* References:
+	* - [HWZ+14] Xiaowei He, Huamin Wang, Fengjun Zhang, Hongan Wang, Guoping Wang, and Kun Zhou. Robust simulation of sparsely sampled thin features in SPH-based free surface flows. ACM Trans. Graph., 34(1):7:1-7:9, December 2014. URL: http://doi.acm.org/10.1145/2682630
 	*/
 	class SurfaceTension_He2014 : public SurfaceTensionBase
 	{

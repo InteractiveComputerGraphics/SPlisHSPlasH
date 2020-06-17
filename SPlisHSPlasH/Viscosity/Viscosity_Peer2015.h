@@ -11,7 +11,10 @@ namespace SPH
 {
 	/** \brief This class implements the implicit simulation method for
 	* viscous fluids introduced
-	* by Peer et al. \cite Peer2015.
+	* by Peer et al. [PICT15].
+	*
+	* References:
+	* - [PICT15] A. Peer, M. Ihmsen, J. Cornelis, and M. Teschner. An Implicit Viscosity Formulation for SPH Fluids. ACM Trans. Graph., 34(4):1-10, 2015. URL: http://doi.acm.org/10.1145/2766925
 	*/
 	class Viscosity_Peer2015 : public ViscosityBase
 	{

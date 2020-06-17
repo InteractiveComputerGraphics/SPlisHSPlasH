@@ -38,7 +38,7 @@ PROJECT_NAME           = SPlisHSPlasH
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 2.8.2
+PROJECT_NUMBER         = $(SPH_VERSION)
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
@@ -782,7 +782,6 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ../SPlisHSPlasH \
-#                          ../doc \
                          ../Utilities
 
 # This tag can be used to specify the character encoding of the source files

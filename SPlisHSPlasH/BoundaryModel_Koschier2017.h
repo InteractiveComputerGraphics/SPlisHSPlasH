@@ -14,7 +14,10 @@ namespace SPH
 	class TimeStep;
 
 	/** \brief The boundary model stores the information required for boundary handling
-	* using the approach of Koschier and Bender 2017 \cite KB17.
+	* using the approach of Koschier and Bender 2017 [KB17].
+	* 
+	* References:
+	* - [KB17] Dan Koschier and Jan Bender. Density maps for improved SPH boundary handling. In ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 1-10. July 2017. URL: http://dx.doi.org/10.1145/3099564.3099565
 	*/
 	class BoundaryModel_Koschier2017 : public BoundaryModel
 	{

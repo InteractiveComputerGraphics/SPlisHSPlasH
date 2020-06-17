@@ -175,6 +175,8 @@ namespace Utilities
 
 		static std::string normalizePath(const std::string &path)
 		{
+			if (path.size() == 0)
+				return path;
 			std::string result = path;
 			std::replace(result.begin(), result.end(), '\\', '/');
 			std::vector<std::string> tokens;
@@ -185,7 +187,7 @@ namespace Utilities
 				if ((tokens[index] == "..") && (index > 0))
 				{
 					tokens.erase(tokens.begin() + index - 1, tokens.begin() + index + 1);
-					index--;
+					index-=2;
 				}
 				index++;
 			}

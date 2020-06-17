@@ -8,7 +8,10 @@
 namespace SPH
 {
 	/** \brief This class implements the drag force computation introduced
-	* by Macklin et al. \cite Macklin:2014.
+	* by Macklin et al. [MMCK14].
+	*
+	* References:
+	* - [MMCK14] Miles Macklin, Matthias Müller, Nuttapong Chentanez, and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4):1-12, 2014. URL: http://doi.acm.org/10.1145/2601097.2601152
 	*/
 	class DragForce_Macklin2014 : public DragBase
 	{

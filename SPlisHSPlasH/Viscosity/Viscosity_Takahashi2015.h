@@ -10,13 +10,16 @@
 namespace SPH
 {
 	/** \brief This class implements a variant of the implicit simulation method for
-	* viscous fluids introduced by Takahashi et al. \cite Takahashi2015.
+	* viscous fluids introduced by Takahashi et al. [TDF+15].
 	* In the original work of Takahashi et al. the second-ring neighbors are required
 	* to create the matrix of the linear system. In contrast we use a meshless 
 	* conjugate gradient solver which performs the required matrix-vector multiplication 
 	* in two sequential loops. In this way only the one-ring neighbors are required
 	* in each loop which increases the performance significantly.\n\n
 	* Thanks to Anreas Peer who helped us with the implementation.
+	*
+	* References:
+	* - [TDF+15] T. Takahashi, Y. Dobashi, I. Fujishiro, T. Nishita, and M.C. Lin. Implicit Formulation for SPH-based Viscous Fluids. Computer Graphics Forum, 34(2):493-502, 2015. URL: http://dx.doi.org/10.1111/cgf.12578
 	*/
 	class Viscosity_Takahashi2015 : public ViscosityBase
 	{

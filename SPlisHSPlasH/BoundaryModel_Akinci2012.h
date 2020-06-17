@@ -13,7 +13,10 @@ namespace SPH
 	class TimeStep;
 
 	/** \brief The boundary model stores the information required for boundary handling
-	* using the approach of Akinci et al. 2012 \cite Akinci:2012.
+	* using the approach of Akinci et al. 2012 [AIA+12].
+	*
+	* References:
+	* - [AIA+12] Nadir Akinci, Markus Ihmsen, Gizem Akinci, Barbara Solenthaler, and Matthias Teschner. Versatile rigid-fluid coupling for incompressible SPH. ACM Trans. Graph., 31(4):62:1-62:8, July 2012. URL: http://doi.acm.org/10.1145/2185520.2185558
 	*/
 	class BoundaryModel_Akinci2012 : public BoundaryModel
 	{

@@ -14,7 +14,10 @@ namespace SPH
 	class TimeStep;
 
 	/** \brief The boundary model stores the information required for boundary handling
-	* using the approach of Bender et al. 2019 \cite BKWK19.
+	* using the approach of Bender et al. 2019 [BKWK19].
+	*
+	* References:
+	* - [BKWK19] Jan Bender, Tassilo Kugelstadt, Marcel Weiler, and Dan Koschier. Volume maps: an implicit boundary representation for SPH. In Proceedings of ACM SIGGRAPH Conference on Motion, Interaction and Games, MIG '19. ACM, 2019. URL: https://dl.acm.org/doi/10.1145/3359566.3360077
 	*/
 	class BoundaryModel_Bender2019 : public BoundaryModel
 	{

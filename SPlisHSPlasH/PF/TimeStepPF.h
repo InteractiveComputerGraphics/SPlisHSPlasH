@@ -13,7 +13,10 @@
 namespace SPH
 {
 	/** \brief This class implements the Projective Fluids approach introduced
-	* by Weiler, Koschier and Bender \cite Weiler:2016.
+	* by Weiler, Koschier and Bender [WKB16].
+	*
+	* References:
+	* - [WKB16] Marcel Weiler, Dan Koschier, and Jan Bender. Projective fluids. In Proceedings of the 9th International Conference on Motion in Games, MIG '16, 79-84. New York, NY, USA, 2016. ACM. URL: http://doi.acm.org/10.1145/2994258.2994282
 	*/
 	class TimeStepPF : public TimeStep
 	{

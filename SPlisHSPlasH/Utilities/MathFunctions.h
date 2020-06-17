@@ -10,7 +10,7 @@ namespace SPH
 	{
 	public:
 		/** Implementation of the paper: \n
-		 * Matthias Müller, Jan Bender, Nuttapong Chentanez and Miles Macklin, 
+		 * Matthias MÃ¼ller, Jan Bender, Nuttapong Chentanez and Miles Macklin,
 		 * "A Robust Method to Extract the Rotational Part of Deformations", 
 		 * ACM SIGGRAPH Motion in Games, 2016
 		 */

@@ -40,7 +40,7 @@ pip install pysplishsplash
 ```
 These are available for Python Versions: 2.7, 3.5, 3.6, 3.7, 3.8.
 If you do not meet these conditions please refer to the build instructions and to the python binding 
-[Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md).
+[Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_getting_started.md).
 
 The command line simulator is available by running one of the following
 ```
@@ -55,9 +55,9 @@ splash --help
 * [CMake Options](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/cmake_options.md)
 * [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 * Python binding:
-	* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/getting_started.md)
-	* [Creating scenes](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/creating_scenes.md)
-	* [Restrictions](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/pysplishsplash/restrictions.md)
+	* [Getting started](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_getting_started.md)
+	* [Creating scenes](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_creating_scenes.md)
+	* [Restrictions](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_restrictions.md)
 * The API documentation can be found here: http://www.interactive-graphics.de/SPlisHSPlasH/doc/html
 
 ## Features

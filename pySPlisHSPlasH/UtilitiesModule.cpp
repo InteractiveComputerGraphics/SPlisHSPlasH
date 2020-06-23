@@ -304,7 +304,7 @@ void UtilitiesModule(py::module m) {
     py::class_<SceneInfo::FluidData>(m_sub_sub, "FluidData")
             .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, unsigned char,
                     bool, std::array<unsigned int, 3>>(),
-                    "samplesFile"_a, "id"_a="Fluid", "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
+                    "id"_a="Fluid", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
                     "rotation"_a=Matrix3r::Identity(), "scale"_a=Vector3r::Ones(),
                     "initialVelocity"_a=Vector3r::Zero(),"mode"_a=0, "invert"_a=false,
                     "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))

@@ -14,6 +14,7 @@
 #include "SurfaceTension/SurfaceTension_Becker2007.h"
 #include "SurfaceTension/SurfaceTension_Akinci2013.h"
 #include "SurfaceTension/SurfaceTension_He2014.h"
+#include "SurfaceTension/SurfaceTension_ZorillaRitter2020.h"
 #include "Viscosity/Viscosity_XSPH.h"
 #include "Viscosity/Viscosity_Standard.h"
 #include "Viscosity/Viscosity_Bender2017.h"
@@ -48,6 +49,7 @@ int FluidModel::ENUM_SURFACETENSION_NONE = -1;
 int FluidModel::ENUM_SURFACETENSION_BECKER2007 = -1;
 int FluidModel::ENUM_SURFACETENSION_AKINCI2013 = -1;
 int FluidModel::ENUM_SURFACETENSION_HE2014 = -1;
+int FluidModel::ENUM_SURFACETENSION_ZORILLARITTER2020 = -1;
 int FluidModel::ENUM_VISCOSITY_NONE = -1;
 int FluidModel::ENUM_VISCOSITY_STANDARD = -1;
 int FluidModel::ENUM_VISCOSITY_XSPH = -1;
@@ -167,6 +169,7 @@ void FluidModel::initParameters()
 	enumParam->addEnumValue("Becker & Teschner 2007", ENUM_SURFACETENSION_BECKER2007);
 	enumParam->addEnumValue("Akinci et al. 2013", ENUM_SURFACETENSION_AKINCI2013);
 	enumParam->addEnumValue("He et al. 2014", ENUM_SURFACETENSION_HE2014);
+	enumParam->addEnumValue("Zorilla, Ritter, et al. 2020", ENUM_SURFACETENSION_ZORILLARITTER2020);
 
 
 	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&FluidModel::getViscosityMethod, this);
@@ -480,6 +483,8 @@ void FluidModel::setSurfaceTensionMethod(const int val)
 		m_surfaceTension = new SurfaceTension_Akinci2013(this);
 	else if (m_surfaceTensionMethod == SurfaceTensionMethods::He2014)
 		m_surfaceTension = new SurfaceTension_He2014(this);
+	else if (m_surfaceTensionMethod == SurfaceTensionMethods::ZorillaRitter2020)
+		m_surfaceTension = new SurfaceTension_ZorillaRitter2020(this);
 
 	if (m_surfaceTension != nullptr)
 		m_surfaceTension->init();

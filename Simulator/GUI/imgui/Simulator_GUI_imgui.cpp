@@ -217,6 +217,9 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			param->items.push_back("None");
 			param->items.push_back("Jet");
 			param->items.push_back("Plasma");
+			param->items.push_back("BlueWhiteRed");
+			param->items.push_back("BlueWhiteRed_atan");
+			param->items.push_back("BlueWhiteGreen");
 			param->getFct = [this]() -> int { return getSimulatorBase()->getColorMapType(m_currentFluidModel); };
 			param->setFct = [this](int v) { getSimulatorBase()->setColorMapType(m_currentFluidModel, v); };
 			imguiParameters::addParam("Fluid Model", model->getId(), param);

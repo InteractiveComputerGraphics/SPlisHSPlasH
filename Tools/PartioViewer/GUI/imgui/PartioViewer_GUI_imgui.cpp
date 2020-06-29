@@ -255,6 +255,9 @@ void PartioViewer_GUI_imgui::initParameterGUI()
 			param->items.push_back("None");
 			param->items.push_back("Jet");
 			param->items.push_back("Plasma");
+			param->items.push_back("BlueWhiteRed");
+			param->items.push_back("BlueWhiteRed_atan");
+			param->items.push_back("BlueWhiteGreen");
 			param->getFct = [this]() -> int { return m_viewer->getFluids()[m_currentFluidModel].m_colorMapType; };
 			param->setFct = [this](int v) { m_viewer->getFluids()[m_currentFluidModel].m_colorMapType = v; };
 			imguiParameters::addParam("Visualization", "", param);

@@ -3,6 +3,10 @@
 #include "GUI/OpenGL/MiniGL.h"
 #include "GUI/OpenGL/colormaps/colormap_jet.h"
 #include "GUI/OpenGL/colormaps/colormap_plasma.h"
+#include "GUI/OpenGL/colormaps/colormap_bwr.h"
+#include "GUI/OpenGL/colormaps/colormap_bwr_atan.h"
+#include "GUI/OpenGL/colormaps/colormap_bwg.h"
+
 #include "SPlisHSPlasH/FluidModel.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/TimeManager.h"
@@ -204,6 +208,12 @@ void Simulator_OpenGL::renderFluid(FluidModel *model, float *fluidColor,
 			color_map = reinterpret_cast<float const*>(colormap_jet);
 		else if (colorMapType == 2)
 			color_map = reinterpret_cast<float const*>(colormap_plasma);
+		else if (colorMapType == 3)
+			color_map = reinterpret_cast<float const*>(colormap_bwr);
+		else if (colorMapType == 4)
+			color_map = reinterpret_cast<float const*>(colormap_bwr_atan);
+		else if (colorMapType == 5)
+			color_map = reinterpret_cast<float const*>(colormap_bwg);
 
 		if (colorMapType == 0)
 		{

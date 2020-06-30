@@ -64,6 +64,13 @@ namespace SPH
 
 			void saveState(BinaryFileWriter &binWriter);
 			void loadState(BinaryFileReader &binReader);
+
+			const Vector3r &getPosition() const { return m_x; }
+			void setPosition(const Vector3r& x) { m_x = x; }
+			const Matrix3r& getRotation() const { return m_rotation; }
+			void setRotation(const Matrix3r& r) { m_rotation = r; }
+			const Real getVelocity() const { return m_velocity; }
+			void setVelocity(const Real v) { m_velocity = v; }
 	};
 }
 

@@ -209,9 +209,9 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 		getVersionFct, setVersionFct );
 
 	// 2019 & 2020
-	setupGUIParam<int> (CSD,    "Csd",     grp19, "Samples per Second.",      &m_Csd);
-	setupGUIParam<double>(R2MULT, "r-ratio", grp19, "R1 to R2 ratio.",        &m_r2mult);
-	setupGUIParam<double>(TAU,    "tau",     grp19, "Smoothing factor tau.",  &m_tau);
+	setupGUIParam<int> (CSD,       "Csd",       grp19, "Samples per Second.",      &m_Csd);
+	setupGUIParam<double>(R2MULT,  "r-ratio", grp19, "R1 to R2 ratio.",        &m_r2mult);
+	setupGUIParam<double>(TAU,     "tau",     grp19, "Smoothing factor tau.",  &m_tau);
 	setupGUIParam<double>(CLASS_D, "d",      grp19, "Classifier constant d.", &m_class_d);
 
 	// 2020
@@ -372,6 +372,10 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 	double r2 = m_r2mult * r1;        // m_r2mult=0.8 best results empirically
 	const unsigned int NumberOfPoints = int( m_Csd * timeStep ); // was m_Csd=100000
 
+	const int fluidModelIndex = 0; // hardcode for now
+
+	FluidModel* model = m_model;
+
 #pragma omp parallel default(shared)
 	{
 #pragma omp for schedule(static)  
@@ -384,39 +388,31 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 #endif
 
 			Vector3r centerofMasses = Vector3r::Zero();
-			int numberOfNeighbours = sim->numberOfNeighbors( 0, 0, i );
+			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
 
-			if (sim->numberOfNeighbors( 0, 0, i ) == 0) { goto nextParticle; }
+			if (sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i ) == 0) { goto nextParticle; }
 			const Vector3r& xi = m_model->getPosition( i );
 
-			for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
-			{
-				unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
-				Vector3r& xj = m_model->getPosition( neighborIndex );
+			forall_fluid_neighbors_in_same_phase(
 				Vector3r xjxi = (xj - xi);
+				centerofMasses += xjxi / supportRadius; )
 
-				centerofMasses += xjxi / supportRadius;
-			}
 			if (ClassifyPoint( centerofMasses.norm() / double( numberOfNeighbours ), numberOfNeighbours )) //EvaluateNetwork also possible
 			{
 				std::vector<Vector3r> points = GetRandSurfacePoints( NumberOfPoints, supportRadius );
-				for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
-				{
-					unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
-					Vector3r& xj = m_model->getPosition( neighborIndex );
-					Vector3r xjxi = (xj - xi);
 
+				forall_fluid_neighbors_in_same_phase(
+					Vector3r xjxi = (xj - xi);
 					for (int p = points.size() - 1; p >= 0; --p)
 					{
 						Vector3r vec = (points[p] - xjxi);
 						Real dist = vec.squaredNorm();
-						if (dist <= pow( (r2 / r1), 2 ) * supportRadius * supportRadius)
+						if (dist <= pow((r2 / r1), 2) * supportRadius * supportRadius)
 						{
-							points.erase( points.begin() + p );
+							points.erase(points.begin() + p);
 						}
-					}
-				}
+					} )
 
 				for (int p = points.size() - 1; p >= 0; --p)
 				{
@@ -426,8 +422,6 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				if (points.size() > 0)
 				{
 					m_normals[i].normalize();
-
-					//m_curvatures[i] =(1/supportRadius)*8.301*(points.size() / double(NumberOfPoints) - 0.1);
 
 					m_curvatures[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (r2 * r2 / (r1 * r1))), -0.5 ) *
 						cos( acos( 1 - 2 * (points.size() / double( NumberOfPoints )) ) + asin( r2 / r1 ) );
@@ -463,24 +457,16 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				double curvatureCorrection = 0;
 				double correctionFactor = 0.0;
 
-				for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
-				{
-					unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
-
+				forall_fluid_neighbors_in_same_phase( 
 					if (m_normals[neighborIndex] != Vector3r::Zero())
 					{
-						Vector3r& xj = m_model->getPosition( neighborIndex );
 						Vector3r xjxi = (xj - xi);
-
 						double distanceji = xjxi.norm();
 
 						normalCorrection += m_normals[neighborIndex] * (1 - distanceji / supportRadius);
-
 						curvatureCorrection += m_curvatures[neighborIndex] * (1 - distanceji / supportRadius);
-
 						correctionFactor += (1 - distanceji / supportRadius);
-					}
-				}
+					} )
 
 				normalCorrection.normalize();
 				normalCorrection = (1 - m_tau) * m_normals[i] + m_tau * normalCorrection;
@@ -643,10 +629,14 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 	unsigned int NrOfSamples;
 
+	const int fModelIdx = 0; // hardcode for now
+
 	if (m_CsdFix > 0)
 		NrOfSamples = m_CsdFix;
 	else
 		NrOfSamples = int( m_Csd * timeStep );
+
+
 
 
 	// ################################################################################################
@@ -675,7 +665,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 			// -- compute center of mass of current particle
 
 			Vector3r centerofMasses = Vector3r::Zero();
-			int numberOfNeighbours = sim->numberOfNeighbors( 0, 0, i );
+			int numberOfNeighbours = sim->numberOfNeighbors(fModelIdx, fModelIdx, i );
 
 			if (sim->numberOfNeighbors( 0, 0, i ) == 0)
 			{
@@ -684,9 +674,9 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 			}
 
 			const Vector3r& xi = m_model->getPosition( i );
-			for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
+			for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
 			{
-				unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
+				unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
 				Vector3r& xj = m_model->getPosition( neighborIndex );
 				Vector3r xjxi = (xj - xi);
 
@@ -715,9 +705,9 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 
 				//  -- remove samples covered by neighbor spheres
-				for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
+				for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
 				{
-					unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
+					unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
 					Vector3r& xj = m_model->getPosition( neighborIndex );
 					Vector3r xjxi = (xj - xi);
 
@@ -809,7 +799,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 				int t_count = 0;
 				Vector3r neighCent = Vector3r::Zero();
 
-				int nrNeighhbors = sim->numberOfNeighbors( 0, 0, i );
+				int nrNeighhbors = sim->numberOfNeighbors(fModelIdx, fModelIdx, i );
 
 				for (unsigned int j = 0; j < nrNeighhbors; j++)
 				{
@@ -1005,9 +995,9 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 					const Vector3r& xi = m_model->getPosition( i );
 
-					for (unsigned int j = 0; j < sim->numberOfNeighbors( 0, 0, i ); j++)
+					for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
 					{
-						unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
+						unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
 
 						if (m_normals[neighborIndex] != Vector3r::Zero())
 						{

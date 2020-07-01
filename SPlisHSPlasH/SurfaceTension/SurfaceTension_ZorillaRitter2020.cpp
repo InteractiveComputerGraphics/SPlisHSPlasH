@@ -210,9 +210,9 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 
 	// 2019 & 2020
 	setupGUIParam<int> (CSD,       "Csd",       grp19, "Samples per Second.",      &m_Csd);
-	setupGUIParam<double>(R2MULT,  "r-ratio", grp19, "R1 to R2 ratio.",        &m_r2mult);
-	setupGUIParam<double>(TAU,     "tau",     grp19, "Smoothing factor tau.",  &m_tau);
-	setupGUIParam<double>(CLASS_D, "d",      grp19, "Classifier constant d.", &m_class_d);
+	setupGUIParam<Real>(R2MULT,  "r-ratio", grp19, "R1 to R2 ratio.",        &m_r2mult);
+	setupGUIParam<Real>(TAU,     "tau",     grp19, "Smoothing factor tau.",  &m_tau);
+	setupGUIParam<Real>(CLASS_D, "d",      grp19, "Classifier constant d.", &m_class_d);
 
 	// 2020
 	enumGet getSamplingFct = std::bind(&SurfaceTension_ZorillaRitter2020::getSamplingMethod, this);
@@ -229,9 +229,9 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 		{ { "PCA", &NORMAL_PCA}, { "Monte Carlo", &NORMAL_MC}, { "Mix", &NORMAL_MIX} },
 		getNormalFct, setNormalFct);
 
-	setupGUIParam<double>(CLASS_D_OFF, "d-offset",  grp20, "d-offset for pca.", &m_class_d_off);
-	setupGUIParam<double>(PCA_NRM_MIX, "PcaMixNrm", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
-	setupGUIParam<double>(PCA_CUR_MIX, "PcaMixCur", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
+	setupGUIParam<Real>(CLASS_D_OFF, "d-offset",  grp20, "d-offset for pca.", &m_class_d_off);
+	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
+	setupGUIParam<Real>(PCA_CUR_MIX, "PcaMixCur", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
 	setupGUIParam<int>(FIX_SAMPLES,  "MCSamples", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
 	setupGUIParam<int>(NEIGH_LIMIT,  "NeighLimit", grp20, "Limit nr of neighbors.", &m_neighs_limit);
 	setupGUIParam<int>(SMOOTH_PASSES,"smoothPasses", grp20, "Nr of smoothing passes.", &m_CS_smooth_passes);

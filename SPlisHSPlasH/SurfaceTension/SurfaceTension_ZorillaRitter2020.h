@@ -100,12 +100,12 @@ namespace SPH
 
 		// -- Both Versions:
 		int    m_Csd;       // number of samples per particle per second
-		double m_tau;       // smoothing factor, default 0.5
-		double m_r2mult;    // r1 to R2 factor, default 0.8
-		double m_r1;        // radius of current particle
-		double m_r2;        // radius of neighbor particles
-		double m_class_k;   // slope of the linear classifier
-		double m_class_d;   // constant of the linear classifier
+		Real m_tau;       // smoothing factor, default 0.5
+		Real m_r2mult;    // r1 to R2 factor, default 0.8
+		Real m_r1;        // radius of current particle
+		Real m_r2;        // radius of neighbor particles
+		Real m_class_k;   // slope of the linear classifier
+		Real m_class_d;   // constant of the linear classifier
 
 		// -- containers per particle (V2019)
 		//    there are more than minimally required 
@@ -118,9 +118,9 @@ namespace SPH
 
 		// -- V2020
 		int    m_CsdFix;            // number of samples per computational step
-		double m_class_d_off;       // offset of classifier d used for PCA neighbors
-		double m_pca_N_mix;         // mixing factor of PCA normal and MC normal
-		double m_pca_C_mix;         // mixing factor of PCA curvature and MC curvature
+		Real m_class_d_off;       // offset of classifier d used for PCA neighbors
+		Real m_pca_N_mix;         // mixing factor of PCA normal and MC normal
+		Real m_pca_C_mix;         // mixing factor of PCA curvature and MC curvature
 		int    m_neighs_limit;      // maximum nr of neighbors used in PCA computation
 		int    m_CS_smooth_passes;  // nr of smoohting passes
 

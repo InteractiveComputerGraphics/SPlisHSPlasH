@@ -7,7 +7,7 @@
 		"simulationMethod": 0,
 		"gravitation": [0,0,0], 
 		"timeStepSize": 0.001,
-		"cflMethod": 1, 
+		"cflMethod": 0, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.001,
 		"maxIterations": 100,
@@ -24,12 +24,13 @@
 	"Materials": [
 		{
 			"id": "Fluid",
+			"renderMaxValue": 1.0,
 			"surfaceTension": 0.1,
 			"surfaceTensionMethod": 4,
 			"viscosity": 0.01,
 			"viscosityMethod": 1,
 			"surfTZRversion": 0,
-			"surfTZRCsd": 10000,
+			"surfTZRCsd": 60000,
 			"surfTZRr-ratio": 0.8,
 			"surfTZRtau": 0.5,
 			"surfTZRd": 28,
@@ -39,7 +40,7 @@
 			"surfTZRPcaMixNrm": 0.8,
 			"surfTZRPcaMixCur": 0.4,
 			"surfTZRMCSamples": 120,
-			"surfTZRNeighLimit": 13		
+			"surfTZRNeighLimit": 13
 		}
 	],
 	"FluidBlocks": [
@@ -47,14 +48,14 @@
 			"denseMode": 0,
 			"start": [-0.5, 0.0, -0.5],
 			"end": [0.5, 1.0, 0.5],
-			"translation": [0.51, 1.0, 0.0],
+			"translation": [0.51, 0.0, 0.0],
 			"scale": [1,1,1]
 		},
 		{
 			"denseMode": 0,
 			"start": [-0.5, 0.0, -0.5],
 			"end": [0.5, 1.0, 0.5],
-			"translation": [-0.51, 1.0, 0.0],
+			"translation": [-0.51, 0.0, 0.0],
 			"scale": [1,1,1]
 		}
 	]	

@@ -6,6 +6,7 @@
 		"density0": 1000, 
 		"simulationMethod": 0,
 		"gravitation": [0,0,0], 
+		"timeStepSize": 0.005,
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
@@ -17,27 +18,31 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"particleAttributes": "density;velocity"
+		"particleAttributes": "density;velocity",
+		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 4,
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"surfTZRversion": 0,
-		"surfTZRCsd": 60000,
-		"surfTZRr-ratio": 0.8,
-		"surfTZRtau": 0.5,
-		"surfTZRd": 28,
-		"surfTZRsampling": 0,
-		"surfTZRnormal-mode": 2,
-		"surfTZRd-offset": 3,
-		"surfTZRPcaMixNrm": 0.8,
-		"surfTZRPcaMixCur": 0.4,
-		"surfTZRMCSamples": 120,
-		"surfTZRNeighLimit": 13	
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"renderMaxValue": 1.0,
+			"surfaceTension": 0.1,
+			"surfaceTensionMethod": 4,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfTZRversion": 0,
+			"surfTZRCsd": 60000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 28,
+			"surfTZRsampling": 0,
+			"surfTZRnormal-mode": 2,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixCur": 0.4,
+			"surfTZRMCSamples": 120,
+			"surfTZRNeighLimit": 13
+		}
+	],
 	"FluidBlocks": [
 		{
 			"denseMode": 0,

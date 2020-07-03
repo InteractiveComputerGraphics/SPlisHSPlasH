@@ -25,7 +25,7 @@
 		{
 			"id": "Fluid",
 			"renderMaxValue": 1.0,
-			"surfaceTension": 0.02,
+			"surfaceTension": 0.02 ,
 			"surfaceTensionMethod": 4,
 			"viscosity": 0.01,
 			"viscosityMethod": 1,

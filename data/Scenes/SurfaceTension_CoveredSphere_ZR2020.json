@@ -4,7 +4,7 @@
 		"particleRadius": 0.02,
 		"numberOfStepsPerRenderUpdate": 2,
 		"density0": 1000, 
-		"simulationMethod": 0,
+		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
@@ -17,7 +17,8 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"particleAttributes": "density;velocity"
+		"particleAttributes": "density;velocity",
+		"boundaryHandlingMethod": 2
 	},
 	"Fluid":
 	{
@@ -47,7 +48,10 @@
 			"scale": [1, 1,1],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [10,10,10]
 		}
 	],
 	"FluidBlocks": [

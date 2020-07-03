@@ -37,10 +37,11 @@
 			"surfTZRsampling": 0,
 			"surfTZRnormal-mode": 2,
 			"surfTZRd-offset": 3,
-			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixNrm": 0.4,
 			"surfTZRPcaMixCur": 0.4,
 			"surfTZRMCSamples": 120,
-			"surfTZRNeighLimit": 13
+			"surfTZRNeighLimit": 13,
+			"surfTZRtemporalSmooth" : true
 		}
 	],
 	"FluidBlocks": [

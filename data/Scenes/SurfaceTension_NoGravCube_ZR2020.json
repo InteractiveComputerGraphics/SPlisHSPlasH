@@ -4,9 +4,9 @@
 		"particleRadius": 0.02,
 		"numberOfStepsPerRenderUpdate": 2,
 		"density0": 1000, 
-		"simulationMethod": 0,
+		"simulationMethod": 1,
 		"gravitation": [0,0,0], 
-		"timeStepSize": 0.005,
+		"timeStepSize": 0.001,
 		"cflMethod": 0, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.001,
@@ -48,7 +48,7 @@
 			"denseMode": 0,
 			"start": [-0.5, -0.5, -0.5],
 			"end": [0.5, 0.5, 0.5],
-			"translation": [0.0, 1.0, 0.0],
+			"translation": [0.0, 0.0, 0.0],
 			"scale": [0.9,0.9,0.9]
 		}
 		

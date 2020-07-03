@@ -77,16 +77,17 @@ int SurfaceTension_ZorillaRitter2020::NORMAL_MC   = -1;
 int SurfaceTension_ZorillaRitter2020::NORMAL_MIX  = -1;
 
 int SurfaceTension_ZorillaRitter2020::SMOOTH_PASSES = -1;
+int SurfaceTension_ZorillaRitter2020::TEMPORAL_SMOOTH = -1;
 
 
-vector<string> split( string txt, char delimiter )
+vector<string> SurfaceTension_ZorillaRitter2020::split(string txt, char delimiter)
 {
 	string tmp;
-	stringstream ss( txt );
+	stringstream ss(txt);
 	vector<string> tokens;
 
-	while( getline( ss, tmp, delimiter ) )
-		tokens.push_back( tmp );
+	while (getline(ss, tmp, delimiter))
+		tokens.push_back(tmp);
 
 	return tokens;
 }
@@ -94,8 +95,8 @@ vector<string> split( string txt, char delimiter )
 
 void SurfaceTension_ZorillaRitter2020::resizeV19States( size_t N )
 {
-	m_normals.resize( N, Vector3r::Zero() );
-	m_curvatures.resize( N, 0.0 );
+	m_mc_normals.resize( N, Vector3r::Zero() );
+	m_final_curvatures.resize( N, 0.0 );
 }
 
 void SPH::SurfaceTension_ZorillaRitter2020::setupGUIEnum(int& PARAMID, std::string name, std::string group, std::string description, 
@@ -113,25 +114,25 @@ void SPH::SurfaceTension_ZorillaRitter2020::setupGUIEnum(int& PARAMID, std::stri
 
 void SurfaceTension_ZorillaRitter2020::resizeV20States( size_t N )
 {
-	m_curv_by_sphericity.resize( N, 0.0 );
-	m_curv_by_sphericity_corr.resize( N, 0.0 );
-	m_curvatures_corrected.resize( N, 0.0 );
-	m_curvatures_smoothed.resize(  N, 0.0 );
+	m_pca_curv.resize( N, 0.0 );
+	m_pca_curv_smooth.resize( N, 0.0 );
+	m_mc_curv.resize(N, 0.0);
+	m_mc_curv_smooth.resize(  N, 0.0 );
 
-	m_normals_smoothed.resize( N, Vector3r::Zero() );
-	m_normals_pca.resize( N, Vector3r::Zero() );
+	m_mc_normals_smooth.resize( N, Vector3r::Zero() );
+	m_pca_normals.resize( N, Vector3r::Zero() );
 
 	m_final_curvatures_old.resize( N, 0.0 );
 
-	m_final_curvatures.resize( N, 0.0 );
 	m_classifier_input.resize( N, 0.0 );
 
 	m_nr_all_samples.resize(  N, 0 );
 	m_nr_area_samples.resize( N, 0 );
 
+	m_classifier_output.resize(N, 0.0);
+
 #ifdef RICH_OUTPUT
 	m_classifier_input2.resize( N, 0.0 );
-	m_classifier_output.resize( N, 0.0 );
 #endif
 }
 
@@ -140,6 +141,7 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 	, m_step_version( StepVersion::V2020 )
 	, m_class_k( 74.688796680497925 )
 	, m_class_d( 12 )
+	, m_temporal_smoothing( false )
 	, m_class_d_off( 2 )
 	, m_Csd( 10000 ) // 10000 // 36000 // 48000 // 60000
 	, m_CsdFix( 36 )
@@ -165,16 +167,16 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 	for( unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++ )
 	{
 		FluidModel* model = sim->getFluidModel( fluidModelIndex );
-		model->addField( { "SurfZ20 curvature smoothed", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCurvatureSmoothed( fluidModelIndex, i ); } } );
-		model->addField( { "SurfZ20 curvature corr", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCurvatureCorrected( fluidModelIndex, i ); } } );
-		model->addField( { "SurfZ20 curvature", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCurvature( fluidModelIndex, i ); } } );
-		model->addField( { "SurfZ20 Cs", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCs( fluidModelIndex, i ); } } );
-		model->addField( { "SurfZ20 CsCorr", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCsCorr( fluidModelIndex, i ); } } );	
-		model->addField( { "SurfZ20 CsFinal", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getCsFinal( fluidModelIndex, i ); } } );
+
+		model->addField( { "Curv.Final (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getFinalCurvature( fluidModelIndex, i ); } } );
+		model->addField( { "Surf.Class (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getClassifierOutput(fluidModelIndex, i); } });
 
 #ifdef RICH_OUTPUT
-		model->addField( { "SurfZor20 ClassifierInput", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getClassifierInput( fluidModelIndex, i ); } } );
-		model->addField( { "SurfZor20 ClassifierOutput", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getClassifierOutput( fluidModelIndex, i ); } } );
+		model->addField({ "Curv.MC (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getMcCurvature(fluidModelIndex, i); } });
+		model->addField({ "Curv.MCSmooth (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getMcCurvatureSmooth(fluidModelIndex, i); } });
+		model->addField({ "Curv.PCA (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getCs(fluidModelIndex, i); } });
+		model->addField({ "Curv.PCASmooth (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getCsCorr(fluidModelIndex, i); } });
+		model->addField({ "Surf.Classif.In (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getClassifierInput( fluidModelIndex, i ); } } );
 #endif
 	}
 
@@ -209,32 +211,36 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 		getVersionFct, setVersionFct );
 
 	// 2019 & 2020
-	setupGUIParam<int> (CSD,       "Csd",       grp19, "Samples per Second.",      &m_Csd);
-	setupGUIParam<Real>(R2MULT,  "r-ratio", grp19, "R1 to R2 ratio.",        &m_r2mult);
-	setupGUIParam<Real>(TAU,     "tau",     grp19, "Smoothing factor tau.",  &m_tau);
-	setupGUIParam<Real>(CLASS_D, "d",      grp19, "Classifier constant d.", &m_class_d);
+	setupGUIParam<int> (CSD,     "Csd (19)",       grp19, "Samples per Second.",      &m_Csd);
+	setupGUIParam<Real>(R2MULT,  "r-ratio (19)", grp19, "R1 to R2 ratio.",        &m_r2mult);
+	setupGUIParam<Real>(TAU,     "tau (19)",     grp19, "Smoothing factor tau.",  &m_tau);
+	setupGUIParam<Real>(CLASS_D, "d (19)",      grp19, "Classifier constant d.", &m_class_d);
 
 	// 2020
 	enumGet getSamplingFct = std::bind(&SurfaceTension_ZorillaRitter2020::getSamplingMethod, this);
 	enumSet setSamplingFct = std::bind(&SurfaceTension_ZorillaRitter2020::setSamplingMethod, this, std::placeholders::_1);
 
-	setupGUIEnum(SAMPLING, "sampling", grp20, "Monte Carlo samping method.",
+	setupGUIEnum(SAMPLING, "sampling (20)", grp20, "Monte Carlo samping method.",
 		{ { "Halton", &SAMPLING_HALTON }, { "Rnd", &SAMPLING_RND } },
 		getSamplingFct, setSamplingFct);
 
 	enumGet getNormalFct = std::bind(&SurfaceTension_ZorillaRitter2020::getNormalMethod, this);
 	enumSet setNormalFct = std::bind(&SurfaceTension_ZorillaRitter2020::setNormalMethod, this, std::placeholders::_1);
 
-	setupGUIEnum(NORMAL_MODE, "normal-mode", grp20, "Normal estimation method.",
+	setupGUIEnum(NORMAL_MODE, "normal-mode (20)", grp20, "Normal estimation method.",
 		{ { "PCA", &NORMAL_PCA}, { "Monte Carlo", &NORMAL_MC}, { "Mix", &NORMAL_MIX} },
 		getNormalFct, setNormalFct);
 
-	setupGUIParam<Real>(CLASS_D_OFF, "d-offset",  grp20, "d-offset for pca.", &m_class_d_off);
-	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
-	setupGUIParam<Real>(PCA_CUR_MIX, "PcaMixCur", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
-	setupGUIParam<int>(FIX_SAMPLES,  "MCSamples", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
-	setupGUIParam<int>(NEIGH_LIMIT,  "NeighLimit", grp20, "Limit nr of neighbors.", &m_neighs_limit);
-	setupGUIParam<int>(SMOOTH_PASSES,"smoothPasses", grp20, "Nr of smoothing passes.", &m_CS_smooth_passes);
+	setupGUIParam<Real>(CLASS_D_OFF, "d-offset (20)",  grp20, "d-offset for pca.", &m_class_d_off);
+	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm (20)", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
+	setupGUIParam<Real>(PCA_CUR_MIX, "PcaMixCur (20)", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
+	setupGUIParam<int>(FIX_SAMPLES,  "MCSamples (20)", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
+	setupGUIParam<int>(NEIGH_LIMIT,  "NeighLimit (20)", grp20, "Limit nr of neighbors.", &m_neighs_limit);
+	setupGUIParam<int>(SMOOTH_PASSES,"smoothPasses (20)", grp20, "Nr of smoothing passes.", &m_CS_smooth_passes);
+
+	TEMPORAL_SMOOTH = createBoolParameter("surfTZRtemporalSmooth" , "temporalSmoothing (20)", &m_temporal_smoothing);
+	setGroup(TEMPORAL_SMOOTH, grp20);
+	setDescription(TEMPORAL_SMOOTH, "Enable temporal smoothing");
 }
 
 
@@ -381,11 +387,10 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 #pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_normals[i] = Vector3r::Zero();
+			m_mc_normals[i] = Vector3r::Zero();
 
-#ifdef RICH_OUTPUT
+
 			m_classifier_output[i] = 0;
-#endif
 
 			Vector3r centerofMasses = Vector3r::Zero();
 			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
@@ -416,25 +421,22 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 
 				for (int p = points.size() - 1; p >= 0; --p)
 				{
-					m_normals[i] += points[p];
+					m_mc_normals[i] += points[p];
 				}
 
 				if (points.size() > 0)
 				{
-					m_normals[i].normalize();
+					m_mc_normals[i].normalize();
 
-					m_curvatures[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (r2 * r2 / (r1 * r1))), -0.5 ) *
+					m_mc_curv[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (r2 * r2 / (r1 * r1))), -0.5 ) *
 						cos( acos( 1 - 2 * (points.size() / double( NumberOfPoints )) ) + asin( r2 / r1 ) );
-#ifdef RICH_OUTPUT
+
 					m_classifier_output[i] = 1;
-#endif
 				}
 				else
 				{
-					m_normals[i] = Vector3r::Zero();
-#ifdef RICH_OUTPUT
+					m_mc_normals[i] = Vector3r::Zero();
 					m_classifier_output[i] = 0.5;
-#endif
 				}
 			}
 
@@ -449,7 +451,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 #pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			if (m_normals[i] != Vector3r::Zero())
+			if (m_mc_normals[i] != Vector3r::Zero())
 			{
 				const Vector3r& xi = m_model->getPosition( i );
 				Vector3r normalCorrection = Vector3r::Zero();
@@ -458,23 +460,26 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				double correctionFactor = 0.0;
 
 				forall_fluid_neighbors_in_same_phase( 
-					if (m_normals[neighborIndex] != Vector3r::Zero())
+					if (m_mc_normals[neighborIndex] != Vector3r::Zero())
 					{
 						Vector3r xjxi = (xj - xi);
 						double distanceji = xjxi.norm();
 
-						normalCorrection += m_normals[neighborIndex] * (1 - distanceji / supportRadius);
-						curvatureCorrection += m_curvatures[neighborIndex] * (1 - distanceji / supportRadius);
+						normalCorrection += m_mc_normals[neighborIndex] * (1 - distanceji / supportRadius);
+						curvatureCorrection += m_mc_curv[neighborIndex] * (1 - distanceji / supportRadius);
 						correctionFactor += (1 - distanceji / supportRadius);
 					} )
 
 				normalCorrection.normalize();
-				normalCorrection = (1 - m_tau) * m_normals[i] + m_tau * normalCorrection;
+				normalCorrection = (1 - m_tau) * m_mc_normals[i] + m_tau * normalCorrection;
 				normalCorrection.normalize();
 
-				ai -= (1 / m_model->getMass( i )) * normalCorrection * k *
-					  ((1 - m_tau) * m_curvatures[i] + m_tau * curvatureCorrection)
-					  / ((1 - m_tau) * 1 + m_tau * correctionFactor);
+
+				m_final_curvatures[i] =
+					((1 - m_tau) * m_mc_curv[i] + m_tau * curvatureCorrection)
+					/ ((1 - m_tau) * 1 + m_tau * correctionFactor);
+
+				ai -= (1 / m_model->getMass( i )) * normalCorrection * k * m_final_curvatures[i];
 
 			}
 		}
@@ -629,7 +634,8 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 	unsigned int NrOfSamples;
 
-	const int fModelIdx = 0; // hardcode for now
+	const int fluidModelIndex = 0; // hardcode for now
+	FluidModel* model = m_model;
 
 	if (m_CsdFix > 0)
 		NrOfSamples = m_CsdFix;
@@ -649,39 +655,37 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			// init or reset arrays
-			m_normals[i] = Vector3r::Zero();
+			m_mc_normals[i] = Vector3r::Zero();
 
-			m_normals_pca[i] = Vector3r::Zero();
-			m_normals_smoothed[i] = Vector3r::Zero();
+			m_pca_normals[i] = Vector3r::Zero();
+			m_mc_normals_smooth[i] = Vector3r::Zero();
 
-			m_curvatures[i] = 0.0;
-			m_curvatures_corrected[i] = 0.0;
-			m_curvatures_smoothed[i] = 0.0;
-			m_curv_by_sphericity[i] = 0.0;
-			m_curv_by_sphericity_corr[i] = 0.0;
+			m_mc_curv[i] = 0.0;
+			m_mc_curv_smooth[i] = 0.0;
+			m_pca_curv[i] = 0.0;
+			m_pca_curv_smooth[i] = 0.0;
 			m_final_curvatures[i] = 0.0;
 
 
 			// -- compute center of mass of current particle
 
 			Vector3r centerofMasses = Vector3r::Zero();
-			int numberOfNeighbours = sim->numberOfNeighbors(fModelIdx, fModelIdx, i );
+			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
 			if (sim->numberOfNeighbors( 0, 0, i ) == 0)
 			{
-				m_curvatures[i] = 1.0 / supportRadius;
+				m_mc_curv[i] = 1.0 / supportRadius;
 				goto nextParticle;
 			}
 
-			const Vector3r& xi = m_model->getPosition( i );
-			for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
-			{
-				unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
-				Vector3r& xj = m_model->getPosition( neighborIndex );
-				Vector3r xjxi = (xj - xi);
+			
 
-				centerofMasses += xjxi;
-			}
+			const Vector3r& xi = m_model->getPosition( i );
+
+			forall_fluid_neighbors_in_same_phase(
+				Vector3r xjxi = (xj - xi);
+				centerofMasses += xjxi; )
+			
 			centerofMasses /= supportRadius;
 
 			m_classifier_input[i] = centerofMasses.norm() / double( numberOfNeighbours );
@@ -705,12 +709,8 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 
 				//  -- remove samples covered by neighbor spheres
-				for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
-				{
-					unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
-					Vector3r& xj = m_model->getPosition( neighborIndex );
+				forall_fluid_neighbors_in_same_phase(
 					Vector3r xjxi = (xj - xi);
-
 					for (int p = points.size() - 1; p >= 0; --p)
 					{
 						Vector3r vec = (points[p] - xjxi);
@@ -718,49 +718,41 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 						if (dist <= pow( (m_r2 / m_r1), 2 ) * supportRadius * supportRadius)
 							points.erase( points.begin() + p );
-					}
-				}
+					} )
 
 				// -- estimate normal by left over sample directions
 				for (int p = points.size() - 1; p >= 0; --p)
-					m_normals[i] += points[p];
+					m_mc_normals[i] += points[p];
 
 
 				// -- if surface classified and non-overlapping neighborhood spheres
 				if (points.size() > 0)
 				{
-
-					m_normals[i].normalize();
+					m_mc_normals[i].normalize();
 
 					// -- estimate curvature by sample ratio and particle radii
-					m_curvatures[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (m_r2 * m_r2 / (m_r1 * m_r1))), -0.5 ) *
+					m_mc_curv[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (m_r2 * m_r2 / (m_r1 * m_r1))), -0.5 ) *
 						cos( acos( 1.0 - 2.0 * (double( points.size() ) / double( NrOfSamples )) ) + asin( m_r2 / m_r1 ) );
 
-#ifdef RICH_OUTPUT
 					m_classifier_output[i] = 1.0; // -- used to visualize surface points (blue in the paper)
-#endif
 				}
 				else
 				{
 					// -- correct false positives to inner points
-					m_normals[i] = Vector3r::Zero();
+					m_mc_normals[i] = Vector3r::Zero();
 
-#ifdef RICH_OUTPUT
 					m_classifier_output[i] = 0.5; // -- used for visualize post-correction points (white in the paper)
-#endif
 				}
 
 				// -- export vars
 				m_nr_all_samples[i] = NrOfSamples;
 				m_nr_area_samples[i] = points.size();
 			}
-#ifdef RICH_OUTPUT
 			else
 			{
 				// -- used to visualize inner points (green in the paper)
 				m_classifier_output[i] = 0.0;
 			}
-#endif
 
 		nextParticle:;
 
@@ -779,7 +771,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 #pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			if (m_normals[i] != Vector3r::Zero())
+			if (m_mc_normals[i] != Vector3r::Zero())
 			{
 				const Vector3r& xi = m_model->getPosition( i );
 				Vector3r normalCorrection = Vector3r::Zero();
@@ -799,13 +791,10 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 				int t_count = 0;
 				Vector3r neighCent = Vector3r::Zero();
 
-				int nrNeighhbors = sim->numberOfNeighbors(fModelIdx, fModelIdx, i );
+				int nrNeighhbors = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
-				for (unsigned int j = 0; j < nrNeighhbors; j++)
-				{
-					unsigned int neighborIndex = sim->getNeighbor( 0, 0, i, j );
-
-					if (m_normals[neighborIndex] != Vector3r::Zero())
+				forall_fluid_neighbors_in_same_phase(
+					if (m_mc_normals[neighborIndex] != Vector3r::Zero())
 					{
 						Vector3r& xj = m_model->getPosition( neighborIndex );
 						Vector3r xjxi = (xj - xi);
@@ -823,8 +812,8 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 							neighs.insert( { distanceji, neighborIndex } );
 						}
 
-						normalCorrection += m_normals[neighborIndex] * (1 - distanceji / supportRadius);
-						correctionForCurvature += m_curvatures[neighborIndex] * (1 - distanceji / supportRadius);
+						normalCorrection += m_mc_normals[neighborIndex] * (1 - distanceji / supportRadius);
+						correctionForCurvature += m_mc_curv[neighborIndex] * (1 - distanceji / supportRadius);
 						correctionFactor += (1 - distanceji / supportRadius);
 					}
 
@@ -838,9 +827,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 						t_count++;
 						Real distanceji = xjxi.norm();
 						neighs.insert( { distanceji, neighborIndex } );
-					}
-				}
-
+					} )
 
 				bool do_pca = false;
 
@@ -898,35 +885,31 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 
 						eigenDecomposition3( pdt_ec, pdt_ev, t, true );
 
-						if (pdt_ec[0].dot( m_normals[i] ) < 0.0)
-							m_normals_pca[i] = -1.0 * pdt_ec[0];
+						if (pdt_ec[0].dot( m_mc_normals[i] ) < 0.0)
+							m_pca_normals[i] = -1.0 * pdt_ec[0];
 						else
-							m_normals_pca[i] = pdt_ec[0];
+							m_pca_normals[i] = pdt_ec[0];
 
-						m_curv_by_sphericity[i] = 3.0 * pdt_ev[0] / (pdt_ev[0] + pdt_ev[1] + pdt_ev[2]);
+						m_pca_curv[i] = 3.0 * pdt_ev[0] / (pdt_ev[0] + pdt_ev[1] + pdt_ev[2]);
 
-						if (surfCentDir.dot( m_normals_pca[i] ) > 0.0)
-							m_curv_by_sphericity[i] *= -1;
+						if (surfCentDir.dot( m_pca_normals[i] ) > 0.0)
+							m_pca_curv[i] *= -1;
 
-						m_normals_pca[i].normalize();
+						m_pca_normals[i].normalize();
 					}
 					else
 					{
-						m_normals_pca[i] = Vector3r::Zero();
-						m_curv_by_sphericity[i] = 0.0;
+						m_pca_normals[i] = Vector3r::Zero();
+						m_pca_curv[i] = 0.0;
 					}
 				}
 
 				normalCorrection.normalize();
-				m_normals_smoothed[i] = (1 - m_tau) * m_normals[i] + m_tau * normalCorrection;
-				m_normals_smoothed[i].normalize();
+				m_mc_normals_smooth[i] = (1 - m_tau) * m_mc_normals[i] + m_tau * normalCorrection;
+				m_mc_normals_smooth[i].normalize();
 
-				m_curvatures_corrected[i] =
-					((1 - m_tau) * m_curvatures[i] + m_tau * correctionForCurvature)
-					/ ((1 - m_tau) * 1 + m_tau * correctionFactor);
-
-				m_curvatures_smoothed[i] =
-					((1 - m_tau) * m_curvatures[i] + m_tau * correctionForCurvature) /
+				m_mc_curv_smooth[i] =
+					((1 - m_tau) * m_mc_curv[i] + m_tau * correctionForCurvature) /
 					((1 - m_tau) * 1 + m_tau * correctionFactor);
 					//-0.075; // no offset found on the saddle example, but not used generally.
 
@@ -988,73 +971,70 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 #pragma omp for schedule(static)  
 			for (int i = 0; i < (int)numParticles; i++)
 			{
-				if (m_normals[i] != Vector3r::Zero())
+				if (m_mc_normals[i] != Vector3r::Zero())
 				{
 					int count = 0;
 					double CsCorr = 0.0;
 
 					const Vector3r& xi = m_model->getPosition( i );
 
-					for (unsigned int j = 0; j < sim->numberOfNeighbors(fModelIdx, fModelIdx, i ); j++)
-					{
-						unsigned int neighborIndex = sim->getNeighbor(fModelIdx, fModelIdx, i, j );
-
-						if (m_normals[neighborIndex] != Vector3r::Zero())
+					forall_fluid_neighbors_in_same_phase( 
+						if (m_mc_normals[neighborIndex] != Vector3r::Zero())
 						{
-							CsCorr += m_curv_by_sphericity[neighborIndex];
+							CsCorr += m_pca_curv[neighborIndex];
 							count++;
-						}
-					}
+						} )
+					
 
 					if (count > 0)
-						m_curv_by_sphericity_corr[i] = 0.25 * m_curv_by_sphericity_corr[i] + 0.75 * CsCorr / count;
+						m_pca_curv_smooth[i] = 0.25 * m_pca_curv_smooth[i] + 0.75 * CsCorr / count;
 					else
-						m_curv_by_sphericity_corr[i] = m_curv_by_sphericity[i];
+						m_pca_curv_smooth[i] = m_pca_curv[i];
 
-					m_curv_by_sphericity_corr[i] /= supportRadius;
+					m_pca_curv_smooth[i] /= supportRadius;
 
-					m_curv_by_sphericity_corr[i] *= 20.0;
+					m_pca_curv_smooth[i] *= 20.0;
 
-					if (m_curv_by_sphericity_corr[i] > 0.0)
-						m_curv_by_sphericity_corr[i] = min( 0.5f / supportRadius, m_curv_by_sphericity_corr[i] );
+					if (m_pca_curv_smooth[i] > 0.0)
+						m_pca_curv_smooth[i] = min( 0.5f / supportRadius, m_pca_curv_smooth[i] );
 					else
-						m_curv_by_sphericity_corr[i] = max( -0.5f / supportRadius, m_curv_by_sphericity_corr[i] );
+						m_pca_curv_smooth[i] = max( -0.5f / supportRadius, m_pca_curv_smooth[i] );
 
 
 					Vector3r final_normal = Vector3r::Zero();
-					Real     final_curvature = m_curvatures_smoothed[i];
+					Real     final_curvature = m_mc_curv_smooth[i];
 
 					if (m_normal_mode == NormalMethod::MC)
 					{
-						final_normal = m_normals_smoothed[i];
-						final_curvature = m_curvatures_smoothed[i];
+						final_normal = m_mc_normals_smooth[i];
+						final_curvature = m_mc_curv_smooth[i];
 
 					}
 					else if (m_normal_mode == NormalMethod::PCA)
 					{
-						final_normal = m_normals_pca[i];
-						final_curvature = m_curv_by_sphericity_corr[i];
+						final_normal = m_pca_normals[i];
+						final_curvature = m_pca_curv_smooth[i];
 						//final_curvature = m_curvatures_smoothed[i];
 					}
 					else if (m_normal_mode == NormalMethod::MIX) // <------------------------------
 					{
-						bool no_N = (m_normals_pca[i] == Vector3r::Zero());
-						bool no_C = no_N || (m_curv_by_sphericity_corr[i] != m_curv_by_sphericity_corr[i]);
+						bool no_N = (m_pca_normals[i] == Vector3r::Zero());
+						bool no_C = no_N || (m_pca_curv_smooth[i] != m_pca_curv_smooth[i]);
 
 						if (no_N)
-							final_normal = m_normals_smoothed[i];
+							final_normal = m_mc_normals_smooth[i];
 						else
-							final_normal = m_pca_N_mix * m_normals_pca[i] + (1.0 - m_pca_N_mix) * m_normals_smoothed[i];
+							final_normal = m_pca_N_mix * m_pca_normals[i] + (1.0 - m_pca_N_mix) * m_mc_normals_smooth[i];
 
 						final_normal.normalize();
 
 
 						if (no_C)
-							m_curv_by_sphericity_corr[i] = m_curvatures_smoothed[i];
+							m_pca_curv_smooth[i] = m_mc_curv_smooth[i];
 						else
 							final_curvature =
-							m_pca_C_mix * m_curv_by_sphericity_corr[i] +
-							(1.0 - m_pca_C_mix) * m_curvatures_smoothed[i];
+							m_pca_C_mix * m_pca_curv_smooth[i] +
+							(1.0 - m_pca_C_mix) * m_mc_curv_smooth[i];
 
 						//						if( i % 200 == 0 )
 						//							printf( "c_mc_corr: %.3f, c_pca: %.3f, c_pca_smo: %.3f, mixed: %.3f, smr: %.3f\n",
@@ -1081,9 +1061,13 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 					*/
 
 					//m_normals_smoothed[i] = final_normal;
-					//m_final_curvatures[i] = 0.05 * final_curvature + 0.95 * m_final_curvatures_old[i];
 
-					Vector3r force = final_normal * k * final_curvature;
+					if (m_temporal_smoothing)
+						m_final_curvatures[i] = 0.05 * final_curvature + 0.95 * m_final_curvatures_old[i];
+					else
+						m_final_curvatures[i] = final_curvature;
+
+					Vector3r force = final_normal * k * m_final_curvatures[i];
 
 					Vector3r& ai = m_model->getAcceleration( i );
 					ai -= (1 / m_model->getMass( i )) * force;
@@ -1092,8 +1076,12 @@ void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
 				}
 				else // non surface particle blend 0.0 curvature
 				{
-					m_final_curvatures[i] = 0.0;
-					//m_final_curvatures[i] = 0.95 * m_final_curvatures_old[i];
+					
+					if (m_temporal_smoothing)
+						m_final_curvatures[i] = 0.95 * m_final_curvatures_old[i];
+					else
+						m_final_curvatures[i] = 0.0;
+
 					m_final_curvatures_old[i] = m_final_curvatures[i];
 				}
 
@@ -1159,11 +1147,11 @@ void SurfaceTension_ZorillaRitter2020::storeASCIIData( size_t step )
 	
 	fprintf( file_class, "X, Y, Z, ClassIn1, ClassIn2\n" );
 
-	for( size_t i = 0; i < m_normals.size(); i++ )
+	for( size_t i = 0; i < m_mc_normals.size(); i++ )
 	{
-		const Vector3r& ni  = m_normals[i];
-		const Vector3r& nsi = m_normals_smoothed[i];
-		const Vector3r& npi = m_normals_pca[i];
+		const Vector3r& ni  = m_mc_normals[i];
+		const Vector3r& nsi = m_mc_normals_smooth[i];
+		const Vector3r& npi = m_pca_normals[i];
 		const Vector3r& xi = m_model->getPosition( i );
 
 #ifdef RICH_OUTPUT
@@ -1173,22 +1161,21 @@ void SurfaceTension_ZorillaRitter2020::storeASCIIData( size_t step )
 			m_classifier_input[i],
 			m_classifier_input2[i] );
 
-		if( m_normals[i] != Vector3r::Zero() ) 
+		if( m_mc_normals[i] != Vector3r::Zero() ) 
 		{
 			if( abs( xi.x() ) <= 0.8 && 
 				abs( xi.z() ) <= 0.8 && 
 				xi.y() < 1.0 )
 				fprintf( 
-					file, "%.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %d, %d\n",
+					file, "%.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %d, %d\n",
 					xi.x(), xi.y(), xi.z(), 
 					ni.x(), ni.y(), ni.z(),
 					nsi.x(), nsi.y(), nsi.z(),
 					npi.x(), npi.y(), npi.z(),
-					m_curvatures[i], 
-					m_curvatures_corrected[i],
-					m_curvatures_smoothed[i],
-					m_curv_by_sphericity[i],
-					m_curv_by_sphericity_corr[i],
+					m_mc_curv[i], 
+					m_mc_curv_smooth[i],
+					m_pca_curv[i],
+					m_pca_curv_smooth[i],
 					m_nr_area_samples[i], 
 					m_nr_all_samples[i] );
 		}

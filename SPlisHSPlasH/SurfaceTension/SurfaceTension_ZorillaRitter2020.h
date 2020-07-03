@@ -38,7 +38,7 @@ Please get in contact for feedback/support.
 #include <chrono>
 
 // -- enable to provide more scalar fields for visual exploration
-#define RICH_OUTPUT
+//#define RICH_OUTPUT
 
 //#define ENABLE_STATE_CHANGE
 
@@ -87,6 +87,7 @@ namespace SPH
 		static int NORMAL_MIX;
 
 		static int SMOOTH_PASSES;
+		static int TEMPORAL_SMOOTH;
 
 
 		SurfaceTension_ZorillaRitter2020( FluidModel* model );
@@ -106,21 +107,22 @@ namespace SPH
 		Real m_r2;        // radius of neighbor particles
 		Real m_class_k;   // slope of the linear classifier
 		Real m_class_d;   // constant of the linear classifier
+		bool m_temporal_smoothing;
 
 		// -- containers per particle (V2019)
 		//    there are more than minimally required 
 		//    for analysis, visualization and debugging
-		std::vector<Vector3r> m_normals;
-		std::vector<Vector3r> m_normals_smoothed;
-		std::vector<Real> m_curvatures;
-		std::vector<Real> m_curvatures_corrected;
-		std::vector<Real> m_curvatures_smoothed;
+		std::vector<Vector3r> m_mc_normals;          // Monte Carlo surface normals
+		std::vector<Vector3r> m_mc_normals_smooth;   // smoothed normals
+		std::vector<Real>     m_mc_curv;             // Monte Carlo surface curvature
+		std::vector<Real>     m_mc_curv_smooth;      // smoothed curvature
+		std::vector<Real>     m_classifier_output;   // outut of the surface classifier
 
 		// -- V2020
 		int    m_CsdFix;            // number of samples per computational step
-		Real m_class_d_off;       // offset of classifier d used for PCA neighbors
-		Real m_pca_N_mix;         // mixing factor of PCA normal and MC normal
-		Real m_pca_C_mix;         // mixing factor of PCA curvature and MC curvature
+		Real   m_class_d_off;       // offset of classifier d used for PCA neighbors
+		Real   m_pca_N_mix;         // mixing factor of PCA normal and MC normal
+		Real   m_pca_C_mix;         // mixing factor of PCA curvature and MC curvature
 		int    m_neighs_limit;      // maximum nr of neighbors used in PCA computation
 		int    m_CS_smooth_passes;  // nr of smoohting passes
 
@@ -135,14 +137,14 @@ namespace SPH
 		// -- containers per particle (V2020)
 		//    there are more than minimally required 
 		//    for analysis, visualization and debugging
-		std::vector<Vector3r> m_normals_pca;
-		std::vector<Real> m_curv_by_sphericity;
-		std::vector<Real> m_curv_by_sphericity_corr;
-		std::vector<int>  m_nr_area_samples;
-		std::vector<int>  m_nr_all_samples;
-		std::vector<Real> m_final_curvatures;
-		std::vector<Real> m_final_curvatures_old;
-		std::vector<Real> m_classifier_input;
+		std::vector<Vector3r> m_pca_normals;
+		std::vector<Real>     m_pca_curv;
+		std::vector<Real>     m_pca_curv_smooth;
+		std::vector<int>      m_nr_area_samples;
+		std::vector<int>      m_nr_all_samples;
+		std::vector<Real>     m_final_curvatures;
+		std::vector<Real>     m_final_curvatures_old;
+		std::vector<Real>     m_classifier_input;
 
 
 		// -- variables for development, visualization, export, and debugging
@@ -157,37 +159,38 @@ namespace SPH
 
 #ifdef RICH_OUTPUT 
 		std::vector<Real> m_classifier_input2;
-		std::vector<Real> m_classifier_output;
 #endif
 
 
 		virtual void step();
-		void stepZorillaRitter();
 		void stepZorilla();
+		void stepRitter();
 
 		virtual void initParameters();
 		virtual void reset();
-
 
 		bool ClassifyPoint( double com, int non, double d_offset = 0.0 );
 
 		std::vector<Vector3r> GetRandSurfacePoints( int N, Real supportRadius );
 
 		std::vector<Vector3r> GetLookupTableSurfacePointsVec3(
-			int N, Real supportRadius, int start, const std::vector<double>& vec3, int mod ); //array<float,6144>
+			int N, Real supportRadius, int start, const std::vector<double>& vec3, int mod );
 
 		std::vector<Vector3r> GetLookupTableSurfacePointsVec3(
-			int N, Real supportRadius, int start, const std::vector<float>& vec3, int mod ); //array<float,6144>
+			int N, Real supportRadius, int start, const std::vector<float>& vec3, int mod );
 
 
 		void resizeV20States( size_t N );
 		void resizeV19States( size_t N );
 
 
+		std::vector<std::string> split(std::string txt, char delimiter);
+
 		template<class T>
 		void setupGUIParam(int& PARAMID, std::string name, std::string group, std::string description, T* val)
 		{
-			PARAMID = createNumericParameter<T>( "surfTZR" + name, name, val);
+			std::string tmp = split(name, ' ')[0];
+			PARAMID = createNumericParameter<T>( "surfTZR" + tmp, name, val);
 			setGroup(PARAMID, group);
 			setDescription(PARAMID, description);
 			GenParam::NumericParameter<T>* rparam = static_cast<GenParam::NumericParameter<T>*>(getParameter(PARAMID));
@@ -198,37 +201,6 @@ namespace SPH
 			const GenParam::ParameterBase::GetFunc<int>& getter,
 			const GenParam::ParameterBase::SetFunc<int>& setter);
 
-		FORCE_INLINE Real& getCurvatureSmoothed( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_curvatures_smoothed[i];
-		}
-
-		FORCE_INLINE Real& getCurvatureCorrected( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_curvatures_corrected[i];
-		}
-
-		FORCE_INLINE Real& getCurvature( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_curvatures[i];
-		}
-
-		FORCE_INLINE Real& getCs( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_curv_by_sphericity[i];
-		}
-
-
-		FORCE_INLINE Real& getCsCorr( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_curv_by_sphericity_corr[i];
-		}
-
-
-		FORCE_INLINE Real& getCsFinal( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_final_curvatures[i];
-		}
 
 		int getVersionMethod() const
 		{
@@ -274,6 +246,15 @@ namespace SPH
 			m_normal_mode = static_cast<NormalMethod>(a % int(NormalMethod::SIZE));
 		}
 
+		FORCE_INLINE Real& getClassifierOutput(const unsigned int fluidIndex, const unsigned int i)
+		{
+			return m_classifier_output[i];
+		}
+
+		FORCE_INLINE Real& getFinalCurvature(const unsigned int fluidIndex, const unsigned int i)
+		{
+			return m_final_curvatures[i];
+		}
 
 #ifdef RICH_OUTPUT
 		FORCE_INLINE Real& getClassifierInput( const unsigned int fluidIndex, const unsigned int i )
@@ -281,10 +262,27 @@ namespace SPH
 			return m_classifier_input[i];
 		}
 
-		FORCE_INLINE Real& getClassifierOutput( const unsigned int fluidIndex, const unsigned int i )
+		FORCE_INLINE Real& getMcCurvatureSmooth(const unsigned int fluidIndex, const unsigned int i)
 		{
-			return m_classifier_output[i];
+			return m_mc_curv_smooth[i];
 		}
+
+		FORCE_INLINE Real& getCs(const unsigned int fluidIndex, const unsigned int i)
+		{
+			return m_pca_curv[i];
+		}
+
+
+		FORCE_INLINE Real& getCsCorr(const unsigned int fluidIndex, const unsigned int i)
+		{
+			return m_pca_curv_smooth[i];
+		}
+
+		FORCE_INLINE Real& getMcCurvature(const unsigned int fluidIndex, const unsigned int i)
+		{
+			return m_mc_curv[i];
+		}
+
 #endif
 
 		// -- functions for debugging and development

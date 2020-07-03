@@ -332,7 +332,7 @@ void SurfaceTension_ZorillaRitter2020::step()
 	if( m_step_version == StepVersion::V2019 )
 		stepZorilla();
 	else
-		stepZorillaRitter();
+		stepRitter();
 }
 
 
@@ -613,7 +613,7 @@ vector<Vector3r> SurfaceTension_ZorillaRitter2020::GetLookupTableSurfacePointsVe
 /** Step update function used in the extended version of the paper
  *	https://doi.org/10.3390/computers9020023
  */
-void SurfaceTension_ZorillaRitter2020::stepZorillaRitter()
+void SurfaceTension_ZorillaRitter2020::stepRitter()
 {
 	auto& tm = *SPH::TimeManager::getCurrent();
 	Real timeStep = tm.getTimeStepSize();

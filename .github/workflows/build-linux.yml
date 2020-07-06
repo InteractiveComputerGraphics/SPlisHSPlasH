@@ -2,7 +2,7 @@ name: build-linux
 
 on:
   push:
-    branches: [ master, ci-fix ]
+    branches: [ master ]
 
 jobs:
   build-ubuntu:

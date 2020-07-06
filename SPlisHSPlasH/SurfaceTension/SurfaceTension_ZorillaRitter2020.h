@@ -211,17 +211,19 @@ namespace SPH
 		{
 			m_step_version = static_cast<StepVersion>(a % 2);
 
+			
 			// -- set default values, on method switch	
 			if (m_step_version == StepVersion::V2020)
 			{
 				m_class_d = 13;
-				m_CsdFix = 120;
+				//m_CsdFix = 120;
 			}
 			else
 			{
 				m_class_d = 28;
-				m_CsdFix = -1;
+				//m_CsdFix = -1;
 			}
+			
 		}
 
 

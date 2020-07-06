@@ -64,7 +64,7 @@ int SurfaceTension_ZorillaRitter2020::CLASS_D = -1;
 int SurfaceTension_ZorillaRitter2020::CLASS_D_OFF = -1;
 int SurfaceTension_ZorillaRitter2020::PCA_NRM_MIX = -1;
 int SurfaceTension_ZorillaRitter2020::PCA_CUR_MIX = -1;
-int SurfaceTension_ZorillaRitter2020::FIX_SAMPLES = -1;
+int SurfaceTension_ZorillaRitter2020::FIX_SAMPLES = -1; 
 int SurfaceTension_ZorillaRitter2020::NEIGH_LIMIT = -1;
 
 int SurfaceTension_ZorillaRitter2020::SAMPLING        = -1;
@@ -104,7 +104,8 @@ void SPH::SurfaceTension_ZorillaRitter2020::setupGUIEnum(int& PARAMID, std::stri
 	const GenParam::ParameterBase::GetFunc<int>& getter,
 	const GenParam::ParameterBase::SetFunc<int>& setter )
 {
-	PARAMID = createEnumParameter("surfTZR" + name, name, getter, setter);
+	std::string tmp = split(name, ' ')[0];
+	PARAMID = createEnumParameter("surfTZR" + tmp, name, getter, setter);
 	setGroup(PARAMID, group);
 	setDescription(PARAMID, description);
 	GenParam::EnumParameter* enumParam = static_cast<GenParam::EnumParameter*>(getParameter(PARAMID));
@@ -231,7 +232,7 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 		{ { "PCA", &NORMAL_PCA}, { "Monte Carlo", &NORMAL_MC}, { "Mix", &NORMAL_MIX} },
 		getNormalFct, setNormalFct);
 
-	setupGUIParam<Real>(CLASS_D_OFF, "d-offset (20)",  grp20, "d-offset for pca.", &m_class_d_off);
+//	setupGUIParam<Real>(CLASS_D_OFF, "d-offset (20)",  grp20, "d-offset for pca.", &m_class_d_off);
 	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm (20)", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
 	setupGUIParam<Real>(PCA_CUR_MIX, "PcaMixCur (20)", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
 	setupGUIParam<int>(FIX_SAMPLES,  "MCSamples (20)", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
@@ -743,7 +744,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				{
 					// -- correct false positives to inner points
 					m_mc_normals[i] = Vector3r::Zero();
-
+					m_mc_curv[i] = 0.0;
 					m_classifier_output[i] = 0.5; // -- used for visualize post-correction points (white in the paper)
 				}
 

@@ -20,25 +20,27 @@
 		"particleAttributes": "density;velocity",
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.2,
-		"surfaceTensionMethod": 4,
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"surfTZRversion": 0,
-		"surfTZRCsd": 60000,
-		"surfTZRr-ratio": 0.8,
-		"surfTZRtau": 0.5,
-		"surfTZRd": 28,
-		"surfTZRsampling": 0,
-		"surfTZRnormal-mode": 2,
-		"surfTZRd-offset": 3,
-		"surfTZRPcaMixNrm": 0.8,
-		"surfTZRPcaMixCur": 0.4,
-		"surfTZRMCSamples": 120,
-		"surfTZRNeighLimit": 13	
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.1,
+			"surfaceTensionMethod": 4,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfTZRversion": 0,
+			"surfTZRCsd": 10000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 28,
+			"surfTZRsampling": 0 ,
+			"surfTZRnormal-mode": 1,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixCur": 0.4,
+			"surfTZRMCSamples": -1 ,
+			"surfTZRNeighLimit": 16	
+		}
+	],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBox.obj",

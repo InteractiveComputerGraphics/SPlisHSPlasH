@@ -20,25 +20,29 @@
 		"particleAttributes": "density;velocity",
 		"boundaryHandlingMethod": 2
 	},
-	"Fluid":
-	{
-		"surfaceTension": 0.1,
-		"surfaceTensionMethod": 4,
-		"viscosity": 0.01,
-		"viscosityMethod": 1,
-		"surfTZRversion": 0,
-		"surfTZRCsd": 60000,
-		"surfTZRr-ratio": 0.8,
-		"surfTZRtau": 0.5,
-		"surfTZRd": 28,
-		"surfTZRsampling": 0,
-		"surfTZRnormal-mode": 2,
-		"surfTZRd-offset": 3,
-		"surfTZRPcaMixNrm": 0.8,
-		"surfTZRPcaMixCur": 0.4,
-		"surfTZRMCSamples": 120,
-		"surfTZRNeighLimit": 13	
-	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.1,
+			"surfaceTensionMethod": 4,
+			"renderMaxValue": 15,
+			"renderMinValue": 0.0,
+			"colorMapType": 1,
+			"viscosity": 0.01, 
+			"viscosityMethod": 1,
+			"surfTZRversion": 0,
+			"surfTZRCsd": 60000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 28,
+			"surfTZRsampling": 0,
+			"surfTZRnormal-mode": 2,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixCur": 0.4,
+			"surfTZRMCSamples": 120,
+			"surfTZRNeighLimit": 13	
+	}],
 	"RigidBodies": [
 		{
 			"geometryFile": "../models/UnitBoxOpened.obj",
@@ -46,7 +50,7 @@
 			"rotationAxis": [1, 0, 0],
 			"rotationAngle": 0,
 			"scale": [2, 0.9, 2],
-			"color": [0.1, 0.4, 0.6, 1.0], 
+			"color": [0.1, 0.4, 0.6, 1.0],  
 			"isDynamic": false,
 			"isWall": true,
 			"mapInvert": true, 

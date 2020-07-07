@@ -18,7 +18,7 @@
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
 		"timeStepSize": 0.001,
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 0
 	},
 	"RigidBodies": [
 		{
@@ -37,22 +37,22 @@
 	],
 	"Materials": [
 		{
-			"id": "Fluid",
-			"surfaceTension": 0.2,
+			"id": "Fluid", 
+			"surfaceTension": 0.15,
 			"surfaceTensionMethod": 4,
 			"viscosity": 0.01,
 			"viscosityMethod": 1,
-			"surfTZRversion": 0,
-			"surfTZRCsd": 60000,
+			"surfTZRversion": 1,
+			"surfTZRCsd": 20000,
 			"surfTZRr-ratio": 0.8,
 			"surfTZRtau": 0.5,
 			"surfTZRd": 28,
 			"surfTZRsampling": 0,
-			"surfTZRnormal-mode": 2,
+			"surfTZRnormal-mode": 1,
 			"surfTZRd-offset": 3,
 			"surfTZRPcaMixNrm": 0.8,
 			"surfTZRPcaMixCur": 0.4,
-			"surfTZRMCSamples": 120,
+			"surfTZRMCSamples": -1,
 			"surfTZRNeighLimit": 13	
 	}],
 	"FluidBlocks": [

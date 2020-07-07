@@ -95,7 +95,7 @@ int PartioViewer::run(int argc, char **argv)
 			("s,startFrame", "Start frame (only used if value is >= 0)", cxxopts::value<int>()->default_value("-1"))
 			("e,endFrame", "End frame (only used if value is >= 0)", cxxopts::value<int>()->default_value("-1"))
 			("colorField", "Name of field that is used as default for the color.", cxxopts::value<std::string>()->default_value("velocity"))
-			("colorMapType", "Default color map (0=None, 1=Jet, 2=Plasma)", cxxopts::value<unsigned int>()->default_value("1"))
+			("colorMapType", "Default color map (0=None, 1=Jet, 2=Plasma, 3=CoolWarm, 4=BlueWhiteRed, 5=Seismic)", cxxopts::value<unsigned int>()->default_value("1"))
 			("renderMinValue", "Default min value of field.", cxxopts::value<float>()->default_value("0.0"))
 			("renderMaxValue", "Default max value of field.", cxxopts::value<float>()->default_value("10.0"))
 			;

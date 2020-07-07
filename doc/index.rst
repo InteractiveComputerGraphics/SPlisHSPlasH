@@ -20,6 +20,7 @@
    :maxdepth: 2
    :caption: Developer Guide:
 
+   build_from_source
    cmake_options
 
 

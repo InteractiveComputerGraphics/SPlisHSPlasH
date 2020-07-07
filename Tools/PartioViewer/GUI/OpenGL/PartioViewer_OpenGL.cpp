@@ -3,6 +3,9 @@
 #include "GUI/OpenGL/MiniGL.h"
 #include "GUI/OpenGL/colormaps/colormap_jet.h"
 #include "GUI/OpenGL/colormaps/colormap_plasma.h"
+#include "GUI/OpenGL/colormaps/colormap_bwr.h"
+#include "GUI/OpenGL/colormaps/colormap_coolwarm.h"
+#include "GUI/OpenGL/colormaps/colormap_seismic.h"
 #include "../../PartioViewer.h"
 
 using namespace std;
@@ -231,6 +234,12 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 			color_map = reinterpret_cast<float const*>(colormap_jet);
 		else if (colorMapType == 2)
 			color_map = reinterpret_cast<float const*>(colormap_plasma);
+		else if (colorMapType == 3)
+			color_map = reinterpret_cast<float const*>(colormap_coolwarm);
+		else if (colorMapType == 4)
+			color_map = reinterpret_cast<float const*>(colormap_bwr);
+		else if (colorMapType == 5)
+			color_map = reinterpret_cast<float const*>(colormap_seismic);
 
 		if (colorMapType == 0)
 		{

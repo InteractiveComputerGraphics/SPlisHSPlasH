@@ -4,7 +4,7 @@
 		"particleRadius": 0.02,
 		"numberOfStepsPerRenderUpdate": 2,
 		"density0": 1000, 
-		"simulationMethod": 4,
+		"simulationMethod": 0,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
@@ -18,7 +18,7 @@
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
 		"particleAttributes": "density;velocity",
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 0
 	},
 	"Materials": [
 		{
@@ -31,8 +31,8 @@
 			"viscosity": 0.01, 
 			"viscosityMethod": 1,
 			"surfTZRversion": 0,
-			"surfTZRCsd": 60000,
-			"surfTZRr-ratio": 0.8,
+			"surfTZRCsd": 10000,
+			"surfTZRr-ratio": 0.8, 
 			"surfTZRtau": 0.5,
 			"surfTZRd": 28,
 			"surfTZRsampling": 0,
@@ -40,7 +40,7 @@
 			"surfTZRd-offset": 3,
 			"surfTZRPcaMixNrm": 0.8,
 			"surfTZRPcaMixCur": 0.4,
-			"surfTZRMCSamples": 120,
+			"surfTZRMCSamples": -1,
 			"surfTZRNeighLimit": 13	
 	}],
 	"RigidBodies": [

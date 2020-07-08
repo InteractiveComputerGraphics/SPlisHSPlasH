@@ -4,13 +4,8 @@
 #include "GUI/OpenGL/colormaps/colormap_jet.h"
 #include "GUI/OpenGL/colormaps/colormap_plasma.h"
 #include "GUI/OpenGL/colormaps/colormap_bwr.h"
-<<<<<<< HEAD
-#include "GUI/OpenGL/colormaps/colormap_bwr_atan.h"
-#include "GUI/OpenGL/colormaps/colormap_bwg.h"
-=======
 #include "GUI/OpenGL/colormaps/colormap_coolwarm.h"
 #include "GUI/OpenGL/colormaps/colormap_seismic.h"
->>>>>>> upstream/master
 #include "../../PartioViewer.h"
 
 using namespace std;
@@ -240,19 +235,11 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 		else if (colorMapType == 2)
 			color_map = reinterpret_cast<float const*>(colormap_plasma);
 		else if (colorMapType == 3)
-<<<<<<< HEAD
-			color_map = reinterpret_cast<float const*>(colormap_bwr);
-		else if (colorMapType == 4)
-			color_map = reinterpret_cast<float const*>(colormap_bwr_atan);
-		else if (colorMapType == 5)
-			color_map = reinterpret_cast<float const*>(colormap_bwg);
-=======
 			color_map = reinterpret_cast<float const*>(colormap_coolwarm);
 		else if (colorMapType == 4)
 			color_map = reinterpret_cast<float const*>(colormap_bwr);
 		else if (colorMapType == 5)
 			color_map = reinterpret_cast<float const*>(colormap_seismic);
->>>>>>> upstream/master
 
 		if (colorMapType == 0)
 		{

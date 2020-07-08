@@ -145,12 +145,6 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 	, m_CS_smooth_passes( 1 )
 	, m_halton_sampling(RandomMethod::HALTON)
 	, m_normal_mode( NormalMethod::MC )
-	, m_stateChange( -1.0 )
-	, m_simulationStop( 5.0 )
-	, m_CsdPostState( 200000 )
-	, m_CsdFixPostState( 240 )
-	, m_sTPostState( 0.02 )
-	, m_start_export( -1.0 )
 {
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();

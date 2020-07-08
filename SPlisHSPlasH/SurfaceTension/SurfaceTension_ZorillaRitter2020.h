@@ -139,15 +139,6 @@ namespace SPH
 		std::vector<Real>     m_final_curvatures_old;
 		std::vector<Real>     m_classifier_input;
 
-		// -- variables for development, visualization, export, and debugging
-		double m_stateChange;      // time of a state change
-		double m_simulationStop;   // time when the simulation is exited
-		int    m_CsdPostState;     // csd value after state change
-		int    m_CsdFixPostState;  // csdFixed value after state change
-		double m_sTPostState;      // surface tension coefficient after state change
-		double m_start_export;     // time of staring ASCII export
-
-
 		//-- simluation step function
 		virtual void step();
 		void stepZorilla();  // Version: https://diglib.eg.org/handle/10.2312/cgvc20191260

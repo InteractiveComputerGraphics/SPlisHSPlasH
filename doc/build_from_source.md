@@ -44,6 +44,8 @@ cd ../bin
 MESA_GL_VERSION_OVERRIDE=3.3 ./SPHSimulator ../data/Scenes/DoubleDamBreak.json
 ```
 
+The command loads the selected scene. To start the simulation disable the pause mode by clicking the checkbox or pressing [Space]. More hotkeys are listed [here](getting_started.md).
+
 ### Using Bindings
 
 Assuming that the python bindings were generated in the default location `Project Root/build/lib/pysplishsplash.cpython-38-x86_64-linux-gnu.so`, you can use the bindings by adding this path to `sys.path` within your python script, or by calling your scripts within the directory containing the `.so` file. You can test that the bindings work using the following command.
@@ -103,11 +105,13 @@ Now run Configure and select the correct Visual Studio version. Ensure that you 
 
 ### Run Executable
 
-Execute "bin/SPHSimulator.exe" to start the simulator and select a scene file to run the simulation. Alrernatively, you can start the simulation in the command line:
+Execute "bin/SPHSimulator.exe" to start the simulator and select a scene file to run the simulation. Alternatively, you can start the simulation in the command line:
 
 ```
 ./SPHSimulator ../data/Scenes/DoubleDamBreak.json
 ```
+
+The command loads the selected scene. To start the simulation disable the pause mode by clicking the checkbox or pressing [Space]. More hotkeys are listed [here](getting_started.md).
 
 ### Using Bindings
 

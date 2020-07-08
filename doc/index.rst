@@ -14,6 +14,7 @@
    about
    getting_started
    file_format
+   replicability
 
 
 .. toctree::

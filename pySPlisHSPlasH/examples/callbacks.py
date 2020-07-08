@@ -9,7 +9,7 @@ def time_step_callback():
 def main():
 	base = sph.Exec.SimulatorBase()
 	base.init()
-	gui = sph.GUI.Simulator_GUI_TweakBar(base)
+	gui = sph.GUI.Simulator_GUI_imgui(base)
 	base.setGui(gui)
 	
 	gui.addKeyFunc('k', key_callback)

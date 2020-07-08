@@ -11,8 +11,8 @@ def main():
 	
 	sim = sph.Simulation.getCurrent()
 
-	# Create a tweak bar simulator
-	gui = sph.GUI.Simulator_GUI_TweakBar(base)
+	# Create an imgui simulator
+	gui = sph.GUI.Simulator_GUI_imgui(base)
 	base.setGui(gui)
 
 	# SimulationBase
@@ -45,7 +45,8 @@ def main():
 	scene.boundaryModels.append(Scenes.BoundaryData(meshFile="../models/UnitBox.obj", translation=[0., 3.0, 0.], scale=[4., 6., 4.], color=[0.1, 0.4, 0.5, 1.0], isWall=True, mapInvert=True, mapResolution=[25, 25, 25], isDynamic=False))
 
 	# first fluid
-	scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([-1.5, 0.0, -1.5], [-0.5, 2.0, -0.5]), mode=0, initialVelocity=[0.0, 0.0, 0.0]))
+	scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([-1.5, 0.0, -1.5], [-0.5, 1.0, -0.5]), mode=0, initialVelocity=[0.0, 0.0, 0.0]	))
+	scene.fluidModels.append(Scenes.FluidData(id='Fluid', samplesFile="../models/sphere.obj", mode=0, scale=[0.3, 0.3, 0.3], translation=[0., 0.5, 0.], initialVelocity=[0.0, 0.0, 0.0]))
 	
 	scene.materials.append(Scenes.MaterialData(id='Fluid', colorMapType=2))
 	

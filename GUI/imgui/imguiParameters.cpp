@@ -200,8 +200,7 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 						ImGui::PopStyleColor(3);
 					if (subgroup.first != "")
 						ImGui::TreePop();
-					ImGui::EndTabItem();
-					ImGui::EndTabBar();
+					ImGui::PopStyleColor(2);
 					return;
 				}
 

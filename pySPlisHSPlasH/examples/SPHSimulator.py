@@ -28,7 +28,7 @@ def main():
 	
 	base.init(sceneFile=args.scene, useGui=not args.no_gui, initialPause=not args.no_initial_pause, useCache=not args.no_cache, stopAt=args.stopAt, stateFile=args.state_file, outputDir=args.output_dir, param=args.param)
 	
-	gui = sph.GUI.Simulator_GUI_TweakBar(base)
+	gui = sph.GUI.Simulator_GUI_imgui(base)
 	base.setGui(gui)
 	base.run()
 

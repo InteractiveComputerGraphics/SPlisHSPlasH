@@ -37,10 +37,20 @@ Please get in contact for feedback/support.
 #include "SurfaceTensionBase.h"
 #include <chrono>
 
+
 // -- enable to provide more scalar fields for visual exploration
 //#define RICH_OUTPUT
 
+
+// -- enable to provide a state change. This was used in the saddle example to start 
+//    with a high viscosity and change to water after 1.5 secs for faster steady state convergence.
 //#define ENABLE_STATE_CHANGE
+
+
+// -- enable for more control variable accessible in the GUI for fine tuning
+//#define MORE_CONTROL_VARS
+
+
 
 namespace SPH
 {
@@ -100,7 +110,7 @@ namespace SPH
 		StepVersion m_step_version;
 
 		// -- Both Versions:
-		int    m_Csd;       // number of samples per particle per second
+		int  m_Csd;       // number of samples per particle per second
 		Real m_tau;       // smoothing factor, default 0.5
 		Real m_r2mult;    // r1 to R2 factor, default 0.8
 		Real m_r1;        // radius of current particle
@@ -127,25 +137,22 @@ namespace SPH
 		int    m_CS_smooth_passes;  // nr of smoohting passes
 
 		//     Switch between precomputed halton and random sampling mode
-		enum class RandomMethod { HALTON, RND, SIZE };   
+		enum class RandomMethod { HALTON, RND, SIZE };  // Halton23, Random 
 		RandomMethod m_halton_sampling;
 		
 		//     Switch between 3 different normal vector variants
-		enum class NormalMethod { PCA, MC, MIX, SIZE };
+		enum class NormalMethod { PCA, MC, MIX, SIZE }; // PCA, Monte Carlo, Mixed
 		NormalMethod m_normal_mode;
 
 		// -- containers per particle (V2020)
 		//    there are more than minimally required 
 		//    for analysis, visualization and debugging
-		std::vector<Vector3r> m_pca_normals;
-		std::vector<Real>     m_pca_curv;
-		std::vector<Real>     m_pca_curv_smooth;
-		std::vector<int>      m_nr_area_samples;
-		std::vector<int>      m_nr_all_samples;
+		std::vector<Vector3r> m_pca_normals;       // surface normal by PCA
+		std::vector<Real>     m_pca_curv;          // curvature estimate by spherity
+		std::vector<Real>     m_pca_curv_smooth;   // smoothed curvature
 		std::vector<Real>     m_final_curvatures;
 		std::vector<Real>     m_final_curvatures_old;
 		std::vector<Real>     m_classifier_input;
-
 
 		// -- variables for development, visualization, export, and debugging
 		double m_stateChange;      // time of a state change
@@ -158,10 +165,13 @@ namespace SPH
 
 
 #ifdef RICH_OUTPUT 
+		std::vector<int>  m_nr_area_samples;
+		std::vector<int>  m_nr_all_samples;
 		std::vector<Real> m_classifier_input2;
 #endif
 
 
+		//-- simluation step function
 		virtual void step();
 		void stepZorilla();
 		void stepRitter();
@@ -169,23 +179,37 @@ namespace SPH
 		virtual void initParameters();
 		virtual void reset();
 
-		bool ClassifyPoint( double com, int non, double d_offset = 0.0 );
+		/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent
+			to the network classifier. Just less mathematical operations.
+		 * \param com       normalized center of mass / number of neighbors
+		 * \param non       number of neighbors
+		 * \param d_offset  constant parameter d
+		 * \return          true if surface, false otherwise
+		 **/
+		bool classifyParticle( double com, int non, double d_offset = 0.0 );
 
-		std::vector<Vector3r> GetRandSurfacePoints( int N, Real supportRadius );
+		/** Get N random samples on a sphere with radius r (at the origin). */
+		std::vector<Vector3r> getSphereSamplesRnd( int N, Real supportRadius );
 
-		std::vector<Vector3r> GetLookupTableSurfacePointsVec3(
+		/** Get N random samples on a sphere with radius r (at the origin) by using a 
+		    precomputed look-up table of vectors (vec3 serialized). */
+		std::vector<Vector3r> getSphereSamplesLookUp(
 			int N, Real supportRadius, int start, const std::vector<double>& vec3, int mod );
 
-		std::vector<Vector3r> GetLookupTableSurfacePointsVec3(
+		/** Get N random samples on a sphere with radius r (at the origin) by using a
+			precomputed look-up table of vectors (vec3 serialized). */
+		std::vector<Vector3r> getSphereSamplesLookUp(
 			int N, Real supportRadius, int start, const std::vector<float>& vec3, int mod );
+
 
 
 		void resizeV20States( size_t N );
 		void resizeV19States( size_t N );
 
-
+		// string helper function
 		std::vector<std::string> split(std::string txt, char delimiter);
-
+		
+		//-- Fuction to setup GUI elements and callback
 		template<class T>
 		void setupGUIParam(int& PARAMID, std::string name, std::string group, std::string description, T* val)
 		{
@@ -219,7 +243,6 @@ namespace SPH
 				m_class_d = 28;			
 		}
 
-
 		int getSamplingMethod() const
 		{
 			return static_cast<int>(m_halton_sampling);
@@ -248,6 +271,7 @@ namespace SPH
 				m_class_d = 28;
 		}
 
+		//-- Accessor functions for field hanlding
 		FORCE_INLINE Real& getClassifierOutput(const unsigned int fluidIndex, const unsigned int i)
 		{
 			return m_classifier_output[i];

@@ -127,35 +127,35 @@ void SurfaceTension_ZorillaRitter2020::resizeV20States( size_t N )
 
 	m_classifier_input.resize( N, 0.0 );
 
-	m_nr_all_samples.resize(  N, 0 );
-	m_nr_area_samples.resize( N, 0 );
-
 	m_classifier_output.resize(N, 0.0);
 
 #ifdef RICH_OUTPUT
 	m_classifier_input2.resize( N, 0.0 );
+
+	m_nr_all_samples.resize(N, 0);
+	m_nr_area_samples.resize(N, 0);
 #endif
 }
 
 SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* model ) 
 	: SurfaceTensionBase( model )
-	, m_step_version( StepVersion::V2020 )
+	, m_step_version(StepVersion::V2020)
+	, m_Csd(10000) // 10000 // 36000 // 48000 // 60000
+	, m_tau(0.5)
+	, m_r2mult(0.8)
+	, m_r1(Simulation::getCurrent()->getSupportRadius())
+	, m_r2(m_r2mult* m_r1)
 	, m_class_k( 74.688796680497925 )
 	, m_class_d( 12 )
 	, m_temporal_smoothing( false )
+	, m_CsdFix( -1 )
 	, m_class_d_off( 2 )
-	, m_Csd( 10000 ) // 10000 // 36000 // 48000 // 60000
-	, m_CsdFix( 36 )
-	, m_r1( Simulation::getCurrent()->getSupportRadius() )
-	, m_r2mult( 0.8 )
-    , m_r2( m_r2mult * m_r1 )
-    , m_tau( 0.5 )
 	, m_pca_N_mix( 0.75 )
 	, m_pca_C_mix( 0.5 )
-	, m_neighs_limit( 13 )	
-	, m_CS_smooth_passes( 0 )
-	, m_normal_mode( NormalMethod::MIX )
-	, m_halton_sampling( RandomMethod::HALTON )
+	, m_neighs_limit( 16 )	
+	, m_CS_smooth_passes( 1 )
+	, m_halton_sampling(RandomMethod::HALTON)
+	, m_normal_mode( NormalMethod::MC )
 	, m_stateChange( -1.0 )
 	, m_simulationStop( 5.0 )
 	, m_CsdPostState( 200000 )
@@ -232,12 +232,15 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 		{ { "PCA", &NORMAL_PCA}, { "Monte Carlo", &NORMAL_MC}, { "Mix", &NORMAL_MIX} },
 		getNormalFct, setNormalFct);
 
-//	setupGUIParam<Real>(CLASS_D_OFF, "d-offset (20)",  grp20, "d-offset for pca.", &m_class_d_off);
-	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm (20)", grp20, "Factor to mix-in pca normal.",    &m_pca_N_mix);
+	setupGUIParam<int> (FIX_SAMPLES, "MCSamples (20)", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
 	setupGUIParam<Real>(PCA_CUR_MIX, "PcaMixCur (20)", grp20, "Factor to mix-in pca curvature.", &m_pca_C_mix);
-	setupGUIParam<int>(FIX_SAMPLES,  "MCSamples (20)", grp20, "Fixed nr of MC samples per step.", &m_CsdFix);
+	setupGUIParam<Real>(PCA_NRM_MIX, "PcaMixNrm (20)", grp20, "Factor to mix-in pca normal.", &m_pca_N_mix);
+
+#ifdef MORE_CONTROL_VARS
 	setupGUIParam<int>(NEIGH_LIMIT,  "NeighLimit (20)", grp20, "Limit nr of neighbors.", &m_neighs_limit);
 	setupGUIParam<int>(SMOOTH_PASSES,"smoothPasses (20)", grp20, "Nr of smoothing passes.", &m_CS_smooth_passes);
+	setupGUIParam<Real>(CLASS_D_OFF, "d-offset (20)",  grp20, "d-offset for pca.", &m_class_d_off);
+#endif
 
 	TEMPORAL_SMOOTH = createBoolParameter("surfTZRtemporalSmooth" , "temporalSmoothing (20)", &m_temporal_smoothing);
 	setGroup(TEMPORAL_SMOOTH, grp20);
@@ -305,14 +308,7 @@ bool EvaluateNetwork( double com, int non )
 }
 
 
-/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent 
-    to the network classifier. Just less mathematical operations.
- * \param com       normalized center of mass / number of neighbors
- * \param non       number of neighbors
- * \param d_offset  constant parameter d
- * \return          true if surface, false otherwise
- **/
-bool SurfaceTension_ZorillaRitter2020::ClassifyPoint( double com, int non, double d_offset )
+bool SurfaceTension_ZorillaRitter2020::classifyParticle( double com, int non, double d_offset )
 {
 	//	double neighborsOnTheLine = ((360.0 / 241.0) * (com * 500.0) + 120) / 10;
 	//	double neighborsOnTheLine = 74.688796680497925 * com + 12; // pre-multiplied
@@ -324,8 +320,6 @@ bool SurfaceTension_ZorillaRitter2020::ClassifyPoint( double com, int non, doubl
 	else 
 		return false;
 }
-
-
 
 void SurfaceTension_ZorillaRitter2020::step()
 {
@@ -348,7 +342,7 @@ Vector3r anglesToVec( double theta, double phi, double radius )
 		radius * cos( phi ) );
 }
 
-std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::GetRandSurfacePoints( int N, Real supportRadius )
+std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesRnd( int N, Real supportRadius )
 {
 	std::vector<Vector3r> points;
 
@@ -404,9 +398,9 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				Vector3r xjxi = (xj - xi);
 				centerofMasses += xjxi / supportRadius; )
 
-			if (ClassifyPoint( centerofMasses.norm() / double( numberOfNeighbours ), numberOfNeighbours )) //EvaluateNetwork also possible
+			if (classifyParticle( centerofMasses.norm() / double( numberOfNeighbours ), numberOfNeighbours )) //EvaluateNetwork also possible
 			{
-				std::vector<Vector3r> points = GetRandSurfacePoints( NumberOfPoints, supportRadius );
+				std::vector<Vector3r> points = getSphereSamplesRnd( NumberOfPoints, supportRadius );
 
 				forall_fluid_neighbors_in_same_phase(
 					Vector3r xjxi = (xj - xi);
@@ -599,7 +593,7 @@ void eigenDecomposition3(
  * \param t                matrix to be decomposed
  * \param abs_sort         true sort by absolute, false don't sort
 */
-vector<Vector3r> SurfaceTension_ZorillaRitter2020::GetLookupTableSurfacePointsVec3(
+vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesLookUp(
 	int N, Real supportRadius, int start, 
 	const vector<float>& vec3, int mod )
 {
@@ -692,6 +686,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 			
 			centerofMasses /= supportRadius;
 
+			// cache classifier input, could also be recomputed later to avoid caching
 			m_classifier_input[i] = centerofMasses.norm() / double( numberOfNeighbours );
 			
 #ifdef RICH_OUTPUT			
@@ -699,17 +694,17 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 #endif
 
 			// -- if it is a surface classified particle
-			if (ClassifyPoint( m_classifier_input[i], numberOfNeighbours )) //EvaluateNetwork also possible
+			if (classifyParticle( m_classifier_input[i], numberOfNeighbours )) //EvaluateNetwork also possible
 			{
 
 				// -- create monte carlo samples on particle
 				std::vector<Vector3r> points;
 
 				if( m_halton_sampling == RandomMethod::HALTON )
-					points = GetLookupTableSurfacePointsVec3(
+					points = getSphereSamplesLookUp(
 						NrOfSamples, supportRadius, i * NrOfSamples, haltonVec323, haltonVec323.size() ); // 8.5 // 15.0(double) // 9.0(float)
 				else
-					points = GetRandSurfacePoints( NrOfSamples, supportRadius );
+					points = getSphereSamplesRnd( NrOfSamples, supportRadius );
 
 
 				//  -- remove samples covered by neighbor spheres
@@ -749,8 +744,10 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				}
 
 				// -- export vars
+#ifdef RICH_OUTPUT
 				m_nr_all_samples[i] = NrOfSamples;
 				m_nr_area_samples[i] = points.size();
+#endif
 			}
 			else
 			{
@@ -822,7 +819,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					}
 
 					else if( m_normal_mode != NormalMethod::MC
-						&& ClassifyPoint( m_classifier_input[neighborIndex], nrNeighhbors, m_class_d_off ))
+						&& classifyParticle( m_classifier_input[neighborIndex], nrNeighhbors, m_class_d_off ))
 					{
 						Vector3r& xj = m_model->getPosition( neighborIndex );
 						Vector3r xjxi = (xj - xi);
@@ -1300,7 +1297,7 @@ std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::GetLookupTableSurfacePoi
 	return points;
 }
 
-std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::GetLookupTableSurfacePointsVec3(
+std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesLookUp(
 	int N, Real supportRadius, int start, const std::vector<double>& vec3, int mod )
 {
 	std::vector<Vector3r> points;
@@ -1356,7 +1353,7 @@ void SurfaceTension_ZorillaRitter2020::classificationTiming()
 
 				centerofMasses += xjxi / supportRadius;
 			}
-			if (ClassifyPoint(centerofMasses.norm() / double(numberOfNeighbours), numberOfNeighbours)) //EvaluateNetwork also possible
+			if (classifyParticle(centerofMasses.norm() / double(numberOfNeighbours), numberOfNeighbours)) //EvaluateNetwork also possible
 			{
 
 			}
@@ -1389,7 +1386,7 @@ void SurfaceTension_ZorillaRitter2020::stepData()
 #pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			std::vector<Vector3r> points = GetRandSurfacePoints( NrOfSamples, supportRadius );
+			std::vector<Vector3r> points = getSphereSamplesRnd( NrOfSamples, supportRadius );
 
 			m_normals[i] = Vector3r::Zero();
 

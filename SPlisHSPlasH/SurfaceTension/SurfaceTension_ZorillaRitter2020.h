@@ -37,21 +37,6 @@ Please get in contact for feedback/support.
 #include "SurfaceTensionBase.h"
 #include <chrono>
 
-
-// -- enable to provide more scalar fields for visual exploration
-//#define RICH_OUTPUT
-
-
-// -- enable to provide a state change. This was used in the saddle example to start 
-//    with a high viscosity and change to water after 1.5 secs for faster steady state convergence.
-//#define ENABLE_STATE_CHANGE
-
-
-// -- enable for more control variable accessible in the GUI for fine tuning
-//#define MORE_CONTROL_VARS
-
-
-
 namespace SPH
 {
 
@@ -163,18 +148,10 @@ namespace SPH
 		double m_start_export;     // time of staring ASCII export
 
 
-
-#ifdef RICH_OUTPUT 
-		std::vector<int>  m_nr_area_samples;
-		std::vector<int>  m_nr_all_samples;
-		std::vector<Real> m_classifier_input2;
-#endif
-
-
 		//-- simluation step function
 		virtual void step();
-		void stepZorilla();
-		void stepRitter();
+		void stepZorilla();  // Version: https://diglib.eg.org/handle/10.2312/cgvc20191260
+		void stepRitter();   // Version: https://doi.org/10.3390/computers9020023
 
 		virtual void initParameters();
 		virtual void reset();
@@ -281,60 +258,6 @@ namespace SPH
 		{
 			return m_final_curvatures[i];
 		}
-
-#ifdef RICH_OUTPUT
-		FORCE_INLINE Real& getClassifierInput( const unsigned int fluidIndex, const unsigned int i )
-		{
-			return m_classifier_input[i];
-		}
-
-		FORCE_INLINE Real& getMcCurvatureSmooth(const unsigned int fluidIndex, const unsigned int i)
-		{
-			return m_mc_curv_smooth[i];
-		}
-
-		FORCE_INLINE Real& getCs(const unsigned int fluidIndex, const unsigned int i)
-		{
-			return m_pca_curv[i];
-		}
-
-
-		FORCE_INLINE Real& getCsCorr(const unsigned int fluidIndex, const unsigned int i)
-		{
-			return m_pca_curv_smooth[i];
-		}
-
-		FORCE_INLINE Real& getMcCurvature(const unsigned int fluidIndex, const unsigned int i)
-		{
-			return m_mc_curv[i];
-		}
-
-#endif
-
-		// -- functions for debugging and development
-		void storeASCIIData( size_t step );
-
-#ifdef ENABLE_STATE_CHANGE
-		void changeState( double time, double time_stop );
-#endif
-
-		/*
-		void stepData(); // function for classification training data creation
-		void classificationTiming(); // measure standard case timing
-
-		std::vector<Vector3r> GetUniformSurfacePoints( int N, Real supportRadius );
-
-		std::vector<Vector3r> GetLookupTableSurfacePoints(
-			int N, Real supportRadius, int start, const std::vector<double>& hal, int mod );
-
-		std::vector<Vector3r> GetLookupTableSurfacePoints(
-			int N, Real supportRadius, int start, const std::vector<float>& hal, int mod );
-
-		std::vector<Vector3r> GetHaltonSurfacePoints(
-			int N, Real supportRadius, int start, int b1, int b2, int size );
-
-		std::vector<Vector3r> GetSurfacePointsHaltonNumbers( int N );
-		*/
 
 	};
 }

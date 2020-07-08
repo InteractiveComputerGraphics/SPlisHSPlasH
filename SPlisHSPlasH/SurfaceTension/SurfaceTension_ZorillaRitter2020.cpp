@@ -30,14 +30,12 @@ Please get in contact for feedback/support.
 
 #include <iostream>
 #include <fstream>
-#include <numeric>
-#include <unordered_set>
 #include <map>
 
 #include "SplisHSPlash/Simulation.h"
 #include "SplisHSPlash/TimeManager.h"
-#include "SplisHSPlash/Viscosity/Viscosity_Standard.h"
-#include "Utilities/Timing.h"
+//#include "SplisHSPlash/Viscosity/Viscosity_Standard.h"
+//#include "Utilities/Timing.h"
 
 #include "SurfaceTension_ZorillaRitter2020_haltonVec323.h"
 #include "SurfaceTension_ZorillaRitter2020_EigenDecomposition.h"

@@ -210,20 +210,13 @@ namespace SPH
 		void setVersionMethod( const int a )
 		{
 			m_step_version = static_cast<StepVersion>(a % 2);
-
 			
 			// -- set default values, on method switch	
-			if (m_step_version == StepVersion::V2020)
-			{
+			if (m_step_version == StepVersion::V2020 &&
+				m_normal_mode == NormalMethod::MIX )
 				m_class_d = 13;
-				//m_CsdFix = 120;
-			}
 			else
-			{
-				m_class_d = 28;
-				//m_CsdFix = -1;
-			}
-			
+				m_class_d = 28;			
 		}
 
 
@@ -246,6 +239,13 @@ namespace SPH
 		void setNormalMethod(const int a)
 		{
 			m_normal_mode = static_cast<NormalMethod>(a % int(NormalMethod::SIZE));
+
+			// -- set default values, on method switch	
+			if (m_step_version == StepVersion::V2020 &&
+				m_normal_mode == NormalMethod::MIX)
+				m_class_d = 13;
+			else
+				m_class_d = 28;
 		}
 
 		FORCE_INLINE Real& getClassifierOutput(const unsigned int fluidIndex, const unsigned int i)

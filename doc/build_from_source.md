@@ -98,7 +98,7 @@ First, clone the repository by
 git clone https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git
 ```
 
-Then run cmake-gui and set "Where is the source code:" to the <SPlisHSPlasH-dir> and "Where to build the binaries:" to <SPlisHSPlasH-dir>/build.
+Then run cmake-gui and set "Where is the source code:" to the [SPlisHSPlasH-dir] and "Where to build the binaries:" to [SPlisHSPlasH-dir]/build.
 
 Now run Configure and select the correct Visual Studio version. Ensure that you choose a x64 build on a 64bit system. Finally, run Generate and open the project. Now you can build the project in Visual Studio. Note that you have to select the "Release" build, if you want to have an optimized executable.
 
@@ -115,7 +115,7 @@ The command loads the selected scene. To start the simulation disable the pause 
 
 ### Using Bindings
 
-Assuming that the python bindings were generated in the default location <SPlisHSPlasH-dir>/build/lib/pysplishsplash.cp37-win_amd64.pyd, you can use the bindings by adding this path to `sys.path` within your python script, or by calling your scripts within the directory containing the `.pyd` file. You can test that the bindings work using the following command.
+Assuming that the python bindings were generated in the default location [SPlisHSPlasH-dir]/build/lib/pysplishsplash.cp37-win_amd64.pyd, you can use the bindings by adding this path to `sys.path` within your python script, or by calling your scripts within the directory containing the `.pyd` file. You can test that the bindings work using the following command.
 
 ```
 cd lib

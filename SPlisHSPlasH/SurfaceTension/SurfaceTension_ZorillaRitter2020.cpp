@@ -586,13 +586,6 @@ void eigenDecomposition3(
 }
 
 
-/**
- * Eigen decomposition of a 3x3 matrix.
- * \param eigen_vectors    eigenvectors sorted by values, return by reference
- * \param eigen_values     eigenvalues sorted, return by reference
- * \param t                matrix to be decomposed
- * \param abs_sort         true sort by absolute, false don't sort
-*/
 vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesLookUp(
 	int N, Real supportRadius, int start, 
 	const vector<float>& vec3, int mod )

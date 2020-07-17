@@ -49,7 +49,22 @@ namespace SPH
 	class SurfaceTension_ZorillaRitter2020 : public SurfaceTensionBase
 	{
 	public:
-	
+
+		SurfaceTension_ZorillaRitter2020(FluidModel* model);
+		virtual ~SurfaceTension_ZorillaRitter2020(void);
+
+		/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent
+			to the network classifier. Also, inspect lines 344 to 348 in the cpp file
+			for how to compute the required input.
+		 * \param com       normalized center of mass / number of neighbors
+		 * \param non       number of neighbors
+		 * \param d_offset  constant parameter d
+		 * \return          true if surface, false otherwise
+		 **/
+		static bool classifySurfaceParticle(double com, int non, double d_offset = 0.0);
+
+	private:
+
 		// -- GUI handle variables
 		static int SURFACE_TENSION_MEDIAN;
 
@@ -84,9 +99,6 @@ namespace SPH
 		static int SMOOTH_PASSES;
 		static int TEMPORAL_SMOOTH;
 
-
-		SurfaceTension_ZorillaRitter2020( FluidModel* model );
-		virtual ~SurfaceTension_ZorillaRitter2020( void );
 
 		// -- Control Parameters
 
@@ -147,14 +159,19 @@ namespace SPH
 		virtual void initParameters();
 		virtual void reset();
 
-		/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent
-			to the network classifier. Just less mathematical operations.
+		/** More configurable linear classifier (non fix k and d) Equivalent to 
+		  * classifySurfaceParticle( ... ) above.
+		 **/
+		bool classifyParticleConfigurable( double com, int non, double d_offset = 0.0 );
+
+		/** Neural network classifier. Divides into surface or non-surface particle.
+			Weights are pre-trained.
 		 * \param com       normalized center of mass / number of neighbors
 		 * \param non       number of neighbors
 		 * \param d_offset  constant parameter d
 		 * \return          true if surface, false otherwise
 		 **/
-		bool classifyParticle( double com, int non, double d_offset = 0.0 );
+		bool evaluateNetwork(double com, int non);
 
 		/** Get N random samples on a sphere with radius r (at the origin). */
 		std::vector<Vector3r> getSphereSamplesRnd( int N, Real supportRadius );
@@ -173,16 +190,15 @@ namespace SPH
 
 		void resizeV20States( size_t N );
 		void resizeV19States( size_t N );
-
-		// string helper function
-		std::vector<std::string> split(std::string txt, char delimiter);
-		
+	
 		//-- Fuction to setup GUI elements and callback
 		template<class T>
 		void setupGUIParam(int& PARAMID, std::string name, std::string group, std::string description, T* val)
 		{
-			std::string tmp = split(name, ' ')[0];
-			PARAMID = createNumericParameter<T>( "surfTZR" + tmp, name, val);
+			std::vector<std::string> tmp;
+			Utilities::StringTools::tokenize(name, tmp, " ");
+
+			PARAMID = createNumericParameter<T>( "surfTZR" + tmp[0], name, val);
 			setGroup(PARAMID, group);
 			setDescription(PARAMID, description);
 			GenParam::NumericParameter<T>* rparam = static_cast<GenParam::NumericParameter<T>*>(getParameter(PARAMID));
@@ -240,16 +256,19 @@ namespace SPH
 		}
 
 		//-- Accessor functions for field hanlding
-		FORCE_INLINE Real& getClassifierOutput(const unsigned int fluidIndex, const unsigned int i)
+		FORCE_INLINE Real& getClassifierOutput( const unsigned int i)
 		{
 			return m_classifier_output[i];
 		}
 
-		FORCE_INLINE Real& getFinalCurvature(const unsigned int fluidIndex, const unsigned int i)
+		FORCE_INLINE Real& getFinalCurvature( const unsigned int i)
 		{
 			return m_final_curvatures[i];
 		}
 
+
+		// -- helper functions:
+		static Vector3r anglesToVec(double theta, double phi, double radius);
 	};
 }
 

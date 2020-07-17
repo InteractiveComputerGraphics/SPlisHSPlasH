@@ -32,11 +32,14 @@ Please get in contact for feedback/support.
 #include <fstream>
 #include <map>
 
-#include "SplisHSPlash/Simulation.h"
-#include "SplisHSPlash/TimeManager.h"
+#include "SPlisHSPlasH/Simulation.h"
+#include "SPlisHSPlasH/TimeManager.h"
+
+#include "SPlisHSPlasH/Utilities/MathFunctions.h"
+
+#include "Utilities/StringTools.h"
 
 #include "SurfaceTension_ZorillaRitter2020_haltonVec323.h"
-#include "SurfaceTension_ZorillaRitter2020_EigenDecomposition.h"
 #include "SurfaceTension_ZorillaRitter2020.h"
 
 
@@ -76,37 +79,26 @@ int SurfaceTension_ZorillaRitter2020::SMOOTH_PASSES = -1;
 int SurfaceTension_ZorillaRitter2020::TEMPORAL_SMOOTH = -1;
 
 
-vector<string> SurfaceTension_ZorillaRitter2020::split(string txt, char delimiter)
-{
-	string tmp;
-	stringstream ss(txt);
-	vector<string> tokens;
-
-	while (getline(ss, tmp, delimiter))
-		tokens.push_back(tmp);
-
-	return tokens;
-}
-
-
-void SurfaceTension_ZorillaRitter2020::resizeV19States( size_t N )
-{
-	m_mc_normals.resize( N, Vector3r::Zero() );
-	m_final_curvatures.resize( N, 0.0 );
-}
-
-void SPH::SurfaceTension_ZorillaRitter2020::setupGUIEnum(int& PARAMID, std::string name, std::string group, std::string description, 
-	std::vector<pair<string, int*>> enum_ids, 
+void SPH::SurfaceTension_ZorillaRitter2020::setupGUIEnum(int& PARAMID, string name, string group, string description,
+	std::vector<pair<string, int*>> enum_ids,
 	const GenParam::ParameterBase::GetFunc<int>& getter,
-	const GenParam::ParameterBase::SetFunc<int>& setter )
+	const GenParam::ParameterBase::SetFunc<int>& setter)
 {
-	std::string tmp = split(name, ' ')[0];
-	PARAMID = createEnumParameter("surfTZR" + tmp, name, getter, setter);
+	vector<string> tmp;
+	Utilities::StringTools::tokenize(name, tmp, " ");
+
+	PARAMID = createEnumParameter("surfTZR" + tmp[0], name, getter, setter);
 	setGroup(PARAMID, group);
 	setDescription(PARAMID, description);
 	GenParam::EnumParameter* enumParam = static_cast<GenParam::EnumParameter*>(getParameter(PARAMID));
 	for (auto& s : enum_ids)
 		enumParam->addEnumValue(s.first, *s.second);
+}
+
+void SurfaceTension_ZorillaRitter2020::resizeV19States( size_t N )
+{
+	m_mc_normals.resize( N, Vector3r::Zero() );
+	m_final_curvatures.resize( N, 0.0 );
 }
 
 void SurfaceTension_ZorillaRitter2020::resizeV20States( size_t N )
@@ -146,15 +138,8 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 	, m_halton_sampling(RandomMethod::HALTON)
 	, m_normal_mode( NormalMethod::MC )
 {
-	Simulation* sim = Simulation::getCurrent();
-	const unsigned int nModels = sim->numberOfFluidModels();
-	for( unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++ )
-	{
-		FluidModel* model = sim->getFluidModel( fluidModelIndex );
-
-		model->addField( { "Curv.Final (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex]( const unsigned int i ) -> Real* { return &this->getFinalCurvature( fluidModelIndex, i ); } } );
-		model->addField( { "Surf.Class (SurfZR20)", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &this->getClassifierOutput(fluidModelIndex, i); } });
-	}
+	m_model->addField( { "Curv.Final (SurfZR20)", FieldType::Scalar, [this](const unsigned int i ) -> Real* { return &this->getFinalCurvature( i ); } } );
+	m_model->addField( { "Surf.Class (SurfZR20)", FieldType::Scalar, [this](const unsigned int i) -> Real* { return &this->getClassifierOutput( i ); } });
 
 	// -- Both Versions
 	resizeV19States( model->numParticles() );
@@ -224,28 +209,15 @@ SurfaceTension_ZorillaRitter2020::~SurfaceTension_ZorillaRitter2020( void )
 	for( unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++ )
 	{
 		FluidModel* model = sim->getFluidModel( fluidModelIndex );
-		model->removeFieldByName( "SurfZor20 curvature smoothed" );
-		model->removeFieldByName( "SurfZor20 curvature corr" );
-		model->removeFieldByName( "SurfZor20 curvature" );
-		model->removeFieldByName( "SurfZor20 Cs" );
-		model->removeFieldByName( "SurfZor20 CsCorr" );
-		model->removeFieldByName( "SurfZor20 CsFinal" );
+
+		model->removeFieldByName("Curv.Final (SurfZR20)");
+		model->removeFieldByName("Surf.Class (SurfZR20)");
 	}
 }
 
 
-#ifdef _WIN32
-	#undef max
-#endif
 
-/** Neural network classifier. Divides into surface or non-surface particle.
-    Weights are pre-trained.
- * \param com       normalized center of mass / number of neighbors
- * \param non       number of neighbors
- * \param d_offset  constant parameter d
- * \return          true if surface, false otherwise
- **/
-bool EvaluateNetwork( double com, int non )
+bool SurfaceTension_ZorillaRitter2020::evaluateNetwork( double com, int non )
 {
 	double W111 = 0.94356692; double W112 = -38.35266876;
 	double W121 = -0.95363748; double W122 = 0.50992483;
@@ -276,7 +248,18 @@ bool EvaluateNetwork( double com, int non )
 }
 
 
-bool SurfaceTension_ZorillaRitter2020::classifyParticle( double com, int non, double d_offset )
+bool SurfaceTension_ZorillaRitter2020::classifySurfaceParticle( double com, int non, double d_offset)
+{
+	double neighborsOnTheLine = 74.688796680497925 * com + 28.0; // pre-multiplied
+
+	if (non <= neighborsOnTheLine)
+		return true;
+	else
+		return false;
+}
+
+
+bool SurfaceTension_ZorillaRitter2020::classifyParticleConfigurable( double com, int non, double d_offset )
 {
 	double neighborsOnTheLine = m_class_k * com + m_class_d + d_offset; // pre-multiplied
 
@@ -297,7 +280,7 @@ void SurfaceTension_ZorillaRitter2020::step()
 
 
 
-Vector3r anglesToVec( double theta, double phi, double radius )
+Vector3r SurfaceTension_ZorillaRitter2020::anglesToVec( double theta, double phi, double radius )
 {
 	const double r_sin_phi = radius * sin( phi );
 
@@ -309,14 +292,14 @@ Vector3r anglesToVec( double theta, double phi, double radius )
 
 std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesRnd( int N, Real supportRadius )
 {
-	std::vector<Vector3r> points;
+	std::vector<Vector3r> points(N);
 
 	for (int i = 0; i < N; i++)
 	{
 		double theta = 2.0 * M_PI * rand() / double( RAND_MAX );
 		double phi = acos( 1.0 - 2.0 * rand() / double( RAND_MAX ) );
 
-		points.push_back( anglesToVec( theta, phi, supportRadius ) );
+		points[i] = anglesToVec( theta, phi, supportRadius );
 	}
 
 	return points;
@@ -336,9 +319,9 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 	Real timeStep = SPH::TimeManager::getCurrent()->getTimeStepSize();
 	double r1 = supportRadius;
 	double r2 = m_r2mult * r1;        // m_r2mult=0.8 best results empirically
-	const unsigned int NumberOfPoints = int( m_Csd * timeStep ); // was m_Csd=100000
+	const unsigned int NumberOfPoints = int( m_Csd * timeStep );
 
-	const int fluidModelIndex = 0; // hardcode for now
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 
 	FluidModel* model = m_model;
 
@@ -348,22 +331,22 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			m_mc_normals[i] = Vector3r::Zero();
-
-
 			m_classifier_output[i] = 0;
 
 			Vector3r centerofMasses = Vector3r::Zero();
 			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
 
-			if (sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i ) == 0) { goto nextParticle; }
+			if (sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i) == 0)
+				continue;
+
 			const Vector3r& xi = m_model->getPosition( i );
 
 			forall_fluid_neighbors_in_same_phase(
 				Vector3r xjxi = (xj - xi);
 				centerofMasses += xjxi / supportRadius; )
 
-			if (classifyParticle( centerofMasses.norm() / double( numberOfNeighbours ), numberOfNeighbours )) //EvaluateNetwork also possible
+			if (classifyParticleConfigurable( centerofMasses.norm() / double( numberOfNeighbours ), numberOfNeighbours )) //EvaluateNetwork also possible
 			{
 				std::vector<Vector3r> points = getSphereSamplesRnd( NumberOfPoints, supportRadius );
 
@@ -400,9 +383,6 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 					m_classifier_output[i] = 0.5;
 				}
 			}
-
-		nextParticle:;
-
 		}
 	}
 
@@ -453,114 +433,16 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 
 
 // -- Helper functions for extended step function
-
-/**
- * Dyadic or tensor product of two vectors.
- * \return a symmetric second order tensor.
-*/
-Eigen::Matrix<double, 3, 3> dyadic(
-	const Vector3r& a,
-	const Vector3r& b )
-{
-	Eigen::Matrix<double, 3, 3> tmp;
-
-	tmp( 0, 0 ) = a( 0 ) * b( 0 );
-	tmp( 1, 1 ) = a( 1 ) * b( 1 );
-	tmp( 2, 2 ) = a( 2 ) * b( 2 );
-
-	tmp( 0, 1 ) = a( 0 ) * b( 1 );
-	tmp( 1, 0 ) = tmp( 0, 1 );
-	tmp( 0, 2 ) = a( 0 ) * b( 2 );
-	tmp( 2, 0 ) = tmp( 0, 2 );
-	tmp( 1, 2 ) = a( 1 ) * b( 2 );
-	tmp( 2, 1 ) = tmp( 1, 2 );
-
-	return tmp;
-}
-
-/** 
- * Snap very small values to zero.
- * \param x    a value
- * \param eps  the epsilon
- * \return     snapped value 
-*/
-Real zeroSnap( Real x, Real eps )
-{
-	if ((x < eps) && (x > -eps))
-		return 0.0;
-	return x;
-}
-
-
-/**
- * Eigen decomposition of a 3x3 matrix.
- * \param eigen_vectors    eigenvectors sorted by values, return by reference
- * \param eigen_values     eigenvalues sorted, return by reference
- * \param t                matrix to be decomposed
- * \param abs_sort         true sort by absolute, false don't sort
-*/
-void eigenDecomposition3(
-	vector<Vector3r>& eigen_vectors,
-	vector<Real>& eigen_values,
-	const Eigen::Matrix<double, 3, 3>& t,
-	bool abs_sort )
-{
-	eigen_vectors.resize( 3 );
-	eigen_values.resize( 3 );
-
-	double A[3][3] = {
-		{ t( 0,0 ), t( 1,0 ), t( 2,0 ) },   // row 0
-		{ t( 0,1 ), t( 1,1 ), t( 2,1 ) },   // row 1
-		{ t( 0,2 ), t( 1,2 ), t( 2,2 ) } }; // row 2
-
-	double V[3][3] = { {0.,0.,0.}, {0.,0.,0.}, {0.,0.,0.} };
-	double D[3] = { 0.,0.,0. };
-
-	eigen_decomposition<3>( A, V, D );
-
-	Vector3r unsorted_eva( D[0], D[1], D[2] );
-
-	vector<Vector3r> unsorted_eve = {
-		Vector3r( V[0][0], V[1][0], V[2][0] ),
-		Vector3r( V[0][1], V[1][1], V[2][1] ),
-		Vector3r( V[0][2], V[1][2], V[2][2] ) };
-
-	unsorted_eva[0] = zeroSnap( unsorted_eva[0], 1e-6 );
-	unsorted_eva[1] = zeroSnap( unsorted_eva[1], 1e-6 );
-	unsorted_eva[2] = zeroSnap( unsorted_eva[2], 1e-6 );
-
-	vector<pair<Real, int>> per = {
-		{unsorted_eva[0], 0},
-		{unsorted_eva[1], 1},
-		{unsorted_eva[2], 2} };
-
-	if (abs_sort)
-		sort( per.begin(), per.end(),
-			[]( pair<Real, int>x, pair<Real, int>y )
-			{ return abs( x.first ) <= abs( y.first ); } );
-
-	eigen_values = {
-		unsorted_eva[per[0].second],
-		unsorted_eva[per[1].second],
-		unsorted_eva[per[2].second] };
-
-	eigen_vectors = {
-		unsorted_eve[per[0].second],
-		unsorted_eve[per[1].second],
-		unsorted_eve[per[2].second] };
-}
-
-
 vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesLookUp(
 	int N, Real supportRadius, int start, 
 	const vector<float>& vec3, int mod )
 {
-	vector<Vector3r> points;
+	vector<Vector3r> points( N );
 	int s = (start / 3) * 3; // ensure to be dividable by 3
 	for (int i = 0; i < N; i++)
 	{
 		int i3 = s + 3 * i;
-		points.push_back( supportRadius * Vector3r( vec3[i3 % mod], vec3[(i3 + 1) % mod], vec3[(i3 + 2) % mod] ) );
+		points[i] = supportRadius * Vector3r( vec3[i3 % mod], vec3[(i3 + 1) % mod], vec3[(i3 + 2) % mod] );
 	}
 	return points;
 }
@@ -585,7 +467,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 	unsigned int NrOfSamples;
 
-	const int fluidModelIndex = 0; // hardcode for now
+	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	FluidModel* model = m_model;
 
 	if (m_CsdFix > 0)
@@ -593,6 +475,9 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 	else
 		NrOfSamples = int( m_Csd * timeStep );
 
+
+	if( m_temporal_smoothing )
+		performNeighborhoodSearchSort();
 
 	// ################################################################################################
 	// ## first pass, compute classification and first estimation for normal and curvature (Montecarlo)
@@ -624,7 +509,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 			if (sim->numberOfNeighbors( 0, 0, i ) == 0)
 			{
 				m_mc_curv[i] = 1.0 / supportRadius;
-				goto nextParticle;
+				continue;
 			}
 
 			const Vector3r& xi = m_model->getPosition( i );
@@ -640,7 +525,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 			
 
 			// -- if it is a surface classified particle
-			if (classifyParticle( m_classifier_input[i], numberOfNeighbours )) //EvaluateNetwork also possible
+			if (classifyParticleConfigurable( m_classifier_input[i], numberOfNeighbours )) //EvaluateNetwork also possible
 			{
 
 				// -- create monte carlo samples on particle
@@ -695,17 +580,12 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				m_classifier_output[i] = 0.0;
 			}
 
-		nextParticle:;
-
 		}
 	}
 
 	// ################################################################################################
 	// ## second pass, compute normals and curvature and compute PCA normal 
 	// ################################################################################################
-
-	CubicKernel kernel;
-	kernel.setRadius( supportRadius );
 
 #pragma omp parallel default(shared)
 	{
@@ -728,7 +608,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				// collect neighbors
 				multimap<double, size_t> neighs;
 
-				Eigen::Matrix<double, 3, 3> t = Eigen::Matrix<double, 3, 3>::Zero();
+				Eigen::Matrix<Real, 3, 3> t = Eigen::Matrix<Real, 3, 3>::Zero();
 				int t_count = 0;
 				Vector3r neighCent = Vector3r::Zero();
 
@@ -759,7 +639,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					}
 
 					else if( m_normal_mode != NormalMethod::MC
-						&& classifyParticle( m_classifier_input[neighborIndex], nrNeighhbors, m_class_d_off ))
+						&& classifyParticleConfigurable( m_classifier_input[neighborIndex], nrNeighhbors, m_class_d_off ))
 					{
 						Vector3r& xj = m_model->getPosition( neighborIndex );
 						Vector3r xjxi = (xj - xi);
@@ -798,10 +678,10 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 						double distanceji = xjxi.norm();
 
-						double w = (kernel.W( distanceji ) / kernel.W_zero());
+						Real w = CubicKernel::W( distanceji ) / CubicKernel::W_zero();
 						neighCent += w * xj;
 
-						Eigen::Matrix<double, 3, 3> dy = dyadic( xjxi, xjxi );
+						Eigen::Matrix<Real, 3, 3> dy = xjxi * xjxi.transpose();
 
 						t = t + w * dy;
 						t_count++;
@@ -814,19 +694,44 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 					if (neighs.size() >= 4)
 					{
-						vector<Vector3r> pdt_ec( 3 );
-						vector<Real> pdt_ev( 3 );
+						Vector3r pdt_ev;
+						Matrix3r pdt_ec;
+						MathFunctions::eigenDecomposition(t, pdt_ec, pdt_ev);
 
-						eigenDecomposition3( pdt_ec, pdt_ev, t, true );
+						// sort values smallest to greatest
+						if (pdt_ev(0) > pdt_ev(1))
+						{
+							swap(pdt_ev(0), pdt_ev(1));
+							swap(pdt_ec(0, 0), pdt_ec(0, 1));
+							swap(pdt_ec(1, 0), pdt_ec(1, 1));
+							swap(pdt_ec(2, 0), pdt_ec(2, 1));
 
-						if (pdt_ec[0].dot( m_mc_normals[i] ) < 0.0)
-							m_pca_normals[i] = -1.0 * pdt_ec[0];
+						}
+						if (pdt_ev(0) > pdt_ev(2))
+						{
+							swap(pdt_ev(0), pdt_ev(2));
+							swap(pdt_ec(0, 0), pdt_ec(0, 2));
+							swap(pdt_ec(1, 0), pdt_ec(1, 2));
+							swap(pdt_ec(2, 0), pdt_ec(2, 2));
+						}
+						if (pdt_ev(1) > pdt_ev(2))
+						{
+							swap(pdt_ev(1), pdt_ev(2));
+							swap(pdt_ec(0, 1), pdt_ec(0, 2));
+							swap(pdt_ec(1, 1), pdt_ec(1, 2));
+							swap(pdt_ec(2, 1), pdt_ec(2, 2));
+						}
+
+						Vector3r minor = Vector3r(pdt_ec(0, 0), pdt_ec(1, 0), pdt_ec(2, 0));
+						
+						if (minor.dot(m_mc_normals[i]) < 0.0)
+							m_pca_normals[i] = -1.0 * minor;
 						else
-							m_pca_normals[i] = pdt_ec[0];
+							m_pca_normals[i] = minor;
 
-						m_pca_curv[i] = 3.0 * pdt_ev[0] / (pdt_ev[0] + pdt_ev[1] + pdt_ev[2]);
+						m_pca_curv[i] = 3.0 * pdt_ev(0) / (pdt_ev(0) + pdt_ev(1) + pdt_ev(2) );
 
-						if (surfCentDir.dot( m_pca_normals[i] ) > 0.0)
+						if (surfCentDir.dot(m_pca_normals[i]) > 0.0)
 							m_pca_curv[i] *= -1;
 
 						m_pca_normals[i].normalize();
@@ -854,7 +759,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 	// ## third pass, final blending and temporal smoothing
 	// ################################################################################################
 	
-	m_CS_smooth_passes = max( 1, m_CS_smooth_passes );
+	m_CS_smooth_passes = std::max( 1, m_CS_smooth_passes );
 
 	for (int si = 0; si < m_CS_smooth_passes; si++)
 	{
@@ -889,9 +794,9 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					m_pca_curv_smooth[i] *= 20.0;
 
 					if (m_pca_curv_smooth[i] > 0.0)
-						m_pca_curv_smooth[i] = min( 0.5f / supportRadius, m_pca_curv_smooth[i] );
+						m_pca_curv_smooth[i] = std::min( 0.5f / supportRadius, m_pca_curv_smooth[i] );
 					else
-						m_pca_curv_smooth[i] = max( -0.5f / supportRadius, m_pca_curv_smooth[i] );
+						m_pca_curv_smooth[i] = std::max( -0.5f / supportRadius, m_pca_curv_smooth[i] );
 
 
 					Vector3r final_normal = Vector3r::Zero();

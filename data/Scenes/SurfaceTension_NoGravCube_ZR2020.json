@@ -4,7 +4,7 @@
 		"particleRadius": 0.02,
 		"numberOfStepsPerRenderUpdate": 2,
 		"density0": 1000, 
-		"simulationMethod": 1,
+		"simulationMethod": 3,
 		"gravitation": [0,0,0], 
 		"timeStepSize": 0.001,
 		"cflMethod": 0, 

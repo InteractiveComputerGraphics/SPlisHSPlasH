@@ -19,7 +19,8 @@
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
 		"particleAttributes": "density;velocity",
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 2,
+		"wireframe": true
 	},
 	"Materials": [
 		{
@@ -51,7 +52,7 @@
 			"scale": [1, -1,1],
 			"color": [0.1, 0.4, 0.6, 1.0], 
 			"isDynamic": false,
-			"isWall": true,
+			"isWall": false,
 			"mapInvert": true, 
 			"mapThickness": 0.0,
 			"mapResolution": [10,10,80]

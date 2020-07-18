@@ -65,7 +65,6 @@ set(SURFACETENSION_HEADER_FILES
 	SurfaceTension/SurfaceTension_Becker2007.h
 	SurfaceTension/SurfaceTension_Akinci2013.h
 	SurfaceTension/SurfaceTension_He2014.h
-	SurfaceTension/SurfaceTension_ZorillaRitter2020_EigenDecomposition.h
 	SurfaceTension/SurfaceTension_ZorillaRitter2020_haltonVec323.h
 	SurfaceTension/SurfaceTension_ZorillaRitter2020.h
 	)

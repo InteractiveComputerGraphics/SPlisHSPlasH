@@ -202,7 +202,7 @@ void DragForce_Gissler2017::step()
 	const Real inv_td = static_cast<Real>(0.5)*C_d * mu_l / (rho_l * L*L);
 	const Real td = static_cast<Real>(1.0) / inv_td;
 	Real omegaSquare = C_k * sigma / (rho_l * L*L*L) - inv_td*inv_td;
-	std::max(omegaSquare, static_cast<Real>(0.0));
+	omegaSquare = std::max(omegaSquare, static_cast<Real>(0.0));
 	const Real omega = sqrt(omegaSquare);
 
 	// Equation (6)

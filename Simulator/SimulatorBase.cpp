@@ -1582,8 +1582,9 @@ void SimulatorBase::writeRigidBodiesBIN(const std::string &exportPath)
 			binWriter.writeMatrix(x_f);
 
 			const Matrix3r &R = bm->getRigidBodyObject()->getWorldSpaceRotation();
+			const Eigen::Matrix3f R_f = R.template cast<float>();
 			//const Eigen::Matrix3f RT = R.transpose().template cast<float>();
-			binWriter.writeMatrix(R);
+			binWriter.writeMatrix(R_f);
 		}
 		binWriter.closeFile();
 	}

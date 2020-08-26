@@ -35,3 +35,8 @@ set_target_properties(pysplishsplash PROPERTIES
 
 target_link_libraries(pysplishsplash PRIVATE SimulatorBase)
 add_dependencies(pysplishsplash SimulatorBase)
+
+add_custom_target(pysplishsplash_install
+        ${PYTHON_EXECUTABLE} setup.py bdist_wheel
+        COMMAND ${PYTHON_EXECUTABLE} -m pip install -I build/dist/py*.whl
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

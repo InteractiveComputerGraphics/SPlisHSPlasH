@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 # Extract cmake arguments
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("-D", action='append', dest='cmake',
                     help="CMake Options")
 parser.add_argument("--manylinux-build", action='store_true', dest='manylinux_build')
@@ -117,7 +117,7 @@ with open(os.path.join(cur_dir, "README.md"), 'r') as f:
 	
 # read version	
 f = open("version", "r")
-splishsplash_version = f.readline()
+splishsplash_version = f.readline().strip()
 f.close() 
 
 setup(
@@ -141,4 +141,5 @@ setup(
 				(emitter_boundary_dest, [s for s in emitter_boundary if os.path.isfile(s)]),
 				(fonts_dest, [f for f in fonts if os.path.isfile(f)])],
     zip_safe=False,
+    install_requires=['numpy']
 )

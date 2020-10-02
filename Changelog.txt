@@ -1,3 +1,4 @@
+	- improved warmstart
 	- added build instructions
 	- added more colormaps
 	- improved documentation

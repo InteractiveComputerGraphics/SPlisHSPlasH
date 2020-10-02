@@ -206,9 +206,9 @@ void TimeStepDFSPH::pressureSolve()
 			{
 				computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
 				m_simulationData.getFactor(fluidModelIndex, i) *= invH2;
-#ifdef USE_WARMSTART
-				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
-#endif
+//#ifdef USE_WARMSTART
+//				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
+//#endif
 			}
 		}
 	}
@@ -296,9 +296,9 @@ void TimeStepDFSPH::divergenceSolve()
 				computeDensityChange(fluidModelIndex, i, h);
 				m_simulationData.getFactor(fluidModelIndex, i) *= invH;
 
-#ifdef USE_WARMSTART_V
-				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
-#endif
+//#ifdef USE_WARMSTART_V
+//				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
+//#endif
 			}
 		}
 	}
@@ -620,8 +620,8 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 				compute_Vj(fm_neighbor);
 				compute_Vj_gradW();
 				const Scalarf8 densityFrac_avx(fm_neighbor->getDensity0() / density0);
-				const Scalarf8 densityAdvj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getDensityAdv(pid, 0), count);;
-				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);;
+				const Scalarf8 densityAdvj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getDensityAdv(pid, 0), count);
+				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);
 					
 				const Scalarf8 b_j_avx = densityAdvj_avx - Scalarf8(1.0f);
 				const Scalarf8 kj_avx = b_j_avx * factorj_avx;
@@ -1165,8 +1165,12 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
-			//computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
+			//m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
+			computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
+			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 1.0)
+				m_simulationData.getKappa(fluidModelIndex, i) = 0.5 * m_simulationData.getKappa(fluidModelIndex, i) * invH2;
+			else
+				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -1179,7 +1183,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 			if (model->getParticleState(i) != ParticleState::Active)
 				continue;
 
-			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > density0)
+			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 1.0)
 			{
 				Vector3r &vel = model->getVelocity(i);
 				const Real ki = m_simulationData.getKappa(fluidModelIndex, i);
@@ -1371,8 +1375,12 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5) * density0*density0);
+			//m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5) * density0*density0);
 			computeDensityChange(fluidModelIndex, i, h);
+			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
+				m_simulationData.getKappaV(fluidModelIndex, i) = 0.5 * m_simulationData.getKappaV(fluidModelIndex, i) * invH;
+			else
+				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
 		}
 
 		#pragma omp for schedule(static)  
@@ -1381,7 +1389,7 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 			if (model->getParticleState(i) != ParticleState::Active)
 				continue;
 
-			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
+			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
 			{
 				Vector3r &vel = model->getVelocity(i);
 				const Real ki = m_simulationData.getKappaV(fluidModelIndex, i);

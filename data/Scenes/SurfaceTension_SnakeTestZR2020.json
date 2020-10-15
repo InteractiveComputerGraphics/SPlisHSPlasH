@@ -1,0 +1,62 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.02,
+		"numberOfStepsPerRenderUpdate": 2,
+		"density0": 1000, 
+		"simulationMethod": 3,
+		"gravitation": [0,0,0], 
+		"timeStepSize": 0.001,
+		"cflMethod": 0, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.002,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"particleAttributes": "density;velocity",
+		"boundaryHandlingMethod": 2
+	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"renderMaxValue": 1.0,
+			"renderMinValue": 0.0,
+			"colorMapType": 1,
+			"colorField": "velocity",
+			"surfaceTension": 0.05 ,
+			"surfaceTensionMethod": 4,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			" ": 1,
+			"surfTZRCsd": 10000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 13,
+			"surfTZRsampling": 0,
+			"surfTZRnormal-mode": 2,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.4,
+			"surfTZRPcaMixCur": 0.2,
+			"surfTZRMCSamples": 75,
+			"surfTZRNeighLimit": 16,
+			"surfTZRsmoothPasses": 1,
+			"surfTZRtemporalSmooth" : false
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-2.5, -0.15, -0.15],
+			"end": [2.5, 0.15, 0.15],
+			"translation": [0, 0.0, 0.0],
+			"scale": [1,1,1]
+		}
+	]	
+}
+
+

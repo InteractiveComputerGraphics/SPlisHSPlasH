@@ -1,0 +1,71 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.02,
+		"numberOfStepsPerRenderUpdate": 2 ,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.05,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"particleAttributes": "density;velocity",
+		"boundaryHandlingMethod": 0
+	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.1,
+			"surfaceTensionMethod": 4,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfTZRversion": 0,
+			"surfTZRCsd": 10000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 28,
+			"surfTZRsampling": 0 ,
+			"surfTZRnormal-mode": 1,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixCur": 0.4,
+			"surfTZRMCSamples": -1 ,
+			"surfTZRNeighLimit": 16	
+		}
+	],
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0.1,1,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [2, 2, 1],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,20,10]
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-1, -0.5, -0.5],
+			"end": [0.25, 1.5, 0.5],
+			"translation": [0.0, 0.5, 0.0],
+			"scale": [0.9,0.9,0.9]
+		}
+		
+	]	
+}
+
+

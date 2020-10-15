@@ -1,0 +1,69 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.02,
+		"numberOfStepsPerRenderUpdate": 2,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.05,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"timeStepSize": 0.001,
+		"boundaryHandlingMethod": 0
+	},
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/BoxOpenedHole.obj",
+			"translation": [0,0,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness":  0.0 ,
+			"mapResolution": [20,20,20]
+		}
+	],
+	"Materials": [
+		{
+			"id": "Fluid", 
+			"surfaceTension": 0.15,
+			"surfaceTensionMethod": 4,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfTZRversion": 1,
+			"surfTZRCsd": 20000,
+			"surfTZRr-ratio": 0.8,
+			"surfTZRtau": 0.5,
+			"surfTZRd": 28,
+			"surfTZRsampling": 0,
+			"surfTZRnormal-mode": 1,
+			"surfTZRd-offset": 3,
+			"surfTZRPcaMixNrm": 0.8,
+			"surfTZRPcaMixCur": 0.4,
+			"surfTZRMCSamples": -1,
+			"surfTZRNeighLimit": 13	
+	}],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.45, 1.0, -0.45],
+			"end": [0.45, 2.0, 0.45],
+			"translation": [0, 0.0, 0.0],
+			"scale": [1,1,1]
+		}
+	]	
+}
+
+

@@ -32,3 +32,7 @@ We just reimplemented the GUI using [imgui](https://github.com/ocornut/imgui) in
 Generate a shared library object which can be imported into python scripts and exposes C++ functionality to the python interpreter.
 *Default:On*
 *Options:<On|Off>*
+
+## USE_DEBUG_TOOLS
+
+Adds a debug tools tab to the graphical user interface which allows to  generate additional particle data for debugging. Note that generating the additional data will slightly decrease the performance of the simulation.

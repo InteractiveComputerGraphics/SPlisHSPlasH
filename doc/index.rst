@@ -23,6 +23,10 @@
 
    build_from_source
    cmake_options
+   architecture
+   implement_nonpressure_force
+   creating_pressure
+   macros
 
 
 .. toctree::

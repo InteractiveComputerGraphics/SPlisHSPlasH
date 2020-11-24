@@ -81,13 +81,16 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
 
+	if (rbo->isDynamic())
+	{
 #ifdef _OPENMP
-	const int maxThreads = omp_get_max_threads();
+		const int maxThreads = omp_get_max_threads();
 #else
-	const int maxThreads = 1;
+		const int maxThreads = 1;
 #endif
-	m_forcePerThread.resize(maxThreads, Vector3r::Zero());
-	m_torquePerThread.resize(maxThreads, Vector3r::Zero());
+		m_forcePerThread.resize(maxThreads, Vector3r::Zero());
+		m_torquePerThread.resize(maxThreads, Vector3r::Zero());
+	}
 
 	#pragma omp parallel default(shared)
 	{

@@ -416,6 +416,10 @@ void SimulatorBase::initSimulation()
 
 	buildModel();
 
+#ifdef USE_DEBUG_TOOLS
+	sim->createDebugTools();
+#endif
+
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{
 		unsigned int nBoundaryParticles = 0;
@@ -445,10 +449,18 @@ void SimulatorBase::initSimulation()
 		}
 
 		m_gui->initSimulationParameterGUI();
-		Simulation::getCurrent()->setSimulationMethodChangedCallback([this]() { reset(); m_gui->initSimulationParameterGUI(); getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); });
+		Simulation::getCurrent()->setSimulationMethodChangedCallback([this]() { 
+			reset(); 
+			m_gui->initSimulationParameterGUI(); 
+			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); 
+#ifdef USE_DEBUG_TOOLS
+			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
+#endif
+			});
 	}
 	readParameters();
 	setCommandLineParameter();
+	updateScalarField();
 }
 
 void SimulatorBase::runSimulation()
@@ -511,6 +523,9 @@ void SimulatorBase::readParameters()
 	m_sceneLoader->readParameterObject("Configuration", this);
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent());
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
+#endif
 
 	Simulation *sim = Simulation::getCurrent();
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
@@ -545,6 +560,9 @@ void SimulatorBase::setCommandLineParameter()
 
 	setCommandLineParameter((ParameterObject*)sim);
 	setCommandLineParameter((ParameterObject*)sim->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	setCommandLineParameter((ParameterObject*)sim->getDebugTools());
+#endif
 	
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 	{
@@ -677,6 +695,10 @@ void SimulatorBase::reset()
 	Utilities::Counting::reset();
 
 	Simulation::getCurrent()->reset();
+#ifdef USE_DEBUG_TOOLS
+	Simulation::getCurrent()->getDebugTools()->reset();
+#endif
+
 	m_boundarySimulator->reset();
 	if (m_gui)
 		m_gui->reset();
@@ -691,6 +713,7 @@ void SimulatorBase::reset()
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
+	updateScalarField();
 }
 
 void SimulatorBase::timeStep()
@@ -736,9 +759,15 @@ void SimulatorBase::timeStep()
 			}
 		}
 
+#ifdef USE_DEBUG_TOOLS
+		Simulation::getCurrent()->getDebugTools()->step();
+#endif
+
 		if (m_timeStepCB)
 			m_timeStepCB();
 	}
+
+	updateScalarField();
 }
 
 bool SimulatorBase::timeStepNoGUI()
@@ -774,9 +803,64 @@ bool SimulatorBase::timeStepNoGUI()
 			}
 		}
 	}
+
+#ifdef USE_DEBUG_TOOLS
+	Simulation::getCurrent()->getDebugTools()->step();
+#endif
+
 	if (m_timeStepCB)
 		m_timeStepCB();
 	return true;
+}
+
+void SimulatorBase::updateScalarField()
+{
+	Simulation* sim = Simulation::getCurrent();
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < sim->numberOfFluidModels(); fluidModelIndex++)
+	{
+		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		// Draw simulation model
+		const unsigned int nParticles = model->numActiveParticles();
+
+		const FieldDescription* field = nullptr;
+		field = &model->getField(getColorField(fluidModelIndex));
+
+		if (field != nullptr)
+		{
+			m_scalarField.resize(model->numActiveParticles());
+			for (unsigned int i = 0u; i < model->numActiveParticles(); i++)
+			{
+				if (field->type == FieldType::Vector3)
+				{
+					Eigen::Map<Vector3r> vec((Real*)field->getFct(i));
+					m_scalarField[i] = static_cast<float>(vec.norm());
+				}
+				else if (field->type == FieldType::Scalar)
+				{
+					m_scalarField[i] = static_cast<float>(*(Real*)field->getFct(i));
+				}
+				else if (field->type == FieldType::UInt)
+				{
+					m_scalarField[i] = static_cast<float>(*(unsigned int*)field->getFct(i));
+				}
+				else if (field->type == FieldType::Matrix3)
+				{
+					Eigen::Map<Matrix3r> m((Real*)field->getFct(i));
+					m_scalarField[i] = static_cast<float>(m.norm());
+				}
+				else if (field->type == FieldType::Vector6)
+				{
+					Eigen::Map<Vector6r> m((Real*)field->getFct(i));
+					m_scalarField[i] = static_cast<float>(m.norm());
+				}
+				else if (field->type == FieldType::Matrix6)
+				{
+					Eigen::Map<Matrix6r> m((Real*)field->getFct(i));
+					m_scalarField[i] = static_cast<float>(m.norm());
+				}
+			}
+		}
+	}
 }
 
 void SimulatorBase::loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
@@ -1509,6 +1593,22 @@ void SPH::SimulatorBase::writeParticlesVTK(const std::string &fileName, FluidMod
 			// export to vtk
 			outfile.write(reinterpret_cast<char*>(attrData[0].data()), 3 * numParticles * sizeof(Real));
 		}
+		else if (field.type == FieldType::UInt)
+		{
+			// write header information
+			outfile << attrNameVTK << " 1 " << numParticles << " unsigned_int\n";
+
+			// copy data
+			std::vector<unsigned int> attrData;
+			attrData.reserve(numParticles);
+			for (unsigned int i = 0u; i < numParticles; i++)
+				attrData.emplace_back(*((unsigned int*)field.getFct(i)));
+			// swap endianess
+			for (unsigned int i = 0; i < numParticles; i++)
+				swapByteOrder(&attrData[i]);
+			// export to vtk
+			outfile.write(reinterpret_cast<char*>(attrData.data()), numParticles * sizeof(unsigned int));
+		}
 		// TODO support other field types
 		else
 		{
@@ -1991,6 +2091,9 @@ void SimulatorBase::writeParameterState(BinaryFileWriter &binWriter)
 	writeParameterObjectState(binWriter, this);
 	writeParameterObjectState(binWriter, Simulation::getCurrent());
 	writeParameterObjectState(binWriter, Simulation::getCurrent()->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	writeParameterObjectState(binWriter, Simulation::getCurrent()->getDebugTools());
+#endif
 
 	Simulation *sim = Simulation::getCurrent();
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
@@ -2054,6 +2157,10 @@ void SimulatorBase::readParameterState(BinaryFileReader &binReader)
 	readParameterObjectState(binReader, this);
  	readParameterObjectState(binReader, Simulation::getCurrent());
  	readParameterObjectState(binReader, Simulation::getCurrent()->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	readParameterObjectState(binReader, Simulation::getCurrent()->getDebugTools());
+#endif
+
  
  	Simulation *sim = Simulation::getCurrent();
  	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
@@ -2723,7 +2830,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 		auto int_domain = Eigen::AlignedBox3d(Eigen::Vector3d::Constant(-supportRadius), Eigen::Vector3d::Constant(supportRadius));
 		Real factor = 1.0;
 		if (sim2D)
-			factor = 1.75;
+			factor = 1.0;
 		auto volume_func = [&](Eigen::Vector3d const& x)
 		{
 			auto dist = volumeMap->interpolate(0u, x);
@@ -2740,7 +2847,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 				auto dist = volumeMap->interpolate(0u, x + xi);
 
 				if (dist <= 0.0)
-					return 1.0 - 0.1 * dist / supportRadius;
+					return 1.0 - 0.001 * dist / supportRadius;
   				if (dist < 1.0 / factor * supportRadius)
   					return static_cast<double>(CubicKernel::W(factor * static_cast<Real>(dist)) / CubicKernel::W_zero());
  				return 0.0;
@@ -2748,9 +2855,9 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 			double res = 0.0;
 			if (sim2D)
-				res = 0.8 * SimpleQuadrature::integrate(integrand);
+				res = 1.2 * SimpleQuadrature::integrate(integrand);
 			else
-				res = 0.8 * GaussQuadrature::integrate(integrand, int_domain, 30);
+				res = 1.2 * GaussQuadrature::integrate(integrand, int_domain, 30);
 
 			return res;
 		};
@@ -2829,3 +2936,66 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 		boundaryModel->setMaxDist(maxDist);
 	}
 }
+
+void SimulatorBase::determineMinMaxOfScalarField()
+{
+	Simulation* sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfFluidModels();
+
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+	{
+		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		const std::string& colorFieldName = getColorField(fluidModelIndex);
+
+		const FieldDescription* field = nullptr;
+		field = &model->getField(colorFieldName);
+
+		Real minValue = REAL_MAX;
+		Real maxValue = REAL_MIN;
+		for (unsigned int i = 0u; i < model->numActiveParticles(); i++)
+		{
+			if (field->type == FieldType::Vector3)
+			{
+				Eigen::Map<Vector3r> vec((Real*)field->getFct(i));
+				const Real val = vec.norm();
+				minValue = std::min(minValue, val);
+				maxValue = std::max(maxValue, val);
+			}
+			else if (field->type == FieldType::Scalar)
+			{
+				minValue = std::min(minValue, static_cast<Real>(*(Real*)field->getFct(i)));
+				maxValue = std::max(maxValue, static_cast<Real>(*(Real*)field->getFct(i)));
+			}
+			else if (field->type == FieldType::UInt)
+			{
+				minValue = std::min(minValue, static_cast<Real>(*(unsigned int*)field->getFct(i)));
+				maxValue = std::max(maxValue, static_cast<Real>(*(unsigned int*)field->getFct(i)));
+			}
+			else if (field->type == FieldType::Matrix3)
+			{
+				Eigen::Map <Matrix3r> vec((Real*)field->getFct(i));
+				const Real val = vec.norm();
+				minValue = std::min(minValue, static_cast<Real>(val));
+				maxValue = std::max(maxValue, static_cast<Real>(val));
+			}
+			else if (field->type == FieldType::Vector6)
+			{
+				Eigen::Map<Vector6r> vec((Real*)field->getFct(i));
+				const Real val = vec.norm();
+				minValue = std::min(minValue, static_cast<Real>(val));
+				maxValue = std::max(maxValue, static_cast<Real>(val));
+			}
+			else if (field->type == FieldType::Matrix6)
+			{
+				Eigen::Map<Matrix6r> vec((Real*)field->getFct(i));
+				const Real val = vec.norm();
+				minValue = std::min(minValue, static_cast<Real>(val));
+				maxValue = std::max(maxValue, static_cast<Real>(val));
+			}
+		}
+		setRenderMinValue(fluidModelIndex, minValue);
+		setRenderMaxValue(fluidModelIndex, maxValue);
+	}
+	//updateScalarField();
+}
+

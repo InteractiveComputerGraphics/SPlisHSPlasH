@@ -105,6 +105,10 @@ void Simulator_GUI_TweakBar::initSimulationParameterGUI()
 		TweakBarParameters::createParameterObjectGUI(getTweakBar(), m_simulatorBase);
 	TweakBarParameters::createParameterObjectGUI(getTweakBar(), sim);
 	TweakBarParameters::createParameterObjectGUI(getTweakBar(), (GenParam::ParameterObject*) sim->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	TweakBarParameters::createParameterObjectGUI(getTweakBar(), (GenParam::ParameterObject*) sim->getDebugTools());
+#endif
+
 
 	// Enum for all fluid models
 	if (sim->numberOfFluidModels() > 0)

@@ -33,7 +33,7 @@ ExternalProject_Add(
 	Ext_GenericParameters
 	PREFIX "${CMAKE_BINARY_DIR}/extern/GenericParameters"
 	GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/GenericParameters.git
-	GIT_TAG "5e43547e9d7099ac0759b75fa5e4e2115ca9cc9f"
+	GIT_TAG "89ae733fb8b8b9df25d0e44a0e49e51136901e8c"
 	INSTALL_DIR ${ExternalInstallDir}/GenericParameters
 	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/GenericParameters -DGENERICPARAMETERS_NO_TESTS:BOOL=1 -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
 )

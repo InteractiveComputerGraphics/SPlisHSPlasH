@@ -77,7 +77,10 @@ namespace SPH
 			
 			FORCE_INLINE void getPointVelocity(const Vector3r &x, Vector3r &res)
 			{
-				res = m_rigidBody->getAngularVelocity().cross(x - m_rigidBody->getPosition()) + m_rigidBody->getVelocity();
+				if (m_rigidBody->isDynamic())
+					res = m_rigidBody->getAngularVelocity().cross(x - m_rigidBody->getPosition()) + m_rigidBody->getVelocity();
+				else
+					res.setZero();
 			}
 
 			void getForceAndTorque(Vector3r &force, Vector3r &torque);

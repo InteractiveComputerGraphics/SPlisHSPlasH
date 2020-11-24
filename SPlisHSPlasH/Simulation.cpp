@@ -85,6 +85,9 @@ Simulation::Simulation ()
 
 Simulation::~Simulation () 
 {
+#ifdef USE_DEBUG_TOOLS
+	delete m_debugTools;
+#endif
 	delete m_animationFieldSystem;
 	delete m_timeStep;
 	delete m_neighborhoodSearch;
@@ -583,6 +586,9 @@ void Simulation::performNeighborhoodSearchSort()
 		BoundaryModel *bm = getBoundaryModel(i);
 		bm->performNeighborhoodSearchSort();
 	}
+#ifdef USE_DEBUG_TOOLS
+	m_debugTools->performNeighborhoodSearchSort();
+#endif
 }
 
 void Simulation::setSimulationMethodChangedCallback(std::function<void()> const& callBackFct)
@@ -594,6 +600,9 @@ void Simulation::emittedParticles(FluidModel *model, const unsigned int startInd
 {
 	model->emittedParticles(startIndex);
 	m_timeStep->emittedParticles(model, startIndex);
+#ifdef USE_DEBUG_TOOLS
+	m_debugTools->emittedParticles(model, startIndex);
+#endif
 }
 
 void Simulation::emitParticles()

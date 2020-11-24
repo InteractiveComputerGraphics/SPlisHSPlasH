@@ -27,6 +27,7 @@ namespace SPH
 			void initImgui();
 			void initImguiParameters();
 			void renderScene();
+			void determineMinMaxValues();
 
 			static void selection(const Vector2i &start, const Vector2i &end, void *clientData);				   
 

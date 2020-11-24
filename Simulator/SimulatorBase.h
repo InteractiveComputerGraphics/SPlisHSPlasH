@@ -69,6 +69,7 @@ namespace SPH
 		std::string m_windowName;
 		std::vector<std::string> m_paramTokens;
 		std::function<void()> m_timeStepCB;
+		std::vector<float> m_scalarField;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
 #endif
@@ -152,7 +153,10 @@ namespace SPH
 		void updateBoundaryParticles(const bool forceUpdate);
 		void updateDMVelocity();
 		void updateVMVelocity();
-		void updateBoundaryForces();
+
+		std::vector<float>& getScalarField() { return m_scalarField; }
+		void updateScalarField();
+		void determineMinMaxOfScalarField();
 
 		static void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 

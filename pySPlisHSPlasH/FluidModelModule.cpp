@@ -14,6 +14,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11/numpy.h>
 
 #include <string>
 
@@ -23,6 +24,13 @@ template <typename... Args>
 using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
 
 // TODO: remove reference getters
+
+std::function<void* (const unsigned int)> makeVoidPointerFct(py::array_t<Real, py::array::c_style | py::array::forcecast> arr)
+{
+	return [arr](const unsigned int i) mutable -> void* {	
+		return arr.mutable_unchecked().mutable_data(i);
+	};
+}
 
 void FluidModelModule(py::module m_sub){
     // ---------------------------------------
@@ -156,6 +164,39 @@ void FluidModelModule(py::module m_sub){
 		.def("getPointSetIndex", &SPH::FluidModel::getPointSetIndex)
 		.def("addField", &SPH::FluidModel::addField)
 		.def("getFields", &SPH::FluidModel::getFields, py::return_value_policy::reference_internal) // TODO: Bind return vector?
+		.def("getFieldBuffer", [](SPH::FluidModel& obj, const unsigned int i) -> py::memoryview {
+		    auto field = obj.getField(i);
+            void * base_ptr = field.getFct(0);
+            int num_particles = obj.numParticles();
+            switch (field.type){
+                case SPH::FieldType::Scalar:
+                    return py::memoryview::from_buffer((Real*)base_ptr, {num_particles}, {sizeof(Real)});
+                case SPH::FieldType::Vector3:
+                    return py::memoryview::from_buffer((Real*)base_ptr, {num_particles, 3}, {sizeof(Real) * 3, sizeof(Real)});
+                case SPH::FieldType::UInt:
+                    return py::memoryview::from_buffer((unsigned int*)base_ptr, {num_particles}, {sizeof(unsigned int)});
+                default:
+                    break;
+            }
+            return py::memoryview(py::buffer_info());
+		})
+        .def("getFieldBuffer", [](SPH::FluidModel& obj, const std::string& name) -> py::memoryview {
+            auto field = obj.getField(name);
+            void * base_ptr = field.getFct(0);
+            int num_particles = obj.numParticles();
+            switch (field.type){
+                case SPH::FieldType::Scalar:
+                    return py::memoryview::from_buffer((Real*)base_ptr, {num_particles}, {sizeof(Real)});
+                case SPH::FieldType::Vector3:
+                    return py::memoryview::from_buffer((Real*)base_ptr, {num_particles, 3}, {sizeof(Real) * 3, sizeof(Real)});
+                case SPH::FieldType::UInt:
+                    return py::memoryview::from_buffer((unsigned int*)base_ptr, {num_particles}, {sizeof(unsigned int)});
+                default:
+                    break;
+            }
+            return py::memoryview(py::buffer_info());
+        })
+        .def("getField", overload_cast_<const unsigned int>()(&SPH::FluidModel::getField))
 		.def("getField", overload_cast_<const unsigned int>()(&SPH::FluidModel::getField))
 		.def("getField", overload_cast_<const std::string&>()(&SPH::FluidModel::getField))
 		.def("numberOfFields", &SPH::FluidModel::numberOfFields)
@@ -242,4 +283,6 @@ void FluidModelModule(py::module m_sub){
 
 		// .def("getVolume", (Real& (SPH::FluidModel::*)(const unsigned int))(&SPH::FluidModel::getVolume)) // TODO: wont work by reference
 		.def("getVolume", (const Real (SPH::FluidModel::*)(const unsigned int)const)(&SPH::FluidModel::getVolume));
+
+		m_sub.def("makeVoidPointerFct", &makeVoidPointerFct, py::arg().noconvert());
 }

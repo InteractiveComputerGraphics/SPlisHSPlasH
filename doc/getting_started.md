@@ -31,6 +31,7 @@ The scene file format is explained [here.](file_format.md)
 * Space: pause/contiunue simulation
 * r: reset simulation
 * w: wireframe rendering of meshes
+* m: recompute min and max values for color-coding the color field in the rendering process
 * i: print all field information of the selected particles to the console
 * s: save current simulation state
 * l: load simulation state (currently only Windows)

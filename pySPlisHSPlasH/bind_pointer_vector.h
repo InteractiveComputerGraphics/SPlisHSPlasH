@@ -11,8 +11,8 @@
 #include <sstream>
 #include <type_traits>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Vector modifiers -- requires a copyable vector_type:
 // (Technically, some of these (pop and __delitem__) don't actually require copyability, but it seems
@@ -201,7 +201,7 @@ void vector_pointer_modifiers(enable_if_t<is_copy_constructible<typename Vector:
         );
 
     }
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 //
 // std::vector of raw pointers
 //
@@ -249,4 +249,4 @@ class_<Vector, holder_type> bind_pointer_vector(handle scope, std::string const 
         return cl;
     }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -81,6 +81,13 @@ namespace SPH
 			virtual ~imguiEnumParameter() { items.clear();  };
 		};
 
+		struct imguiFunctionParameter : public imguiParameter
+		{
+			std::function<void()> function;
+			imguiFunctionParameter() : imguiParameter() { function = nullptr; }
+			virtual ~imguiFunctionParameter() {};
+		};
+
 		static std::string m_format;
 		static Real m_step;
 		static Real m_faststep;
@@ -100,6 +107,7 @@ namespace SPH
 		static bool createEnumParameter(imguiParameters::imguiParameter* param, ImGuiInputTextFlags flags, const std::string& helpText);
 		template<typename T>
 		static void createNumericParameter(imguiParameters::imguiParameter* param, ImGuiInputTextFlags flags, const std::string& helpText);
+		static void createFunctionParameter(imguiParameters::imguiParameter* param, ImGuiInputTextFlags flags, const std::string& helpText);
 
 		static void addParam(const std::string& group, const std::string& subgroup, imguiParameter* param);
 		static void addGroup(const std::string& group, const std::string& subgroup);

@@ -3,7 +3,7 @@
 ################################################################################
 cmake_minimum_required(VERSION 3.1)
 
-project(SPlishSPlasH)
+project(SPlisHSPlasH)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

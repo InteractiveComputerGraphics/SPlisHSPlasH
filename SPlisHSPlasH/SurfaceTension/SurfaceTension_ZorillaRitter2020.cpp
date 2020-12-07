@@ -309,9 +309,9 @@ void SurfaceTension_ZorillaRitter2020::step()
 
 
 
-Vector3r SurfaceTension_ZorillaRitter2020::anglesToVec( double theta, double phi, double radius )
+Vector3r SurfaceTension_ZorillaRitter2020::anglesToVec( Real theta, Real phi, Real radius )
 {
-	const double r_sin_phi = radius * sin( phi );
+	const Real r_sin_phi = radius * sin( phi );
 
 	return Vector3r(
 		r_sin_phi * cos( theta ),
@@ -325,8 +325,8 @@ std::vector<Vector3r> SurfaceTension_ZorillaRitter2020::getSphereSamplesRnd( int
 
 	for (int i = 0; i < N; i++)
 	{
-		double theta = 2.0 * M_PI * rand() / double( RAND_MAX );
-		double phi = acos( 1.0 - 2.0 * rand() / double( RAND_MAX ) );
+		Real theta = static_cast<Real>(2.0 * M_PI) * static_cast<Real>(rand()) / static_cast<Real>( RAND_MAX );
+		Real phi = acos(static_cast<Real>(1.0) - static_cast<Real>(2.0) * static_cast<Real>(rand()) / static_cast<Real>( RAND_MAX ) );
 
 		points[i] = anglesToVec( theta, phi, supportRadius );
 	}
@@ -346,8 +346,8 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 	const Real k = m_surfaceTension;
 
 	Real timeStep = SPH::TimeManager::getCurrent()->getTimeStepSize();
-	double r1 = supportRadius;
-	double r2 = m_r2mult * r1;        // m_r2mult=0.8 best results empirically
+	Real r1 = supportRadius;
+	Real r2 = m_r2mult * r1;        // m_r2mult=0.8 best results empirically
 	const unsigned int NumberOfPoints = int( m_Csd * timeStep );
 
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
@@ -381,7 +381,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 
 				forall_fluid_neighbors_in_same_phase(
 					Vector3r xjxi = (xj - xi);
-					for (int p = points.size() - 1; p >= 0; --p)
+					for (int p = static_cast<int>(points.size()) - 1; p >= 0; --p)
 					{
 						Vector3r vec = (points[p] - xjxi);
 						Real dist = vec.squaredNorm();
@@ -391,7 +391,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 						}
 					} )
 
-				for (int p = points.size() - 1; p >= 0; --p)
+				for (int p = static_cast<int>(points.size()) - 1; p >= 0; --p)
 				{
 					m_mc_normals[i] += points[p];
 				}
@@ -400,8 +400,8 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				{
 					m_mc_normals[i].normalize();
 
-					m_mc_curv[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (r2 * r2 / (r1 * r1))), -0.5 ) *
-						cos( acos( 1 - 2 * (points.size() / double( NumberOfPoints )) ) + asin( r2 / r1 ) );
+					m_mc_curv[i] = (static_cast<Real>(1.0) / supportRadius) * static_cast<Real>(-2.0) * pow( (static_cast<Real>(1.0) - (r2 * r2 / (r1 * r1))), static_cast<Real>(-0.5) ) *
+						cos( acos(static_cast<Real>(1.0 - 2.0 * (points.size() / static_cast<Real>( NumberOfPoints ))) ) + asin( r2 / r1 ) );
 
 					m_classifier_output[i] = 1;
 				}
@@ -426,14 +426,14 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 				const Vector3r& xi = m_model->getPosition(i);
 				Vector3r normalCorrection = Vector3r::Zero();
 				Vector3r& ai = m_model->getAcceleration(i);
-				double curvatureCorrection = 0;
-				double correctionFactor = 0.0;
+				Real curvatureCorrection = 0;
+				Real correctionFactor = 0.0;
 
 				forall_fluid_neighbors_in_same_phase(
 					if (m_mc_normals[neighborIndex] != Vector3r::Zero())
 					{
 						Vector3r xjxi = (xj - xi);
-						double distanceji = xjxi.norm();
+						Real distanceji = xjxi.norm();
 
 						normalCorrection += m_mc_normals[neighborIndex] * (1 - distanceji / supportRadius);
 						curvatureCorrection += m_mc_curv[neighborIndex] * (1 - distanceji / supportRadius);
@@ -446,10 +446,10 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 
 
 					m_final_curvatures[i] =
-						((1 - m_tau) * m_mc_curv[i] + m_tau * curvatureCorrection)
-						/ ((1 - m_tau) * 1 + m_tau * correctionFactor);
+						((static_cast<Real>(1.0) - m_tau) * m_mc_curv[i] + m_tau * curvatureCorrection)
+						/ ((static_cast<Real>(1.0) - m_tau) + m_tau * correctionFactor);
 
-					ai -= (1 / m_model->getMass(i)) * normalCorrection * k * m_final_curvatures[i];
+					ai -= (static_cast<Real>(1.0) / m_model->getMass(i)) * normalCorrection * k * m_final_curvatures[i];
 
 			}
 			else
@@ -484,7 +484,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 {
 	auto& tm = *SPH::TimeManager::getCurrent();
 	Real timeStep = tm.getTimeStepSize();
-	size_t step = floor( tm.getTime() / timeStep );
+	size_t step = static_cast<size_t>(floor( tm.getTime() / timeStep ));
 
 	m_r2 = m_r1 * m_r2mult;
 
@@ -503,10 +503,6 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 		NrOfSamples = m_CsdFix;
 	else
 		NrOfSamples = int( m_Csd * timeStep );
-
-
-	if( m_temporal_smoothing )
-		performNeighborhoodSearchSort();
 
 	// ################################################################################################
 	// ## first pass, compute classification and first estimation for normal and curvature (Montecarlo)
@@ -537,7 +533,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 			if (sim->numberOfNeighbors( 0, 0, i ) == 0)
 			{
-				m_mc_curv[i] = 1.0 / supportRadius;
+				m_mc_curv[i] = static_cast<Real>(1.0) / supportRadius;
 				continue;
 			}
 
@@ -550,7 +546,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 			centerofMasses /= supportRadius;
 
 			// cache classifier input, could also be recomputed later to avoid caching
-			m_classifier_input[i] = centerofMasses.norm() / double( numberOfNeighbours );
+			m_classifier_input[i] = centerofMasses.norm() / static_cast<Real>( numberOfNeighbours );
 			
 
 			// -- if it is a surface classified particle
@@ -562,7 +558,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 				if( m_halton_sampling == RandomMethod::HALTON )
 					points = getSphereSamplesLookUp(
-						NrOfSamples, supportRadius, i * NrOfSamples, haltonVec323, haltonVec323.size() ); // 8.5 // 15.0(double) // 9.0(float)
+						NrOfSamples, supportRadius, i * NrOfSamples, haltonVec323, static_cast<int>(haltonVec323.size()) ); // 8.5 // 15.0(double) // 9.0(float)
 				else
 					points = getSphereSamplesRnd( NrOfSamples, supportRadius );
 
@@ -570,7 +566,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				//  -- remove samples covered by neighbor spheres
 				forall_fluid_neighbors_in_same_phase(
 					Vector3r xjxi = (xj - xi);
-					for (int p = points.size() - 1; p >= 0; --p)
+					for (int p = static_cast<int>(points.size()) - 1; p >= 0; --p)
 					{
 						Vector3r vec = (points[p] - xjxi);
 						Real dist = vec.squaredNorm();
@@ -580,7 +576,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					} )
 
 				// -- estimate normal by left over sample directions
-				for (int p = points.size() - 1; p >= 0; --p)
+				for (int p = static_cast<int>(points.size()) - 1; p >= 0; --p)
 					m_mc_normals[i] += points[p];
 
 
@@ -590,8 +586,8 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					m_mc_normals[i].normalize();
 
 					// -- estimate curvature by sample ratio and particle radii
-					m_mc_curv[i] = (1 / supportRadius) * (-2.0) * pow( (1 - (m_r2 * m_r2 / (m_r1 * m_r1))), -0.5 ) *
-						cos( acos( 1.0 - 2.0 * (double( points.size() ) / double( NrOfSamples )) ) + asin( m_r2 / m_r1 ) );
+					m_mc_curv[i] = (static_cast<Real>(1.0) / supportRadius) * static_cast<Real>(-2.0) * pow( (static_cast<Real>(1.0) - (m_r2 * m_r2 / (m_r1 * m_r1))), static_cast<Real>(-0.5) ) *
+						cos( acos(static_cast<Real>(1.0) - static_cast<Real>(2.0) * (static_cast<Real>( points.size() ) / static_cast<Real>( NrOfSamples )) ) + asin( m_r2 / m_r1 ) );
 
 					m_classifier_output[i] = 1.0; // -- used to visualize surface points (blue in the paper)
 				}
@@ -628,14 +624,14 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				Vector3r& ai = m_model->getAcceleration( i );
 
 
-				double correctionForCurvature = 0;
-				double correctionFactor = 0.0;
+				Real correctionForCurvature = 0;
+				Real correctionFactor = 0.0;
 
 				Vector3r centroid = xi;
 				Vector3r surfCentDir = Vector3r::Zero();
 
 				// collect neighbors
-				multimap<double, size_t> neighs;
+				multimap<Real, size_t> neighs;
 
 				Eigen::Matrix<Real, 3, 3> t = Eigen::Matrix<Real, 3, 3>::Zero();
 				int t_count = 0;
@@ -693,7 +689,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 
 				if (do_pca)
 				{
-					centroid /= (t_count + 1);
+					centroid /= static_cast<Real>(t_count + 1);
 					surfCentDir.normalize();
 
 					const size_t neigh_limit = m_neighs_limit;
@@ -705,7 +701,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 						Vector3r& xj = m_model->getPosition( j );
 						Vector3r xjxi = (xj - centroid);
 
-						double distanceji = xjxi.norm();
+						Real distanceji = xjxi.norm();
 
 						Real w = CubicKernel::W( distanceji ) / CubicKernel::W_zero();
 						neighCent += w * xj;
@@ -758,7 +754,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 						else
 							m_pca_normals[i] = minor;
 
-						m_pca_curv[i] = 3.0 * pdt_ev(0) / (pdt_ev(0) + pdt_ev(1) + pdt_ev(2) );
+						m_pca_curv[i] = static_cast<Real>(3.0) * pdt_ev(0) / (pdt_ev(0) + pdt_ev(1) + pdt_ev(2) );
 
 						if (surfCentDir.dot(m_pca_normals[i]) > 0.0)
 							m_pca_curv[i] *= -1;
@@ -777,8 +773,8 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				m_mc_normals_smooth[i].normalize();
 
 				m_mc_curv_smooth[i] =
-					((1 - m_tau) * m_mc_curv[i] + m_tau * correctionForCurvature) /
-					((1 - m_tau) * 1 + m_tau * correctionFactor);
+					((static_cast<Real>(1.0) - m_tau) * m_mc_curv[i] + m_tau * correctionForCurvature) /
+					((static_cast<Real>(1.0) - m_tau) + m_tau * correctionFactor);
 			}
 		}
 	}
@@ -801,7 +797,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				if (m_mc_normals[i] != Vector3r::Zero())
 				{
 					int count = 0;
-					double CsCorr = 0.0;
+					Real CsCorr = 0.0;
 
 					const Vector3r& xi = m_model->getPosition( i );
 
@@ -814,7 +810,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 					
 
 					if (count > 0)
-						m_pca_curv_smooth[i] = 0.25 * m_pca_curv_smooth[i] + 0.75 * CsCorr / count;
+						m_pca_curv_smooth[i] = static_cast<Real>(0.25) * m_pca_curv_smooth[i] + static_cast<Real>(0.75) * CsCorr / static_cast<Real>(count);
 					else
 						m_pca_curv_smooth[i] = m_pca_curv[i];
 
@@ -864,12 +860,12 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 							else
 								final_curvature =
 									m_pca_C_mix * m_pca_curv_smooth[i] +
-									(1.0 - m_pca_C_mix) * m_mc_curv_smooth[i];
+									(static_cast<Real>(1.0) - m_pca_C_mix) * m_mc_curv_smooth[i];
 						}
 					}
 
 					if (m_temporal_smoothing)
-						m_final_curvatures[i] = 0.05 * final_curvature + 0.95 * m_final_curvatures_old[i];
+						m_final_curvatures[i] = static_cast<Real>(0.05) * final_curvature + static_cast<Real>(0.95) * m_final_curvatures_old[i];
 					else
 						m_final_curvatures[i] = final_curvature;
 
@@ -884,7 +880,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 				{
 					
 					if (m_temporal_smoothing)
-						m_final_curvatures[i] = 0.95 * m_final_curvatures_old[i];
+						m_final_curvatures[i] = static_cast<Real>(0.95) * m_final_curvatures_old[i];
 					else
 						m_final_curvatures[i] = 0.0;
 

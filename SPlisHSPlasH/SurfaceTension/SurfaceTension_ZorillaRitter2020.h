@@ -34,6 +34,7 @@ Please get in contact for feedback/support.
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
+#include "Utilities/StringTools.h"
 #include "SurfaceTensionBase.h"
 #include <chrono>
 
@@ -270,7 +271,7 @@ namespace SPH
 
 
 		// -- helper functions:
-		static Vector3r anglesToVec(double theta, double phi, double radius);
+		static Vector3r anglesToVec(Real theta, Real phi, Real radius);
 	};
 }
 

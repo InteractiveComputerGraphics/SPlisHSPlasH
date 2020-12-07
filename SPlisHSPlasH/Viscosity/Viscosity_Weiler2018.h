@@ -53,6 +53,21 @@ namespace SPH
 		virtual void performNeighborhoodSearchSort();
 
 		static void matrixVecProd(const Real* vec, Real *result, void *userData);
+
+		FORCE_INLINE const Vector3r& getVDiff(const unsigned int i) const
+		{
+			return m_vDiff[i];
+		}
+
+		FORCE_INLINE Vector3r& getVDiff(const unsigned int i)
+		{
+			return m_vDiff[i];
+		}
+
+		FORCE_INLINE void setVDiff(const unsigned int i, const Vector3r& val)
+		{
+			m_vDiff[i] = val;
+		}
 	};
 }
 

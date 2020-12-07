@@ -30,7 +30,7 @@ jobs:
     - name: build
       run: cmake --build build-release --config Release
     - name: tests
-      run: cd bin;./KernelTests
+      run: cd bin;./KernelTests;./ReadWriteStateTests
       shell: pwsh
 
   # Build the python wheel in parallel

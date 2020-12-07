@@ -39,7 +39,7 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
 	MiniGL::setSelectionFunc(selection, this);
 	MiniGL::addKeyFunc('i', std::bind(&Simulator_GUI_imgui::particleInfo, this));
-	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase));
+	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
 #ifdef WIN32
 	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
 #endif 

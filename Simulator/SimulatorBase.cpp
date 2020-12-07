@@ -163,7 +163,6 @@ void SimulatorBase::initParameters()
 	setGroup(STATE_EXPORT_FPS, "Export");
 	setDescription(STATE_EXPORT_FPS, "Frame rate of simulation state export.");
 
-
 	PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("particleAttributes", "Export attributes", &m_particleAttributes);
 	getParameter(PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
 	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export");
@@ -503,6 +502,10 @@ void SimulatorBase::cleanup()
 	for (unsigned int i = 0; i < m_scene.fluidBlocks.size(); i++)
 		delete m_scene.fluidBlocks[i];
 	m_scene.fluidBlocks.clear();
+
+	for (unsigned int i = 0; i < m_scene.materials.size(); i++)
+		delete m_scene.materials[i];
+	m_scene.materials.clear();
 
 	for (unsigned int i = 0; i < m_scene.emitters.size(); i++)
 		delete m_scene.emitters[i];
@@ -1913,21 +1916,30 @@ std::string SimulatorBase::real2String(const Real r)
 	return str;
 }
 
-void SPH::SimulatorBase::saveState()
+void SPH::SimulatorBase::saveState(const std::string& stateFile)
 {
-	std::string stateFilePath = FileSystem::normalizePath(m_outputPath + "/state");
+	std::string stateFilePath; 
+	std::string exportFileName;
+	const Real time = TimeManager::getCurrent()->getTime();
+	const std::string timeStr = real2String(time);
+	if (stateFile == "")
+	{
+		stateFilePath = FileSystem::normalizePath(m_outputPath + "/state");
+		exportFileName = FileSystem::normalizePath(stateFilePath + "/state_" + timeStr);
+	}
+	else
+	{
+		stateFilePath = FileSystem::getFilePath(stateFile);
+		exportFileName = FileSystem::normalizePath(stateFilePath + "/" + FileSystem::getFileName(stateFile));
+	}
 	FileSystem::makeDirs(stateFilePath);
 
 	string md5Str = FileSystem::getFileMD5(m_sceneFile);
 
 	Simulation *sim = Simulation::getCurrent();
 
-	const Real time = TimeManager::getCurrent()->getTime();
-	const std::string timeStr = real2String(time);
-
-	// Save additional data
+		// Save additional data
 	BinaryFileWriter binWriter;
-	std::string exportFileName = FileSystem::normalizePath(stateFilePath + "/state_" + timeStr);
 	binWriter.openFile(exportFileName + ".bin");
 	binWriter.write(md5Str);
 
@@ -1935,6 +1947,7 @@ void SPH::SimulatorBase::saveState()
 	binWriter.write(m_nextFrameTimeState);
 	binWriter.write(m_frameCounter);
 	binWriter.write(m_isFirstFrame);
+	binWriter.write(m_isFirstFrameVTK);
 	
 	writeParameterState(binWriter);
 	TimeManager::getCurrent()->saveState(binWriter);
@@ -1958,11 +1971,11 @@ void SPH::SimulatorBase::saveState()
 		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 		{
 			BoundaryModel *model = sim->getBoundaryModel(i);
-			std::string fileName = "state_boundary";
+			std::string fileName = "boundary";
 			fileName = fileName + "_" + to_string(i); // +"_" + std::to_string(m_frameCounter);
 
 			// Save particle data
-			std::string expFileName = FileSystem::normalizePath(stateFilePath + "/" + fileName);
+			std::string expFileName = FileSystem::normalizePath(exportFileName + "_" + fileName);
 			writeBoundaryState(expFileName + ".bgeo", model);
 		}
 		m_firstState = false;
@@ -2014,6 +2027,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	binReader.read(m_nextFrameTimeState);
 	binReader.read(m_frameCounter);
 	binReader.read(m_isFirstFrame);
+	binReader.read(m_isFirstFrameVTK);
 
 	readParameterState(binReader);
 	if (md5Str != md5StrState)
@@ -2039,11 +2053,11 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
 		BoundaryModel *model = sim->getBoundaryModel(i);
-		std::string fileName = "state_boundary";
+		std::string fileName = "boundary";
 		fileName = fileName + "_" + to_string(i); // +"_" + std::to_string(m_frameCounter);
 
 		// Save particle data
-		std::string impFileName = FileSystem::normalizePath(importFilePath + "/" + fileName);
+		std::string impFileName = FileSystem::normalizePath(importFilePath + "/" + importFileName + "_" + fileName);
 		readBoundaryState(impFileName + ".bgeo", model);
 	}
 
@@ -2083,7 +2097,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	}
 	binReader.closeFile();
 
-	sim->performNeighborhoodSearchSort();
+	//sim->performNeighborhoodSearchSort();
 }
 
 void SimulatorBase::writeParameterState(BinaryFileWriter &binWriter)

@@ -103,7 +103,7 @@ namespace Utilities
 	class Logger
 	{
 	public: 
-		Logger() {}
+		Logger() { m_active = true; }
 		~Logger() 
 		{ 
 			m_sinks.clear();  
@@ -111,6 +111,7 @@ namespace Utilities
 
 	protected:
 		std::vector<std::unique_ptr<LogSink>> m_sinks;
+		bool m_active;
 
 	public:
 		// Todo: format
@@ -122,9 +123,13 @@ namespace Utilities
 
 		void write(const LogLevel level, const std::string &str)
 		{
+			if (!m_active)
+				return;
 			for (unsigned int i = 0; i < m_sinks.size(); i++)
 				m_sinks[i]->write(level, str);
 		}
+
+		void activate(const bool b) { m_active = b; }
 	};
 
 	class LogStream

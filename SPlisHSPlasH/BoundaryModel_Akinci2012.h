@@ -37,6 +37,7 @@ namespace SPH
 		public:
 			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
 			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
+			bool isSorted() const { return m_sorted; }
 
 			void computeBoundaryVolume();
 			void resize(const unsigned int numBoundaryParticles);

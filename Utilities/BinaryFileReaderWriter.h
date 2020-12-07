@@ -93,7 +93,7 @@ namespace SPH
 		{
 			unsigned int len;
 			read(len);
-			char* temp = new char[len + 1];
+			char* temp = new char[len + 1u];
 			readBuffer(temp, len);
 			temp[len] = '\0';
 			str = temp;

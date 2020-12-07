@@ -784,7 +784,7 @@ void MiniGL::mousePress(GLFWwindow* window, int button, int action, int mods)
 	else 
 		mouse_button = -1;
 
-	if (selectionfunc != NULL)
+	if ((selectionfunc != NULL) && (modifier_key == 0))
 	{
 		if (button == GLFW_MOUSE_BUTTON_1)
 		{

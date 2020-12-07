@@ -37,7 +37,7 @@ void GUIModule(py::module m) {
                 for (auto & elem : argv) cargv.push_back(elem.c_str());
                 obj.init(static_cast<int>(argv.size()), const_cast<char**>(cargv.data()), windowName.c_str());
             })
-            .def("initSimulationParameterGUI", &SPH::Simulator_GUI_Base::initParameterGUI)
+            .def("initSimulationParameterGUI", &SPH::Simulator_GUI_Base::initSimulationParameterGUI)
             .def("initParameterGUI", &SPH::Simulator_GUI_Base::initParameterGUI)
             .def("render", &SPH::Simulator_GUI_Base::render)
             .def("reset", &SPH::Simulator_GUI_Base::reset)

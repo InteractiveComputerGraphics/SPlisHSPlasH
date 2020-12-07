@@ -478,8 +478,12 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
-			//computeDensityAdv(i, numParticles, h, density0);
+			//m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
+			computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
+			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 1.0)
+				m_simulationData.getKappa(fluidModelIndex, i) = static_cast<Real>(0.5) * max(m_simulationData.getKappa(fluidModelIndex, i), static_cast<Real>(-0.00025)) * invH2;
+			else
+				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -490,9 +494,12 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		for (int i = 0; i < numParticles; i++)
 		{
 			if (model->getParticleState(i) != ParticleState::Active)
+			{
+				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
 				continue;
+			}
 
-			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > density0)
+			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > density0)
 			{
 				const Real ki = m_simulationData.getKappa(fluidModelIndex, i);
 				const Vector3r &xi = model->getPosition(i);
@@ -717,17 +724,23 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5) * density0*density0);
 			computeDensityChange(fluidModelIndex, i, h);
+			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
+				m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5) * max(m_simulationData.getKappaV(fluidModelIndex, i), static_cast<Real>(-0.5)) * invH;
+			else
+				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
 		}
 
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			if (model->getParticleState(i) != ParticleState::Active)
+			{
+				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
 				continue;
+			}
 
-			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
+			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
 			{
 				const Real ki = m_simulationData.getKappaV(fluidModelIndex, i);
 				const Vector3r &xi = model->getPosition(i);
@@ -1168,7 +1181,7 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 			//m_simulationData.getKappa(fluidModelIndex, i) = max(m_simulationData.getKappa(fluidModelIndex, i)*invH2, -static_cast<Real>(0.5) * density0*density0);
 			computeDensityAdv(fluidModelIndex, i, numParticles, h, density0);
 			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 1.0)
-				m_simulationData.getKappa(fluidModelIndex, i) = 0.5 * m_simulationData.getKappa(fluidModelIndex, i) * invH2;
+				m_simulationData.getKappa(fluidModelIndex, i) = static_cast<Real>(0.5) * max(m_simulationData.getKappa(fluidModelIndex, i), static_cast<Real>(-0.00025)) * invH2;
 			else
 				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
 		}
@@ -1181,7 +1194,10 @@ void TimeStepDFSPH::warmstartPressureSolve(const unsigned int fluidModelIndex)
 		for (int i = 0; i < numParticles; i++)
 		{
 			if (model->getParticleState(i) != ParticleState::Active)
+			{
+				m_simulationData.getKappa(fluidModelIndex, i) = 0.0;
 				continue;
+			}
 
 			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 1.0)
 			{
@@ -1377,8 +1393,8 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		{
 			//m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5)*max(m_simulationData.getKappaV(fluidModelIndex, i)*invH, -static_cast<Real>(0.5) * density0*density0);
 			computeDensityChange(fluidModelIndex, i, h);
-			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
-				m_simulationData.getKappaV(fluidModelIndex, i) = 0.5 * m_simulationData.getKappaV(fluidModelIndex, i) * invH;
+			if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)				
+				m_simulationData.getKappaV(fluidModelIndex, i) = static_cast<Real>(0.5) * max(m_simulationData.getKappaV(fluidModelIndex, i), static_cast<Real>(-0.5)) * invH;
 			else
 				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
 		}
@@ -1387,7 +1403,10 @@ void TimeStepDFSPH::warmstartDivergenceSolve(const unsigned int fluidModelIndex)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			if (model->getParticleState(i) != ParticleState::Active)
+			{
+				m_simulationData.getKappaV(fluidModelIndex, i) = 0.0;
 				continue;
+			}
 
 			//if (m_simulationData.getDensityAdv(fluidModelIndex, i) > 0.0)
 			{

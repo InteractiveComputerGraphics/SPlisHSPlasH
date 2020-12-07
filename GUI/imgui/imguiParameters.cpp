@@ -156,6 +156,22 @@ bool imguiParameters::createEnumParameter(imguiParameters::imguiParameter* param
 	return false;
 }
 
+void imguiParameters::createFunctionParameter(imguiParameters::imguiParameter* param, ImGuiInputTextFlags flags, const std::string& helpText)
+{
+	// bool parameter
+	imguiParameters::imguiFunctionParameter* fparam = dynamic_cast<imguiParameters::imguiFunctionParameter*>(param);
+	if ((fparam != nullptr) && (fparam->function != nullptr))
+	{
+		if (ImGui::Button(fparam->label.c_str()))
+		{
+			if (fparam->function)
+				fparam->function();
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(helpText.c_str());
+	}
+}
+
 void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::string, std::vector<imguiParameter*>>> &params)
 {
 	for (auto subgroup_index = 0; subgroup_index < params.size(); subgroup_index++)
@@ -192,6 +208,7 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 				createStringParameter(param, flags, helpText);
 				createVec3rParameter(param, flags, helpText);
 				createVec3fParameter(param, flags, helpText);
+				createFunctionParameter(param, flags, helpText);
 				if (createEnumParameter(param, flags, helpText))
 				{
 					// stop the creation of the GUI since the change of an enum value
@@ -249,10 +266,9 @@ void imguiParameters::createParameterGUI()
 				ImGui::EndTabItem();				
 			}
 		}
+		ImGui::EndTabBar();
 	}
 	ImGui::PopStyleColor(3);
-	ImGui::EndTabBar();
-
 }
 
 void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
@@ -413,6 +429,15 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 			param->readOnly = paramBase->getReadOnly();
 			param->getFct = [paramBase]() -> Vector3r { return Vector3r(static_cast<RealVectorParameter*>(paramBase)->getValue()); };
 			param->setFct = [paramBase](Vector3r& v) { static_cast<RealVectorParameter*>(paramBase)->setValue(v.data()); };
+			imguiParameters::addParam(group, subgroup, param);
+		}
+		else if (paramBase->getType() == ParameterBase::FUNCTION)
+		{
+			imguiParameters::imguiFunctionParameter* param = new imguiParameters::imguiFunctionParameter();
+			param->description = paramBase->getDescription();
+			param->label = paramBase->getLabel();
+			param->readOnly = false;
+			param->function = [paramBase]() { static_cast<FunctionParameter*>(paramBase)->callFunction(); };
 			imguiParameters::addParam(group, subgroup, param);
 		}
 	}

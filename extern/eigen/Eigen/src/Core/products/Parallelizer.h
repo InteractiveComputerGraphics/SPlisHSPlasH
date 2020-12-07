@@ -17,7 +17,8 @@ namespace internal {
 /** \internal */
 inline void manage_multi_threading(Action action, int* v)
 {
-  static EIGEN_UNUSED int m_maxThreads = -1;
+  static int m_maxThreads = -1;
+  EIGEN_UNUSED_VARIABLE(m_maxThreads);
 
   if(action==SetAction)
   {
@@ -131,7 +132,8 @@ void parallelize_gemm(const Functor& func, Index rows, Index cols, Index depth, 
 
   ei_declare_aligned_stack_constructed_variable(GemmParallelInfo<Index>,info,threads,0);
 
-  #pragma omp parallel num_threads(threads)
+  int errorCount = 0;
+  #pragma omp parallel num_threads(threads) reduction(+: errorCount)
   {
     Index i = omp_get_thread_num();
     // Note that the actual number of threads might be lower than the number of request ones.
@@ -150,9 +152,16 @@ void parallelize_gemm(const Functor& func, Index rows, Index cols, Index depth, 
     info[i].lhs_start = r0;
     info[i].lhs_length = actualBlockRows;
 
-    if(transpose) func(c0, actualBlockCols, 0, rows, info);
-    else          func(0, rows, c0, actualBlockCols, info);
+    EIGEN_TRY {
+      if(transpose) func(c0, actualBlockCols, 0, rows, info);
+      else          func(0, rows, c0, actualBlockCols, info);
+    } EIGEN_CATCH(...) {
+      ++errorCount;
+    }
   }
+  if (errorCount)
+      printf("assert exception\n");
+      //EIGEN_THROW_X(Eigen::eigen_assert_exception());
 #endif
 }
 

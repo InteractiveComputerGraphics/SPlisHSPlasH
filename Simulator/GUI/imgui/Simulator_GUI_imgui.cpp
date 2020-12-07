@@ -39,7 +39,7 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
 	MiniGL::setSelectionFunc(selection, this);
 	MiniGL::addKeyFunc('i', std::bind(&Simulator_GUI_imgui::particleInfo, this));
-	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase));
+	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
 #ifdef WIN32
 	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
 #endif 
@@ -63,6 +63,7 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 	MiniGL::addKeyFunc('r', std::bind(&SimulatorBase::reset, m_simulatorBase));
 	MiniGL::addKeyFunc('w', Simulator_GUI_imgui::switchDrawMode);
 	MiniGL::addKeyFunc(' ', std::bind(&Simulator_GUI_imgui::switchPause, this));
+	MiniGL::addKeyFunc('m', std::bind(&SimulatorBase::determineMinMaxOfScalarField, m_simulatorBase));
 	MiniGL::setClientSceneFunc(std::bind(&Simulator_GUI_imgui::render, this));
 }
 
@@ -151,6 +152,9 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		imguiParameters::createParameterObjectGUI(m_simulatorBase);
 	imguiParameters::createParameterObjectGUI(sim);
 	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) sim->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) sim->getDebugTools());
+#endif
 
 	// Enum for all fluid models
 	if (sim->numberOfFluidModels() > 0)
@@ -188,7 +192,9 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			for (unsigned int j = 0; j < model->numberOfFields(); j++)
 			{
 				const FieldDescription& field = model->getField(j);
-				if ((field.type == FieldType::Scalar) || (field.type == FieldType::Vector3))
+				if ((field.type == FieldType::Scalar) || (field.type == FieldType::Vector3) || 
+					(field.type == FieldType::UInt) || (field.type == FieldType::Matrix3) ||
+					(field.type == FieldType::Vector6) || (field.type == FieldType::Matrix6))
 				{
 					param->items.push_back(field.name);
 					m_colorFieldNames[idx] = field.name;
@@ -204,7 +210,11 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 				}
 				return 0;
 			};
-			param->setFct = [this](int v) { getSimulatorBase()->setColorField(m_currentFluidModel, m_colorFieldNames[v]); };
+			param->setFct = [this](int v) { 
+				getSimulatorBase()->setColorField(m_currentFluidModel, m_colorFieldNames[v]); 
+				getSimulatorBase()->determineMinMaxOfScalarField();
+				getSimulatorBase()->updateScalarField();
+			};
 			imguiParameters::addParam("Fluid Model", model->getId(), param);
 		}
 
@@ -240,6 +250,13 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			param2->getFct = [this]() -> Real { return getSimulatorBase()->getRenderMaxValue(m_currentFluidModel); };
 			param2->setFct = [this](Real v) { getSimulatorBase()->setRenderMaxValue(m_currentFluidModel, v); };
 			imguiParameters::addParam("Fluid Model", model->getId(), param2);
+
+			imguiParameters::imguiFunctionParameter* param3 = new imguiParameters::imguiFunctionParameter();
+			param3->description = "Recompute min and max values for color-coding the color field in the rendering process.";
+			param3->label = "Rescale";
+			param3->readOnly = false;
+			param3->function = [this]() { getSimulatorBase()->determineMinMaxOfScalarField(); };
+			imguiParameters::addParam("Fluid Model", model->getId(), param3);
 		}
 
 		imguiParameters::createParameterObjectGUI(model);
@@ -300,10 +317,17 @@ void Simulator_GUI_imgui::render()
 		MiniGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
 		FluidModel *model = sim->getFluidModel(i);
 		SimulatorBase *base = getSimulatorBase();
+
+		const FieldDescription* field = nullptr;
+		field = &model->getField(base->getColorField(i));
+
+		bool useScalarField = true;
+		if ((field == nullptr) || (base->getScalarField().size() == 0))
+			useScalarField = false;
 		Simulator_OpenGL::renderFluid(model, fluidColor, base->getColorMapType(i),
-			base->getColorField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
+			useScalarField, base->getScalarField(), base->getRenderMinValue(i), base->getRenderMaxValue(i));
 		Simulator_OpenGL::renderSelectedParticles(model, getSelectedParticles(), base->getColorMapType(i),
-			base->getColorField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
+			base->getRenderMinValue(i), base->getRenderMaxValue(i));
 	}
 	renderBoundary();
 	update();

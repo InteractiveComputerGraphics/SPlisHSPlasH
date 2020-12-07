@@ -105,6 +105,7 @@ FluidModel::FluidModel() :
 
 FluidModel::~FluidModel(void)
 {
+	removeFieldByName("id");
 	removeFieldByName("position");
 	removeFieldByName("velocity");
 	removeFieldByName("density");

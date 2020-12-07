@@ -48,7 +48,7 @@ namespace SPH
 				}
 				else
 				{
-					res = m_k * (static_cast<Real>(2.0)*pow(static_cast<Real>(1.0) - q, 3));
+					res = m_k * (static_cast<Real>(2.0)*pow(static_cast<Real>(1.0) - q, static_cast<Real>(3.0)));
 				}
 			}
 			return res;
@@ -105,8 +105,8 @@ namespace SPH
 		{
 			m_radius = val;
 			const Real pi = static_cast<Real>(M_PI);
-			m_k = static_cast<Real>(315.0) / (static_cast<Real>(64.0)*pi*pow(m_radius, 9));
-			m_l = -static_cast<Real>(945.0) / (static_cast<Real>(32.0)*pi*pow(m_radius, 9));
+			m_k = static_cast<Real>(315.0) / (static_cast<Real>(64.0)*pi*pow(m_radius, static_cast<Real>(9.0)));
+			m_l = -static_cast<Real>(945.0) / (static_cast<Real>(32.0)*pi*pow(m_radius, static_cast<Real>(9.0)));
 			m_m = m_l;
 			m_W_zero = W(Vector3r::Zero());
 		}
@@ -124,7 +124,7 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				res = pow(radius2 - r2, 3)*m_k;
+				res = pow(radius2 - r2, static_cast<Real>(3.0))*m_k;
 			}
 			return res;
 		}
@@ -136,7 +136,7 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				res = pow(radius2 - r2, 3)*m_k;
+				res = pow(radius2 - r2, static_cast<Real>(3.0))*m_k;
 			}
 			return res;
 		}
@@ -203,7 +203,7 @@ namespace SPH
 		static void setRadius(Real val)
 		{
 			m_radius = val;
-			const Real radius6 = pow(m_radius, 6);
+			const Real radius6 = pow(m_radius, static_cast<Real>(6.0));
 			const Real pi = static_cast<Real>(M_PI);
 			m_k = static_cast<Real>(15.0) / (pi*radius6);
 			m_l = -static_cast<Real>(45.0) / (pi*radius6);
@@ -222,7 +222,7 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				const Real hr3 = pow(m_radius - r, 3);
+				const Real hr3 = pow(m_radius - r, static_cast<Real>(3.0));
 				res = m_k * hr3;
 			}
 			return res;
@@ -235,7 +235,7 @@ namespace SPH
 			const Real radius2 = m_radius*m_radius;
 			if (r2 <= radius2)
 			{
-				const Real hr3 = pow(m_radius - sqrt(r2), 3);
+				const Real hr3 = pow(m_radius - sqrt(r2), static_cast<Real>(3.0));
 				res = m_k * hr3;
 			}
 			return res;
@@ -297,7 +297,7 @@ namespace SPH
 			Real res = 0.0;
 			const Real q = r / m_radius;
 			if (q <= 1.0)
-				res = m_k * pow(static_cast<Real>(1.0) - q, 4) * (static_cast<Real>(4.0) * q + static_cast<Real>(1.0));
+				res = m_k * pow(static_cast<Real>(1.0) - q, static_cast<Real>(4.0)) * (static_cast<Real>(4.0) * q + static_cast<Real>(1.0));
 			return res;
 		}
 
@@ -346,8 +346,8 @@ namespace SPH
 		{
 			m_radius = val;
 			const Real pi = static_cast<Real>(M_PI);
-			m_k = static_cast<Real>(32.0) / (pi*pow(m_radius, 9));
-			m_c = pow(m_radius, 6) / static_cast<Real>(64.0);
+			m_k = static_cast<Real>(32.0) / (pi*pow(m_radius, static_cast<Real>(9.0)));
+			m_c = pow(m_radius, static_cast<Real>(6.0)) / static_cast<Real>(64.0);
 			m_W_zero = W(Vector3r::Zero());
 		}
 
@@ -367,9 +367,9 @@ namespace SPH
 				const Real r1 = sqrt(r2);
 				const Real r3 = r2*r1;
 				if (r1 > 0.5*m_radius)
-					res = m_k*pow(m_radius - r1, 3)*r3;
+					res = m_k*pow(m_radius - r1, static_cast<Real>(3.0))*r3;
 				else
-					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, 3)*r3 - m_c;
+					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, static_cast<Real>(3.0))*r3 - m_c;
 
 			}
 			return res;
@@ -385,9 +385,9 @@ namespace SPH
 				const Real r1 = sqrt(r2);
 				const Real r3 = r2*r1;
 				if (r1 > 0.5*m_radius)
-					res = m_k*pow(m_radius - r1, 3)*r3;
+					res = m_k*pow(m_radius - r1, static_cast<Real>(3.0))*r3;
 				else
-					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, 3)*r3 - m_c;
+					res = m_k* static_cast<Real>(2.0)*pow(m_radius - r1, static_cast<Real>(3.0))*r3 - m_c;
 
 			}
 			return res;
@@ -496,7 +496,7 @@ namespace SPH
 				}
 				else
 				{
-					res = m_k * (static_cast<Real>(2.0)*pow(static_cast<Real>(1.0) - q, 3));
+					res = m_k * (static_cast<Real>(2.0)*pow(static_cast<Real>(1.0) - q, static_cast<Real>(3.0)));
 				}
 			}
 			return res;
@@ -569,7 +569,7 @@ namespace SPH
 			Real res = 0.0;
 			const Real q = r / m_radius;
 			if (q <= 1.0)
-				res = m_k * pow(static_cast<Real>(1.0) - q, 4) * (static_cast<Real>(4.0) * q + static_cast<Real>(1.0));
+				res = m_k * pow(static_cast<Real>(1.0) - q, static_cast<Real>(4.0)) * (static_cast<Real>(4.0) * q + static_cast<Real>(1.0));
 			return res;
 		}
 
@@ -586,7 +586,7 @@ namespace SPH
 			if (q <= 1.0)
 			{
 				const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
-				res = m_l*q*pow(static_cast<Real>(1.0) - q, 3)*gradq;
+				res = m_l*q*pow(static_cast<Real>(1.0) - q, static_cast<Real>(3.0))*gradq;
 			}
 			else
 				res.setZero();
@@ -705,7 +705,6 @@ namespace SPH
 		static Scalarf8 m_half;
 		static Scalarf8 m_one;
 		static Scalarf8 m_eps;
-		static Vector3f8 m_zeroVec;
 
 
 	public:
@@ -737,7 +736,6 @@ namespace SPH
 			float tmp[8];
 			W_zero.store(tmp);
 			m_W_zero = tmp[0];
-			m_zeroVec.setZero();
 		}
 
 	public:
@@ -766,24 +764,24 @@ namespace SPH
  
  		static Vector3f8 gradW(const Vector3f8 &r)
  		{
-			Vector3f8 res;
+			Scalarf8 res;
  			const Scalarf8 rl = r.norm();
  			const Scalarf8 q = rl * m_invRadius;
 
 			// q <= 0.5
-			const Vector3f8 res1 = r * (m_l * m_invRadius2 * (Scalarf8(3.0f)*q - Scalarf8(2.0f)));
+			const Scalarf8 res1 =  (m_l * m_invRadius2 * (Scalarf8(3.0f)*q - Scalarf8(2.0f)));
 
 			// 0.5 <= q <= 1
 			const Scalarf8 v = m_one - q;
-			const Vector3f8 gradq = r * (m_invRadius / rl);
-			const Vector3f8 res2 = gradq * (-m_l * (v*v));
+			const Scalarf8 gradq = (m_invRadius / rl);
+			const Scalarf8 res2 = gradq * (-m_l * (v*v));
 
 
-			res = Vector3f8::blend(q <= m_one, res2, m_zeroVec);
-			res = Vector3f8::blend(q <= m_half, res1, res);
-			res = Vector3f8::blend(rl > m_eps, res, m_zeroVec);
+			res = blend(q <= m_one, res2, m_zero);
+			res = blend(q <= m_half, res1, res);
+			res = blend(rl > m_eps, res, m_zero);
 
- 			return res;
+ 			return r * res;
  		}
 
 		static const Real& W_zero() 
@@ -801,17 +799,20 @@ namespace SPH
 		static Real m_k;
 		static Real m_l;
 		static Scalarf8 m_radius_avx;
-		static Scalarf8 m_W_zero;
+		static Real m_W_zero;
 	public:
 		static Real getRadius() { return m_radius; }
 		static void setRadius(Real val)
 		{
 			m_radius = val;
 			const Real pi = static_cast<Real>(M_PI);
- 			m_k = static_cast<Real>(315.0) / (static_cast<Real>(64.0)*pi*pow(m_radius, 9));
- 			m_l = -static_cast<Real>(945.0) / (static_cast<Real>(32.0)*pi*pow(m_radius, 9));
+ 			m_k = static_cast<Real>(315.0) / (static_cast<Real>(64.0)*pi*pow(m_radius, static_cast<Real>(9)));
+ 			m_l = -static_cast<Real>(945.0) / (static_cast<Real>(32.0)*pi*pow(m_radius, static_cast<Real>(9)));
 			m_radius_avx = Scalarf8(m_radius);
-			m_W_zero = W(Scalarf8(0.0));
+			Scalarf8 W_zero = W(Scalarf8(0.0f));
+			float tmp[8];
+			W_zero.store(tmp);
+			m_W_zero = tmp[0];
 		}
 
 	public:
@@ -832,7 +833,12 @@ namespace SPH
 
 		static Scalarf8 W(const Vector3f8 &r)
 		{
-			return W(r.norm());
+			Scalarf8 res;
+			const Scalarf8 r2 = r.squaredNorm();
+			const Scalarf8 radius2 = m_radius_avx * m_radius_avx;
+			const Scalarf8 t = (radius2 - r2);
+			res = t * t * t * Scalarf8(m_k);
+			return blend(r2 <= radius2, res, Scalarf8(0.0f));
 		}
 
 
@@ -852,7 +858,12 @@ namespace SPH
 			return Vector3f8::blend(r2 <= radius2, res2, res);
 		}
 
-		static Scalarf8 W_zero()
+		//static Scalarf8 W_zero()
+		//{
+		//	return m_W_zero;
+		//}
+
+		static const Real& W_zero()
 		{
 			return m_W_zero;
 		}
@@ -875,7 +886,7 @@ namespace SPH
 		static void setRadius(Real val)
 		{
 			m_radius = val;
-			const Real radius6 = pow(m_radius, 6);
+			const Real radius6 = pow(m_radius, 6.0f);
  			const Real pi = static_cast<Real>(M_PI);
  			m_k = static_cast<Real>(15.0) / (pi*radius6);
  			m_l = -static_cast<Real>(45.0) / (pi*radius6);
@@ -911,12 +922,14 @@ namespace SPH
 			Vector3f8 res;
 			res.setZero();
 			const Scalarf8 r2 = r.squaredNorm();
+			const Scalarf8 radius2 = m_radius_avx * m_radius_avx;
 			const Scalarf8 r_l = r2.sqrt();
 			const Scalarf8 t = (m_radius_avx - r_l);
 
-			const Vector3f8 res2 = r * (t*t*Scalarf8(m_l)/r_l);
+			Vector3f8 res2 = r * (t*t*Scalarf8(m_l)/r_l);
 
-			res = Vector3f8::blend(r_l > m_eps, res2, res);
+			res2 = Vector3f8::blend(r_l > m_eps, res2, res);
+			res = Vector3f8::blend(r2 <= radius2, res2, res);
 			return res;
 		}
 

@@ -17,8 +17,8 @@
 #include <memory>
 #include <iostream>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Buffer that writes to Python instead of C++
 class pythonbuf : public std::streambuf {
@@ -30,7 +30,7 @@ private:
     object pywrite;
     object pyflush;
 
-    int overflow(int c) {
+    int overflow(int c) override {
         if (!traits_type::eq_int_type(c, traits_type::eof())) {
             *pptr() = traits_type::to_char_type(c);
             pbump(1);
@@ -38,7 +38,10 @@ private:
         return sync() == 0 ? traits_type::not_eof(c) : traits_type::eof();
     }
 
-    int sync() {
+    // This function must be non-virtual to be called in a destructor. If the
+    // rare MSVC test failure shows up with this version, then this should be
+    // simplified to a fully qualified call.
+    int _sync() {
         if (pbase() != pptr()) {
             // This subtraction cannot be negative, so dropping the sign
             str line(pbase(), static_cast<size_t>(pptr() - pbase()));
@@ -54,6 +57,10 @@ private:
         return 0;
     }
 
+    int sync() override {
+        return _sync();
+    }
+
 public:
 
     pythonbuf(object pyostream, size_t buffer_size = 1024)
@@ -67,12 +74,12 @@ public:
     pythonbuf(pythonbuf&&) = default;
 
     /// Sync before destroy
-    ~pythonbuf() {
-        sync();
+    ~pythonbuf() override {
+        _sync();
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 
 /** \rst
@@ -95,7 +102,7 @@ NAMESPACE_END(detail)
     .. code-block:: cpp
 
         {
-            py::scoped_ostream_redirect output{std::cerr, py::module::import("sys").attr("stderr")};
+            py::scoped_ostream_redirect output{std::cerr, py::module_::import("sys").attr("stderr")};
             std::cerr << "Hello, World!";
         }
  \endrst */
@@ -108,7 +115,7 @@ protected:
 public:
     scoped_ostream_redirect(
             std::ostream &costream = std::cout,
-            object pyostream = module::import("sys").attr("stdout"))
+            object pyostream = module_::import("sys").attr("stdout"))
         : costream(costream), buffer(pyostream) {
         old = costream.rdbuf(&buffer);
     }
@@ -139,12 +146,12 @@ class scoped_estream_redirect : public scoped_ostream_redirect {
 public:
     scoped_estream_redirect(
             std::ostream &costream = std::cerr,
-            object pyostream = module::import("sys").attr("stderr"))
+            object pyostream = module_::import("sys").attr("stderr"))
         : scoped_ostream_redirect(costream,pyostream) {}
 };
 
 
-NAMESPACE_BEGIN(detail)
+PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Class to redirect output as a context manager. C++ backend.
 class OstreamRedirect {
@@ -170,7 +177,7 @@ public:
     }
 };
 
-NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(detail)
 
 /** \rst
     This is a helper function to add a C++ redirect context manager to Python
@@ -199,11 +206,11 @@ NAMESPACE_END(detail)
             m.noisy_function_with_error_printing()
 
  \endrst */
-inline class_<detail::OstreamRedirect> add_ostream_redirect(module m, std::string name = "ostream_redirect") {
+inline class_<detail::OstreamRedirect> add_ostream_redirect(module_ m, std::string name = "ostream_redirect") {
     return class_<detail::OstreamRedirect>(m, name.c_str(), module_local())
         .def(init<bool,bool>(), arg("stdout")=true, arg("stderr")=true)
         .def("__enter__", &detail::OstreamRedirect::enter)
         .def("__exit__", [](detail::OstreamRedirect &self_, args) { self_.exit(); });
 }
 
-NAMESPACE_END(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

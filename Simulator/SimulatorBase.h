@@ -69,6 +69,7 @@ namespace SPH
 		std::string m_windowName;
 		std::vector<std::string> m_paramTokens;
 		std::function<void()> m_timeStepCB;
+		std::vector<float> m_scalarField;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
 #endif
@@ -137,7 +138,7 @@ namespace SPH
 		void writeRigidBodiesVTK(const std::string &exportPath);
 		void step();
 
-		void saveState();
+		void saveState(const std::string& stateFile = "");
 		void loadStateDialog();
 		void loadState(const std::string &stateFile);
 		void writeFluidParticlesState(const std::string &fileName, FluidModel *model);
@@ -152,13 +153,17 @@ namespace SPH
 		void updateBoundaryParticles(const bool forceUpdate);
 		void updateDMVelocity();
 		void updateVMVelocity();
-		void updateBoundaryForces();
+
+		std::vector<float>& getScalarField() { return m_scalarField; }
+		void updateScalarField();
+		void determineMinMaxOfScalarField();
 
 		static void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 
 		Utilities::SceneLoader *getSceneLoader() { return m_sceneLoader.get(); }
 
 		const std::string& getExePath() const { return m_exePath; }
+		void setSceneFile(const std::string& file) { m_sceneFile = file; }
 		const std::string& getSceneFile() const { return m_sceneFile; }
 
 		Utilities::SceneLoader::Scene& getScene() { return m_scene; }

@@ -141,5 +141,5 @@ setup(
 				(emitter_boundary_dest, [s for s in emitter_boundary if os.path.isfile(s)]),
 				(fonts_dest, [f for f in fonts if os.path.isfile(f)])],
     zip_safe=False,
-    install_requires=['numpy']
+    install_requires=['numpy<=1.19.3']
 )

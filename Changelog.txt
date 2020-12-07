@@ -1,3 +1,13 @@
+	- added a test for reading and writing the state of a simulation
+	- updated to Eigen 3.3.8
+	- added a hotkey (m) to rescale the range of the current color map
+	- color maps range is determined automatically
+	- all particle fields can now be used for rendering
+	- improved stability of implicit boundary handling
+	- improved documentation
+	- added DebugTools class which generates additional particle data for debugging
+	- added Python example to add a particle field, this can be used for visual debugging or to export additional data per particle
+	- updated pybind
 	- improved warmstart
 	- added build instructions
 	- added more colormaps

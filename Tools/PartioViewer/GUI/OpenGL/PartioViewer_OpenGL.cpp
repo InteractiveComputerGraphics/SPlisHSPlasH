@@ -14,10 +14,10 @@ using namespace SPH;
 Shader PartioViewer_OpenGL::m_shader_scalar;
 Shader PartioViewer_OpenGL::m_shader_scalar_map;
 Shader PartioViewer_OpenGL::m_shader_vector;
-Shader PartioViewer_OpenGL::m_shader_vector_map;
 Shader PartioViewer_OpenGL::m_meshShader;
 GLuint PartioViewer_OpenGL::m_textureMap = 0;
-
+std::vector<float> PartioViewer_OpenGL::m_scalarField;
+bool PartioViewer_OpenGL::m_updateScalarField = true;
 
 PartioViewer_OpenGL::PartioViewer_OpenGL()
 {
@@ -87,19 +87,6 @@ void PartioViewer_OpenGL::initShaders(const std::string &shaderPath)
 	m_shader_scalar.end();
 
 	string fragFileMap = shaderPath + "/fs_points_colormap.glsl";
-	m_shader_vector_map.compileShaderFile(GL_VERTEX_SHADER, vertFile);
-	m_shader_vector_map.compileShaderFile(GL_FRAGMENT_SHADER, fragFileMap);
-	m_shader_vector_map.createAndLinkProgram();
-	m_shader_vector_map.begin();
-	m_shader_vector_map.addUniform("modelview_matrix");
-	m_shader_vector_map.addUniform("projection_matrix");
-	m_shader_vector_map.addUniform("radius");
-	m_shader_vector_map.addUniform("viewport_width");
-	m_shader_vector_map.addUniform("color");
-	m_shader_vector_map.addUniform("min_scalar");
-	m_shader_vector_map.addUniform("max_scalar");
-	m_shader_vector_map.end();
-
 	m_shader_scalar_map.compileShaderFile(GL_VERTEX_SHADER, vertFileScalar);
 	m_shader_scalar_map.compileShaderFile(GL_FRAGMENT_SHADER, fragFileMap);
 	m_shader_scalar_map.createAndLinkProgram();
@@ -227,7 +214,6 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		Shader *shader_vec = &m_shader_vector_map;
 		Shader *shader_s = &m_shader_scalar_map;
 		float const *color_map = nullptr;
 		if (colorMapType == 1)
@@ -242,24 +228,12 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 			color_map = reinterpret_cast<float const*>(colormap_seismic);
 
 		if (colorMapType == 0)
-		{
-			shader_vec = &m_shader_vector;
 			shader_s = &m_shader_scalar;
-		}
 
 		if (fluid.partioData->numAttributes() == 0)
 			pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, false);
 		else
-		{
-			Partio::ParticleAttribute attr;
-			fluid.partioData->attributeInfo(colorField, attr);
-
-			if (attr.type == Partio::VECTOR)
-				pointShaderBegin(shader_vec, particleRadius, fluidColor, renderMinValue, renderMaxValue, true, color_map);
-			else if (attr.type == Partio::FLOAT)
-				pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, true, color_map);
-		}
-
+			pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, true, color_map);
 
 		if (nParticles > 0)
 		{
@@ -268,21 +242,32 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 
 			if (fluid.partioData->numAttributes() > 0)
 			{
-				Partio::ParticleAttribute attr;
-				fluid.partioData->attributeInfo(colorField, attr);
+				glEnableVertexAttribArray(1);
 
-				const float* partioVals = NULL;
-				if (attr.type == Partio::VECTOR)
+				if (m_updateScalarField)
 				{
-					glEnableVertexAttribArray(1);
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, &partioVals[0]);
-				}
-				else if (attr.type == Partio::FLOAT)
-				{
-					glEnableVertexAttribArray(1);
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &partioVals[0]);
+					Partio::ParticleAttribute attr;
+					fluid.partioData->attributeInfo(colorField, attr);
+
+					m_scalarField.resize(nParticles);
+					for (unsigned int i = 0u; i < nParticles; i++)
+					{
+						if (attr.type == Partio::VECTOR)
+						{
+							const Eigen::Map<const Eigen::Vector3f> vec(fluid.partioData->data<float>(attr, i));
+							m_scalarField[i] = static_cast<float>(vec.norm());
+						}
+						else if (attr.type == Partio::FLOAT)
+						{
+							m_scalarField[i] = *fluid.partioData->data<float>(attr, i);
+						}
+						else if (attr.type == Partio::INT)
+						{
+							m_scalarField[i] = static_cast<float>(*fluid.partioData->data<int>(attr, i));
+						}
+					}
+					m_updateScalarField = false;
+					glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &m_scalarField[0]);
 				}
 			}
 
@@ -298,14 +283,7 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 		if (fluid.partioData->numAttributes() == 0)
 			pointShaderEnd(shader_s, false);
 		else
-		{
-			Partio::ParticleAttribute attr;
-			fluid.partioData->attributeInfo(colorField, attr);
-			if (attr.type == Partio::VECTOR)
-				pointShaderEnd(shader_vec, true);
-			else if (attr.type == Partio::FLOAT)
-				pointShaderEnd(shader_s, true);
-		}
+			pointShaderEnd(shader_s, true);
 	}
 	else
 	{
@@ -444,5 +422,10 @@ void PartioViewer_OpenGL::hsvToRgb(float h, float s, float v, float *rgb)
 	case 4: rgb[0] = t, rgb[1] = p, rgb[2] = v; break;
 	case 5: rgb[0] = v, rgb[1] = p, rgb[2] = q; break;
 	}
+}
+
+void PartioViewer_OpenGL::updateScalarField()
+{
+	m_updateScalarField = true;
 }
 

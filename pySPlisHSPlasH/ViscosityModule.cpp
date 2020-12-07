@@ -116,7 +116,9 @@ void ViscosityModule(py::module m_sub) {
             .def_readwrite_static("VISCOSITY_COEFFICIENT_BOUNDARY", &SPH::Viscosity_Weiler2018::VISCOSITY_COEFFICIENT_BOUNDARY)
 
             .def(py::init<SPH::FluidModel*>())
-            .def_static("matrixVecProd", &SPH::Viscosity_Weiler2018::matrixVecProd);
+            .def_static("matrixVecProd", &SPH::Viscosity_Weiler2018::matrixVecProd)
+            .def("getVDiff", (const Vector3r& (SPH::Viscosity_Weiler2018::*)(const unsigned int)const)& SPH::Viscosity_Weiler2018::getVDiff)
+            .def("setVDiff", &SPH::Viscosity_Weiler2018::setVDiff);
 
     // ---------------------------------------
     // Viscosity XSPH

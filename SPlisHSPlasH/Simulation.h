@@ -8,6 +8,9 @@
 #include "NeighborhoodSearch.h"
 #include "BoundaryModel.h"
 #include "AnimationFieldSystem.h"
+#ifdef USE_DEBUG_TOOLS
+#include "SPlisHSPlasH/Utilities/DebugTools.h"
+#endif
 
 
 /** Loop over the fluid neighbors of all fluid phases. 
@@ -239,6 +242,9 @@ namespace SPH
 		bool m_enableZSort;
 		std::function<void()> m_simulationMethodChanged;		
 		int m_boundaryHandlingMethod;
+#ifdef USE_DEBUG_TOOLS
+		DebugTools* m_debugTools;
+#endif
 
 		virtual void initParameters();
 		
@@ -321,6 +327,11 @@ namespace SPH
 
 		void saveState(BinaryFileWriter &binWriter);
 		void loadState(BinaryFileReader &binReader);
+
+#ifdef USE_DEBUG_TOOLS
+		DebugTools* getDebugTools() { return m_debugTools; }
+		void createDebugTools() { m_debugTools = new DebugTools(); m_debugTools->init(); }
+#endif
 
 		FORCE_INLINE unsigned int numberOfPointSets() const
 		{

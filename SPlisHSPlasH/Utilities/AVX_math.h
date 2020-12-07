@@ -39,6 +39,8 @@ public:
 	Scalarf8(__m256 const & x) {
 		v = x;
 	}
+	
+	inline void setZero() { v = _mm256_setzero_ps(); }
 
 	Scalarf8 & operator = (__m256 const & x) {
 		v = x;
@@ -342,12 +344,12 @@ public:
 	}
 
 	inline Scalarf8 squaredNorm() const {
-		return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+		return _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v));
 	}
 
 	inline Scalarf8 norm() const
 	{
-		return (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+		return _mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v)));
 	}
 
 	inline void normalize()

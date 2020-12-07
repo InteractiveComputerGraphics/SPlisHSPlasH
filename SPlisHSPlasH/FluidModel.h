@@ -76,7 +76,7 @@ namespace SPH
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
 	enum class ElasticityMethods { None = 0, Becker2009, Peer2018, NumElasticityMethods };
 
-	enum class ParticleState { Active = 0, AnimatedByEmitter };
+	enum class ParticleState { Active = 0, AnimatedByEmitter, AnimatedByVM };
 
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
@@ -254,9 +254,9 @@ namespace SPH
 			void loadState(BinaryFileReader &binReader);
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
-			std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> & get_precomputed_V_gradW() { return m_precomp_V_gradW; }
-			std::vector<unsigned int>& get_precomputed_indices() { return m_precompIndices; }
-			std::vector<unsigned int>& get_precomputed_indices_same_phase() { return m_precompIndicesSamePhase; }
+			inline std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> & get_precomputed_V_gradW() { return m_precomp_V_gradW; }
+			inline std::vector<unsigned int>& get_precomputed_indices() { return m_precompIndices; }
+			inline std::vector<unsigned int>& get_precomputed_indices_same_phase() { return m_precompIndicesSamePhase; }
 #endif
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)

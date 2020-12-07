@@ -53,14 +53,16 @@ void BoundaryModel_Koschier2017::initModel(RigidBodyObject *rbo)
 		m_boundaryXj[i].resize(fm->numParticles(), Vector3r::Zero());
 	}
 
-	#ifdef _OPENMP
-	const int maxThreads = omp_get_max_threads();
-	#else
-	const int maxThreads = 1;
-	#endif
-	m_forcePerThread.resize(maxThreads, Vector3r::Zero());
-	m_torquePerThread.resize(maxThreads, Vector3r::Zero());
-
+	if (rbo->isDynamic())
+	{
+#ifdef _OPENMP
+		const int maxThreads = omp_get_max_threads();
+#else
+		const int maxThreads = 1;
+#endif
+		m_forcePerThread.resize(maxThreads, Vector3r::Zero());
+		m_torquePerThread.resize(maxThreads, Vector3r::Zero());
+	}
 	m_rigidBody = rbo;
 }
 

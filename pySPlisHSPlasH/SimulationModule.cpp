@@ -282,7 +282,10 @@ void SimulationModule(py::module m_sub){
             .def("updateBoundaryParticles", &SPH::SimulatorBase::updateBoundaryParticles)
             .def("updateDMVelocity", &SPH::SimulatorBase::updateDMVelocity)
             .def("updateVMVelocity", &SPH::SimulatorBase::updateVMVelocity)
-            // .def("updateBoundaryForces", &SPH::SimulatorBase::updateBoundaryForces)
+
+            .def("getScalarField", &SPH::SimulatorBase::getScalarField)
+            .def("updateScalarField", &SPH::SimulatorBase::updateScalarField)
+            .def("determineMinMaxOfScalarField", &SPH::SimulatorBase::determineMinMaxOfScalarField)
 
             .def_static("loadObj", &SPH::SimulatorBase::loadObj)
 

@@ -2,6 +2,7 @@
 
 #include "GUI/OpenGL/Shader.h"
 #include "SPlisHSPlasH/Common.h"
+#include <vector>
 
 namespace SPH
 {
@@ -13,10 +14,12 @@ namespace SPH
 	protected:
 		static Shader m_shader_vector;
 		static Shader m_shader_scalar;
-		static Shader m_shader_vector_map;
 		static Shader m_shader_scalar_map;
 		static Shader m_meshShader;
 		static GLuint m_textureMap;
+
+		static bool m_updateScalarField;
+		static std::vector<float> m_scalarField;
 
 	public:
 		PartioViewer_OpenGL();
@@ -34,5 +37,6 @@ namespace SPH
 			const float renderMinValue, const float renderMaxValue, const bool usePlane);
 		static void render(const Boundary &boundary, const bool renderWalls, float *boundaryColor);
 		static void hsvToRgb(float h, float s, float v, float *rgb);
+		static void updateScalarField();
 	};
 }

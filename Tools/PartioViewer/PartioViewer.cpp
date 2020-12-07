@@ -53,8 +53,6 @@ PartioViewer::~PartioViewer()
 
 int PartioViewer::run(int argc, char **argv)
 {
-	REPORT_MEMORY_LEAKS;
-
 	m_argc = argc;
 	m_argv = argv;
 
@@ -315,7 +313,7 @@ int PartioViewer::run(int argc, char **argv)
 			{
 				Partio::ParticleAttribute attr;
 				m_fluids[i].partioData->attributeInfo(j, attr);
-				if ((attr.type == Partio::FLOAT) || (attr.type == Partio::VECTOR))
+				if ((attr.type == Partio::FLOAT) || (attr.type == Partio::VECTOR) || (attr.type == Partio::INT))
 				{
 					// select the default color field name
 					if (attr.name == m_defaultColorFieldName)
@@ -422,6 +420,8 @@ bool PartioViewer::readPartioFile(const std::string &fileName, Partio::Particles
 	if (!FileSystem::fileExists(fileName))
 		return false;
 
+	if (partioData)
+		partioData->release();
 	partioData = Partio::read(fileName.c_str());
 
 	if (!partioData)
@@ -628,6 +628,7 @@ bool PartioViewer::updateData()
 			LOG_INFO << currentFile;
 			readRigidBodyData(currentFile, m_frameIndex == m_firstRBIndex);
 		}
+		PartioViewer_OpenGL::updateScalarField();
 	}
 	return chk;
 }
@@ -813,7 +814,10 @@ void PartioViewer::updateBoundingBox()
 			for (int j = 0; j < m_fluids[i].partioData->numParticles(); j++)
 			{
 				const Eigen::Map<const Eigen::Vector3f> vec(&partioX[3 * j]);
-				m_fluidBoundingBox.extend(vec);
+				if (!std::isfinite(vec[0]) || !std::isfinite(vec[1]) || !std::isfinite(vec[2]))
+					LOG_WARN << "Warning: Fluid " << i << ", Particle " << j << ": " << vec.transpose();
+				else
+					m_fluidBoundingBox.extend(vec);
 			}
 		}
 	}

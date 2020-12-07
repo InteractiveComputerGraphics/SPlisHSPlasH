@@ -137,6 +137,7 @@ set(ELASTICITY_SOURCE_FILES
 	
 set(UTILS_HEADER_FILES
 	Utilities/AVX_math.h
+	Utilities/DebugTools.h
 	Utilities/MathFunctions.h
 	Utilities/GaussQuadrature.h
 	Utilities/MatrixFreeSolver.h
@@ -152,6 +153,7 @@ set(UTILS_HEADER_FILES
 	)
 	
 set(UTILS_SOURCE_FILES
+	Utilities/DebugTools.cpp
 	Utilities/MathFunctions.cpp
 	Utilities/GaussQuadrature.cpp
 	Utilities/PoissonDiskSampling.cpp

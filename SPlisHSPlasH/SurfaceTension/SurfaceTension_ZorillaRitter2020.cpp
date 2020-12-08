@@ -531,7 +531,7 @@ void SurfaceTension_ZorillaRitter2020::stepRitter()
 			Vector3r centerofMasses = Vector3r::Zero();
 			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
-			if (sim->numberOfNeighbors( 0, 0, i ) == 0)
+			if (numberOfNeighbours == 0)
 			{
 				m_mc_curv[i] = static_cast<Real>(1.0) / supportRadius;
 				continue;

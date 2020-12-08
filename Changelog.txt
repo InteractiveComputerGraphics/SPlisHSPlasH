@@ -1,3 +1,5 @@
+2.9.0 
+	- added new surface tension model (thanks to Fernando Zorilla and Marcel Ritter)
 	- added a test for reading and writing the state of a simulation
 	- updated to Eigen 3.3.8
 	- added a hotkey (m) to rescale the range of the current color map

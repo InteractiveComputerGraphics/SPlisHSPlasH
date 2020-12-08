@@ -32,6 +32,11 @@ if (USE_DEBUG_TOOLS)
 	add_definitions( -DUSE_DEBUG_TOOLS)	
 endif (USE_DEBUG_TOOLS)
 
+option(USE_THIRD_PARTY_METHODS "Use third-party methods" ON)
+if (USE_THIRD_PARTY_METHODS)
+	add_definitions( -DUSE_THIRD_PARTY_METHODS)	
+endif (USE_THIRD_PARTY_METHODS)
+
 cmake_dependent_option(USE_PYTHON_BINDINGS "Generate Python Bindings using PyBind11" ON "PYTHON_EXECUTABLE" OFF)
 if (USE_PYTHON_BINDINGS AND UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")

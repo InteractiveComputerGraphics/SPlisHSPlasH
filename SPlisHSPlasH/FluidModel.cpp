@@ -14,7 +14,6 @@
 #include "SurfaceTension/SurfaceTension_Becker2007.h"
 #include "SurfaceTension/SurfaceTension_Akinci2013.h"
 #include "SurfaceTension/SurfaceTension_He2014.h"
-#include "SurfaceTension/SurfaceTension_ZorillaRitter2020.h"
 #include "Viscosity/Viscosity_XSPH.h"
 #include "Viscosity/Viscosity_Standard.h"
 #include "Viscosity/Viscosity_Bender2017.h"
@@ -30,6 +29,9 @@
 #include "Elasticity/Elasticity_Becker2009.h"
 #include "Elasticity/Elasticity_Peer2018.h"
 
+#ifdef USE_THIRD_PARTY_METHODS
+#include "SurfaceTension/SurfaceTension_ZorillaRitter2020.h"
+#endif
 
 using namespace SPH;
 using namespace GenParam;
@@ -49,7 +51,9 @@ int FluidModel::ENUM_SURFACETENSION_NONE = -1;
 int FluidModel::ENUM_SURFACETENSION_BECKER2007 = -1;
 int FluidModel::ENUM_SURFACETENSION_AKINCI2013 = -1;
 int FluidModel::ENUM_SURFACETENSION_HE2014 = -1;
+#ifdef USE_THIRD_PARTY_METHODS
 int FluidModel::ENUM_SURFACETENSION_ZORILLARITTER2020 = -1;
+#endif
 int FluidModel::ENUM_VISCOSITY_NONE = -1;
 int FluidModel::ENUM_VISCOSITY_STANDARD = -1;
 int FluidModel::ENUM_VISCOSITY_XSPH = -1;
@@ -170,8 +174,9 @@ void FluidModel::initParameters()
 	enumParam->addEnumValue("Becker & Teschner 2007", ENUM_SURFACETENSION_BECKER2007);
 	enumParam->addEnumValue("Akinci et al. 2013", ENUM_SURFACETENSION_AKINCI2013);
 	enumParam->addEnumValue("He et al. 2014", ENUM_SURFACETENSION_HE2014);
+#ifdef USE_THIRD_PARTY_METHODS
 	enumParam->addEnumValue("Zorilla, Ritter, et al. 2020", ENUM_SURFACETENSION_ZORILLARITTER2020);
-
+#endif
 
 	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&FluidModel::getViscosityMethod, this);
 	ParameterBase::SetFunc<int> setViscosityFct = std::bind(&FluidModel::setViscosityMethod, this, std::placeholders::_1);
@@ -484,8 +489,10 @@ void FluidModel::setSurfaceTensionMethod(const int val)
 		m_surfaceTension = new SurfaceTension_Akinci2013(this);
 	else if (m_surfaceTensionMethod == SurfaceTensionMethods::He2014)
 		m_surfaceTension = new SurfaceTension_He2014(this);
+#ifdef USE_THIRD_PARTY_METHODS
 	else if (m_surfaceTensionMethod == SurfaceTensionMethods::ZorillaRitter2020)
 		m_surfaceTension = new SurfaceTension_ZorillaRitter2020(this);
+#endif
 
 	if (m_surfaceTension != nullptr)
 		m_surfaceTension->init();

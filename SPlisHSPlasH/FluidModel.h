@@ -70,7 +70,11 @@ namespace SPH
 			name(n), type(t), getFct(fct), storeData(s) { }
 	};
 
-	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, ZorillaRitter2020, NumSurfaceTensionMethods };
+	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, 
+#ifdef USE_THIRD_PARTY_METHODS
+		ZorillaRitter2020, 
+#endif
+		NumSurfaceTensionMethods };
 	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, Takahashi2015, Weiler2018, NumViscosityMethods };
 	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement, NumVorticityMethods };
 	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
@@ -101,7 +105,9 @@ namespace SPH
 			static int ENUM_SURFACETENSION_BECKER2007;
 			static int ENUM_SURFACETENSION_AKINCI2013;
 			static int ENUM_SURFACETENSION_HE2014;
+#ifdef USE_THIRD_PARTY_METHODS
 			static int ENUM_SURFACETENSION_ZORILLARITTER2020;
+#endif
 
 			static int ENUM_VISCOSITY_NONE;
 			static int ENUM_VISCOSITY_STANDARD;

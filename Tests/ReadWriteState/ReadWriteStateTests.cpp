@@ -319,10 +319,6 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 	const Real stopAt = base->getValue<Real>(SimulatorBase::STOP_AT);
 	const unsigned int numStepsPerRender = base->getValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER);
 	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
-	const bool partioExport = base->getValue<bool>(SimulatorBase::PARTIO_EXPORT);
-	const bool rbExport = base->getValue<bool>(SimulatorBase::RB_EXPORT);
-	const bool vtkExport = base->getValue<bool>(SimulatorBase::VTK_EXPORT);
-	const bool rbvtkExport = base->getValue<bool>(SimulatorBase::RB_VTK_EXPORT);
 	const bool stateExport = base->getValue<bool>(SimulatorBase::STATE_EXPORT);
 	const Real framesPerSecond = base->getValue<Real>(SimulatorBase::DATA_EXPORT_FPS);
 	const Real framesPerSecondState = base->getValue<Real>(SimulatorBase::STATE_EXPORT_FPS);
@@ -397,10 +393,6 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 		REQUIRE(stopAt == base->getValue<Real>(SimulatorBase::STOP_AT));
 		REQUIRE(numStepsPerRender == base->getValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER));
 		REQUIRE(renderWalls == base->getValue<int>(SimulatorBase::RENDER_WALLS));
-		REQUIRE(partioExport == base->getValue<bool>(SimulatorBase::PARTIO_EXPORT));
-		REQUIRE(rbExport == base->getValue<bool>(SimulatorBase::RB_EXPORT));
-		REQUIRE(vtkExport == base->getValue<bool>(SimulatorBase::VTK_EXPORT));
-		REQUIRE(rbvtkExport == base->getValue<bool>(SimulatorBase::RB_VTK_EXPORT));
 		REQUIRE(stateExport == base->getValue<bool>(SimulatorBase::STATE_EXPORT));
 		REQUIRE(framesPerSecond == base->getValue<Real>(SimulatorBase::DATA_EXPORT_FPS));
 		REQUIRE(framesPerSecondState == base->getValue<Real>(SimulatorBase::STATE_EXPORT_FPS));

@@ -46,6 +46,8 @@ namespace SPH
 		Viscosity_Peer2016(FluidModel *model);
 		virtual ~Viscosity_Peer2016(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Peer2016(model); }
+
 		virtual void step();
 		virtual void reset();
 

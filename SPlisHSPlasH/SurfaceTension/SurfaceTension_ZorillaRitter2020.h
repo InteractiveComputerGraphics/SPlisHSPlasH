@@ -54,6 +54,8 @@ namespace SPH
 		SurfaceTension_ZorillaRitter2020(FluidModel* model);
 		virtual ~SurfaceTension_ZorillaRitter2020(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_ZorillaRitter2020(model); }
+
 		/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent
 			to the network classifier. Also, inspect lines 344 to 348 in the cpp file
 			for how to compute the required input.

@@ -8,6 +8,7 @@
 #include "Simulator/PositionBasedDynamicsWrapper/PBDRigidBody.h"
 #include "SPlisHSPlasH/Emitter.h"
 #include "Simulator/GUI/Simulator_GUI_Base.h"
+#include "Simulator/SceneConfiguration.h"
 
 using namespace std;
 using namespace SPH;
@@ -26,7 +27,8 @@ PBDBoundarySimulator::~PBDBoundarySimulator()
 
 void PBDBoundarySimulator::init()
 {
-	if (m_base->getScene().sim2D)
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+	if (scene.sim2D)
 	{
 		LOG_ERR << "Dynamic boundaries are not supported in 2D simulations.";
 		exit(1);
@@ -55,10 +57,12 @@ void PBDBoundarySimulator::timeStep()
 
 void PBDBoundarySimulator::initBoundaryData()
 {
+	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+
 	// create additional rigid body information for emitters
-	const SceneLoader::Scene &scene = m_base->getScene();
 	std::vector<PBDWrapper::RBData> additionalRBs;
-	const std::string scene_path = FileSystem::getFilePath(m_base->getSceneFile());
+	const std::string scene_path = FileSystem::getFilePath(sceneFile);
 	// the last boundary models are the ones that were added for the emitters
 	for (auto i = 0; i < scene.emitters.size(); i++)
 	{
@@ -81,9 +85,9 @@ void PBDBoundarySimulator::initBoundaryData()
 		}
 		additionalRBs.push_back(rb);
 	}
-	m_pbdWrapper->readScene(m_base->getSceneFile(), additionalRBs);
+	m_pbdWrapper->readScene(sceneFile, additionalRBs);
 	
-	std::string scene_file_name = FileSystem::getFileName(m_base->getSceneFile());
+	std::string scene_file_name = FileSystem::getFileName(sceneFile);
 	const bool useCache = m_base->getUseParticleCaching();
 	Simulation *sim = Simulation::getCurrent();
 

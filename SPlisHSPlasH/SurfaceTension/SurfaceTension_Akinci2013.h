@@ -22,6 +22,8 @@ namespace SPH
 		SurfaceTension_Akinci2013(FluidModel *model);
 		virtual ~SurfaceTension_Akinci2013(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_Akinci2013(model); }
+
 		virtual void step();
 		virtual void reset();
 

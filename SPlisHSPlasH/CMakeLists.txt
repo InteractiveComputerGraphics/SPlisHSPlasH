@@ -198,6 +198,7 @@ add_library(SPlisHSPlasH
 	FluidModel.cpp
 	FluidModel.h
 	RigidBodyObject.h
+	NonPressureForceRegistration.cpp
 	SPHKernels.cpp
 	SPHKernels.h
 	StaticRigidBody.h

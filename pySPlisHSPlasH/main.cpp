@@ -20,14 +20,15 @@ void BoundaryModelModule(py::module);
 void EmitterModule(py::module);
 void FluidModelModule(py::module);
 void GUIModule(py::module);
+void ExporterModule(py::module);
 void NonPressureForceBaseModule(py::module);
 void UtilitiesModule(py::module);
 void SimulationModule(py::module);
 void SPHKernelsModule(py::module);
-void StaticRigidBodyModule(py::module);
+void RigidBodyModule(py::module m_sub);
 void TimeModule(py::module);
 void TriangleMeshModule(py::module);
-
+void PBDModule(py::module);
 void DFSPHModule(py::module);
 void DragModule(py::module);
 void ElasticityModule(py::module);
@@ -53,10 +54,10 @@ PYBIND11_MODULE(pysplishsplash, m) {
     FluidModelModule(m);
     NonPressureForceBaseModule(m);
     SimulationModule(m);
-    StaticRigidBodyModule(m);
+    RigidBodyModule(m);
     TimeModule(m);
     TriangleMeshModule(m);
-
+    PBDModule(m);
     DFSPHModule(m);
     DragModule(m);
     ElasticityModule(m);
@@ -69,6 +70,7 @@ PYBIND11_MODULE(pysplishsplash, m) {
     VorticityModule(m);
     WCSPHModule(m);
     GUIModule(m);
+    ExporterModule(m);
 
     ExtrasModule(m);
 }

@@ -23,6 +23,8 @@ namespace SPH
 		SurfaceTension_He2014(FluidModel *model);
 		virtual ~SurfaceTension_He2014(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_He2014(model); }
+
 		virtual void step();
 		virtual void reset();
 

@@ -19,6 +19,8 @@ namespace SPH
 		DragForce_Macklin2014(FluidModel *model);
 		virtual ~DragForce_Macklin2014(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new DragForce_Macklin2014(model); }
+
 		virtual void step();
 		virtual void reset();
 	};

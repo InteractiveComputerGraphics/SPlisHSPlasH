@@ -43,6 +43,8 @@ namespace SPH
 		Viscosity_Takahashi2015(FluidModel *model);
 		virtual ~Viscosity_Takahashi2015(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Takahashi2015(model); }
+
 		virtual void step();
 		virtual void reset();
 

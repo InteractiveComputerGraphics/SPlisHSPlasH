@@ -28,6 +28,8 @@ namespace SPH
 
 		virtual void step();
 		virtual void reset();
+
+		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_XSPH(model); }
 	};
 }
 

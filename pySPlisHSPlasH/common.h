@@ -14,6 +14,7 @@
 #include <SPlisHSPlasH/AnimationField.h>
 #include <Utilities/OBJLoader.h>
 #include <SPlisHSPlasH/Utilities/SceneLoader.h>
+#include <Simulator/PositionBasedDynamicsWrapper/PBDWrapper.h>
 
 PYBIND11_MAKE_OPAQUE(std::vector<SPH::Emitter*>)
 PYBIND11_MAKE_OPAQUE(std::vector<SPH::AnimationField*>)
@@ -28,5 +29,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<Utilities::SceneLoader::FluidBlock *>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::SceneLoader::EmitterData *>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::SceneLoader::AnimationFieldData *>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::SceneLoader::MaterialData *>)
+PYBIND11_MAKE_OPAQUE(std::vector<PBDWrapper::RBData>)
 
 #endif //SPLISHSPLASH_COMMON_H

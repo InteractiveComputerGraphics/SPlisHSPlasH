@@ -30,6 +30,8 @@ namespace SPH
 		MicropolarModel_Bender2017(FluidModel *model);
 		virtual ~MicropolarModel_Bender2017(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new MicropolarModel_Bender2017(model); }
+
 		virtual void step();
 		virtual void reset();
 

@@ -2,7 +2,7 @@
 
 Non-pressure forces (e.g. viscosity, vorticity, surface tension or drag forces) are all implemented in the same way in SPlisHSPlasH. In the following we explain the implementation of such a method using as example a new viscosity method. 
 
-SPlisHSPlasH organizes the viscosities in `/SPlisHSPlasH/Viscosity/` and thus any changes or additions are intended to take place in this directory. The user can add new viscosity methods by creating new or copying and modifying exisiting viscosity class files and registering these inside the build system and the source code.
+SPlisHSPlasH organizes the viscosities in `/SPlisHSPlasH/Viscosity/` and thus any changes or additions are intended to take place in this directory. The user can add new viscosity methods by creating new or copying and modifying existing viscosity class files and registering these inside the build system and the source code.
 
 ## Creating a new class
 
@@ -28,6 +28,8 @@ namespace SPH
 	public:
 		MyViscosity(FluidModel *model);
 		virtual ~MyViscosity(void);
+		
+		static NonPressureForceBase* creator(FluidModel* model) { return new MyViscosity(model); }
 
 		virtual void step();
 		virtual void reset();
@@ -131,22 +133,12 @@ set(VISCOSITY_SOURCE_FILES
 
 ### Integration in the source code
 
-Any viscosity method is registered in the `FluidModel.h` and `FluidModel.cpp` files, which can be found in the `/SPlisHSPlasH/` directory. Adding our new viscosity method comprises of the following steps:
-
-* adding a new enum element in `ViscosityMethods` for our method
-* creating a new static variable `static int ENUM_VISCOSITY_MYVISCOSITY` for the GenericParameter system and initializing it in `FluidModel.cpp`
-* including `Viscosity/MyViscosity.h` in `FluidModel.cpp`
-* adding a new enum value for `VISCOSITY_METHOD` inside `FluidModel::initParameters()` using the following line:
+Any non-pressure force method is registered in the file `NonPressureForceRegistration.cpp`, which can be found in the `/SPlisHSPlasH/` directory. Adding our new viscosity method is done by adding the following line to the function `void Simulation::registerNonpressureForces()`:
 
 ```cpp 
-enumParam->addEnumValue("MyViscosityName", ENUM_VISCOSITY_MYVISCOSITY);
+addViscosityMethod("My viscosity method", MyViscosity::creator);
 ```
 
-* adding your viscosity method to `FluidModel::setViscosityMethod()`, thus making it available for the simulation using the following:
-
-```cpp
-else if (m_viscosityMethod == ViscosityMethods::MyViscosity)
-		m_viscosity = new MyViscosity(this);
-```
+and including `Viscosity/MyViscosity.h`.
 
 After these additions and building SPlisHSPlasH, our new viscosity method is available inside the simulation.

@@ -21,18 +21,18 @@ def main():
 	base.setValueFloat(base.STOP_AT, 5.0)
 	base.setValueUInt(base.NUM_STEPS_PER_RENDER, 4)
 	base.setValueInt(base.RENDER_WALLS, 4)
-	base.setValueBool(base.PARTIO_EXPORT, False)
-	base.setValueBool(base.RB_EXPORT, False)
-	base.setValueBool(base.VTK_EXPORT, False)
-	base.setValueBool(base.RB_VTK_EXPORT, False)
 	base.setValueFloat(base.DATA_EXPORT_FPS, 25.0)
 	base.setValueBool(base.STATE_EXPORT, False)
 	base.setValueFloat(base.STATE_EXPORT_FPS, 25.0)
 	base.setValueString(base.PARTICLE_EXPORT_ATTRIBUTES, "velocity;density")
-	
+	base.activateExporter("Partio Exporter", False)
+	base.activateExporter("VTK Exporter", False)
+	base.activateExporter("Rigid Body Exporter", False)
+	base.activateExporter("Rigid Body OBJ Exporter", False)	
+	base.activateExporter("Rigid Body VTK Exporter", False)	
 
 	# Get the scene and add objects
-	scene = base.getScene()
+	scene = sph.Exec.SceneConfiguration.getCurrent().getScene()
 	
 	# change parameters of scene
 	scene.camPosition = [0,3,6]
@@ -88,9 +88,9 @@ def main():
 	fluid.setValueFloat(fluid.DENSITY0, 800.0)
 	fluid.setValueInt(fluid.DRAG_METHOD, 0)
 	fluid.setValueInt(fluid.SURFACE_TENSION_METHOD, 0)
-	fluid.setValueInt(fluid.VISCOSITY_METHOD, 1)
 	fluid.setValueInt(fluid.VORTICITY_METHOD, 1)
 	fluid.setValueInt(fluid.ELASTICITY_METHOD, 0)
+	fluid.setViscosityMethod("Standard")
 	
 	# Viscosity
 	visco = fluid.getViscosityBase()

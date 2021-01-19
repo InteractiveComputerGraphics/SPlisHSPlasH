@@ -60,14 +60,35 @@ set(PBDWRAPPER_HEADER_FILES
 	PositionBasedDynamicsWrapper/PBDBoundarySimulator.h
 )
 
+set(EXPORTER_SOURCE_FILES
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_Partio.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_VTK.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_BIN.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_OBJ.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.cpp
+)
+
+set(EXPORTER_HEADER_FILES
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ExporterBase.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_Partio.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_VTK.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_BIN.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_OBJ.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.h
+)
+
+
 add_library(SimulatorBase
+	${PROJECT_SOURCE_DIR}/Simulator/ExporterRegistration.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.h
 	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.h
 	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.h
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.h
-
+	
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h
 
@@ -77,6 +98,9 @@ add_library(SimulatorBase
 
 	${VIS_FILES}
 	${GUI_FILES}
+	
+	${EXPORTER_SOURCE_FILES}
+	${EXPORTER_HEADER_FILES}
 
 	${PBDWRAPPER_SOURCE_FILES}
 	${PBDWRAPPER_HEADER_FILES}
@@ -103,6 +127,8 @@ target_link_libraries(SimulatorBase PUBLIC ${SIMULATION_LINK_LIBRARIES})
 VIS_SOURCE_GROUPS()
 GUI_SOURCE_GROUPS()
 
+source_group("Header Files\\Exporter" FILES ${EXPORTER_HEADER_FILES})
+source_group("Source Files\\Exporter" FILES ${EXPORTER_SOURCE_FILES})
 source_group("Header Files\\PBD" FILES ${PBDWRAPPER_HEADER_FILES})
 source_group("Source Files\\PBD" FILES ${PBDWRAPPER_SOURCE_FILES})
 source_group("Header Files\\GUI\\OpenGL" FILES ${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h)

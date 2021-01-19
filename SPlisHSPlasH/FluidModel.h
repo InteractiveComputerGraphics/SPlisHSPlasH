@@ -70,16 +70,6 @@ namespace SPH
 			name(n), type(t), getFct(fct), storeData(s) { }
 	};
 
-	enum class SurfaceTensionMethods { None = 0, Becker2007, Akinci2013, He2014, 
-#ifdef USE_THIRD_PARTY_METHODS
-		ZorillaRitter2020, 
-#endif
-		NumSurfaceTensionMethods };
-	enum class ViscosityMethods { None = 0, Standard, XSPH, Bender2017, Peer2015, Peer2016, Takahashi2015, Weiler2018, NumViscosityMethods };
-	enum class VorticityMethods { None = 0, Micropolar, VorticityConfinement, NumVorticityMethods };
-	enum class DragMethods { None = 0, Macklin2014, Gissler2017, NumDragMethods };
-	enum class ElasticityMethods { None = 0, Becker2009, Peer2018, NumElasticityMethods };
-
 	enum class ParticleState { Active = 0, AnimatedByEmitter, AnimatedByVM };
 
 	/** \brief The fluid model stores the particle and simulation information 
@@ -97,35 +87,6 @@ namespace SPH
 			static int VORTICITY_METHOD;
 			static int ELASTICITY_METHOD;
 
-			static int ENUM_DRAG_NONE;
-			static int ENUM_DRAG_MACKLIN2014;
-			static int ENUM_DRAG_GISSLER2017;
-
-			static int ENUM_SURFACETENSION_NONE;
-			static int ENUM_SURFACETENSION_BECKER2007;
-			static int ENUM_SURFACETENSION_AKINCI2013;
-			static int ENUM_SURFACETENSION_HE2014;
-#ifdef USE_THIRD_PARTY_METHODS
-			static int ENUM_SURFACETENSION_ZORILLARITTER2020;
-#endif
-
-			static int ENUM_VISCOSITY_NONE;
-			static int ENUM_VISCOSITY_STANDARD;
-			static int ENUM_VISCOSITY_XSPH;
-			static int ENUM_VISCOSITY_BENDER2017;
-			static int ENUM_VISCOSITY_PEER2015;
-			static int ENUM_VISCOSITY_PEER2016;
-			static int ENUM_VISCOSITY_TAKAHASHI2015;
-			static int ENUM_VISCOSITY_WEILER2018;
-
-			static int ENUM_VORTICITY_NONE;
-			static int ENUM_VORTICITY_MICROPOLAR;
-			static int ENUM_VORTICITY_VC;
-
-			static int ENUM_ELASTICITY_NONE;
-			static int ENUM_ELASTICITY_BECKER2009;
-			static int ENUM_ELASTICITY_PEER2018;
-			
 			FluidModel();
 			FluidModel(const FluidModel&) = delete;
             FluidModel& operator=(const FluidModel&) = delete;
@@ -158,15 +119,15 @@ namespace SPH
 			std::vector<unsigned int> m_precompIndicesSamePhase;
 #endif
 
-			SurfaceTensionMethods m_surfaceTensionMethod;
+			unsigned int m_surfaceTensionMethod;
 			SurfaceTensionBase *m_surfaceTension;
-			ViscosityMethods m_viscosityMethod;
+			unsigned int m_viscosityMethod;
 			ViscosityBase *m_viscosity;
-			VorticityMethods m_vorticityMethod;
+			unsigned int m_vorticityMethod;
 			VorticityBase *m_vorticity;
-			DragMethods m_dragMethod;
+			unsigned int m_dragMethod;
 			DragBase *m_drag;
-			ElasticityMethods m_elasticityMethod;
+			unsigned int m_elasticityMethod;
 			ElasticityBase *m_elasticity;
 			std::vector<FieldDescription> m_fields;
 
@@ -227,16 +188,21 @@ namespace SPH
 
 			void emittedParticles(const unsigned int startIndex);
 
-			int getSurfaceTensionMethod() const { return static_cast<int>(m_surfaceTensionMethod); }
-			void setSurfaceTensionMethod(const int val);
-			int getViscosityMethod() const { return static_cast<int>(m_viscosityMethod); }
-			void setViscosityMethod(const int val);
-			int getVorticityMethod() const { return static_cast<int>(m_vorticityMethod); }
-			void setVorticityMethod(const int val);
-			int getDragMethod() const { return static_cast<int>(m_dragMethod); }
-			void setDragMethod(const int val);
-			int getElasticityMethod() const { return static_cast<int>(m_elasticityMethod); }
-			void setElasticityMethod(const int val);
+			unsigned int getSurfaceTensionMethod() const { return m_surfaceTensionMethod; }
+			void setSurfaceTensionMethod(const std::string& val);
+			void setSurfaceTensionMethod(const unsigned int val);
+			unsigned int getViscosityMethod() const { return m_viscosityMethod; }
+			void setViscosityMethod(const std::string &val);
+			void setViscosityMethod(const unsigned int val);
+			unsigned int getVorticityMethod() const { return m_vorticityMethod; }
+			void setVorticityMethod(const std::string& val);
+			void setVorticityMethod(const unsigned int val);
+			unsigned int getDragMethod() const { return m_dragMethod; }
+			void setDragMethod(const std::string& val);
+			void setDragMethod(const unsigned int val);
+			unsigned int getElasticityMethod() const { return m_elasticityMethod; }
+			void setElasticityMethod(const std::string& val);
+			void setElasticityMethod(const unsigned int val);
 
 			SurfaceTensionBase *getSurfaceTensionBase() { return m_surfaceTension; }
 			ViscosityBase *getViscosityBase() { return m_viscosity; }

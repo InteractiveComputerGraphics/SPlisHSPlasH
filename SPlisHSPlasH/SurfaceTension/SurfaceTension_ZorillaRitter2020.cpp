@@ -366,7 +366,7 @@ void SurfaceTension_ZorillaRitter2020::stepZorilla()
 			int numberOfNeighbours = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i );
 
 
-			if (sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i) == 0)
+			if (numberOfNeighbours == 0)
 				continue;
 
 			const Vector3r& xi = m_model->getPosition( i );

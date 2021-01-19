@@ -9,6 +9,7 @@
 #include "SPlisHSPlasH/Utilities/SurfaceSampling.h"
 #include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
+#include "Simulator/SceneConfiguration.h"
 
 using namespace std;
 using namespace SPH;
@@ -60,9 +61,10 @@ void StaticBoundarySimulator::loadObj(const std::string &filename, TriangleMesh 
 
 void StaticBoundarySimulator::initBoundaryData()
 {
-	std::string scene_path = FileSystem::getFilePath(m_base->getSceneFile());
-	std::string scene_file_name = FileSystem::getFileName(m_base->getSceneFile());
-	SceneLoader::Scene &scene = m_base->getScene();
+	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+	std::string scene_path = FileSystem::getFilePath(sceneFile);
+	std::string scene_file_name = FileSystem::getFileName(sceneFile);
 	// no cache for 2D scenes
 	// 2D sampling is fast, but storing it would require storing the transformation as well
 	const bool useCache = m_base->getUseParticleCaching() && !scene.sim2D;

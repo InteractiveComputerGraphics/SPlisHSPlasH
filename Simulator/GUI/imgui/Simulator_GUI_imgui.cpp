@@ -7,10 +7,12 @@
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
 #include "GUI/OpenGL/Selection.h"
 #include "Utilities/FileSystem.h"
+#include "Simulator/SceneConfiguration.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
 
 using namespace SPH;
 using namespace Utilities;
@@ -31,7 +33,7 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 	MiniGL::init(argc, argv, 1280, 960, name);
 	MiniGL::initLights();
 
-	auto scene = m_simulatorBase->getScene();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	const bool sim2D = scene.sim2D;
 	if (sim2D)
 		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
@@ -337,7 +339,7 @@ void Simulator_GUI_imgui::renderBoundary()
 {
 	Simulation *sim = Simulation::getCurrent();
 	SimulatorBase *base = getSimulatorBase();
-	SceneLoader::Scene &scene = base->getScene();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
 
 	if (((renderWalls == 1) || (renderWalls == 2)) &&

@@ -11,27 +11,8 @@
 #include "SurfaceTension/SurfaceTensionBase.h"
 #include "Vorticity/VorticityBase.h"
 #include "Drag/DragBase.h"
-#include "SurfaceTension/SurfaceTension_Becker2007.h"
-#include "SurfaceTension/SurfaceTension_Akinci2013.h"
-#include "SurfaceTension/SurfaceTension_He2014.h"
-#include "Viscosity/Viscosity_XSPH.h"
-#include "Viscosity/Viscosity_Standard.h"
-#include "Viscosity/Viscosity_Bender2017.h"
-#include "Viscosity/Viscosity_Peer2015.h"
-#include "Viscosity/Viscosity_Peer2016.h"
-#include "Viscosity/Viscosity_Takahashi2015.h"
-#include "Viscosity/Viscosity_Weiler2018.h"
-#include "Vorticity/VorticityConfinement.h"
-#include "Vorticity/MicropolarModel_Bender2017.h"
-#include "Drag/DragForce_Gissler2017.h"
-#include "Drag/DragForce_Macklin2014.h"
 #include "Elasticity/ElasticityBase.h"
-#include "Elasticity/Elasticity_Becker2009.h"
-#include "Elasticity/Elasticity_Peer2018.h"
 
-#ifdef USE_THIRD_PARTY_METHODS
-#include "SurfaceTension/SurfaceTension_ZorillaRitter2020.h"
-#endif
 
 using namespace SPH;
 using namespace GenParam;
@@ -44,30 +25,6 @@ int FluidModel::SURFACE_TENSION_METHOD = -1;
 int FluidModel::VISCOSITY_METHOD = -1;
 int FluidModel::VORTICITY_METHOD = -1;
 int FluidModel::ELASTICITY_METHOD = -1;
-int FluidModel::ENUM_DRAG_NONE = -1;
-int FluidModel::ENUM_DRAG_MACKLIN2014 = -1;
-int FluidModel::ENUM_DRAG_GISSLER2017 = -1;
-int FluidModel::ENUM_SURFACETENSION_NONE = -1;
-int FluidModel::ENUM_SURFACETENSION_BECKER2007 = -1;
-int FluidModel::ENUM_SURFACETENSION_AKINCI2013 = -1;
-int FluidModel::ENUM_SURFACETENSION_HE2014 = -1;
-#ifdef USE_THIRD_PARTY_METHODS
-int FluidModel::ENUM_SURFACETENSION_ZORILLARITTER2020 = -1;
-#endif
-int FluidModel::ENUM_VISCOSITY_NONE = -1;
-int FluidModel::ENUM_VISCOSITY_STANDARD = -1;
-int FluidModel::ENUM_VISCOSITY_XSPH = -1;
-int FluidModel::ENUM_VISCOSITY_BENDER2017 = -1;
-int FluidModel::ENUM_VISCOSITY_PEER2015 = -1;
-int FluidModel::ENUM_VISCOSITY_PEER2016 = -1;
-int FluidModel::ENUM_VISCOSITY_TAKAHASHI2015 = -1;
-int FluidModel::ENUM_VISCOSITY_WEILER2018 = -1;
-int FluidModel::ENUM_VORTICITY_NONE = -1;
-int FluidModel::ENUM_VORTICITY_MICROPOLAR = -1;
-int FluidModel::ENUM_VORTICITY_VC = -1;
-int FluidModel::ENUM_ELASTICITY_NONE = -1;
-int FluidModel::ENUM_ELASTICITY_BECKER2009 = -1;
-int FluidModel::ENUM_ELASTICITY_PEER2018 = -1;
 
 
 FluidModel::FluidModel() :
@@ -86,18 +43,18 @@ FluidModel::FluidModel() :
 
 	m_emitterSystem = new EmitterSystem(this);
 	m_viscosity = nullptr;
-	m_viscosityMethod = ViscosityMethods::None;
+	m_viscosityMethod = 0;
 	m_surfaceTension = nullptr;
-	m_surfaceTensionMethod = SurfaceTensionMethods::None;
-	m_vorticityMethod = VorticityMethods::None;
+	m_surfaceTensionMethod = 0;
+	m_vorticityMethod = 0;
 	m_vorticity = nullptr;
-	m_dragMethod = DragMethods::None;
+	m_dragMethod = 0;
 	m_drag = nullptr;
 	m_dragMethodChanged = nullptr;
 	m_surfaceTensionMethodChanged = nullptr;
 	m_viscosityMethodChanged = nullptr;
 	m_vorticityMethodChanged = nullptr;
-	m_elasticityMethod = ElasticityMethods::None;
+	m_elasticityMethod = 0;
 	m_elasticity = nullptr;
 	m_elasticityMethodChanged = nullptr;
 
@@ -128,7 +85,7 @@ void FluidModel::init()
 {
 	initParameters();
 
-	setViscosityMethod(static_cast<int>(ViscosityMethods::Standard));
+	setViscosityMethod(1);
 }
 
 void FluidModel::initParameters()
@@ -154,64 +111,57 @@ void FluidModel::initParameters()
 	getParameter(NUM_REUSED_PARTICLES)->setReadOnly(true);
 
 	ParameterBase::GetFunc<int> getDragFct = std::bind(&FluidModel::getDragMethod, this);
-	ParameterBase::SetFunc<int> setDragFct = std::bind(&FluidModel::setDragMethod, this, std::placeholders::_1);
+	ParameterBase::SetFunc<int> setDragFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setDragMethod), this, std::placeholders::_1);
 	DRAG_METHOD = createEnumParameter("dragMethod", "Drag method", getDragFct, setDragFct);
 	setGroup(DRAG_METHOD, "Drag force");
 	setDescription(DRAG_METHOD, "Method to compute drag forces.");
 	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(DRAG_METHOD));
-	enumParam->addEnumValue("None", ENUM_DRAG_NONE);
-	enumParam->addEnumValue("Macklin et al. 2014", ENUM_DRAG_MACKLIN2014);
-	enumParam->addEnumValue("Gissler et al. 2017", ENUM_DRAG_GISSLER2017);
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& dragMethods = sim->getDragMethods();
+	for (unsigned int i = 0; i < dragMethods.size(); i++)
+		enumParam->addEnumValue(dragMethods[i].m_name, dragMethods[i].m_id);
 
 
 	ParameterBase::GetFunc<int> getSurfaceTensionFct = std::bind(&FluidModel::getSurfaceTensionMethod, this);
-	ParameterBase::SetFunc<int> setSurfaceTensionFct = std::bind(&FluidModel::setSurfaceTensionMethod, this, std::placeholders::_1);
+	ParameterBase::SetFunc<int> setSurfaceTensionFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setSurfaceTensionMethod), this, std::placeholders::_1);
 	SURFACE_TENSION_METHOD = createEnumParameter("surfaceTensionMethod", "Surface tension", getSurfaceTensionFct, setSurfaceTensionFct);
 	setGroup(SURFACE_TENSION_METHOD, "Surface tension");
 	setDescription(SURFACE_TENSION_METHOD, "Method to compute surface tension forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(SURFACE_TENSION_METHOD));
-	enumParam->addEnumValue("None", ENUM_SURFACETENSION_NONE);
-	enumParam->addEnumValue("Becker & Teschner 2007", ENUM_SURFACETENSION_BECKER2007);
-	enumParam->addEnumValue("Akinci et al. 2013", ENUM_SURFACETENSION_AKINCI2013);
-	enumParam->addEnumValue("He et al. 2014", ENUM_SURFACETENSION_HE2014);
-#ifdef USE_THIRD_PARTY_METHODS
-	enumParam->addEnumValue("Zorilla, Ritter, et al. 2020", ENUM_SURFACETENSION_ZORILLARITTER2020);
-#endif
+	std::vector<Simulation::NonPressureForceMethod>& surfaceTensionMethods = sim->getSurfaceTensionMethods();
+	for (unsigned int i = 0; i < surfaceTensionMethods.size(); i++)
+		enumParam->addEnumValue(surfaceTensionMethods[i].m_name, surfaceTensionMethods[i].m_id);
 
 	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&FluidModel::getViscosityMethod, this);
-	ParameterBase::SetFunc<int> setViscosityFct = std::bind(&FluidModel::setViscosityMethod, this, std::placeholders::_1);
+	ParameterBase::SetFunc<int> setViscosityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setViscosityMethod), this, std::placeholders::_1);
 	VISCOSITY_METHOD = createEnumParameter("viscosityMethod", "Viscosity", getViscosityFct, setViscosityFct);
 	setGroup(VISCOSITY_METHOD, "Viscosity");
 	setDescription(VISCOSITY_METHOD, "Method to compute viscosity forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(VISCOSITY_METHOD));
-	enumParam->addEnumValue("None", ENUM_VISCOSITY_NONE);
-	enumParam->addEnumValue("Standard", ENUM_VISCOSITY_STANDARD);
-	enumParam->addEnumValue("XSPH", ENUM_VISCOSITY_XSPH);
-	enumParam->addEnumValue("Bender and Koschier 2017", ENUM_VISCOSITY_BENDER2017);
-	enumParam->addEnumValue("Peer et al. 2015", ENUM_VISCOSITY_PEER2015);
-	enumParam->addEnumValue("Peer et al. 2016", ENUM_VISCOSITY_PEER2016);
-	enumParam->addEnumValue("Takahashi et al. 2015 (improved)", ENUM_VISCOSITY_TAKAHASHI2015);
-	enumParam->addEnumValue("Weiler et al. 2018", ENUM_VISCOSITY_WEILER2018);
+
+	std::vector<Simulation::NonPressureForceMethod>& viscoMethods = sim->getViscosityMethods();
+	for (unsigned int i=0; i < viscoMethods.size(); i++)
+		enumParam->addEnumValue(viscoMethods[i].m_name, viscoMethods[i].m_id);
 
 	ParameterBase::GetFunc<int> getVorticityFct = std::bind(&FluidModel::getVorticityMethod, this);
-	ParameterBase::SetFunc<int> setVorticityFct = std::bind(&FluidModel::setVorticityMethod, this, std::placeholders::_1);
+	ParameterBase::SetFunc<int> setVorticityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setVorticityMethod), this, std::placeholders::_1);
 	VORTICITY_METHOD = createEnumParameter("vorticityMethod", "Vorticity", getVorticityFct, setVorticityFct);
 	setGroup(VORTICITY_METHOD, "Vorticity");
 	setDescription(VORTICITY_METHOD, "Method to compute vorticity forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(VORTICITY_METHOD));
-	enumParam->addEnumValue("None", ENUM_VORTICITY_NONE);
-	enumParam->addEnumValue("Micropolar model", ENUM_VORTICITY_MICROPOLAR);
-	enumParam->addEnumValue("Vorticity confinement", ENUM_VORTICITY_VC);
+	std::vector<Simulation::NonPressureForceMethod>& vorticityMethods = sim->getVorticityMethods();
+	for (unsigned int i = 0; i < vorticityMethods.size(); i++)
+		enumParam->addEnumValue(vorticityMethods[i].m_name, vorticityMethods[i].m_id);
 
 	ParameterBase::GetFunc<int> getElasticityFct = std::bind(&FluidModel::getElasticityMethod, this);
-	ParameterBase::SetFunc<int> setElasticityFct = std::bind(&FluidModel::setElasticityMethod, this, std::placeholders::_1);
+	ParameterBase::SetFunc<int> setElasticityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setElasticityMethod), this, std::placeholders::_1);
 	ELASTICITY_METHOD = createEnumParameter("elasticityMethod", "Elasticity method", getElasticityFct, setElasticityFct);
 	setGroup(ELASTICITY_METHOD, "Elasticity");
 	setDescription(ELASTICITY_METHOD, "Method to compute elastic forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(ELASTICITY_METHOD));
-	enumParam->addEnumValue("None", ENUM_ELASTICITY_NONE);
-	enumParam->addEnumValue("Becker et al. 2009", ENUM_ELASTICITY_BECKER2009);
-	enumParam->addEnumValue("Peer et al. 2018", ENUM_ELASTICITY_PEER2018);
+	std::vector<Simulation::NonPressureForceMethod>& elasticityMethods = sim->getElasticityMethods();
+	for (unsigned int i = 0; i < elasticityMethods.size(); i++)
+		enumParam->addEnumValue(elasticityMethods[i].m_name, elasticityMethods[i].m_id);
 }
 
 
@@ -471,11 +421,29 @@ void FluidModel::emittedParticles(const unsigned int startIndex)
 		m_elasticity->emittedParticles(startIndex);
 }
 
-void FluidModel::setSurfaceTensionMethod(const int val)
+void FluidModel::setSurfaceTensionMethod(const std::string& val)
 {
-	SurfaceTensionMethods stm = static_cast<SurfaceTensionMethods>(val);
-	if ((stm < SurfaceTensionMethods::None) || (stm >= SurfaceTensionMethods::NumSurfaceTensionMethods))
-		stm = SurfaceTensionMethods::None;
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& methods = sim->getSurfaceTensionMethods();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		if (methods[i].m_name == val)
+		{
+			setSurfaceTensionMethod(static_cast<unsigned int>(i));
+			break;
+		}
+	}
+}
+
+void FluidModel::setSurfaceTensionMethod(const unsigned int val)
+{
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& stMethods = sim->getSurfaceTensionMethods();
+
+	unsigned int stm = val;
+	if (stm >= stMethods.size())
+		stm = 0;
+
 	if (stm == m_surfaceTensionMethod)
 		return;
 
@@ -483,16 +451,12 @@ void FluidModel::setSurfaceTensionMethod(const int val)
 	m_surfaceTension = nullptr;
 
 	m_surfaceTensionMethod = stm;
-	if (m_surfaceTensionMethod == SurfaceTensionMethods::Becker2007)
-		m_surfaceTension = new SurfaceTension_Becker2007(this);
-	else if (m_surfaceTensionMethod == SurfaceTensionMethods::Akinci2013)
-		m_surfaceTension = new SurfaceTension_Akinci2013(this);
-	else if (m_surfaceTensionMethod == SurfaceTensionMethods::He2014)
-		m_surfaceTension = new SurfaceTension_He2014(this);
-#ifdef USE_THIRD_PARTY_METHODS
-	else if (m_surfaceTensionMethod == SurfaceTensionMethods::ZorillaRitter2020)
-		m_surfaceTension = new SurfaceTension_ZorillaRitter2020(this);
-#endif
+	int method_id = getValue<int>(FluidModel::SURFACE_TENSION_METHOD);
+	for (unsigned int i = 0; i < stMethods.size(); i++)
+	{
+		if (stMethods[i].m_id == method_id)
+			m_surfaceTension = static_cast<SurfaceTensionBase*>(stMethods[i].m_creator(this));
+	}
 
 	if (m_surfaceTension != nullptr)
 		m_surfaceTension->init();
@@ -501,11 +465,28 @@ void FluidModel::setSurfaceTensionMethod(const int val)
 		m_surfaceTensionMethodChanged();
 }
 
-void FluidModel::setViscosityMethod(const int val)
+void FluidModel::setViscosityMethod(const std::string &val)
 {
-	ViscosityMethods vm = static_cast<ViscosityMethods>(val);
-	if ((vm < ViscosityMethods::None) || (vm >= ViscosityMethods::NumViscosityMethods))
-		vm = ViscosityMethods::XSPH;
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& methods = sim->getViscosityMethods();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		if (methods[i].m_name == val)
+		{
+			setViscosityMethod(static_cast<unsigned int>(i));
+			break;
+		}
+	}
+}
+
+void FluidModel::setViscosityMethod(const unsigned int val)
+{
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& viscoMethods = sim->getViscosityMethods();
+
+	unsigned int vm = val;
+	if (vm >= viscoMethods.size())
+		vm = 0;
 
 	if (vm == m_viscosityMethod)
 		return;
@@ -515,21 +496,15 @@ void FluidModel::setViscosityMethod(const int val)
 
 	m_viscosityMethod = vm;
 
-	if (m_viscosityMethod == ViscosityMethods::Standard)
-		m_viscosity = new Viscosity_Standard(this);
-	else if (m_viscosityMethod == ViscosityMethods::XSPH)
-		m_viscosity = new Viscosity_XSPH(this);
-	else if (m_viscosityMethod == ViscosityMethods::Bender2017)
-		m_viscosity = new Viscosity_Bender2017(this);
-	else if (m_viscosityMethod == ViscosityMethods::Peer2015)
-		m_viscosity = new Viscosity_Peer2015(this);
-	else if (m_viscosityMethod == ViscosityMethods::Peer2016)
-		m_viscosity = new Viscosity_Peer2016(this);
-	else if (m_viscosityMethod == ViscosityMethods::Takahashi2015)
-		m_viscosity = new Viscosity_Takahashi2015(this);
-	else if (m_viscosityMethod == ViscosityMethods::Weiler2018)
-		m_viscosity = new Viscosity_Weiler2018(this);
-
+	for (unsigned int i = 0; i < viscoMethods.size(); i++)
+	{
+		if (viscoMethods[i].m_id == m_viscosityMethod)
+		{
+			m_viscosity = static_cast<ViscosityBase*>(viscoMethods[i].m_creator(this));
+			break;
+		}
+	}
+	
 	if (m_viscosity != nullptr)
 		m_viscosity->init();
 
@@ -537,12 +512,28 @@ void FluidModel::setViscosityMethod(const int val)
 		m_viscosityMethodChanged();
 }
 
-
-void FluidModel::setVorticityMethod(const int val)
+void FluidModel::setVorticityMethod(const std::string& val)
 {
-	VorticityMethods vm = static_cast<VorticityMethods>(val);
-	if ((vm < VorticityMethods::None) || (vm >= VorticityMethods::NumVorticityMethods))
-		vm = VorticityMethods::None;
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& methods = sim->getVorticityMethods();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		if (methods[i].m_name == val)
+		{
+			setVorticityMethod(static_cast<unsigned int>(i));
+			break;
+		}
+	}
+}
+
+void FluidModel::setVorticityMethod(const unsigned int val)
+{
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& vorticityMethods = sim->getVorticityMethods();
+
+	unsigned int vm = val;
+	if (vm >= vorticityMethods.size())
+		vm = 0;
 
 	if (vm == m_vorticityMethod)
 		return;
@@ -552,10 +543,12 @@ void FluidModel::setVorticityMethod(const int val)
 
 	m_vorticityMethod = vm;
 
-	if (m_vorticityMethod == VorticityMethods::Micropolar)
-		m_vorticity = new MicropolarModel_Bender2017(this);
-	else if (m_vorticityMethod == VorticityMethods::VorticityConfinement)
-		m_vorticity = new VorticityConfinement(this);
+	int method_id = getValue<int>(FluidModel::VORTICITY_METHOD);
+	for (unsigned int i = 0; i < vorticityMethods.size(); i++)
+	{
+		if (vorticityMethods[i].m_id == method_id)
+			m_vorticity = static_cast<VorticityBase*>(vorticityMethods[i].m_creator(this));
+	}
 
 	if (m_vorticity != nullptr)
 		m_vorticity->init();
@@ -564,11 +557,28 @@ void FluidModel::setVorticityMethod(const int val)
 		m_vorticityMethodChanged();
 }
 
-void FluidModel::setDragMethod(const int val)
+void FluidModel::setDragMethod(const std::string& val)
 {
-	DragMethods dm = static_cast<DragMethods>(val);
-	if ((dm < DragMethods::None) || (dm >= DragMethods::NumDragMethods))
-		dm = DragMethods::None;
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& methods = sim->getDragMethods();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		if (methods[i].m_name == val)
+		{
+			setDragMethod(static_cast<unsigned int>(i));
+			break;
+		}
+	}
+}
+
+void FluidModel::setDragMethod(const unsigned int val)
+{
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& dragMethods = sim->getDragMethods();
+
+	unsigned int dm = val;
+	if (dm >= dragMethods.size())
+		dm = 0;
 
 	if (dm == m_dragMethod)
 		return;
@@ -578,10 +588,12 @@ void FluidModel::setDragMethod(const int val)
 
 	m_dragMethod = dm;
 
-	if (m_dragMethod == DragMethods::Gissler2017)
-		m_drag = new DragForce_Gissler2017(this);
-	else if (m_dragMethod == DragMethods::Macklin2014)
-		m_drag = new DragForce_Macklin2014(this);
+	int method_id = getValue<int>(FluidModel::DRAG_METHOD);
+	for (unsigned int i = 0; i < dragMethods.size(); i++)
+	{
+		if (dragMethods[i].m_id == method_id)
+			m_drag = static_cast<DragBase*>(dragMethods[i].m_creator(this));
+	}
 
 	if (m_drag != nullptr)
 		m_drag->init();
@@ -590,11 +602,28 @@ void FluidModel::setDragMethod(const int val)
 		m_dragMethodChanged();
 }
 
-void FluidModel::setElasticityMethod(const int val)
+void FluidModel::setElasticityMethod(const std::string& val)
 {
-	ElasticityMethods em = static_cast<ElasticityMethods>(val);
-	if ((em < ElasticityMethods::None) || (em >= ElasticityMethods::NumElasticityMethods))
-		em = ElasticityMethods::None;
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& methods = sim->getElasticityMethods();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		if (methods[i].m_name == val)
+		{
+			setElasticityMethod(static_cast<unsigned int>(i));
+			break;
+		}
+	}
+}
+
+void FluidModel::setElasticityMethod(const unsigned int val)
+{
+	Simulation* sim = Simulation::getCurrent();
+	std::vector<Simulation::NonPressureForceMethod>& elasticityMethods = sim->getElasticityMethods();
+
+	unsigned int em = val;
+	if (em >= elasticityMethods.size())
+		em = 0;
 
 	if (em == m_elasticityMethod)
 		return;
@@ -604,10 +633,12 @@ void FluidModel::setElasticityMethod(const int val)
 
 	m_elasticityMethod = em;
 
-	if (m_elasticityMethod == ElasticityMethods::Becker2009)
-		m_elasticity = new Elasticity_Becker2009(this);
-	else if (m_elasticityMethod == ElasticityMethods::Peer2018)
-		m_elasticity = new Elasticity_Peer2018(this);
+	int method_id = getValue<int>(FluidModel::ELASTICITY_METHOD);
+	for (unsigned int i = 0; i < elasticityMethods.size(); i++)
+	{
+		if (elasticityMethods[i].m_id == method_id)
+			m_elasticity = static_cast<ElasticityBase*>(elasticityMethods[i].m_creator(this));
+	}
 
 	if (m_elasticity != nullptr)
 		m_elasticity->init();

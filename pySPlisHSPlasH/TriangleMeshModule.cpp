@@ -31,7 +31,20 @@ void TriangleMeshModule(py::module m_sub) {
             // .def("getFaceNormals", (Normals & (SPH::TriangleMesh::*)())(&SPH::TriangleMesh::getFaceNormals)) // TODO: wont work by reference
             .def("getVertexNormals", (const Normals & (SPH::TriangleMesh::*)()const)(&SPH::TriangleMesh::getVertexNormals))
             // .def("getVertexNormals", (Normals & (SPH::TriangleMesh::*)())(&SPH::TriangleMesh::getVertexNormals)) // TODO: wont work by reference
-            .def("getVertices", (const Vertices & (SPH::TriangleMesh::*)()const)(&SPH::TriangleMesh::getVertices))
+            .def("getVertices", (const Vertices & (SPH::TriangleMesh::*)()const)(&SPH::TriangleMesh::getVertices))            
+            .def("getVertexBuffer", [](SPH::TriangleMesh& obj) -> py::memoryview {
+		        auto vertices = obj.getVertices();
+                void *base_ptr = &vertices[0][0];
+                int num_vert = obj.numVertices();
+                return py::memoryview::from_buffer((Real*)base_ptr, {num_vert, 3}, {sizeof(Real) * 3, sizeof(Real)});
+ 		    })
+            .def("getFaceBuffer", [](SPH::TriangleMesh& obj) -> py::memoryview {
+                auto faces = obj.getFaces();
+                void* base_ptr = faces.data();
+                int num_faces = obj.numFaces();
+                return py::memoryview::from_buffer((unsigned int*)base_ptr, { 3*num_faces }, { sizeof(unsigned int) });
+            })
+
             // .def("getVertices", (Vertices & (SPH::TriangleMesh::*)())(&SPH::TriangleMesh::getVertices)) // TODO: wont work by reference
 
             .def("numVertices", &SPH::TriangleMesh::numVertices)

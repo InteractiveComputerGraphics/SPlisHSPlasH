@@ -15,6 +15,7 @@
 namespace SPH
 {
 	class Simulator_GUI_Base;
+	class ExporterBase;
 
 	class SimulatorBase : public GenParam::ParameterObject
 	{
@@ -26,22 +27,27 @@ namespace SPH
 			FluidModel model;
 		};
 
+		struct Exporter
+		{
+			std::string m_key;
+			std::string m_name;
+			std::string m_description;
+			ExporterBase* m_exporter;
+			int m_id;
+		};
+
 	protected:
 		unsigned int m_numberOfStepsPerRenderUpdate;
 		std::string m_exePath;
 		std::string m_stateFile;
 		std::string m_outputPath;
-		std::string m_sceneFile;
 		bool m_useParticleCaching;
 		bool m_useGUI;
 		bool m_isStaticScene;
-		Utilities::SceneLoader::Scene m_scene;
 		int m_renderWalls;
 		bool m_doPause;
 		Real m_pauseAt;
 		Real m_stopAt;
-		bool m_enablePartioExport;
-		bool m_enableVTKExport;
 		bool m_enableRigidBodyVTKExport;
 		bool m_enableRigidBodyExport;
 		bool m_enableStateExport;
@@ -70,6 +76,8 @@ namespace SPH
 		std::vector<std::string> m_paramTokens;
 		std::function<void()> m_timeStepCB;
 		std::vector<float> m_scalarField;
+		std::vector<Exporter> m_particleExporters;
+		std::vector<Exporter> m_rbExporters;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
 #endif
@@ -84,15 +92,15 @@ namespace SPH
 		void setCommandLineParameter();
 		void setCommandLineParameter(GenParam::ParameterObject *paramObj);
 
+		void createExporters();
+		void cleanupExporters();
+		void initExporters();
+
 	public:
 		static int PAUSE;
 		static int PAUSE_AT;
 		static int STOP_AT;
 		static int NUM_STEPS_PER_RENDER;
-		static int PARTIO_EXPORT;
-		static int VTK_EXPORT;
-		static int RB_VTK_EXPORT;
-		static int RB_EXPORT;
 		static int DATA_EXPORT_FPS;
 		static int PARTICLE_EXPORT_ATTRIBUTES;
 		static int STATE_EXPORT;
@@ -130,12 +138,7 @@ namespace SPH
 		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
 
 		void readParameters();
-		void particleExport();
-		void rigidBodyExport();
-		void writeParticlesPartio(const std::string &fileName, FluidModel *model);
-		void writeParticlesVTK(const std::string &fileName, FluidModel *model);
-		void writeRigidBodiesBIN(const std::string &exportPath);
-		void writeRigidBodiesVTK(const std::string &exportPath);
+
 		void step();
 
 		void saveState(const std::string& stateFile = "");
@@ -163,10 +166,6 @@ namespace SPH
 		Utilities::SceneLoader *getSceneLoader() { return m_sceneLoader.get(); }
 
 		const std::string& getExePath() const { return m_exePath; }
-		void setSceneFile(const std::string& file) { m_sceneFile = file; }
-		const std::string& getSceneFile() const { return m_sceneFile; }
-
-		Utilities::SceneLoader::Scene& getScene() { return m_scene; }
 
 		bool getUseParticleCaching() const { return m_useParticleCaching; }
 		void setUseParticleCaching(bool val) { m_useParticleCaching = val; }
@@ -184,16 +183,6 @@ namespace SPH
 		void setRenderMinValue(const unsigned int fluidModelIndex, Real val) { m_renderMinValue[fluidModelIndex] = val; }
 		std::string getOutputPath() const { return m_outputPath; }
 
-		// VTK expects big endian
-		template<typename T>
-		inline void swapByteOrder(T*v)
-		{
-			constexpr size_t n = sizeof(T);
-			uint8_t * bytes = reinterpret_cast<uint8_t*>(v);
-			for (unsigned int c = 0u; c < n / 2; c++)
-				std::swap(bytes[c], bytes[n - c - 1]);
-		}
-
 		std::string getStateFile() const { return m_stateFile; }
 		void setStateFile(std::string val) { m_stateFile = val; }
 
@@ -202,6 +191,14 @@ namespace SPH
 		SPH::Simulator_GUI_Base * getGui() const { return m_gui; }
 		void setGui(SPH::Simulator_GUI_Base * val) { m_gui = val; }
 		bool isStaticScene() const { return m_isStaticScene; }
+
+		void addParticleExporter(const std::string& key, const std::string& name, const std::string& description, ExporterBase* exporter) { m_particleExporters.push_back({ key, name, description, exporter, -1 }); }
+		std::vector<Exporter>& getParticleExporters() { return m_particleExporters; }
+
+		void addRigidBodyExporter(const std::string& key, const std::string& name, const std::string& description, ExporterBase* exporter) { m_rbExporters.push_back({ key, name, description, exporter, -1 }); }
+		std::vector<Exporter>& getRigidBodyExporters() { return m_rbExporters; }
+
+		void activateExporter(const std::string& exporterName, const bool active);
 	};
 }
  

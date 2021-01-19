@@ -1,3 +1,10 @@
+	- added documentation about how to implement an exporter
+	- added a Python data exporter example (can export rigid bodies in all formats supported by meshio)
+	- added an OBJ rigid body exporter
+	- implemented a simple interface to register own particle and rigid body exporters
+	- extracted the scene configuration in a singleton class
+	- simplified the interface to register a new non-pressure force
+
 2.9.0 
 	- added new surface tension model (thanks to Fernando Zorilla and Marcel Ritter)
 	- added a test for reading and writing the state of a simulation

@@ -19,6 +19,8 @@ namespace SPH
 		SurfaceTension_Becker2007(FluidModel *model);
 		virtual ~SurfaceTension_Becker2007(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_Becker2007(model); }
+
 		virtual void step();
 		virtual void reset();
 	};

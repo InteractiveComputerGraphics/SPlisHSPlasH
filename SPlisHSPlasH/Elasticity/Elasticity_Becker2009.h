@@ -53,6 +53,8 @@ namespace SPH
 		Elasticity_Becker2009(FluidModel *model);
 		virtual ~Elasticity_Becker2009(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Elasticity_Becker2009(model); }
+
 		virtual void step();
 		virtual void reset();
 		virtual void performNeighborhoodSearchSort();

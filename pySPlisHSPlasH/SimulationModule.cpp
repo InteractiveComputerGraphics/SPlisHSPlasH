@@ -5,7 +5,11 @@
 
 #include <SPlisHSPlasH/Simulation.h>
 #include <Simulator/SimulatorBase.h>
+#include <Simulator/BoundarySimulator.h>
+#include <Simulator/StaticBoundarySimulator.h>
 #include <Simulator/GUI/Simulator_GUI_Base.h>
+#include <Simulator/SceneConfiguration.h>
+#include <Simulator/Exporter/ExporterBase.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -183,6 +187,12 @@ void SimulationModule(py::module m_sub){
             .def("getNeighborhoodSearch", &SPH::Simulation::getNeighborhoodSearch, py::return_value_policy::reference_internal)
             .def("saveState", &SPH::Simulation::saveState)
             .def("loadState", &SPH::Simulation::loadState)
+            .def("addViscosityMethod", &SPH::Simulation::addViscosityMethod)
+            .def("getViscosityMethods", &SPH::Simulation::getViscosityMethods)
+            .def("addVorticityMethod", &SPH::Simulation::addVorticityMethod)
+            .def("getVorticityMethods", &SPH::Simulation::getVorticityMethods)
+            .def("addDragMethod", &SPH::Simulation::addDragMethod)
+            .def("getDragMethods", &SPH::Simulation::getDragMethods)
             .def("numberOfPointSets", &SPH::Simulation::numberOfPointSets)
             .def("numberOfNeighbors", &SPH::Simulation::numberOfNeighbors)
             .def("getNeighbor", &SPH::Simulation::getNeighbor)
@@ -194,6 +204,16 @@ void SimulationModule(py::module m_sub){
     // EXEC SUBMODULE
     // ---------------------------------------
     m_sub = m_sub.def_submodule("Exec");
+
+    // ---------------------------------------
+    // Struct Exporter
+    // ---------------------------------------
+    py::class_<SPH::SimulatorBase::Exporter>(m_sub, "Exporter")
+            .def_readwrite("key", &SPH::SimulatorBase::Exporter::m_key)
+            .def_readwrite("name", &SPH::SimulatorBase::Exporter::m_name)
+            .def_readwrite("decription", &SPH::SimulatorBase::Exporter::m_description)
+            .def_readwrite("id", &SPH::SimulatorBase::Exporter::m_id)
+            .def_readwrite("exporter", &SPH::SimulatorBase::Exporter::m_exporter);
 
     // ---------------------------------------
     // Simulator Base class
@@ -208,10 +228,6 @@ void SimulationModule(py::module m_sub){
             .def_readwrite_static("PAUSE_AT", &SPH::SimulatorBase::PAUSE_AT)
             .def_readwrite_static("STOP_AT", &SPH::SimulatorBase::STOP_AT)
             .def_readwrite_static("NUM_STEPS_PER_RENDER", &SPH::SimulatorBase::NUM_STEPS_PER_RENDER)
-            .def_readwrite_static("PARTIO_EXPORT", &SPH::SimulatorBase::PARTIO_EXPORT)
-            .def_readwrite_static("VTK_EXPORT", &SPH::SimulatorBase::VTK_EXPORT)
-            .def_readwrite_static("RB_VTK_EXPORT", &SPH::SimulatorBase::RB_VTK_EXPORT)
-            .def_readwrite_static("RB_EXPORT", &SPH::SimulatorBase::RB_EXPORT)
             .def_readwrite_static("DATA_EXPORT_FPS", &SPH::SimulatorBase::DATA_EXPORT_FPS)
             .def_readwrite_static("PARTICLE_EXPORT_ATTRIBUTES", &SPH::SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES)
             .def_readwrite_static("STATE_EXPORT", &SPH::SimulatorBase::STATE_EXPORT)
@@ -259,12 +275,6 @@ void SimulationModule(py::module m_sub){
             .def("initVolumeMap", &SPH::SimulatorBase::initVolumeMap)
 
             .def("readParameters", &SPH::SimulatorBase::readParameters)
-            .def("particleExport", &SPH::SimulatorBase::particleExport)
-            .def("rigidBodyExport", &SPH::SimulatorBase::rigidBodyExport)
-            .def("writeParticlesPartio", &SPH::SimulatorBase::writeParticlesPartio)
-            .def("writeParticlesVTK", &SPH::SimulatorBase::writeParticlesVTK)
-            .def("writeRigidBodiesBIN", &SPH::SimulatorBase::writeRigidBodiesBIN)
-            .def("writeRigidBodiesVTK", &SPH::SimulatorBase::writeRigidBodiesVTK)
             .def("step", &SPH::SimulatorBase::step)
 
             .def("saveState", &SPH::SimulatorBase::saveState)
@@ -292,10 +302,7 @@ void SimulationModule(py::module m_sub){
             .def("getSceneLoader", &SPH::SimulatorBase::getSceneLoader, py::return_value_policy::reference_internal)
 
             .def("getExePath", &SPH::SimulatorBase::getExePath)
-            .def("getSceneFile", &SPH::SimulatorBase::getSceneFile)
-
-            .def("getScene", &SPH::SimulatorBase::getScene, py::return_value_policy::reference_internal)
-
+            
             .def("getUseParticleCaching", &SPH::SimulatorBase::getUseParticleCaching)
             .def("setUseParticleCaching", &SPH::SimulatorBase::setUseParticleCaching)
             .def("getUseGUI", &SPH::SimulatorBase::getUseGUI)
@@ -321,6 +328,41 @@ void SimulationModule(py::module m_sub){
             .def("setGui", &SPH::SimulatorBase::setGui)
             .def("isStaticScene", &SPH::SimulatorBase::isStaticScene)
 
+            .def("addParticleExporter", &SPH::SimulatorBase::addParticleExporter)
+            .def("getParticleExporters", &SPH::SimulatorBase::getParticleExporters)
+            .def("addRigidBodyExporter", &SPH::SimulatorBase::addRigidBodyExporter)
+            .def("getRigidBodyExporters", &SPH::SimulatorBase::getRigidBodyExporters)
+
+            .def("activateExporter", &SPH::SimulatorBase::activateExporter)
+
 			.def("setTimeStepCB", &SPH::SimulatorBase::setTimeStepCB);
+
+     // ---------------------------------------
+    // SceneConfiguration
+    // ---------------------------------------
+    py::class_<SPH::SceneConfiguration>(m_sub, "SceneConfiguration")
+            .def_static("getCurrent", &SPH::SceneConfiguration::getCurrent, py::return_value_policy::reference)
+            .def_static("setCurrent", &SPH::SceneConfiguration::setCurrent)
+            .def_static("hasCurrent", &SPH::SceneConfiguration::hasCurrent)
+            .def("getSceneFile", &SPH::SceneConfiguration::getSceneFile)
+            .def("getScene", &SPH::SceneConfiguration::getScene, py::return_value_policy::reference_internal);
+
+    // ---------------------------------------
+    // BoundarySimulator
+    // ---------------------------------------
+    py::class_<SPH::BoundarySimulator>(m_sub, "BoundarySimulator")
+            .def(py::init<>())
+            .def("init", &SPH::BoundarySimulator::init)
+            .def("timeStep", &SPH::BoundarySimulator::timeStep)
+            .def("initBoundaryData", &SPH::BoundarySimulator::initBoundaryData)
+            .def("reset", &SPH::BoundarySimulator::reset)
+            .def("updateBoundaryForces", &SPH::BoundarySimulator::updateBoundaryForces);
+
+    // ---------------------------------------
+    // StaticBoundarySimulator
+    // ---------------------------------------
+    py::class_<SPH::StaticBoundarySimulator, SPH::BoundarySimulator>(m_sub, "StaticBoundarySimulator")
+            .def(py::init<SPH::SimulatorBase*>());
+
 }
 

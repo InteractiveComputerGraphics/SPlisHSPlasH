@@ -6,8 +6,11 @@
 #include <Simulator/GUI/Simulator_GUI_Base.h>
 #ifdef USE_IMGUI
 #include <Simulator/GUI/imgui/Simulator_GUI_imgui.h>
+#include <Simulator/PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h>
+#include <Simulator/PositionBasedDynamicsWrapper/PBDWrapper.h>
 #else
 #include <Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h>
+#include <Simulator/PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h>
 #endif
 #include <Simulator/GUI/OpenGL/Simulator_OpenGL.h>
 
@@ -52,8 +55,15 @@ void GUIModule(py::module m) {
     // ---------------------------------------
     // imgui GUI Class
     // ---------------------------------------
-            py::class_<SPH::Simulator_GUI_imgui, SPH::Simulator_GUI_Base>(m_sub, "Simulator_GUI_imgui")
-                .def(py::init<SPH::SimulatorBase*>());
+    py::class_<SPH::Simulator_GUI_imgui, SPH::Simulator_GUI_Base>(m_sub, "Simulator_GUI_imgui")
+            .def(py::init<SPH::SimulatorBase*>());
+
+    // ---------------------------------------
+    // pbd imgui GUI Class
+    // ---------------------------------------
+    py::class_<SPH::PBD_Simulator_GUI_imgui, SPH::Simulator_GUI_imgui>(m_sub, "PBD_Simulator_GUI_imgui")
+            .def(py::init<SPH::SimulatorBase*, PBDWrapper*>());
+
 #else
     // ---------------------------------------
     // Tweakbar GUI Class
@@ -61,7 +71,13 @@ void GUIModule(py::module m) {
     py::class_<SPH::Simulator_GUI_TweakBar, SPH::Simulator_GUI_Base>(m_sub, "Simulator_GUI_TweakBar")
             .def(py::init<SPH::SimulatorBase*>());
             // .def("getTweakBar", &SPH::Simulator_GUI_TweakBar::getTweakBar); //TODO: Wrap tweak bar for this
-#endif 
+
+    // ---------------------------------------
+    // pbd tweakbar GUI Class
+    // ---------------------------------------
+    py::class_<SPH::PBD_Simulator_GUI_TweakBar, SPH::Simulator_GUI_TweakBar>(m_sub, "PBD_Simulator_GUI_TweakBar")
+            .def(py::init<SPH::SimulatorBase*, PBDWrapper*>());
+#endif
 
     // ---------------------------------------
     // OpenGL GUI Class // TODO implement missing functions

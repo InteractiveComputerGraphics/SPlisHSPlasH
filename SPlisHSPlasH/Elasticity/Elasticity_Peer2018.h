@@ -66,6 +66,8 @@ namespace SPH
 		Elasticity_Peer2018(FluidModel *model);
 		virtual ~Elasticity_Peer2018(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Elasticity_Peer2018(model); }
+
 		virtual void step();
 		virtual void reset();
 		virtual void performNeighborhoodSearchSort();

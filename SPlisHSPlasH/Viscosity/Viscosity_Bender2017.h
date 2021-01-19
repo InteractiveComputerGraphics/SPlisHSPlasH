@@ -34,6 +34,8 @@ namespace SPH
 		Viscosity_Bender2017(FluidModel *model);
 		virtual ~Viscosity_Bender2017(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Bender2017(model); }
+
 		virtual void step();
 		virtual void reset();
 

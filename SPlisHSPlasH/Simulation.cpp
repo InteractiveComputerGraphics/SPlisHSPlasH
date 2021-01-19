@@ -13,6 +13,13 @@
 #include "BoundaryModel_Bender2019.h"
 #include "BoundaryModel_Koschier2017.h"
 
+#include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_XSPH.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Takahashi2015.h"
+#include "SPlisHSPlasH/Viscosity/Viscosity_Weiler2018.h"
 
 
 using namespace SPH;
@@ -127,6 +134,8 @@ void Simulation::init(const Real particleRadius, const bool sim2D)
 {
 	m_sim2D = sim2D;
 	initParameters();
+
+	registerNonpressureForces();
 
 	// init kernel
 	setParticleRadius(particleRadius);
@@ -717,3 +726,4 @@ void SPH::Simulation::loadState(BinaryFileReader &binReader)
 		getBoundaryModel(i)->loadState(binReader);
 	m_timeStep->loadState(binReader);
 }
+

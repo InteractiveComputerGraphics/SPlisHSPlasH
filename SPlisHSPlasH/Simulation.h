@@ -219,6 +219,13 @@ namespace SPH
 
 		typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
 
+		struct NonPressureForceMethod
+		{
+			std::string m_name;
+			std::function<NonPressureForceBase* (FluidModel*)> m_creator;
+			int m_id;
+		};
+
 	protected:
 		std::vector<FluidModel*> m_fluidModels;
 		std::vector<BoundaryModel*> m_boundaryModels;
@@ -242,11 +249,18 @@ namespace SPH
 		bool m_enableZSort;
 		std::function<void()> m_simulationMethodChanged;		
 		int m_boundaryHandlingMethod;
+		std::vector<NonPressureForceMethod> m_dragMethods;
+		std::vector<NonPressureForceMethod> m_elasticityMethods;
+		std::vector<NonPressureForceMethod> m_surfaceTensionMethods;
+		std::vector<NonPressureForceMethod> m_vorticityMethods;
+		std::vector<NonPressureForceMethod> m_viscoMethods;
 #ifdef USE_DEBUG_TOOLS
 		DebugTools* m_debugTools;
 #endif
 
 		virtual void initParameters();
+
+		void registerNonpressureForces();
 		
 	private:
 		static Simulation *current;
@@ -327,6 +341,21 @@ namespace SPH
 
 		void saveState(BinaryFileWriter &binWriter);
 		void loadState(BinaryFileReader &binReader);
+
+		void addDragMethod(const std::string& name, const std::function<NonPressureForceBase* (FluidModel*)>& creator) { m_dragMethods.push_back({ name, creator, -1 }); }
+		std::vector<NonPressureForceMethod>& getDragMethods() { return m_dragMethods; }
+
+		void addElasticityMethod(const std::string& name, const std::function<NonPressureForceBase* (FluidModel*)>& creator) { m_elasticityMethods.push_back({ name, creator, -1 }); }
+		std::vector<NonPressureForceMethod>& getElasticityMethods() { return m_elasticityMethods; }
+
+		void addSurfaceTensionMethod(const std::string& name, const std::function<NonPressureForceBase* (FluidModel*)>& creator) { m_surfaceTensionMethods.push_back({ name, creator, -1 }); }
+		std::vector<NonPressureForceMethod>& getSurfaceTensionMethods() { return m_surfaceTensionMethods; }
+
+		void addViscosityMethod(const std::string& name, const std::function<NonPressureForceBase* (FluidModel*)>& creator) { m_viscoMethods.push_back({ name, creator, -1 }); }
+		std::vector<NonPressureForceMethod>& getViscosityMethods() { return m_viscoMethods; }
+
+		void addVorticityMethod(const std::string& name, const std::function<NonPressureForceBase* (FluidModel*)>& creator) { m_vorticityMethods.push_back({ name, creator, -1 }); }
+		std::vector<NonPressureForceMethod>& getVorticityMethods() { return m_vorticityMethods; }
 
 #ifdef USE_DEBUG_TOOLS
 		DebugTools* getDebugTools() { return m_debugTools; }

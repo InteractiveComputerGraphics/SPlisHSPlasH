@@ -23,6 +23,8 @@ namespace SPH
 		VorticityConfinement(FluidModel *model);
 		virtual ~VorticityConfinement(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new VorticityConfinement(model); }
+
 		virtual void step();
 		virtual void reset();
 

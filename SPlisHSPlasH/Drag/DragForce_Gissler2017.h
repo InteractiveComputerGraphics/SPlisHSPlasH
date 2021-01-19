@@ -29,6 +29,8 @@ namespace SPH
 		DragForce_Gissler2017(FluidModel *model);
 		virtual ~DragForce_Gissler2017(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new DragForce_Gissler2017(model); }
+
 		virtual void step();
 		virtual void reset();
 	};

@@ -47,6 +47,8 @@ namespace SPH
 		Viscosity_Weiler2018(FluidModel *model);
 		virtual ~Viscosity_Weiler2018(void);
 
+		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Weiler2018(model); }
+
 		virtual void step();
 		virtual void reset();
 

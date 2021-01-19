@@ -9,7 +9,7 @@ pybind11_add_module(pysplishsplash
   FluidModelModule.cpp
   NonPressureForceBaseModule.cpp
   SimulationModule.cpp
-  StaticRigidBodyModule.cpp
+  RigidBodyModule.cpp
   TimeModule.cpp
   TriangleMeshModule.cpp
   DFSPHModule.cpp
@@ -24,7 +24,9 @@ pybind11_add_module(pysplishsplash
   VorticityModule.cpp
   WCSPHModule.cpp
   GUIModule.cpp
+  ExporterModule.cpp
   ExtrasModule.cpp
+  PBDModule.cpp
 )
 
 # All the same postfix, otherwise the module name ist not the same as the exported name and python gets confused

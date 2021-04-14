@@ -81,6 +81,8 @@ including the following:
 
 ### Customizing your class
 
+#### Neighborhood search sort
+
 The user is also free to add and save additional per particle data inside the viscosity method, but has to ensure that these are also included in the *neighborhood search sort*. Sorting is required if the data is used over multiple simulations steps. The neighborhood search performs a z-sort every n steps to improve the number of cache hits. Since all particles are resorted, also their data must be resorted. For this, the user has to override the `performNeighborhoodSearchSort()` method. A minimal example would look like the following:
 
 ```cpp
@@ -91,6 +93,8 @@ void MyViscosity::performNeighborhoodSearchSort()
 	d.sort_field(&m_myParticleViscosityData[0]);
 }
 ```
+
+#### Additional particle fields
 
 For visualization and/or debugging purposes, the user may also want to subject the particle data to SPlisHSPlasH's particle informations. To do this, the user has to add the particle data field to the list of fields inside each `FluidModel`. This can be for example done in the constructor by adding the `addField(const FieldDescription &field)` of the corresponding `FluidModel`. The fields can be used to define the color of a particle, they can be exported to bgeo or ParaView and in the simulator the user can output the field data of the selected particles by pressing "i".
 
@@ -109,6 +113,17 @@ Also don't forget to remove the field, when the instance of the viscosity method
 
 ```cpp
 m_model->removeFiledByName("myFieldName");
+```
+
+#### Deferred initialization
+
+The user can override the `deferredInit()` method. This function is called after the simulation scene is loaded and all parameters are initialized. While reading a scene file several parameters can change. The `deferredInit()` function should initialize all values which depend on these parameters.
+
+```cpp
+void MyViscosity::deferredInit()
+{
+	initMyViscosity();
+}
 ```
 
 ## Registering the viscosity method

@@ -51,6 +51,7 @@ namespace SPH
 		bool m_enableRigidBodyVTKExport;
 		bool m_enableRigidBodyExport;
 		bool m_enableStateExport;
+		bool m_enableAsyncExport;
 		Real m_framesPerSecond;
 		Real m_framesPerSecondState;
 		std::string m_particleAttributes;
@@ -75,7 +76,8 @@ namespace SPH
 		std::string m_windowName;
 		std::vector<std::string> m_paramTokens;
 		std::function<void()> m_timeStepCB;
-		std::vector<float> m_scalarField;
+		std::function<void()> m_resetCB;
+		std::vector<std::vector<float>> m_scalarField;
 		std::vector<Exporter> m_particleExporters;
 		std::vector<Exporter> m_rbExporters;
 #ifdef DL_OUTPUT
@@ -85,6 +87,7 @@ namespace SPH
 		virtual void initParameters();
 
 		void initFluidData();
+		void setInitialVelocity(const Vector3r &vel, const Vector3r & angVel, const unsigned int numParticles, Vector3r *fluidParticles, Vector3r *fluidVelocities);
 		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities);
 		void createEmitters();
 		void createAnimationFields();
@@ -105,6 +108,7 @@ namespace SPH
 		static int PARTICLE_EXPORT_ATTRIBUTES;
 		static int STATE_EXPORT;
 		static int STATE_EXPORT_FPS;
+		static int ASYNC_EXPORT;
 		static int RENDER_WALLS;
 		
 		static int ENUM_WALLS_NONE;
@@ -122,6 +126,12 @@ namespace SPH
 		void init(std::vector<std::string> argv, const std::string &windowName);
 		void init(int argc, char **argv, const std::string &windowName);
         void initSimulation();
+		/** This function is called after the simulation scene is loaded and all
+		* parameters are initialized. While reading a scene file several parameters
+		* can change. The deferred init function should initialize all values which
+		* depend on these parameters.
+		*/
+		void deferredInit();
 		void runSimulation();
 		void cleanup();
 
@@ -130,10 +140,10 @@ namespace SPH
 		bool timeStepNoGUI();
 
 		void setTimeStepCB(std::function<void()> const& callBackFct) { m_timeStepCB = callBackFct; }
+		void setResetCB(std::function<void()> const& callBackFct) { m_resetCB = callBackFct; }
 
 		static void particleInfo(std::vector<std::vector<unsigned int>> &particles);
 
-		std::string real2String(const Real r);
 		void initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel);
 		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
 
@@ -141,6 +151,7 @@ namespace SPH
 
 		void step();
 
+		void singleTimeStep();
 		void saveState(const std::string& stateFile = "");
 		void loadStateDialog();
 		void loadState(const std::string &stateFile);
@@ -157,7 +168,7 @@ namespace SPH
 		void updateDMVelocity();
 		void updateVMVelocity();
 
-		std::vector<float>& getScalarField() { return m_scalarField; }
+		std::vector<float>& getScalarField(const unsigned int i) { return m_scalarField[i]; }
 		void updateScalarField();
 		void determineMinMaxOfScalarField();
 

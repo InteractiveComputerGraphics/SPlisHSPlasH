@@ -66,10 +66,11 @@ void imguiParameters::createStringParameter(imguiParameters::imguiParameter* par
 	if ((sparam != nullptr) && (sparam->getFct != nullptr))
 	{
 		std::string str = sparam->getFct();
-		char value[1000];
+		const unsigned int buf_size = 1000;
+		char value[buf_size];
 		strcpy(value, str.c_str());
 
-		ImGui::InputText(sparam->label.c_str(), value, str.length(), flags);
+		ImGui::InputText(sparam->label.c_str(), value, buf_size, flags);
 
 		if (ImGui::IsItemDeactivatedAfterEdit())
 		{
@@ -187,6 +188,8 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 				std::string helpText = param->description;
 				if (param->readOnly)
 					helpText += " (read-only)";
+				else if (param->name != "")
+					helpText += "\n\nkey in scene file:\n" + param->name;
 
 				ImGuiInputTextFlags flags = 0;
 				if (param->readOnly)
@@ -304,9 +307,19 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		if (group == "General")
 			subgroup = group;
 
+		if (group == "Export")
+			subgroup = "General";
+
+		if ((group == "Particle exporters") || (group == "Rigid body exporters"))
+		{
+			subgroup = group;
+			group = "Export";
+		}
+
 		if (paramBase->getType() == RealParameterType)
 		{
 			imguiParameters::imguiNumericParameter<Real>* param = new imguiParameters::imguiNumericParameter<Real>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -319,6 +332,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::UINT32)
 		{
 			imguiParameters::imguiNumericParameter<unsigned int>* param = new imguiParameters::imguiNumericParameter<unsigned int>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -331,6 +345,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::UINT16)
 		{
 			imguiParameters::imguiNumericParameter<unsigned short>* param = new imguiParameters::imguiNumericParameter<unsigned short>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -343,6 +358,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::UINT8)
 		{
 			imguiParameters::imguiNumericParameter<unsigned char>* param = new imguiParameters::imguiNumericParameter<unsigned char>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -355,6 +371,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::INT32)
 		{
 			imguiParameters::imguiNumericParameter<int>* param = new imguiParameters::imguiNumericParameter<int>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -367,6 +384,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::INT16)
 		{
 			imguiParameters::imguiNumericParameter<short>* param = new imguiParameters::imguiNumericParameter<short>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -379,6 +397,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::INT8)
 		{
 			imguiParameters::imguiNumericParameter<char>* param = new imguiParameters::imguiNumericParameter<char>();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -391,6 +410,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::BOOL)
 		{
 			imguiParameters::imguiBoolParameter* param = new imguiParameters::imguiBoolParameter();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -401,6 +421,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::ENUM)
 		{
 			imguiParameters::imguiEnumParameter* param = new imguiParameters::imguiEnumParameter();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -414,6 +435,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::STRING)
 		{
 			imguiParameters::imguiStringParameter* param = new imguiParameters::imguiStringParameter();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -424,6 +446,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if ((paramBase->getType() == RealVectorParameterType) && (static_cast<RealVectorParameter*>(paramBase)->getDim() == 3))
 		{
 			imguiParameters::imguiVec3rParameter* param = new imguiParameters::imguiVec3rParameter();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = paramBase->getReadOnly();
@@ -434,6 +457,7 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		else if (paramBase->getType() == ParameterBase::FUNCTION)
 		{
 			imguiParameters::imguiFunctionParameter* param = new imguiParameters::imguiFunctionParameter();
+			param->name = paramBase->getName();
 			param->description = paramBase->getDescription();
 			param->label = paramBase->getLabel();
 			param->readOnly = false;

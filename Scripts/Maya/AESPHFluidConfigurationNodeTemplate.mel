@@ -45,6 +45,15 @@ global proc AESPHFluidConfigurationNodeTemplate( string $nodeName )
 	editorTemplate -l "Surface tension method" -addControl "surfaceTensionMethod";
 	editorTemplate -l "Surface tension coefficient" -addControl "surfaceTension";
 	editorTemplate -endLayout;
+	
+	editorTemplate -beginLayout "Elasticity" -collapse 0;
+	editorTemplate -l "Elasticity method" -addControl "elasticityMethod";
+	editorTemplate -l "Young's modulus" -addControl "youngsModulus";
+	editorTemplate -l "Poisson's ratio" -addControl "poissonsRatio";
+	editorTemplate -l "Max. iterations (elasticity)" -addControl "elasticityMaxIter";
+	editorTemplate -l "Max. elasticity error" -addControl "elasticityMaxError";
+	editorTemplate -l "Zero-energy modes suppression" -addControl "alpha";
+	editorTemplate -endLayout;
 
 	editorTemplate -addExtraControls;
 	editorTemplate -endScrollLayout;

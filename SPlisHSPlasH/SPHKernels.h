@@ -769,7 +769,7 @@ namespace SPH
  			const Scalarf8 q = rl * m_invRadius;
 
 			// q <= 0.5
-			const Scalarf8 res1 =  (m_l * m_invRadius2 * (Scalarf8(3.0f)*q - Scalarf8(2.0f)));
+			const Scalarf8 res1 =  (m_l * m_invRadius2 * (multiplyAndSubtract(Scalarf8(3.0f), q, Scalarf8(2.0f))));
 
 			// 0.5 <= q <= 1
 			const Scalarf8 v = m_one - q;

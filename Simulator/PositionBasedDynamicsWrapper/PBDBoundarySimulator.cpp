@@ -137,10 +137,10 @@ void PBDBoundarySimulator::initBoundaryData()
 				std::string mesh_base_path = FileSystem::getFilePath(scene.boundaryModels[i]->meshFile);
 				std::string mesh_file_name = FileSystem::getFileName(scene.boundaryModels[i]->meshFile);
 
-				const string resStr = m_base->real2String(scene.boundaryModels[i]->scale[0]) + "_" + m_base->real2String(scene.boundaryModels[i]->scale[1]) + "_" + m_base->real2String(scene.boundaryModels[i]->scale[2]);
+				const string resStr = StringTools::real2String(scene.boundaryModels[i]->scale[0]) + "_" + StringTools::real2String(scene.boundaryModels[i]->scale[1]) + "_" + StringTools::real2String(scene.boundaryModels[i]->scale[2]);
 
 				const string modeStr = "_m" + std::to_string(scene.boundaryModels[i]->samplingMode);
-				const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_" + m_base->real2String(scene.particleRadius) + "_" + resStr + modeStr + ".bgeo");
+				const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_" + StringTools::real2String(scene.particleRadius) + "_" + resStr + modeStr + ".bgeo");
 
 				// check MD5 if cache file is available
 				bool foundCacheFile = false;
@@ -233,8 +233,12 @@ void PBDBoundarySimulator::initBoundaryData()
 		if (useCache && !md5)
 			FileSystem::writeMD5File(meshFileName, md5FileName);
 	}
+}
 
-	Simulation::getCurrent()->performNeighborhoodSearchSort();
+void PBDBoundarySimulator::deferredInit()
+{
+	Simulation* sim = Simulation::getCurrent();
+	sim->performNeighborhoodSearchSort();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{
 		m_base->updateBoundaryParticles(true);

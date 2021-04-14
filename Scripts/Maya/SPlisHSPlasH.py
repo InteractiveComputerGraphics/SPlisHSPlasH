@@ -107,6 +107,22 @@ class PluginFunctions():
 		return newAttr
 		
 	@staticmethod
+	def createColorAttr(longName, shortName, defaultValue):
+		nAttr = OpenMaya.MFnNumericAttribute()
+		newAttr = nAttr.createColor( longName, shortName )
+		nAttr.setDefault(defaultValue[0], defaultValue[1], defaultValue[2])
+		nAttr.setStorable(1)	
+		return newAttr
+		
+	@staticmethod
+	def createVec3iAttr(longName, shortName, defaultValue):
+		nAttr = OpenMaya.MFnNumericAttribute()
+		newAttr = nAttr.create( longName, shortName, OpenMaya.MFnNumericData.k3Int )
+		nAttr.setDefault(defaultValue[0], defaultValue[1], defaultValue[2])
+		nAttr.setStorable(1)	
+		return newAttr
+		
+	@staticmethod
 	def createEnumAttr(longName, shortName, defaultValue, enumList):
 		eAttr = OpenMaya.MFnEnumAttribute()
 		newAttr = eAttr.create( longName, shortName, defaultValue)
@@ -115,6 +131,15 @@ class PluginFunctions():
 			eAttr.addField(item, i)
 			i+=1
 		eAttr.setStorable(1)	
+		return newAttr
+		
+	@staticmethod
+	def createStringAttr(longName, shortName, defaultValue):
+		nAttr = OpenMaya.MFnTypedAttribute()
+		sData = OpenMaya.MFnStringData()
+		default = sData.create(defaultValue)
+		newAttr = nAttr.create( longName, shortName, OpenMaya.MFnData.kString, default )
+		nAttr.setStorable(1)	
 		return newAttr
 		
 	######################################################
@@ -160,6 +185,38 @@ class PluginFunctions():
 	def createVec3Param(name, label, description, defaultValue):
 		param = {
 				"type": "vec3",
+				"name": name,
+				"label": label,
+				"description": description,
+				"default": defaultValue,
+				"value": defaultValue,
+				"ctrlId": None
+			}
+		return param
+
+	######################################################
+	# createColorParam
+	######################################################	
+	@staticmethod		
+	def createColorParam(name, label, description, defaultValue):
+		param = {
+				"type": "color",
+				"name": name,
+				"label": label,
+				"description": description,
+				"default": defaultValue,
+				"value": defaultValue,
+				"ctrlId": None
+			}
+		return param	
+		
+	######################################################
+	# createVec3iParam
+	######################################################	
+	@staticmethod		
+	def createVec3iParam(name, label, description, defaultValue):
+		param = {
+				"type": "vec3i",
 				"name": name,
 				"label": label,
 				"description": description,
@@ -441,42 +498,13 @@ class convertToFluidCmd(OpenMayaMPx.MPxCommand):
 		for node in nodes:
 			shapeNode = PluginFunctions.getShape(node)
 			if shapeNode != None:
-				# remove all existing attributes
-				sphAttr = cmds.listAttr(node, string="SPH_*")
-				if sphAttr != None:
-					for attr in sphAttr:
-						cmds.deleteAttr(node, at=attr)
+				lst = cmds.listRelatives(node, children=True, type='SPHFluidNode'  )
+				if (lst == None):
+					cmds.createNode("SPHFluidNode", name="SPH_Fluid", parent=node)
+				else:
+					print("The node " + node + " is already an SPH fluid.")
 				
-				# set type 
-				cmds.addAttr(node, longName="SPH_Type", niceName="type",dt="string", hidden=True)
-				cmds.setAttr((node + '.SPH_Type'), "Fluid", type="string")
-
-				# fluid id
-				cmds.addAttr(node, longName="SPH_fluidId", niceName="Fluid id", dt="string")
-				cmds.setAttr((node + '.SPH_fluidId'), "Fluid", type="string")
-		
-				# initialVelocity
-				cmds.addAttr(node, longName="SPH_initialVelocity", niceName="Initial velocity", at="float3")
-				cmds.addAttr(node, longName='SPHinitialVelocityX', at='float', parent='SPH_initialVelocity')
-				cmds.addAttr(node, longName='SPHinitialVelocityY', at='float', parent='SPH_initialVelocity')
-				cmds.addAttr(node, longName='SPHinitialVelocityZ', at='float', parent='SPH_initialVelocity')
-				cmds.setAttr((node + '.SPH_initialVelocity'), 0, 0, 0, type="float3")
-				
-				# resolutionSDF
-				cmds.addAttr(node, longName="SPH_resolutionSDF", niceName="SDF resolution", at="long3")
-				cmds.addAttr(node, longName='SPHresolutionSDFX', at='long', parent='SPH_resolutionSDF')
-				cmds.addAttr(node, longName='SPHresolutionSDFY', at='long', parent='SPH_resolutionSDF')
-				cmds.addAttr(node, longName='SPHresolutionSDFZ', at='long', parent='SPH_resolutionSDF')
-				cmds.setAttr((node + '.SPH_resolutionSDF'), 20, 20, 20, type="long3")
-				
-				# invert
-				cmds.addAttr(node, longName="SPH_invert", niceName="invert", at="bool");
-				cmds.setAttr((node + '.SPH_invert'), False)
-				
-				# denseMode
-				cmds.addAttr(node, longName="SPH_denseMode", niceName="Dense mode", at="enum", enumName="Regular=0:Almost dense=1:Dense=2")
-				cmds.setAttr((node + '.SPH_denseMode'), 0)
-				
+			
 				
 ######################################################
 # convertToRigidBody
@@ -506,53 +534,12 @@ class convertToRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 		for node in nodes:
 			shapeNode = PluginFunctions.getShape(node)
 			if shapeNode != None:
-				# remove all existing attributes
-				sphAttr = cmds.listAttr(node, string="SPH_*")
-				if sphAttr != None:
-					for attr in sphAttr:
-						cmds.deleteAttr(node, at=attr)
+				lst = cmds.listRelatives(node, children=True, type='SPHRigidBodyNode'  )
+				if (lst == None):
+					cmds.createNode("SPHRigidBodyNode", name="SPH_Rigid_Body", parent=node)
+				else:
+					print("The node " + node + " is already an SPH rigid body.")
 				
-				# set type 
-				cmds.addAttr(node, longName="SPH_Type", niceName="type",dt="string", hidden=True)
-				cmds.setAttr((node + '.SPH_Type'), "RigidBody", type="string")
-
-				# is dynamic
-				cmds.addAttr(node, longName="SPH_isDynamic", niceName="dynamic", at="bool");
-				cmds.setAttr((node + '.SPH_isDynamic'), False)
-				
-				# is wall
-				cmds.addAttr(node, longName="SPH_isWall", niceName="wall", at="bool");
-				cmds.setAttr((node + '.SPH_isWall'), False)
-				
-				# is dynamic
-				cmds.addAttr(node, longName="SPH_color", niceName="color", usedAsColor= True, at="float3")
-				
-				# map thickness
-				cmds.addAttr(node, longName="SPH_density", niceName="density", at="float");
-				cmds.setAttr((node + '.SPH_density'), 1000.0)
-				
-				# map invert
-				cmds.addAttr(node, longName="SPH_mapInvert", niceName="invert map", at="bool");
-				cmds.setAttr((node + '.SPH_mapInvert'), False)
-				
-				# map thickness
-				cmds.addAttr(node, longName="SPH_mapThickness", niceName="map thickness", at="float");
-				cmds.setAttr((node + '.SPH_mapThickness'), 0.0)
-				
-				# map resolution
-				cmds.addAttr(node, longName="SPH_mapResolution", niceName="map resolution", at="long3")
-				cmds.addAttr(node, longName='SPHmapResolutionX', at='long', parent='SPH_mapResolution')
-				cmds.addAttr(node, longName='SPHmapResolutionY', at='long', parent='SPH_mapResolution')
-				cmds.addAttr(node, longName='SPHmapResolutionZ', at='long', parent='SPH_mapResolution')
-				cmds.setAttr((node + '.SPH_mapResolution'), 20, 20, 20, type="long3")
-				
-						
-				cmds.addAttr(node, longName='SPHcolorR', at='float', parent='SPH_color')
-				cmds.addAttr(node, longName='SPHcolorG', at='float', parent='SPH_color')
-				cmds.addAttr(node, longName='SPHcolorB', at='float', parent='SPH_color')
-				
-				cmds.setAttr((node + '.SPH_color'), 0.2, 0.2, 0.2, type='float3')
-
 					
 
 ######################################################
@@ -620,6 +607,7 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 		scene['RigidBodies'] = []
 		scene['Emitters'] = []
 		scene['AnimationFields'] = []
+		scene['Materials'] = []
 		scene['Configuration'] = OrderedDict()
 			
 		sphConfigList = cmds.ls( type='SPHConfigurationNode', long=True ) 
@@ -644,6 +632,8 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 		for attr in attributes:
 			if cmds.getAttr(sphConfig + "." + attr, type=True) == "float3":
 				value = cmds.getAttr(sphConfig + "." + attr)[0]
+			elif cmds.getAttr(sphConfig + "." + attr, type=True) == "long3":
+				value = cmds.getAttr(sphConfig + "." + attr)[0]
 			else:
 				value = cmds.getAttr(sphConfig + "." + attr)
 						
@@ -659,20 +649,25 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 
 		for fluid in fluidConfigList:
 			attributes = cmds.listAttr(fluid, string="SPH_*", sn=False)
-			scene[fluid] = OrderedDict()
+			mat = OrderedDict()
+			mat['id'] = fluid
 			for attr in attributes:
 				if cmds.getAttr(fluid + "." + attr, type=True) == "float3":
 					value = cmds.getAttr(fluid + "." + attr)[0]
+				elif cmds.getAttr(fluid + "." + attr, type=True) == "long3":
+					value = cmds.getAttr(fluid + "." + attr)[0]
 				else:
 					value = cmds.getAttr(fluid + "." + attr)
-				scene[fluid][attr[4:]] = value
+				mat[attr[4:]] = value
+			scene["Materials"].append(mat)
+
 					
-		rigidBodies = PluginFunctions.getAllNodesOfType("RigidBody")
-		for rb in rigidBodies:
+		rigidBodyList = cmds.ls( type='SPHRigidBodyNode', long=False ) 
+		for rb in rigidBodyList:
 			self.addRigidBody(scene, rb, scenePath)
 			
-		fluidModels = PluginFunctions.getAllNodesOfType("Fluid")
-		for fluid in fluidModels:
+		fluidList = cmds.ls( type='SPHFluidNode', long=False ) 
+		for fluid in fluidList:
 			self.addFluid(scene, fluid, scenePath)
 			
 		emitters = PluginFunctions.getAllNodesOfType("RectangularEmitter")
@@ -701,40 +696,43 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 	def addRigidBody(self, scene, rbNode, scenePath):
 		
 		# export geometry
-		cmds.select([rbNode], replace=True)
+		tr = cmds.listRelatives( rbNode, allParents=True )
+		cmds.select(tr, replace=True)
+			
+		# export geometry
 		polyTri = cmds.polyTriangulate()
 		name = cmds.ls( selection=True, type='transform', long=False )[0] 
 		fileName = os.path.join(scenePath, "rb_" + name + ".obj")
 		cmds.file(fileName, force=True, options="groups=0;ptgroups=0;materials=0;smoothing=0;normals=0", pr=True, exportSelected=True, type="OBJexport")
 		cmds.delete(polyTri)
+		
+		attributes = cmds.listAttr(rbNode, string="SPH_*", sn=False)
+		rb = OrderedDict()
+		for attr in attributes:
+			if cmds.getAttr(rbNode + "." + attr, type=True) == "float3":
+				value = cmds.getAttr(rbNode + "." + attr)[0]
+			elif cmds.getAttr(rbNode + "." + attr, type=True) == "long3":
+				value = cmds.getAttr(rbNode + "." + attr)[0]
+			else:
+				value = cmds.getAttr(rbNode + "." + attr)
 
-		isDynamic = cmds.getAttr(rbNode + ".SPH_isDynamic")
-		isWall = cmds.getAttr(rbNode + ".SPH_isWall")
-		density = cmds.getAttr(rbNode + ".SPH_density")
-		mapInvert = cmds.getAttr(rbNode + ".SPH_mapInvert")
-		mapThickness = cmds.getAttr(rbNode + ".SPH_mapThickness")
-		mapResolution = cmds.getAttr(rbNode + ".SPH_mapResolution")[0]
-		color = cmds.getAttr(rbNode + ".SPH_color")[0]
-		color = color + (1.0,)
-		rb = {  'geometryFile': "rb_" + name + ".obj",
-				'translation': [0,0,0],
-				'rotationAxis': [1,0,0],
-				'rotationAngle': 0.0,
-				'scale': [1,1,1],
-				'color': color,
-				'isDynamic': isDynamic,
-				'isWall' : isWall,
-				'density' : density,
-				'mapInvert': mapInvert,
-				'mapThickness': mapThickness,
-				'mapResolution': mapResolution,
-				'collisionObjectType': 5,
-				'collisionObjectScale': [1,1,1],
-				'resolutionSDF': mapResolution,
-				'invertSDF': mapInvert
-			}
-	 
+			# avoid to write child attributes
+			parent = cmds.attributeQuery( attr, node=rbNode, listParent=True )
+			if parent == None:
+				rb[attr[4:]] = value
+		
+		rb['translation'] = [0,0,0]
+		rb['rotationaxis'] = [1,0,0]
+		rb['rotationangle'] = 0.0
+		rb['scale'] = [1,1,1]
+		rb['geometryFile'] = "rb_" + name + ".obj"
+			
 		scene['RigidBodies'].append(rb)
+		
+		#color = cmds.getAttr(rbNode + ".SPH_color")[0]
+		#color = color + (1.0,)
+
+		
 		
 	######################################################
 	# add fluid
@@ -742,37 +740,40 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 	def addFluid(self, scene, fluidNode, scenePath):
 		
 		# export geometry
-		cmds.select([fluidNode], replace=True)
-		polyTri = cmds.polyTriangulate()
-		name = cmds.ls( selection=True, type='transform', long=False )[0] 
-		fileName = os.path.join(scenePath, "fluid_" + name + ".obj")
-		cmds.file(fileName, force=True, options="groups=0;ptgroups=0;materials=0;smoothing=0;normals=0", pr=True, exportSelected=True, type="OBJexport")
-		cmds.delete(polyTri)
-
-		initialVelocity = cmds.getAttr(fluidNode + ".SPH_initialVelocity")[0]
-		resSDF = cmds.getAttr(fluidNode + ".SPH_resolutionSDF")[0]
-		fluidId = cmds.getAttr(fluidNode + ".SPH_fluidId")
+		tr = cmds.listRelatives( fluidNode, allParents=True )
+		cmds.select(tr, replace=True)
 		
-		# get all fluidIds
-		fluidIds = cmds.ls( type='SPHFluidConfigurationNode', long=False ) 
-		if fluidId not in fluidIds:
-			cmds.warning("The node '" + fluidNode + "' uses the fluid material '" + fluidId + "' which is not defined in the scene.")
+		particleFile = cmds.getAttr(fluidNode + ".particleFile")
+		name = ""
+		if (particleFile == ""):
+			polyTri = cmds.polyTriangulate()
+			name = cmds.ls( selection=True, type='transform', long=False )[0] 
+			fileName = os.path.join(scenePath, "fluid_" + name + ".obj")
+			cmds.file(fileName, force=True, options="groups=0;ptgroups=0;materials=0;smoothing=0;normals=0", pr=True, exportSelected=True, type="OBJexport")
+			cmds.delete(polyTri)
+	
+		attributes = cmds.listAttr(fluidNode, string="SPH_*", sn=False)
+		fluid = OrderedDict()
+		for attr in attributes:
+			if cmds.getAttr(fluidNode + "." + attr, type=True) == "float3":
+				value = cmds.getAttr(fluidNode + "." + attr)[0]
+			elif cmds.getAttr(fluidNode + "." + attr, type=True) == "long3":
+				value = cmds.getAttr(fluidNode + "." + attr)[0]
+			else:
+				value = cmds.getAttr(fluidNode + "." + attr)
 
-		denseMode = cmds.getAttr(fluidNode + ".SPH_denseMode")
-		invert = cmds.getAttr(fluidNode + ".SPH_invert")
-		fluid = {  
-				'id': fluidId,
-				'particleFile': "fluid_" + name + ".obj",
-				'translation': [0,0,0],
-				'rotationAxis': [1,0,0],
-				'rotationAngle': 0.0,
-				'scale': [1,1,1],
-				'initialVelocity': initialVelocity,
-				'resolutionSDF': resSDF,
-				'denseMode': denseMode,
-				'invert': invert
-			}
-	 
+			# avoid to write child attributes
+			parent = cmds.attributeQuery( attr, node=fluidNode, listParent=True )
+			if parent == None:
+				fluid[attr[4:]] = value
+			
+		if (particleFile == ""):
+			fluid['particleFile'] = "fluid_" + name + ".obj"
+		fluid['translation'] = [0,0,0]
+		fluid['rotationaxis'] = [1,0,0]
+		fluid['rotationangle'] = 0.0
+		fluid['scale'] = [1,1,1]
+			
 		scene['FluidModels'].append(fluid)
 		
 		
@@ -873,7 +874,40 @@ class saveModelCmd(OpenMayaMPx.MPxCommand):
 			}
 	 
 		scene['AnimationFields'].append(animField)		
-							
+		
+def addAttributesToSPHNode(node):
+	# add attributes	
+	for key in node.sphParameters:
+		params = node.sphParameters[key]
+		for param in params:
+			paramType = param["type"]
+			paramName = param["name"]
+			paramLabel = param["label"]
+			if paramType == "bool":
+				attr = PluginFunctions.createBoolAttr("SPH_" + paramName, paramName, param["value"])
+				node.addAttribute( attr )						
+			elif paramType == "float":
+				attr = PluginFunctions.createFloatAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
+				node.addAttribute( attr )					
+			elif paramType == "int":
+				attr = PluginFunctions.createIntAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
+				node.addAttribute( attr )
+			elif paramType == "vec3":
+				attr = PluginFunctions.createVec3Attr("SPH_" + paramName, paramName, param["value"])
+				node.addAttribute( attr )
+			elif paramType == "color":
+				attr = PluginFunctions.createColorAttr("SPH_" + paramName, paramName, param["value"])
+				node.addAttribute( attr )
+			elif paramType == "vec3i":
+				attr = PluginFunctions.createVec3iAttr("SPH_" + paramName, paramName, param["value"])
+				node.addAttribute( attr )
+			elif paramType == "enum":
+				attr = PluginFunctions.createEnumAttr("SPH_" + paramName, paramName, param["value"], param["enumList"])
+				node.addAttribute( attr )
+			elif paramType == "string":
+				attr = PluginFunctions.createStringAttr("SPH_" + paramName, paramName, param["value"])
+				node.addAttribute( attr )
+		
 
 # Node definition
 class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
@@ -895,32 +929,8 @@ class SPHConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 	# initializer
 	@staticmethod
 	def initialize():
-	
 		SPHConfigurationNode.initParameters()
-		
-		# add attributes	
-		for key in SPHConfigurationNode.sphParameters:
-			params = SPHConfigurationNode.sphParameters[key]
-			for param in params:
-				paramType = param["type"]
-				paramName = param["name"]
-				paramLabel = param["label"]
-				if paramType == "bool":
-					attr = PluginFunctions.createBoolAttr("SPH_" + paramName, paramName, param["value"])
-					SPHConfigurationNode.addAttribute( attr )						
-				elif paramType == "float":
-					attr = PluginFunctions.createFloatAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
-					SPHConfigurationNode.addAttribute( attr )					
-				elif paramType == "int":
-					attr = PluginFunctions.createIntAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
-					SPHConfigurationNode.addAttribute( attr )
-				elif paramType == "vec3":
-					attr = PluginFunctions.createVec3Attr("SPH_" + paramName, paramName, param["value"])
-					SPHConfigurationNode.addAttribute( attr )
-				elif paramType == "enum":
-					attr = PluginFunctions.createEnumAttr("SPH_" + paramName, paramName, param["value"], param["enumList"])
-					SPHConfigurationNode.addAttribute( attr )
-		
+		addAttributesToSPHNode(SPHConfigurationNode)	
 
 	# creator
 	@staticmethod
@@ -1019,32 +1029,8 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 	# initializer
 	@staticmethod
 	def initialize():
-	
 		SPHFluidConfigurationNode.initParameters()
-		
-		# add attributes	
-		for key in SPHFluidConfigurationNode.sphParameters:
-			params = SPHFluidConfigurationNode.sphParameters[key]
-			for param in params:
-				paramType = param["type"]
-				paramName = param["name"]
-				paramLabel = param["label"]
-				if paramType == "bool":
-					attr = PluginFunctions.createBoolAttr("SPH_" + paramName, paramName, param["value"])
-					SPHConfigurationNode.addAttribute( attr )						
-				elif paramType == "float":
-					attr = PluginFunctions.createFloatAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
-					SPHConfigurationNode.addAttribute( attr )					
-				elif paramType == "int":
-					attr = PluginFunctions.createIntAttr("SPH_" + paramName, paramName, param["value"], param["min"], param["max"], param["fieldMin"], param["fieldMax"])
-					SPHConfigurationNode.addAttribute( attr )
-				elif paramType == "vec3":
-					attr = PluginFunctions.createVec3Attr("SPH_" + paramName, paramName, param["value"])
-					SPHConfigurationNode.addAttribute( attr )
-				elif paramType == "enum":
-					attr = PluginFunctions.createEnumAttr("SPH_" + paramName, paramName, param["value"], param["enumList"])
-					SPHConfigurationNode.addAttribute( attr )
-		
+		addAttributesToSPHNode(SPHFluidConfigurationNode)	
 
 	# creator
 	@staticmethod
@@ -1094,6 +1080,131 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createEnumParam("surfaceTensionMethod", "Surface tension method", "Method to compute surface tension forces.", 0, ["None", "Becker & Teschner 2007", "Akinci et al. 2013", "He et al. 2014"]),
 			PluginFunctions.createFloatParam("surfaceTension", "Surface tension coefficient", "Coefficient for the surface tension computation.", 0.05, 0, 100.0, 0)
 		]
+		SPHFluidConfigurationNode.sphParameters["Elasticity"] = [	
+			PluginFunctions.createEnumParam("elasticityMethod", "Elasticity method", "Method to compute elastic forces.", 0, ["None", "Becker et al. 2009", "Peer et al. 2018"]),
+			PluginFunctions.createFloatParam("youngsModulus", "Young's modulus", "Stiffness of the elastic material.", 100000.0, 0, 1000.0, 0),
+			PluginFunctions.createFloatParam("poissonsRatio", "Poisson's ratio", "Ratio of transversal expansion and axial compression.", 0.3, -0.9999, 0.4999, -0.9999),
+			PluginFunctions.createIntParam("elasticityMaxIter", "Max. iterations (elasticity)", "(Implicit solvers) Max. iterations of the elasticity solver.", 100, 1, 1000),
+			PluginFunctions.createFloatParam("elasticityMaxError", "Max. elasticity error", "(Implicit solvers) Max. error of the elasticity solver.", 0.0001, 1e-6, 1, 0),
+			PluginFunctions.createFloatParam("alpha", "Zero-energy modes suppression", "Coefficent for zero-energy modes suppression method.", 0.0, 0, 10000.0, 0)
+		]
+        
+        
+class SPHFluidNode(OpenMayaMPx.MPxLocatorNode):
+	kPluginNodeId = OpenMaya.MTypeId(0x90002)
+	kPluginNodeTypeName = "SPHFluidNode"
+	 
+	# class variables
+	input = OpenMaya.MObject()
+	dataAttr = OpenMaya.MObject()
+	sphParameters = OrderedDict()
+	
+	def __init__(self):
+		OpenMayaMPx.MPxLocatorNode.__init__(self)
+			
+	
+	def postConstructor(self):
+		OpenMayaMPx.MPxLocatorNode.postConstructor(self) 
+		
+	# initializer
+	@staticmethod
+	def initialize():
+		SPHFluidNode.initParameters()
+		addAttributesToSPHNode(SPHFluidNode)
+		
+
+	# creator
+	@staticmethod
+	def creator():
+		return OpenMayaMPx.asMPxPtr( SPHFluidNode() )
+
+	def compute(self,plug,dataBlock):
+		# if ( plug == SPHFluidNode.output ):
+				# dataHandle = dataBlock.inputValue( SPHFluidNode.input )
+				
+				# inputFloat = dataHandle.asFloat()
+				# result = math.sin( inputFloat ) * 10.0
+				# outputHandle = dataBlock.outputValue( SPHFluidNode.output )
+				# outputHandle.setFloat( result )
+				# dataBlock.setClean( plug )
+
+		return OpenMaya.kUnknownParameter
+
+	######################################################
+	# initParameters
+	######################################################	
+	@staticmethod	
+	def initParameters():
+		SPHFluidNode.sphParameters["General"] = [
+			PluginFunctions.createStringParam("id", "Fluid id", "Id of the fluid material.", "Fluid"),
+			PluginFunctions.createVec3Param("initialVelocity", "Initial velocity", "Initial velocity of the fluid.", [0.0,0.0,0.0]),
+			PluginFunctions.createVec3Param("initialAngularVelocity", "Initial angular velocity", "Initial angular velocity of the fluid.", [0.0,0.0,0.0]),
+			PluginFunctions.createVec3iParam("resolutionSDF", "SDF resolution", "Resolution of the SDF.", [20,20,20]),			
+			PluginFunctions.createBoolParam("invert", "Invert SDF", "Invert the SDF, flips inside/outside.", False), 
+			PluginFunctions.createEnumParam("denseMode", "Dense mode", "Sampling mode.", 0, ["Regular", "Almost dense", "Dense"]),
+			PluginFunctions.createStringParam("particleFile", "Particle sampling file", "Particle sampling file.", ""),
+		]
+		
+	
+class SPHRigidBodyNode(OpenMayaMPx.MPxLocatorNode):
+	kPluginNodeId = OpenMaya.MTypeId(0x90003)
+	kPluginNodeTypeName = "SPHRigidBodyNode"
+	 
+	# class variables
+	input = OpenMaya.MObject()
+	dataAttr = OpenMaya.MObject()
+	sphParameters = OrderedDict()
+	
+	def __init__(self):
+		OpenMayaMPx.MPxLocatorNode.__init__(self)
+			
+	
+	def postConstructor(self):
+		OpenMayaMPx.MPxLocatorNode.postConstructor(self) 
+		
+	# initializer
+	@staticmethod
+	def initialize():
+		SPHRigidBodyNode.initParameters()
+		addAttributesToSPHNode(SPHRigidBodyNode)
+		
+
+	# creator
+	@staticmethod
+	def creator():
+		return OpenMayaMPx.asMPxPtr( SPHRigidBodyNode() )
+
+	def compute(self,plug,dataBlock):
+		# if ( plug == SPHRigidBodyNode.output ):
+				# dataHandle = dataBlock.inputValue( SPHRigidBodyNode.input )
+				
+				# inputFloat = dataHandle.asFloat()
+				# result = math.sin( inputFloat ) * 10.0
+				# outputHandle = dataBlock.outputValue( SPHRigidBodyNode.output )
+				# outputHandle.setFloat( result )
+				# dataBlock.setClean( plug )
+
+		return OpenMaya.kUnknownParameter
+
+	######################################################
+	# initParameters
+	######################################################	
+	@staticmethod	
+	def initParameters():
+		SPHRigidBodyNode.sphParameters["General"] = [
+			PluginFunctions.createBoolParam("isDynamic", "Dynamic", "Defines if the body is static or dynamic.", False), 
+			PluginFunctions.createBoolParam("isWall", "Wall", "Defines if this is a wall. Walls are typically not rendered. This is the only difference.", False), 
+			PluginFunctions.createColorParam("color", "Color", "Color of the body", [0.2, 0.2, 0.2]),
+			PluginFunctions.createFloatParam("density", "Density", "Rest density of the body.", 1000.0, 0, 100000.0, 0),
+			PluginFunctions.createVec3iParam("mapResolution", "Map resolution", "Resolution of the volume/density map.", [20,20,20]),			
+			PluginFunctions.createBoolParam("mapInvert", "Invert map", "Invert the volume/density map, flips inside/outside.", False),
+			PluginFunctions.createFloatParam("mapThickness", "Map thickness", "Thickness of the map.", 0.0, 0, 100.0, 0),
+			PluginFunctions.createVec3iParam("resolutionSDF", "SDF resolution", "Resolution of the SDF.", [20,20,20]),			
+			PluginFunctions.createBoolParam("invert", "Invert SDF", "Invert the SDF, flips inside/outside.", False), 			
+			PluginFunctions.createEnumParam("samplingMode", "Sampling mode", "Sampling mode.", 0, ["Poisson disk sanmpling", "Regular triangle sampling"]),
+		]
+		
+	
 
 ######################################################
 # loadRigidBodies
@@ -1257,9 +1368,9 @@ def createSPHMenu():
 		'cmds.createNode("SPHConfigurationNode", name="Configuration", parent="SPH_Config")')
 		
 	cmds.menuItem( label='Add fluid material',command=
-		'if "SPH_Fluid" not in cmds.ls( type="transform"):\n' +
-		'	cmds.createNode("transform", name="SPH_Fluid")\n' +
-		'cmds.createNode("SPHFluidConfigurationNode", name="Fluid", parent="SPH_Fluid")')
+		'if "SPH_Fluid_Material" not in cmds.ls( type="transform"):\n' +
+		'	cmds.createNode("transform", name="SPH_Fluid_Material")\n' +
+		'cmds.createNode("SPHFluidConfigurationNode", name="Fluid", parent="SPH_Fluid_Material")')
 		
 	cmds.menuItem(divider=True)
 	cmds.menuItem( label='Convert selection to fluid',command='cmds.convertToFluid()' )
@@ -1305,6 +1416,8 @@ def initializePlugin(mobject):
 	try:
 		mplugin.registerNode( SPHConfigurationNode.kPluginNodeTypeName, SPHConfigurationNode.kPluginNodeId, SPHConfigurationNode.creator, SPHConfigurationNode.initialize, OpenMayaMPx.MPxNode.kLocatorNode )
 		mplugin.registerNode( SPHFluidConfigurationNode.kPluginNodeTypeName, SPHFluidConfigurationNode.kPluginNodeId, SPHFluidConfigurationNode.creator, SPHFluidConfigurationNode.initialize, OpenMayaMPx.MPxNode.kLocatorNode )
+		mplugin.registerNode( SPHFluidNode.kPluginNodeTypeName, SPHFluidNode.kPluginNodeId, SPHFluidNode.creator, SPHFluidNode.initialize, OpenMayaMPx.MPxNode.kLocatorNode )
+		mplugin.registerNode( SPHRigidBodyNode.kPluginNodeTypeName, SPHRigidBodyNode.kPluginNodeId, SPHRigidBodyNode.creator, SPHRigidBodyNode.initialize, OpenMayaMPx.MPxNode.kLocatorNode )
 		
 		mplugin.registerCommand(createRectangularEmitterCmd.s_name, createRectangularEmitterCmd.creator)
 		mplugin.registerCommand(createCircularEmitterCmd.s_name, createCircularEmitterCmd.creator)
@@ -1335,6 +1448,8 @@ def uninitializePlugin(mobject):
 		mplugin.deregisterCommand(createAnimationFieldCmd.s_name)
 		mplugin.deregisterCommand(loadRigidBodiesCmd.s_name)
 		
+		mplugin.deregisterNode( SPHRigidBodyNode.kPluginNodeId )
+		mplugin.deregisterNode( SPHFluidNode.kPluginNodeId )
 		mplugin.deregisterNode( SPHFluidConfigurationNode.kPluginNodeId )
 		mplugin.deregisterNode( SPHConfigurationNode.kPluginNodeId )
 	except:

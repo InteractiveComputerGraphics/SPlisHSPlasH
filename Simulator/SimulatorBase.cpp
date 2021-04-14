@@ -43,6 +43,7 @@ int SimulatorBase::DATA_EXPORT_FPS = -1;
 int SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES = -1;
 int SimulatorBase::STATE_EXPORT = -1;
 int SimulatorBase::STATE_EXPORT_FPS = -1;
+int SimulatorBase::ASYNC_EXPORT = -1;
 int SimulatorBase::RENDER_WALLS = -1;
 int SimulatorBase::ENUM_WALLS_NONE = -1;
 int SimulatorBase::ENUM_WALLS_PARTICLES_ALL = -1;
@@ -68,6 +69,7 @@ SimulatorBase::SimulatorBase()
 	m_enableRigidBodyVTKExport = false;
 	m_enableRigidBodyExport = false;
 	m_enableStateExport = false;
+	m_enableAsyncExport = false;
 	m_framesPerSecond = 25;
 	m_framesPerSecondState = 1;
 	m_nextFrameTime = 0.0;
@@ -82,6 +84,7 @@ SimulatorBase::SimulatorBase()
 	m_renderMaxValue.resize(1, 5.0);
 	m_particleAttributes = "velocity";
 	m_timeStepCB = nullptr;
+	m_resetCB = nullptr;
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
@@ -148,12 +151,16 @@ void SimulatorBase::initParameters()
 	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export");
 	setDescription(PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
 
+	ASYNC_EXPORT = createBoolParameter("enableAsyncExport", "Asynchronous export", &m_enableAsyncExport);
+	setGroup(ASYNC_EXPORT, "Export");
+	setDescription(ASYNC_EXPORT, "Enable/disable asynchronous export of data. The total performance is faster but disable it when measuring the timings of simulation components. \n\n Currently only supported by partio exporter.");
+
 	for (size_t i = 0; i < m_particleExporters.size(); i++)
 	{
 		m_particleExporters[i].m_id = createBoolParameter(m_particleExporters[i].m_key, m_particleExporters[i].m_name, 
 			[i,this]() -> bool { return m_particleExporters[i].m_exporter->getActive(); },
 			[i,this](bool active) { m_particleExporters[i].m_exporter->setActive(active); });
-		setGroup(m_particleExporters[i].m_id, "Export");
+		setGroup(m_particleExporters[i].m_id, "Particle exporters");
 		setDescription(m_particleExporters[i].m_id, m_particleExporters[i].m_description);
 	}
 
@@ -162,7 +169,7 @@ void SimulatorBase::initParameters()
 		m_rbExporters[i].m_id = createBoolParameter(m_rbExporters[i].m_key, m_rbExporters[i].m_name,
 			[i, this]() -> bool { return m_rbExporters[i].m_exporter->getActive(); },
 			[i, this](bool active) { m_rbExporters[i].m_exporter->setActive(active); });
-		setGroup(m_rbExporters[i].m_id, "Export");
+		setGroup(m_rbExporters[i].m_id, "Rigid body exporters");
 		setDescription(m_rbExporters[i].m_id, m_rbExporters[i].m_description);
 	}
 }
@@ -442,6 +449,7 @@ void SimulatorBase::initSimulation()
 
 	m_boundarySimulator->init();
 
+	readParameters();
 	if (m_useGUI)
 	{
 		Simulation *sim = Simulation::getCurrent();
@@ -453,7 +461,7 @@ void SimulatorBase::initSimulation()
 			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase()); });
 			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase()); });
 			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase()); });
-			model->setElasticityMethodChangedCallback([this, model]() { reset(); m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
+			model->setElasticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
 		}
 
 		m_gui->initSimulationParameterGUI();
@@ -466,14 +474,41 @@ void SimulatorBase::initSimulation()
 #endif
 			});
 	}
-	readParameters();
 	setCommandLineParameter();
 	updateScalarField();
+
+	m_boundarySimulator->initBoundaryData();
+}
+
+void SimulatorBase::deferredInit()
+{
+	Simulation* sim = Simulation::getCurrent();
+	if (m_useGUI)
+	{
+		for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+		{
+			FluidModel* model = sim->getFluidModel(i);
+			if (model->getDragBase())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getDragBase());
+			if (model->getSurfaceTensionBase())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase());
+			if (model->getViscosityBase())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase());
+			if (model->getVorticityBase())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase());
+			if (model->getElasticityBase())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase());
+			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+		}
+		m_gui->initSimulationParameterGUI();
+	}
+	sim->setSimulationInitialized(true);
+	m_boundarySimulator->deferredInit();
 }
 
 void SimulatorBase::runSimulation()
 {
-	m_boundarySimulator->initBoundaryData();
+	deferredInit();
 
 	if (getStateFile() != "")
 		loadState(getStateFile());
@@ -729,6 +764,25 @@ void SimulatorBase::reset()
 		m_particleExporters[i].m_exporter->reset();
 	for (size_t i = 0; i < m_rbExporters.size(); i++)
 		m_rbExporters[i].m_exporter->reset();
+
+	if (m_resetCB)
+		m_resetCB();
+}
+
+void SimulatorBase::singleTimeStep()
+{
+	const unsigned int numSteps = getValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER);
+	setValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER, 1);
+	setValue<bool>(SimulatorBase::PAUSE, false);
+
+	timeStep();
+
+	setValue<unsigned int>(SimulatorBase::NUM_STEPS_PER_RENDER, numSteps);
+	setValue<bool>(SimulatorBase::PAUSE, true);
+
+	const Real stopAt = getValue<Real>(SimulatorBase::STOP_AT);
+	if (m_gui && (stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
+		m_gui->stop();
 }
 
 void SimulatorBase::timeStep()
@@ -831,6 +885,7 @@ bool SimulatorBase::timeStepNoGUI()
 void SimulatorBase::updateScalarField()
 {
 	Simulation* sim = Simulation::getCurrent();
+	m_scalarField.resize(sim->numberOfFluidModels());
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < sim->numberOfFluidModels(); fluidModelIndex++)
 	{
 		FluidModel* model = sim->getFluidModel(fluidModelIndex);
@@ -842,36 +897,36 @@ void SimulatorBase::updateScalarField()
 
 		if (field != nullptr)
 		{
-			m_scalarField.resize(model->numActiveParticles());
+			m_scalarField[fluidModelIndex].resize(model->numActiveParticles());
 			for (unsigned int i = 0u; i < model->numActiveParticles(); i++)
 			{
 				if (field->type == FieldType::Vector3)
 				{
 					Eigen::Map<Vector3r> vec((Real*)field->getFct(i));
-					m_scalarField[i] = static_cast<float>(vec.norm());
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(vec.norm());
 				}
 				else if (field->type == FieldType::Scalar)
 				{
-					m_scalarField[i] = static_cast<float>(*(Real*)field->getFct(i));
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(*(Real*)field->getFct(i));
 				}
 				else if (field->type == FieldType::UInt)
 				{
-					m_scalarField[i] = static_cast<float>(*(unsigned int*)field->getFct(i));
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(*(unsigned int*)field->getFct(i));
 				}
 				else if (field->type == FieldType::Matrix3)
 				{
 					Eigen::Map<Matrix3r> m((Real*)field->getFct(i));
-					m_scalarField[i] = static_cast<float>(m.norm());
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(m.norm());
 				}
 				else if (field->type == FieldType::Vector6)
 				{
 					Eigen::Map<Vector6r> m((Real*)field->getFct(i));
-					m_scalarField[i] = static_cast<float>(m.norm());
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(m.norm());
 				}
 				else if (field->type == FieldType::Matrix6)
 				{
 					Eigen::Map<Matrix6r> m((Real*)field->getFct(i));
-					m_scalarField[i] = static_cast<float>(m.norm());
+					m_scalarField[fluidModelIndex][i] = static_cast<float>(m.norm());
 				}
 			}
 		}
@@ -930,6 +985,22 @@ void SimulatorBase::activateExporter(const std::string& exporterName, const bool
 	}
 }
 
+void SimulatorBase::setInitialVelocity(const Vector3r& vel, const Vector3r& angVel, const unsigned int numParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities)
+{
+	Vector3r com;
+	com.setZero();
+	for (auto i = 0; i < numParticles; i++)
+	{
+		// all have the same mass
+		com += fluidParticles[i];
+	}
+	com /= (Real)numParticles;
+	for (auto i = 0; i < numParticles; i++)
+	{
+		fluidVelocities[i] = vel + angVel.cross(fluidParticles[i] - com);
+	}
+}
+
 void SimulatorBase::initFluidData()
 {
 	LOG_INFO << "Initialize fluid particles";
@@ -978,6 +1049,7 @@ void SimulatorBase::initFluidData()
 	for (unsigned int i = 0; i < scene.fluidModels.size(); i++)
 	{
 		const unsigned int fluidIndex = fluidIDs[scene.fluidModels[i]->id];
+		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
 
 		std::string fileName;
 		if (FileSystem::isRelativePath(scene.fluidModels[i]->samplesFile))
@@ -1003,10 +1075,11 @@ void SimulatorBase::initFluidData()
 			std::string mesh_base_path = FileSystem::getFilePath(fileName);
 			std::string mesh_file_name = FileSystem::getFileName(fileName);
 
+			std::string invert = to_string(scene.fluidModels[i]->invert);
 			std::string mode = to_string(scene.fluidModels[i]->mode);
-			const string scaleStr = real2String(scene.fluidModels[i]->scale[0]) + "_" + real2String(scene.fluidModels[i]->scale[1]) + "_" + real2String(scene.fluidModels[i]->scale[2]);
+			const string scaleStr = StringTools::real2String(scene.fluidModels[i]->scale[0]) + "_" + StringTools::real2String(scene.fluidModels[i]->scale[1]) + "_" + StringTools::real2String(scene.fluidModels[i]->scale[2]);
 			const string resStr = to_string(scene.fluidModels[i]->resolutionSDF[0]) + "_" + to_string(scene.fluidModels[i]->resolutionSDF[1]) + "_" + to_string(scene.fluidModels[i]->resolutionSDF[2]);
-			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_fluid_" + real2String(scene.particleRadius) + "_m" + mode + "_s" + scaleStr + "_r" + resStr + ".bgeo");
+			const string particleFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_fluid_" + StringTools::real2String(scene.particleRadius) + "_i" + invert + "_m" + mode + "_s" + scaleStr + "_r" + resStr + ".bgeo");
 
 			// check MD5 if cache file is available
 			bool foundCacheFile = false;
@@ -1040,7 +1113,7 @@ void SimulatorBase::initFluidData()
 				STOP_TIMING_AVG;
                 const unsigned int size_after_sampling = fluidParticles[fluidIndex].size();
 
-				fluidVelocities[fluidIndex].resize(fluidParticles[fluidIndex].size(), scene.fluidModels[i]->initialVelocity);
+				fluidVelocities[fluidIndex].resize(fluidParticles[fluidIndex].size());
 
 				// Cache sampling
 				if (useCache && (FileSystem::makeDir(cachePath) == 0))
@@ -1061,6 +1134,9 @@ void SimulatorBase::initFluidData()
 			if (!PartioReaderWriter::readParticles(fileName, scene.fluidModels[i]->translation, scene.fluidModels[i]->rotation, scene.fluidModels[i]->scale[0], fluidParticles[fluidIndex], fluidVelocities[fluidIndex]))
 				LOG_ERR << "File not found: " << fileName;
 		}
+
+		const unsigned int numAddedParticles = (unsigned int)fluidParticles[fluidIndex].size() - startIndex;
+		setInitialVelocity(scene.fluidModels[i]->initialVelocity, scene.fluidModels[i]->initialAngularVelocity, numAddedParticles, &fluidParticles[fluidIndex][startIndex], &fluidVelocities[fluidIndex][startIndex]);
 		Simulation::getCurrent()->setValue(Simulation::PARTICLE_RADIUS, scene.particleRadius);
 	}
 
@@ -1235,8 +1311,10 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 		int stepsZ = (int)round(diff[2] / diam) - 1;
 
 		Vector3r start = scene.fluidBlocks[i]->box.m_minX + static_cast<Real>(2.0)*scene.particleRadius*Vector3r::Ones();
-		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + stepsX*stepsY*stepsZ);
-		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + stepsX*stepsY*stepsZ, scene.fluidBlocks[i]->initialVelocity);
+		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
+		const unsigned int numAddedParticles = stepsX * stepsY * stepsZ;
+		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + numAddedParticles);
+		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + numAddedParticles);
 
 		if (Simulation::getCurrent()->is2DSimulation())
 		{
@@ -1277,6 +1355,7 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 				}
 			}
 		}
+		setInitialVelocity(scene.fluidBlocks[i]->initialVelocity, scene.fluidBlocks[i]->initialAngularVelocity, numAddedParticles, &fluidParticles[fluidIndex][startIndex], &fluidVelocities[fluidIndex][startIndex]);
 	}
 }
 
@@ -1369,7 +1448,6 @@ void SimulatorBase::step()
 #endif
 }
 
-
 void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -1442,21 +1520,12 @@ void SPH::SimulatorBase::updateVMVelocity()
 	}
 }
 
-
-std::string SimulatorBase::real2String(const Real r)
-{
-	string str = to_string(r);
-	str.erase(str.find_last_not_of('0') + 1, std::string::npos);
-	str.erase(str.find_last_not_of('.') + 1, std::string::npos);
-	return str;
-}
-
 void SPH::SimulatorBase::saveState(const std::string& stateFile)
 {
 	std::string stateFilePath; 
 	std::string exportFileName;
 	const Real time = TimeManager::getCurrent()->getTime();
-	const std::string timeStr = real2String(time);
+	const std::string timeStr = StringTools::real2String(time);
 	if (stateFile == "")
 	{
 		stateFilePath = FileSystem::normalizePath(m_outputPath + "/state");
@@ -2109,16 +2178,16 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 
 
 	Eigen::Matrix<unsigned int, 3, 1> resolutionSDF = boundaryData->mapResolution;
-	const string scaleStr = "s" + real2String(boundaryData->scale[0]) + "_" + real2String(boundaryData->scale[1]) + "_" + real2String(boundaryData->scale[2]);
+	const string scaleStr = "s" + StringTools::real2String(boundaryData->scale[0]) + "_" + StringTools::StringTools::real2String(boundaryData->scale[1]) + "_" + StringTools::real2String(boundaryData->scale[2]);
 	const string resStr = "r" + to_string(resolutionSDF[0]) + "_" + to_string(resolutionSDF[1]) + "_" + to_string(resolutionSDF[2]);
 	const string invertStr = "i" + to_string((int)boundaryData->mapInvert);
-	const string thicknessStr = "t" + real2String(boundaryData->mapThickness);
+	const string thicknessStr = "t" + StringTools::real2String(boundaryData->mapThickness);
 	const string kernelStr = "k" + to_string(sim->getKernel());
 	string densityMapFileName = "";
 	if (isDynamic)
-		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_dm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
+		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_dm_" + StringTools::real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
 	else 
-		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_dm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
+		densityMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_dm_" + StringTools::real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + kernelStr + ".cdm");
 
 	// check MD5 if cache file is available
 	bool foundCacheFile = false;
@@ -2299,15 +2368,15 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 	std::string mesh_file_name = FileSystem::getFileName(boundaryData->meshFile);
 
 	Eigen::Matrix<unsigned int, 3, 1> resolutionSDF = boundaryData->mapResolution;
-	const string scaleStr = "s" + real2String(boundaryData->scale[0]) + "_" + real2String(boundaryData->scale[1]) + "_" + real2String(boundaryData->scale[2]);
+	const string scaleStr = "s" + StringTools::real2String(boundaryData->scale[0]) + "_" + StringTools::real2String(boundaryData->scale[1]) + "_" + StringTools::real2String(boundaryData->scale[2]);
 	const string resStr = "r" + to_string(resolutionSDF[0]) + "_" + to_string(resolutionSDF[1]) + "_" + to_string(resolutionSDF[2]);
 	const string invertStr = "i" + to_string((int)boundaryData->mapInvert);
-	const string thicknessStr = "t" + real2String(boundaryData->mapThickness);
+	const string thicknessStr = "t" + StringTools::real2String(boundaryData->mapThickness);
 	string volumeMapFileName = "";
 	if (isDynamic)
-		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_vm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
+		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_db_vm_" + StringTools::real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
 	else 
-		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_vm_" + real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
+		volumeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + "_sb_vm_" + StringTools::real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + ".cdm");
 
 	// check MD5 if cache file is available
 	bool foundCacheFile = false;

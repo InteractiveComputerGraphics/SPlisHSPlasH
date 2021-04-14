@@ -162,6 +162,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				data->initialVelocity = Vector3r::Zero();
 				readVector(fluidModel["initialVelocity"], data->initialVelocity);
 
+				// angular velocity
+				data->initialAngularVelocity = Vector3r::Zero();
+				readVector(fluidModel["initialAngularVelocity"], data->initialAngularVelocity);
+
 				data->invert = false;
 				readValue(fluidModel["invert"], data->invert);
 
@@ -217,6 +221,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				// velocity
 				block->initialVelocity = Vector3r::Zero();
 				readVector(fluidBlock["initialVelocity"], block->initialVelocity);
+
+				// angular velocity
+				block->initialAngularVelocity = Vector3r::Zero();
+				readVector(fluidBlock["initialAngularVelocity"], block->initialAngularVelocity);
 
 				scene.fluidBlocks.push_back(block);
 			}

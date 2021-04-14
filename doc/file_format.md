@@ -170,6 +170,7 @@ Example code:
   - 1: more dense sampling
   - 2: dense sampling
 * initialVelocity (vec3): The initial velocity is set for all particles in the block.
+* initialAngularVelocity (vec3): The initial angular velocity of the block.
 * id (string): This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
 
 ## FluidModels
@@ -195,6 +196,8 @@ Example code:
 * rotationAxis (vec3): Axis used to rotate the particle data after loading.
 * rotationAngle (float): Rotation angle for the initial rotation of the particle data. 
 * id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
+* initialVelocity (vec3): The initial velocity is set for all particles in the fluid model.
+* initialAngularVelocity (vec3): The initial angular velocity of the fluid model.
 
 ## Emitters
 

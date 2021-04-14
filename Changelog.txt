@@ -1,3 +1,12 @@
+2.9.2
+	- added ParaView partio plugin
+	- extended tooltips by json key
+	- small avx improvements
+	- fluid can have an initial angular velocity
+	- improved Maya plugin
+	- added support of asynchronous file writing in the partio exporter
+	- added reset callback 
+2.9.1
 	- added documentation about how to implement an exporter
 	- added a Python data exporter example (can export rigid bodies in all formats supported by meshio)
 	- added an OBJ rigid body exporter

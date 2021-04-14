@@ -21,6 +21,7 @@ namespace SPH
 	public: 
 		struct imguiParameter
 		{
+			std::string name;
 			std::string label;
 			std::string description;
 			bool readOnly;

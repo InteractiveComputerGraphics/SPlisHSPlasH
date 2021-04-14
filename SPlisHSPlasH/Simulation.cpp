@@ -83,6 +83,7 @@ Simulation::Simulation ()
 	m_simulationMethod = SimulationMethods::NumSimulationMethods;
 	m_simulationMethodChanged = NULL;
 
+	m_simulationIsInitialized = false;
 	m_sim2D = false;
 	m_enableZSort = true;
 
@@ -151,6 +152,15 @@ void Simulation::init(const Real particleRadius, const bool sim2D)
 		m_neighborhoodSearch = new NeighborhoodSearch(m_supportRadius, false);
 #endif
 	m_neighborhoodSearch->set_radius(m_supportRadius);
+}
+
+void Simulation::deferredInit()
+{
+	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
+	{
+		FluidModel* fm = getFluidModel(i);
+		fm->deferredInit();
+	}
 }
 
 void Simulation::initParameters()
@@ -267,8 +277,12 @@ void Simulation::initParameters()
 void Simulation::setParticleRadius(Real val)
 {
 	m_particleRadius = val;
-	m_supportRadius = static_cast<Real>(4.0)*m_particleRadius;
+	m_supportRadius = static_cast<Real>(4.0) * m_particleRadius;
+	initKernels();
+}
 
+void Simulation::initKernels()
+{
 	// init kernel
 	Poly6Kernel::setRadius(m_supportRadius);
 	SpikyKernel::setRadius(m_supportRadius);
@@ -281,8 +295,8 @@ void Simulation::setParticleRadius(Real val)
 	WendlandQuinticC2Kernel2D::setRadius(m_supportRadius);
 #ifdef USE_AVX
 	CubicKernel_AVX::setRadius(m_supportRadius, m_sim2D);
-// 	Poly6Kernel_AVX::setRadius(m_supportRadius);
-// 	SpikyKernel_AVX::setRadius(m_supportRadius);
+	// 	Poly6Kernel_AVX::setRadius(m_supportRadius);
+	// 	SpikyKernel_AVX::setRadius(m_supportRadius);
 #endif
 }
 
@@ -385,9 +399,9 @@ void Simulation::updateTimeStepSize()
 		updateTimeStepSizeCFL();
 		const unsigned int iterations = m_timeStep->getValue<unsigned int>(TimeStep::SOLVER_ITERATIONS);
 		if (iterations > 10)
-			h *= 0.9;
+			h *= static_cast<Real>(0.9);
 		else if (iterations < 5)
-			h *= 1.1;
+			h *= static_cast<Real>(1.1);
 		h = min(h, TimeManager::getCurrent()->getTimeStepSize());
 		TimeManager::getCurrent()->setTimeStepSize(h);
 	}
@@ -603,6 +617,13 @@ void Simulation::performNeighborhoodSearchSort()
 void Simulation::setSimulationMethodChangedCallback(std::function<void()> const& callBackFct)
 {
 	m_simulationMethodChanged = callBackFct;
+}
+
+void Simulation::setSimulationInitialized(int val) 
+{ 
+	m_simulationIsInitialized = val; 
+	if (m_simulationIsInitialized)
+		deferredInit();
 }
 
 void Simulation::emittedParticles(FluidModel *model, const unsigned int startIndex)

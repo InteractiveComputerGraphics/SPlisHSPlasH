@@ -487,6 +487,7 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	//glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
 	m_glfw_window = glfwCreateWindow(width, height, name, NULL, NULL);
 	if (!m_glfw_window)
 	{
@@ -496,7 +497,7 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 
 	glfwMakeContextCurrent(m_glfw_window);
 	gladLoadGL(glfwGetProcAddress);
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
 	glfwSetFramebufferSizeCallback(m_glfw_window, reshape);
 
@@ -963,6 +964,7 @@ void MiniGL::mainLoop()
 			scenefunc();
 
 		glfwSwapBuffers(m_glfw_window);
+		//glFlush();
 	}
 
 	if (destroyfunc != nullptr)
@@ -983,6 +985,7 @@ void MiniGL::leaveMainLoop()
 void MiniGL::swapBuffers()
 {
 	glfwSwapBuffers(m_glfw_window);
+	//glFlush();
 }
 
 void MiniGL::breakPointMainLoop()
@@ -999,6 +1002,7 @@ void MiniGL::breakPointMainLoop()
 				scenefunc();
 
 			glfwSwapBuffers(m_glfw_window);
+			//glFlush();
 			glfwPollEvents();
 		}
 	}

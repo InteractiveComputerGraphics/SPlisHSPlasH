@@ -302,11 +302,11 @@ void UtilitiesModule(py::module m) {
             .def_readwrite("samplingMode", &SceneInfo::BoundaryData::samplingMode);
 
     py::class_<SceneInfo::FluidData>(m_sub_sub, "FluidData")
-            .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, unsigned char,
+            .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, Vector3r, unsigned char,
                     bool, std::array<unsigned int, 3>>(),
                     "id"_a="Fluid", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
                     "rotation"_a=Matrix3r::Identity(), "scale"_a=Vector3r::Ones(),
-                    "initialVelocity"_a=Vector3r::Zero(),"mode"_a=0, "invert"_a=false,
+                    "initialVelocity"_a=Vector3r::Zero(), "initialAngularVelocity"_a = Vector3r::Zero(), "mode"_a=0, "invert"_a=false,
                     "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))
             .def_readwrite("id", &SceneInfo::FluidData::id)
             .def_readwrite("samplesFile", &SceneInfo::FluidData::samplesFile)
@@ -314,18 +314,20 @@ void UtilitiesModule(py::module m) {
             .def_readwrite("rotation", &SceneInfo::FluidData::rotation)
             .def_readwrite("scale", &SceneInfo::FluidData::scale)
             .def_readwrite("initialVelocity", &SceneInfo::FluidData::initialVelocity)
+            .def_readwrite("initialAngularVelocity", &SceneInfo::FluidData::initialAngularVelocity)
             .def_readwrite("mode", &SceneInfo::FluidData::mode)
             .def_readwrite("invert", &SceneInfo::FluidData::invert)
             .def_readwrite("resolutionSDF", &SceneInfo::FluidData::resolutionSDF);
 
     py::class_<SceneInfo::FluidBlock>(m_sub_sub, "FluidBlock")
-            .def(py::init<std::string, SceneInfo::Box, unsigned char, Vector3r>(),
+            .def(py::init<std::string, SceneInfo::Box, unsigned char, Vector3r, Vector3r>(),
                     "id"_a="Fluid", "box"_a=SceneInfo::Box({Vector3r::Zero(), Vector3r::Ones()}),
-                    "mode"_a=0, "initialVelocity"_a=Vector3r::Zero())
+                    "mode"_a=0, "initialVelocity"_a=Vector3r::Zero(), "initialVelocity"_a = Vector3r::Zero())
             .def_readwrite("id", &SceneInfo::FluidBlock::id)
             .def_readwrite("box", &SceneInfo::FluidBlock::box)
             .def_readwrite("mode", &SceneInfo::FluidBlock::mode)
-            .def_readwrite("initialVelocity", &SceneInfo::FluidBlock::initialVelocity);
+            .def_readwrite("initialVelocity", &SceneInfo::FluidBlock::initialVelocity)
+            .def_readwrite("initialAngularVelocity", &SceneInfo::FluidBlock::initialAngularVelocity);
 
     py::class_<SceneInfo::EmitterData>(m_sub_sub, "EmitterData")
             .def(py::init<std::string, unsigned int, unsigned int, Vector3r, Real, Matrix3r, Real, Real, unsigned int>(),

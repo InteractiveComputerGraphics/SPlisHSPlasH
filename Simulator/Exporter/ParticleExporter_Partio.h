@@ -3,6 +3,8 @@
 
 #include "ExporterBase.h"
 #include "SPlisHSPlasH/FluidModel.h"
+#include "extern/partio/src/lib/Partio.h"
+#include <future>
 
 namespace SPH
 {
@@ -12,6 +14,9 @@ namespace SPH
 	{
 	protected: 
 		std::string m_exportPath;
+		std::string m_particleFile;
+		Partio::ParticlesDataMutable* m_particleData;
+		std::future<void> m_handle;
 
 		void writeParticlesPartio(const std::string& fileName, FluidModel* model);
 

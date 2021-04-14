@@ -200,6 +200,27 @@ void ParticleExporter_VTK::writeParticles(const std::string& fileName, FluidMode
 			// export to vtk
 			outfile.write(reinterpret_cast<char*>(attrData[0].data()), 3 * numParticles * sizeof(Real));
 		}
+		else if (field.type == FieldType::Matrix3)
+		{
+			// write header information
+			outfile << attrNameVTK << " 9 " << numParticles << real_str;
+
+			// copy from partio data
+			std::vector<Matrix3r> attrData;
+			attrData.reserve(numParticles);
+			for (unsigned int i = 0u; i < numParticles; i++)
+			{
+				Eigen::Map<Matrix3r> m((Real*)field.getFct(i));
+				attrData.emplace_back(m);
+			}
+			// swap endianess
+			for (unsigned int i = 0; i < numParticles; i++)
+				for (unsigned int j = 0; j < 3; j++)
+					for (unsigned int k = 0; k < 3; k++)
+						swapByteOrder(&attrData[i](j, k));
+			// export to vtk
+			outfile.write(reinterpret_cast<char*>(attrData[0].data()), 9 * numParticles * sizeof(Real));
+		}
 		else if (field.type == FieldType::UInt)
 		{
 			// write header information

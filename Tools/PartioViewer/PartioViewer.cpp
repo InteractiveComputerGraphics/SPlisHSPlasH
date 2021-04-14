@@ -382,6 +382,39 @@ void PartioViewer::timeStep()
 	}
 }
 
+
+void PartioViewer::updateScalarField()
+{
+	m_scalarField.resize(m_fluids.size());
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < m_fluids.size(); fluidModelIndex++)
+	{
+		auto& fluid = m_fluids[fluidModelIndex];
+		// Draw simulation model
+		const unsigned int nParticles = fluid.partioData->numParticles();
+
+		Partio::ParticleAttribute attr;
+		fluid.partioData->attributeInfo(fluid.m_colorField, attr);
+
+		m_scalarField[fluidModelIndex].resize(nParticles);
+		for (unsigned int i = 0u; i < nParticles; i++)
+		{
+			if (attr.type == Partio::VECTOR)
+			{
+				const Eigen::Map<const Eigen::Vector3f> vec(fluid.partioData->data<float>(attr, i));
+				m_scalarField[fluidModelIndex][i] = static_cast<float>(vec.norm());
+			}
+			else if (attr.type == Partio::FLOAT)
+			{
+				m_scalarField[fluidModelIndex][i] = *fluid.partioData->data<float>(attr, i);
+			}
+			else if (attr.type == Partio::INT)
+			{
+				m_scalarField[fluidModelIndex][i] = static_cast<float>(*fluid.partioData->data<int>(attr, i));
+			}
+		}
+	}
+}
+
 void PartioViewer::loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
 {
 	std::vector<OBJLoader::Vec3f> x;
@@ -628,7 +661,7 @@ bool PartioViewer::updateData()
 			LOG_INFO << currentFile;
 			readRigidBodyData(currentFile, m_frameIndex == m_firstRBIndex);
 		}
-		PartioViewer_OpenGL::updateScalarField();
+		updateScalarField();
 	}
 	return chk;
 }

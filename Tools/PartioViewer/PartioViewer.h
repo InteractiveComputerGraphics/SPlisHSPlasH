@@ -68,6 +68,7 @@ namespace SPH
 		float m_defaultRenderMinValue;
 		float m_defaultRenderMaxValue;
 		unsigned int m_defaultColorMapType;
+		std::vector<std::vector<float>> m_scalarField;
 
 		void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 		bool readPartioFile(const std::string &fileName, Partio::ParticlesDataMutable* &partioData, unsigned int &posIndex, const bool printInfo = false);
@@ -91,6 +92,7 @@ namespace SPH
 		void reset();
 		void updateBoundingBox();
 		bool updateData();
+		void updateScalarField();
 
 		void particleInfo();
 		bool nextFrame();
@@ -99,6 +101,8 @@ namespace SPH
 		void generateSequence();
 		void generateVideo();
 		void timeStep();
+
+		std::vector<float>& getScalarField(const unsigned int i) { return m_scalarField[i]; }
 		
 		int getFrameIndex() const { return m_frameIndex; }
 		bool getUsePlane() const { return m_usePlane; }

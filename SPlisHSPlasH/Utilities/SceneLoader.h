@@ -55,6 +55,7 @@ namespace Utilities
 			Matrix3r rotation;
 			Vector3r scale;
 			Vector3r initialVelocity;
+			Vector3r initialAngularVelocity;
 			unsigned char mode;
 			bool invert;
 			std::array<unsigned int, 3> resolutionSDF;
@@ -67,6 +68,7 @@ namespace Utilities
 			Box box;
 			unsigned char mode;
 			Vector3r initialVelocity;
+			Vector3r initialAngularVelocity;
 		};
 
 		/** \brief Struct to store an emitter object */

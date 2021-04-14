@@ -52,7 +52,16 @@ void ParticleExporter_Partio::setActive(const bool active)
 
 void ParticleExporter_Partio::writeParticlesPartio(const std::string& fileName, FluidModel* model)
 {
-	Partio::ParticlesDataMutable& particleData = *Partio::create();
+	const bool async = m_base->getValue<bool>(SimulatorBase::ASYNC_EXPORT);
+	if (async)
+	{
+		if (m_handle.valid())
+			m_handle.wait();
+	}
+
+	m_particleData = Partio::create();
+	Partio::ParticlesDataMutable& particleData = *m_particleData;
+
 	Partio::ParticleAttribute posAttr = particleData.addAttribute("position", Partio::VECTOR, 3);
 	Partio::ParticleAttribute idAttr = particleData.addAttribute("id", Partio::INT, 1);
 
@@ -151,6 +160,12 @@ void ParticleExporter_Partio::writeParticlesPartio(const std::string& fileName, 
 		}
 	}
 
-	Partio::write(fileName.c_str(), particleData, true);
-	particleData.release();
+	m_particleFile = fileName;
+	if (async)
+		m_handle = std::async(std::launch::async, [&] { Partio::write(m_particleFile.c_str(), particleData, true); particleData.release(); });
+	else
+	{
+		Partio::write(m_particleFile.c_str(), particleData, true);
+		particleData.release();
+	}
 }

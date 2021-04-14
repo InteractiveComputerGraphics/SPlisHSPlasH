@@ -254,6 +254,7 @@ namespace SPH
 		std::vector<NonPressureForceMethod> m_surfaceTensionMethods;
 		std::vector<NonPressureForceMethod> m_vorticityMethods;
 		std::vector<NonPressureForceMethod> m_viscoMethods;
+		bool m_simulationIsInitialized;
 #ifdef USE_DEBUG_TOOLS
 		DebugTools* m_debugTools;
 #endif
@@ -272,6 +273,13 @@ namespace SPH
 		~Simulation ();
 
 		void init(const Real particleRadius, const bool sim2D);
+
+		/** This function is called after the simulation scene is loaded and all
+		* parameters are initialized. While reading a scene file several parameters 
+		* can change. The deferred init function should initialize all values which 
+		* depend on these parameters. 
+		*/
+		void deferredInit();
 		void reset();
 
 		// Singleton
@@ -300,6 +308,9 @@ namespace SPH
 		int getGradKernel() const { return m_gradKernelMethod; }
 		void setGradKernel(int val);
 
+		int isSimulationInitialized() const { return m_simulationIsInitialized; }
+		void setSimulationInitialized(int val);
+
 		FORCE_INLINE Real W_zero() const { return m_W_zero; }
 		FORCE_INLINE Real W(const Vector3r &r) const { return m_kernelFct(r); }
 		FORCE_INLINE Vector3r gradW(const Vector3r &r) { return m_gradKernelFct(r); }
@@ -313,6 +324,8 @@ namespace SPH
 
 		bool is2DSimulation() { return m_sim2D; }
 		bool zSortEnabled() { return m_enableZSort; }
+
+		void initKernels();
 
 		void setParticleRadius(Real val);
 		Real getParticleRadius() const { return m_particleRadius; }

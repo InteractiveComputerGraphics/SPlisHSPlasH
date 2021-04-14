@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include <string>
 
 namespace Utilities
 {
@@ -25,6 +27,22 @@ namespace Utilities
 			}
 		}
 
+		/** converts a double or a float to a string */
+		template<typename T>
+		static std::string real2String(const T r)
+		{
+			std::string str = std::to_string(r);
+			str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+			str.erase(str.find_last_not_of('.') + 1, std::string::npos);
+			return str;
+		}
+
+		static std::string to_upper(const std::string& str)
+		{
+			std::string res = str;
+			std::transform(res.begin(), res.end(), res.begin(), ::toupper);
+			return res;
+		}
 	};
 }
 

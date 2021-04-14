@@ -82,6 +82,17 @@ inline Scalarf8 operator - (Scalarf8& a) {
 	return _mm256_sub_ps(_mm256_set1_ps(0.0), a.v);
 }
 
+
+static inline Scalarf8 multiplyAndAdd(const Scalarf8& a, const Scalarf8& b, const Scalarf8& c)
+{
+	return _mm256_fmadd_ps(a.v, b.v, c.v);
+}
+
+static inline Scalarf8 multiplyAndSubtract(const Scalarf8& a, const Scalarf8& b, const Scalarf8& c)
+{
+	return _mm256_fmsub_ps(a.v, b.v, c.v);
+}
+
 static inline Scalarf8 operator + (Scalarf8 const & a, Scalarf8 const & b) {
 	return _mm256_add_ps(a.v, b.v);
 }
@@ -96,7 +107,7 @@ static inline Scalarf8 operator - (Scalarf8 const & a, Scalarf8 const & b) {
 }
 
 static inline Scalarf8 & operator -= (Scalarf8 & a, Scalarf8 const & b) {
-	a = a - b;
+	a.v = _mm256_sub_ps(a.v, b.v);
 	return a;
 }
 
@@ -290,14 +301,16 @@ public:
 	
 	inline Scalarf8 dot(const Vector3f8& a) const {
 		Scalarf8 res; 
-		res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		//res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		res.v = _mm256_fmadd_ps(v[0].v, a.v[0].v, _mm256_fmadd_ps(v[1].v, a.v[1].v, _mm256_mul_ps(v[2].v, a.v[2].v)));
 		return res;
 	}
 
 	//dot product
 	inline Scalarf8 operator * (const Vector3f8& a) const {
 		Scalarf8 res;
-		res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		//res.v = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, a.v[0].v), _mm256_mul_ps(v[1].v, a.v[1].v)), _mm256_mul_ps(v[2].v, a.v[2].v));
+		res.v = _mm256_fmadd_ps(v[0].v, a.v[0].v, _mm256_fmadd_ps(v[1].v, a.v[1].v, _mm256_mul_ps(v[2].v, a.v[2].v)));
 		return res;
 	}
 
@@ -332,24 +345,19 @@ public:
 		return *this;
 	}
 
-	inline Vector3f8& operator -= (const Vector3f8& a) {
-		v[0] -= a.v[0];
-		v[1] -= a.v[1];
-		v[2] -= a.v[2];
-		return *this;
-	}
-
 	inline const Vector3f8 operator - () const {
 		return Vector3f8(Scalarf8(-1.0) * v[0], Scalarf8(-1.0) * v[1], Scalarf8(-1.0) * v[2]);
 	}
 
 	inline Scalarf8 squaredNorm() const {
-		return _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v));
+		//return _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v));
+		return _mm256_fmadd_ps(v[0].v, v[0].v, _mm256_fmadd_ps(v[1].v, v[1].v, _mm256_mul_ps(v[2].v, v[2].v)));
 	}
 
 	inline Scalarf8 norm() const
 	{
-		return _mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v)));
+		//return _mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(v[0].v, v[0].v), _mm256_mul_ps(v[1].v, v[1].v)), _mm256_mul_ps(v[2].v, v[2].v)));
+		return _mm256_sqrt_ps(_mm256_fmadd_ps(v[0].v, v[0].v, _mm256_fmadd_ps(v[1].v, v[1].v, _mm256_mul_ps(v[2].v, v[2].v))));
 	}
 
 	inline void normalize()
@@ -414,6 +422,13 @@ inline Vector3f8& operator += (Vector3f8& a, Vector3f8 const& b) {
 	a[0].v = _mm256_add_ps(a[0].v, b[0].v);
 	a[1].v = _mm256_add_ps(a[1].v, b[1].v);
 	a[2].v = _mm256_add_ps(a[2].v, b[2].v);
+	return a;
+}
+
+inline Vector3f8& operator -= (Vector3f8& a, Vector3f8 const& b) {
+	a[0].v = _mm256_sub_ps(a[0].v, b[0].v);
+	a[1].v = _mm256_sub_ps(a[1].v, b[1].v);
+	a[2].v = _mm256_sub_ps(a[2].v, b[2].v);
 	return a;
 }
 

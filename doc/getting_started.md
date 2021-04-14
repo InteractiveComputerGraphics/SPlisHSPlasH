@@ -35,6 +35,7 @@ The scene file format is explained [here.](file_format.md)
 * i: print all field information of the selected particles to the console
 * s: save current simulation state
 * l: load simulation state (currently only Windows)
+* +: perform a single time step
 * ESC: exit
 
 ## Python bindings 

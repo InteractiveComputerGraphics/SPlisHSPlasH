@@ -250,7 +250,7 @@ void PartioViewer_GUI_imgui::initParameterGUI()
 			eparam->setFct = [this](int v) { 
 				m_viewer->getFluids()[m_currentFluidModel].m_colorField = v; 
 				determineMinMaxValues();
-				PartioViewer_OpenGL::updateScalarField();
+				m_viewer->updateScalarField();
 			};
 			imguiParameters::addParam("Visualization", "", eparam);
 		}
@@ -338,6 +338,7 @@ void PartioViewer_GUI_imgui::renderScene()
 		PartioViewer_OpenGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
 		PartioViewer_OpenGL::render(fluids[i], m_viewer->getParticleRadius(), fluidColor, 
 			fluids[i].m_colorMapType, m_mapColorField2Attr[fluids[i].m_colorField],
+			m_viewer->getScalarField(i),
 			fluids[i].m_renderMinValue, fluids[i].m_renderMaxValue, m_viewer->getUsePlane());
 	}
 

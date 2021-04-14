@@ -88,6 +88,21 @@ void FluidModel::init()
 	setViscosityMethod(1);
 }
 
+void FluidModel::deferredInit()
+{
+	if (m_surfaceTension)
+		m_surfaceTension->deferredInit();
+	if (m_viscosity)
+		m_viscosity->deferredInit();
+	if (m_vorticity)
+		m_vorticity->deferredInit();
+	if (m_drag)
+		m_drag->deferredInit();
+	if (m_elasticity)
+		m_elasticity->deferredInit();
+}
+
+
 void FluidModel::initParameters()
 {
 	std::string groupName = "FluidModel";

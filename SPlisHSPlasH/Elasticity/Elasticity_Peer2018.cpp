@@ -31,9 +31,7 @@ Elasticity_Peer2018::Elasticity_Peer2018(FluidModel *model) :
 	m_iterations = 0;
 	m_maxIter = 100;
 	m_maxError = static_cast<Real>(1.0e-4);
-	m_alpha = 0.0;
-
-	initValues();
+	m_alpha = 0.0; 
 
 	model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
 	model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
@@ -51,6 +49,10 @@ Elasticity_Peer2018::~Elasticity_Peer2018(void)
 	m_model->removeFieldByName("correction matrix");
 }
 
+void Elasticity_Peer2018::deferredInit()
+{
+	initValues();
+}
 
 void Elasticity_Peer2018::initParameters()
 {

@@ -270,7 +270,6 @@ void SimulationModule(py::module m_sub){
             .def("timeStepNoGUI", &SPH::SimulatorBase::timeStepNoGUI)
 
             .def_static("particleInfo", &SPH::SimulatorBase::particleInfo)
-            .def("real2String", &SPH::SimulatorBase::real2String)
             .def("initDensityMap", &SPH::SimulatorBase::initDensityMap)
             .def("initVolumeMap", &SPH::SimulatorBase::initVolumeMap)
 
@@ -335,7 +334,8 @@ void SimulationModule(py::module m_sub){
 
             .def("activateExporter", &SPH::SimulatorBase::activateExporter)
 
-			.def("setTimeStepCB", &SPH::SimulatorBase::setTimeStepCB);
+			.def("setTimeStepCB", &SPH::SimulatorBase::setTimeStepCB)
+            .def("setResetCB", &SPH::SimulatorBase::setResetCB);
 
      // ---------------------------------------
     // SceneConfiguration

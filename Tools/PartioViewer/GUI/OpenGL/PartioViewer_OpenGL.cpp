@@ -16,8 +16,6 @@ Shader PartioViewer_OpenGL::m_shader_scalar_map;
 Shader PartioViewer_OpenGL::m_shader_vector;
 Shader PartioViewer_OpenGL::m_meshShader;
 GLuint PartioViewer_OpenGL::m_textureMap = 0;
-std::vector<float> PartioViewer_OpenGL::m_scalarField;
-bool PartioViewer_OpenGL::m_updateScalarField = true;
 
 PartioViewer_OpenGL::PartioViewer_OpenGL()
 {
@@ -203,7 +201,8 @@ void PartioViewer_OpenGL::renderGrid()
 
 void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius, 
 		float *fluidColor, const unsigned int colorMapType, const unsigned int colorField,
-		const float renderMinValue, const float renderMaxValue, const bool usePlane)
+		const std::vector<float>& scalarField, const float renderMinValue, const float renderMaxValue, 
+		const bool usePlane)
 {
 	// Draw simulation model
 	const unsigned int nParticles = (unsigned int)fluid.partioData->numParticles();
@@ -243,32 +242,7 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 			if (fluid.partioData->numAttributes() > 0)
 			{
 				glEnableVertexAttribArray(1);
-
-				if (m_updateScalarField)
-				{
-					Partio::ParticleAttribute attr;
-					fluid.partioData->attributeInfo(colorField, attr);
-
-					m_scalarField.resize(nParticles);
-					for (unsigned int i = 0u; i < nParticles; i++)
-					{
-						if (attr.type == Partio::VECTOR)
-						{
-							const Eigen::Map<const Eigen::Vector3f> vec(fluid.partioData->data<float>(attr, i));
-							m_scalarField[i] = static_cast<float>(vec.norm());
-						}
-						else if (attr.type == Partio::FLOAT)
-						{
-							m_scalarField[i] = *fluid.partioData->data<float>(attr, i);
-						}
-						else if (attr.type == Partio::INT)
-						{
-							m_scalarField[i] = static_cast<float>(*fluid.partioData->data<int>(attr, i));
-						}
-					}
-					m_updateScalarField = false;
-					glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &m_scalarField[0]);
-				}
+				glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &scalarField[0]);
 			}
 
 			if (usePlane)
@@ -424,8 +398,4 @@ void PartioViewer_OpenGL::hsvToRgb(float h, float s, float v, float *rgb)
 	}
 }
 
-void PartioViewer_OpenGL::updateScalarField()
-{
-	m_updateScalarField = true;
-}
 

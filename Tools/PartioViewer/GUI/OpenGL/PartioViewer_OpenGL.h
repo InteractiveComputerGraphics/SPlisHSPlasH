@@ -18,9 +18,6 @@ namespace SPH
 		static Shader m_meshShader;
 		static GLuint m_textureMap;
 
-		static bool m_updateScalarField;
-		static std::vector<float> m_scalarField;
-
 	public:
 		PartioViewer_OpenGL();
 		~PartioViewer_OpenGL();
@@ -34,9 +31,8 @@ namespace SPH
 		static void renderAABB(const Eigen::AlignedBox3f &aabb, float *color);
 		static void render(const Fluid &fluid, const Real particleRadius, 
 			float *fluidColor, const unsigned int colorMapType, const unsigned int colorField, 
-			const float renderMinValue, const float renderMaxValue, const bool usePlane);
+			const std::vector<float>& scalarField, const float renderMinValue, const float renderMaxValue, const bool usePlane);
 		static void render(const Boundary &boundary, const bool renderWalls, float *boundaryColor);
 		static void hsvToRgb(float h, float s, float v, float *rgb);
-		static void updateScalarField();
 	};
 }

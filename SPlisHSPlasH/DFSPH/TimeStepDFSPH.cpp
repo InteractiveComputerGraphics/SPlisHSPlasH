@@ -630,9 +630,11 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 				const Scalarf8 densityAdvj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getDensityAdv(pid, 0), count);
 				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);
 					
-				const Scalarf8 b_j_avx = densityAdvj_avx - Scalarf8(1.0f);
-				const Scalarf8 kj_avx = b_j_avx * factorj_avx;
-				const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
+				//const Scalarf8 b_j_avx = densityAdvj_avx - Scalarf8(1.0f);
+				//const Scalarf8 kj_avx = b_j_avx * factorj_avx;
+				const Scalarf8 kj_avx = multiplyAndSubtract(densityAdvj_avx, factorj_avx, factorj_avx);
+				//const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
+				const Scalarf8 kSum_avx = multiplyAndAdd(densityFrac_avx, kj_avx, ki_avx);
 
 				// Directly update velocities instead of storing pressure accelerations
 				delta_vi += V_gradW * (h_avx * kSum_avx);			// ki, kj already contain inverse density	
@@ -871,7 +873,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 				const Scalarf8 factorj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &m_simulationData.getFactor(pid, 0), count);
 
 				const Scalarf8 kj_avx = densityAdvj_avx * factorj_avx;
-				const Scalarf8 kSum_avx = ki_avx + densityFrac_avx * kj_avx;
+				const Scalarf8 kSum_avx = multiplyAndAdd(densityFrac_avx, kj_avx, ki_avx);
 
 				// Directly update velocities instead of storing pressure accelerations
 				delta_vi += V_gradW * (h_avx * kSum_avx);			// ki, kj already contain inverse density	

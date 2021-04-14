@@ -45,6 +45,7 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 #ifdef WIN32
 	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
 #endif 
+	MiniGL::addKeyFunc('+', std::bind(&SimulatorBase::singleTimeStep, m_simulatorBase));
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 		Simulator_OpenGL::initShaders(m_simulatorBase->getExePath() + "/resources/shaders");
@@ -324,10 +325,10 @@ void Simulator_GUI_imgui::render()
 		field = &model->getField(base->getColorField(i));
 
 		bool useScalarField = true;
-		if ((field == nullptr) || (base->getScalarField().size() == 0))
+		if ((field == nullptr) || (base->getScalarField(i).size() == 0))
 			useScalarField = false;
 		Simulator_OpenGL::renderFluid(model, fluidColor, base->getColorMapType(i),
-			useScalarField, base->getScalarField(), base->getRenderMinValue(i), base->getRenderMaxValue(i));
+			useScalarField, base->getScalarField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
 		Simulator_OpenGL::renderSelectedParticles(model, getSelectedParticles(), base->getColorMapType(i),
 			base->getRenderMinValue(i), base->getRenderMaxValue(i));
 	}

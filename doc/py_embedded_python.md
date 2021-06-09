@@ -48,7 +48,7 @@ import numpy as np
 counter = 0
 function_list = ['command', 'command2']
 
-def init():
+def init(base):
     global counter
     print("init test")
     counter = 1

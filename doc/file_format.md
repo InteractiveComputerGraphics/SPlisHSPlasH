@@ -87,6 +87,7 @@ Example code:
     - 3: Implicit incompressible SPH (IISPH)
     - 4: Divergence-free smoothed particle hydrodynamics (DFSPH)
     - 5: Projective Fluids (dynamic boundaries not supported yet)
+    - 6: Implicit compressible SPH (ICSPH)
 
 
 ##### WCSPH parameters:
@@ -109,6 +110,11 @@ Example code:
 ##### Projective Fluids parameters:
 
 * stiffness (float): Stiffness coefficient used by the pressure solver.
+
+##### ICSPH parameters:
+
+* lambda (float): Stiffness coefficient of the equation of state.
+* pressureClamping (bool): Enable pressure clamping.
 
 ##### Kernel: 
 
@@ -330,6 +336,9 @@ Example code:
   - 6: Takahashi et al. 2015 (improved)
   - 7: Weiler et al. 2018
 * viscosity (float): Coefficient for the viscosity force computation
+  * "Standard" and "Weiler et al. 2018" use the kinematic viscosity as parameter
+  * "Bender and Koschier 2017" and "Peer et al. 2015/2016" use a coefficient in [0,1]
+  * For "XSPH" the coefficient is the smoothing parameter in [0,1]
 * viscoMaxIter (int): (Implicit solvers) Max. iterations of the viscosity solver.
 * viscoMaxError (float): (Implicit solvers) Max. error of the viscosity solver.
 * viscoMaxIterOmega (int): (Peer et al. 2016) Max. iterations of the vorticity diffusion solver.

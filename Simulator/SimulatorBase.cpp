@@ -26,6 +26,10 @@
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
 
+#ifdef USE_EMBEDDED_PYTHON
+#include "pySPlisHSPlasH/Embedded.h"
+#endif
+
 INIT_LOGGING
 INIT_TIMING
 INIT_COUNTING
@@ -85,8 +89,12 @@ SimulatorBase::SimulatorBase()
 	m_particleAttributes = "velocity";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
+	m_updateGUI = false;
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
+#endif
+#ifdef USE_EMBEDDED_PYTHON
+	m_scriptObject = nullptr;
 #endif
 }
 
@@ -435,15 +443,6 @@ void SimulatorBase::initSimulation()
 	sim->createDebugTools();
 #endif
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
-	{
-		unsigned int nBoundaryParticles = 0;
-		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-			nBoundaryParticles += static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i))->numberOfParticles();
-
-		LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
-	}
-
 	if (m_useGUI)
 		m_gui->init(m_argc, m_argv, m_windowName.c_str());
 
@@ -476,13 +475,27 @@ void SimulatorBase::initSimulation()
 	}
 	setCommandLineParameter();
 	updateScalarField();
-
-	m_boundarySimulator->initBoundaryData();
 }
 
 void SimulatorBase::deferredInit()
 {
+	m_boundarySimulator->initBoundaryData();
+
 	Simulation* sim = Simulation::getCurrent();
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	{
+		unsigned int nBoundaryParticles = 0;
+		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+			nBoundaryParticles += static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i))->numberOfParticles();
+
+		LOG_INFO << "Number of boundary particles: " << nBoundaryParticles;
+	}
+
+#ifdef USE_EMBEDDED_PYTHON
+	m_scriptObject = new ScriptObject(this);
+	m_scriptObject->init();
+#endif
+
 	if (m_useGUI)
 	{
 		for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
@@ -498,8 +511,14 @@ void SimulatorBase::deferredInit()
 				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase());
 			if (model->getElasticityBase())
 				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase());
-			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 		}
+		getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+#ifdef USE_EMBEDDED_PYTHON
+		getSceneLoader()->readParameterObject("Configuration", (ParameterObject*)m_scriptObject);
+#else
+		if (getSceneLoader()->hasValue("Configuration", "scriptFile"))
+			LOG_WARN << "Key 'scriptFile' is set in the scene but SPlisHSPlasH is built without embedded Python support.";
+#endif
 		m_gui->initSimulationParameterGUI();
 	}
 	sim->setSimulationInitialized(true);
@@ -537,6 +556,11 @@ void SimulatorBase::cleanup()
 {
 	if (m_useGUI)
 		m_gui->cleanup();
+
+#ifdef USE_EMBEDDED_PYTHON
+	delete m_scriptObject;
+	delete Embedded::getCurrent();
+#endif
 
 	delete SceneConfiguration::getCurrent();
 	delete Simulation::getCurrent();
@@ -767,6 +791,11 @@ void SimulatorBase::reset()
 
 	if (m_resetCB)
 		m_resetCB();
+
+#ifdef USE_EMBEDDED_PYTHON
+	if (m_scriptObject)
+		m_scriptObject->execResetFct();
+#endif
 }
 
 void SimulatorBase::singleTimeStep()
@@ -787,6 +816,12 @@ void SimulatorBase::singleTimeStep()
 
 void SimulatorBase::timeStep()
 {
+	if (m_updateGUI)
+	{
+		m_gui->initSimulationParameterGUI();
+		m_updateGUI = false;
+	}
+
 	const Real stopAt = getValue<Real>(SimulatorBase::STOP_AT);
 	if (m_gui && (stopAt > 0.0) && (stopAt < TimeManager::getCurrent()->getTime()))
 		m_gui->stop();
@@ -834,6 +869,11 @@ void SimulatorBase::timeStep()
 
 		if (m_timeStepCB)
 			m_timeStepCB();
+
+#ifdef USE_EMBEDDED_PYTHON
+		if (m_scriptObject)
+			m_scriptObject->execStepFct();
+#endif
 	}
 
 	updateScalarField();
@@ -1458,7 +1498,7 @@ void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 	{
 		BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
 		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic() || forceUpdate)
+		if (rbo->isDynamic() || rbo->isAnimated() || forceUpdate)
 		{
 			#pragma omp parallel default(shared)
 			{
@@ -1466,7 +1506,7 @@ void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 				for (int j = 0; j < (int)bm->numberOfParticles(); j++)
 				{
 					bm->getPosition(j) = rbo->getRotation() * bm->getPosition0(j) + rbo->getPosition();
-					if (rbo->isDynamic())
+					if (rbo->isDynamic() || rbo->isAnimated())
 						bm->getVelocity(j) = rbo->getAngularVelocity().cross(bm->getPosition(j) - rbo->getPosition()) + rbo->getVelocity();
 					else
 						bm->getVelocity(j).setZero();
@@ -1491,7 +1531,7 @@ void SPH::SimulatorBase::updateDMVelocity()
 	{
 		BoundaryModel_Koschier2017 *bm = static_cast<BoundaryModel_Koschier2017*>(sim->getBoundaryModel(i));
 		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic())
+		if (rbo->isDynamic() || rbo->isAnimated())
 		{
 			const Real maxDist = bm->getMaxDist();
 			const Vector3r x(maxDist, 0.0, 0.0);
@@ -1510,7 +1550,7 @@ void SPH::SimulatorBase::updateVMVelocity()
 	{
 		BoundaryModel_Bender2019 *bm = static_cast<BoundaryModel_Bender2019*>(sim->getBoundaryModel(i));
 		RigidBodyObject *rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic())
+		if (rbo->isDynamic() || rbo->isAnimated())
 		{
 			const Real maxDist = bm->getMaxDist();
 			const Vector3r x(maxDist, 0.0, 0.0);
@@ -1590,10 +1630,10 @@ void SPH::SimulatorBase::saveState(const std::string& stateFile)
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
 		BoundaryModel *bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
+		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
 			binWriter.writeMatrix(bm->getRigidBodyObject()->getPosition());
-			binWriter.writeMatrix(bm->getRigidBodyObject()->getRotation());
+			binWriter.writeMatrix(bm->getRigidBodyObject()->getRotation().coeffs());
 			binWriter.writeMatrix(bm->getRigidBodyObject()->getVelocity());
 			binWriter.writeMatrix(bm->getRigidBodyObject()->getAngularVelocity());
 		}
@@ -1672,15 +1712,15 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
 		BoundaryModel *bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
+		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
 			Vector3r x;
 			binReader.readMatrix(x);
 			bm->getRigidBodyObject()->setPosition(x);
 
-			Matrix3r R;
-			binReader.readMatrix(R);
-			bm->getRigidBodyObject()->setRotation(R);
+			Quaternionr q;
+			binReader.readMatrix(q.coeffs());
+			bm->getRigidBodyObject()->setRotation(q);
 
 			Vector3r v;
 			binReader.readMatrix(v);
@@ -2227,8 +2267,8 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 			domain.extend(x_.cast<double>());
 		}
 		const Real tolerance = boundaryData->mapThickness;
-		domain.max() += (4.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
-		domain.min() -= (4.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+		domain.max() += (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+		domain.min() -= (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
 
 		LOG_INFO << "Domain - min: " << domain.min()[0] << ", " << domain.min()[1] << ", " << domain.min()[2];
 		LOG_INFO << "Domain - max: " << domain.max()[0] << ", " << domain.max()[1] << ", " << domain.max()[2];
@@ -2289,7 +2329,6 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 			return res;
 		};
 
-		auto cell_diag = densityMap->cellSize().norm();
 		std::cout << "Generate density map..." << std::endl;
 		const bool no_reduction = true;
 		START_TIMING("Density Map Construction");
@@ -2416,8 +2455,8 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 			domain.extend(x_.cast<double>());
 		}
 		const Real tolerance = boundaryData->mapThickness;
-		domain.max() += (4.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
-		domain.min() -= (4.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+		domain.max() += (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+		domain.min() -= (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
 
 		LOG_INFO << "Domain - min: " << domain.min()[0] << ", " << domain.min()[1] << ", " << domain.min()[2];
 		LOG_INFO << "Domain - max: " << domain.max()[0] << ", " << domain.max()[1] << ", " << domain.max()[2];
@@ -2433,7 +2472,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 			sign = -1.0;
 		const Real particleRadius = sim->getParticleRadius();
 		// subtract 0.5 * particle radius to prevent penetration of particles and the boundary
-		func = [&md, &sign, &tolerance, &particleRadius](Eigen::Vector3d const& xi) {return sign * (md.signedDistanceCached(xi) - tolerance - 0.5*particleRadius); };
+		func = [&md, &sign, &tolerance, &particleRadius](Eigen::Vector3d const& xi) {return sign * (md.signedDistanceCached(xi) - tolerance ); };
 
 		LOG_INFO << "Generate SDF";
 		START_TIMING("SDF Construction");
@@ -2455,13 +2494,14 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 			factor = 1.0;
 		auto volume_func = [&](Eigen::Vector3d const& x)
 		{
-			auto dist = volumeMap->interpolate(0u, x);
-			if (dist > (1.0 + 1.0 /*/ factor*/) * supportRadius)
+			auto dist_x = volumeMap->interpolate(0u, x);
+
+			if (dist_x > (1.0 + 1.0 /*/ factor*/) * supportRadius)
 			{
 				return 0.0;
 			}
 
-			auto integrand = [&volumeMap, &x, &supportRadius, &factor, &sim, &sim2D](Eigen::Vector3d const& xi) -> double
+			auto integrand = [&](Eigen::Vector3d const& xi) -> double
 			{
 				if (xi.squaredNorm() > supportRadius*supportRadius)
 					return 0.0;
@@ -2469,7 +2509,7 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 				auto dist = volumeMap->interpolate(0u, x + xi);
 
 				if (dist <= 0.0)
-					return 1.0 - 0.001 * dist / supportRadius;
+					return 1.0;// -0.001 * dist / supportRadius;
   				if (dist < 1.0 / factor * supportRadius)
   					return static_cast<double>(CubicKernel::W(factor * static_cast<Real>(dist)) / CubicKernel::W_zero());
  				return 0.0;
@@ -2477,14 +2517,13 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 			double res = 0.0;
 			if (sim2D)
-				res = 1.2 * SimpleQuadrature::integrate(integrand);
+				res = 0.8 * SimpleQuadrature::integrate(integrand);
 			else
-				res = 1.2 * GaussQuadrature::integrate(integrand, int_domain, 30);
+				res = 0.8 * GaussQuadrature::integrate(integrand, int_domain, 30);
 
 			return res;
 		};
 
-		auto cell_diag = volumeMap->cellSize().norm();
 		std::cout << "Generate volume map..." << std::endl;
 		const bool no_reduction = true;
 		START_TIMING("Volume Map Construction");

@@ -51,7 +51,7 @@
 			"isWall": true,
 			"mapInvert": true, 
 			"mapThickness": 0.0,
-			"mapResolution": [20,20,20]
+			"mapResolution": [30,30,30]
 		}
 	],
 	"FluidBlocks": [

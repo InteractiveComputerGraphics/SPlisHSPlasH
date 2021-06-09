@@ -25,8 +25,8 @@
 			"id": "Fluid",
 			"surfaceTension": 0.2,
 			"surfaceTensionMethod": 0,
-			"viscosity": 5000,
-			"viscosityBoundary": 4000,
+			"viscosity": 5,
+			"viscosityBoundary": 4,
 			"viscosityMethod": 7,
 			"viscoMaxIter": 200, 
 			"viscoMaxError": 0.05

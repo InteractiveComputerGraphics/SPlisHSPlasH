@@ -11,6 +11,7 @@
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "BoundarySimulator.h"
+#include <Simulator/ScriptObject.h>
 
 namespace SPH
 {
@@ -80,8 +81,12 @@ namespace SPH
 		std::vector<std::vector<float>> m_scalarField;
 		std::vector<Exporter> m_particleExporters;
 		std::vector<Exporter> m_rbExporters;
+		bool m_updateGUI;
 #ifdef DL_OUTPUT
 		Real m_nextTiming;
+#endif
+#ifdef USE_EMBEDDED_PYTHON
+		ScriptObject* m_scriptObject;
 #endif
 
 		virtual void initParameters();
@@ -210,6 +215,12 @@ namespace SPH
 		std::vector<Exporter>& getRigidBodyExporters() { return m_rbExporters; }
 
 		void activateExporter(const std::string& exporterName, const bool active);
+
+		void updateGUI() { m_updateGUI = true; }
+
+#ifdef USE_EMBEDDED_PYTHON
+		ScriptObject* getScriptObject() { return m_scriptObject; }
+#endif 
 	};
 }
  

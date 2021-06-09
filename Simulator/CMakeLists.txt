@@ -50,6 +50,11 @@ else()
   )
 endif()
 
+if (USE_EMBEDDED_PYTHON)
+	set(SIMULATION_LINK_LIBRARIES pysplishsplash_embed ${SIMULATION_LINK_LIBRARIES})
+	set(SIMULATION_DEPENDENCIES pysplishsplash_embed ${SIMULATION_DEPENDENCIES})
+endif()
+
 set(PBDWRAPPER_SOURCE_FILES	
 	PositionBasedDynamicsWrapper/PBDWrapper.cpp
 	PositionBasedDynamicsWrapper/PBDBoundarySimulator.cpp
@@ -77,6 +82,14 @@ set(EXPORTER_HEADER_FILES
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.h
 )
 
+if (USE_EMBEDDED_PYTHON)
+	set(EMBEDDED_PYTHON_SOURCE_FILES
+		${PROJECT_SOURCE_DIR}/Simulator/ScriptObject.cpp
+	)
+	set(EMBEDDED_PYTHON_HEADER_FILES
+		${PROJECT_SOURCE_DIR}/Simulator/ScriptObject.h
+	)
+endif(USE_EMBEDDED_PYTHON)
 
 add_library(SimulatorBase
 	${PROJECT_SOURCE_DIR}/Simulator/ExporterRegistration.cpp
@@ -104,6 +117,9 @@ add_library(SimulatorBase
 
 	${PBDWRAPPER_SOURCE_FILES}
 	${PBDWRAPPER_HEADER_FILES}
+	
+	${EMBEDDED_PYTHON_SOURCE_FILES}
+	${EMBEDDED_PYTHON_HEADER_FILES}
 )
 
 if (NOT USE_IMGUI)
@@ -136,8 +152,9 @@ source_group("Source Files\\GUI\\OpenGL" FILES ${PROJECT_SOURCE_DIR}/Simulator/G
 
 add_executable(SPHSimulator main.cpp)
 target_link_libraries(SPHSimulator SimulatorBase)
+add_dependencies(SPHSimulator SimulatorBase)
+
 set_target_properties(SPHSimulator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_target_properties(SPHSimulator PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
 set_target_properties(SPHSimulator PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
-add_dependencies(SPHSimulator SimulatorBase)
 

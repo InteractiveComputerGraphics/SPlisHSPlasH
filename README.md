@@ -59,6 +59,7 @@ SPlisHSPlasH implements:
 * neighborhood search on CPU or GPU
 * supports vectorization using AVX
 * Python binding (thanks to Stefan Jeske)
+* supports embedded Python scripts
 * several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * explicit and implicit viscosity methods
 * current surface tension approaches
@@ -88,6 +89,7 @@ The SPlisHSPlasH library implements the following pressure solvers:
 * Implicit incompressible SPH (IISPH)
 * Divergence-free smoothed particle hydrodynamics (DFSPH)
 * Projective Fluids (PF)
+* Implicit compressible SPH (ICSPH)
 
 ## Boundary Handling 
 
@@ -192,6 +194,7 @@ The following videos were generated using the SPlisHSPlasH library:
 * Jan Bender, Matthias Müller, Miguel A. Otaduy, Matthias Teschner, and Miles Macklin. A survey on position-based simulation methods in computer graphics. Computer Graphics Forum, 33(6):228–251, 2014.
 * Jan Bender, Matthias Müller, and Miles Macklin. Position-based simulation methods in computer graphics. In EUROGRAPHICS 2015 Tutorials. Eurographics Association, 2015.
 * Christoph Gissler, Stefan Band, Andreas Peer, Markus Ihmsen and Matthias Teschner. Approximate Air-Fluid Interactions for SPH. In Proceedings of Virtual Reality Interactions and Physical Simulations, 2017
+* C. Gissler, A. Henne, S. Band, A. Peer and M. Teschner. An Implicit Compressible SPH Solver for Snow Simulation, ACM Transactions on Graphics 39(4), 2020. 
 * Xiaowei He, Huamin Wang, Fengjun Zhang, Hongan Wang, Guoping Wang, and Kun Zhou. Robust simulation of sparsely sampled thin features in SPH-based free surface flows. ACM Trans. Graph., 34(1):7:1–7:9, December 2014. 
 * Markus Ihmsen, Jens Cornelis, Barbara Solenthaler, Christopher Horvath, and Matthias Teschner. Implicit incompressible SPH. IEEE Transactions on Visualization and Computer Graphics, 20(3):426–435, March 2014.
 * Markus Ihmsen, Jens Orthmann, Barbara Solenthaler, Andreas Kolb, and Matthias Teschner. SPH Fluids in Computer Graphics. In Eurographics 2014 - State of the Art Reports. The Eurographics Association, 2014. 

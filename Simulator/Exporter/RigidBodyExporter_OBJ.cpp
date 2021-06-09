@@ -56,7 +56,7 @@ void RigidBodyExporter_OBJ::writeRigidBodies(const unsigned int frame)
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
 		BoundaryModel* bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic())
+		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
 			isStatic = false;
 			break;

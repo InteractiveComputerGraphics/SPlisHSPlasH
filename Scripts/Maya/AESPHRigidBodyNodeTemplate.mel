@@ -1,0 +1,20 @@
+global proc AESPHRigidBodyNodeTemplate( string $nodeName )
+{
+	editorTemplate -beginScrollLayout;
+	
+	editorTemplate -beginLayout "Parameters" -collapse 0;
+	editorTemplate -l "Dynamic" -addControl "isDynamic";
+	editorTemplate -l "Wall" -addControl "isWall";
+	editorTemplate -l "Color" -addControl "color";
+	editorTemplate -l "Density" -addControl "density";
+	editorTemplate -l "Map resolution" -addControl "mapResolution";
+	editorTemplate -l "Invert map" -addControl "mapInvert";
+	editorTemplate -l "Map thickness" -addControl "mapThickness";
+	editorTemplate -l "SDF resolution" -addControl "resolutionSDF";
+	editorTemplate -l "Invert SDF" -addControl "invert";
+	editorTemplate -l "Sampling mode" -addControl "samplingMode";
+	editorTemplate -endLayout;
+	
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

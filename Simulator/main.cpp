@@ -26,6 +26,8 @@ Simulator_GUI_Base *gui = nullptr;
 // main 
 int main( int argc, char **argv )
 {
+	//_CrtSetBreakAlloc(20858);
+
 	REPORT_MEMORY_LEAKS;
 	base = new SimulatorBase();
 	base->init(argc, argv, "SPlisHSPlasH");

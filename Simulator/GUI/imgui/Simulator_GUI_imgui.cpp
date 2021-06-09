@@ -152,7 +152,13 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 
 	Simulation *sim = Simulation::getCurrent();
 	if (m_simulatorBase)
+	{
 		imguiParameters::createParameterObjectGUI(m_simulatorBase);
+#ifdef USE_EMBEDDED_PYTHON
+		if (m_simulatorBase->getScriptObject())
+			imguiParameters::createParameterObjectGUI(m_simulatorBase->getScriptObject());
+#endif
+	}
 	imguiParameters::createParameterObjectGUI(sim);
 	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) sim->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
@@ -351,7 +357,7 @@ void Simulator_GUI_imgui::renderBoundary()
 			if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 			{
 				BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(body));
-				Simulator_OpenGL::renderBoundaryParticles(bm, scene.boundaryModels[body]->color.data());
+				Simulator_OpenGL::renderBoundaryParticles(bm, scene.boundaryModels[body]->color.data(), base->getRenderMinValue(0), base->getRenderMaxValue(0));
 			}
 		}
 	}

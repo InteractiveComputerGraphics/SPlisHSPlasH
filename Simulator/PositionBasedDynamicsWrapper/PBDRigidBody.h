@@ -14,15 +14,16 @@ namespace SPH
 		PBD::RigidBody *m_rigidBody;	
 
 	public:
-		PBDRigidBody(PBD::RigidBody *rigidBody) : m_rigidBody(rigidBody) {}
+		PBDRigidBody(PBD::RigidBody* rigidBody) : RigidBodyObject(), m_rigidBody(rigidBody) { m_isAnimated = false; }
 
 		virtual bool isDynamic() const { return m_rigidBody->getMass() != 0.0; }
+		virtual void setIsAnimated(const bool b) { }
 
 		virtual Real const getMass() const { return m_rigidBody->getMass(); }
 		virtual Vector3r const& getPosition() const { return m_rigidBody->getPosition(); }
 		virtual Vector3r const& getVelocity() const { return m_rigidBody->getVelocity(); }
 		virtual void setVelocity(const Vector3r &v) { m_rigidBody->setVelocity(v); }
-		virtual Matrix3r const& getRotation() const { return m_rigidBody->getRotationMatrix(); }
+		virtual Quaternionr const& getRotation() const { return m_rigidBody->getRotation(); }
 		virtual Vector3r const& getAngularVelocity() const { return m_rigidBody->getAngularVelocity(); }
 		virtual void setAngularVelocity(const Vector3r &v) { m_rigidBody->setAngularVelocity(v); }
 
@@ -32,9 +33,9 @@ namespace SPH
 			m_rigidBody->getGeometry().updateMeshTransformation(m_rigidBody->getPosition(), m_rigidBody->getRotationMatrix());
 		}
 
-		virtual void setRotation(const Matrix3r &r) 
+		virtual void setRotation(const Quaternionr &q) 
 		{ 
-			m_rigidBody->setRotation(Quaternionr(r)); m_rigidBody->rotationUpdated(); 
+			m_rigidBody->setRotation(q); m_rigidBody->rotationUpdated(); 
 			m_rigidBody->getGeometry().updateMeshTransformation(m_rigidBody->getPosition(), m_rigidBody->getRotationMatrix());
 		}
 
@@ -62,6 +63,11 @@ namespace SPH
 		virtual Matrix3r getWorldSpaceRotation() const 
 		{ 
 			return (m_rigidBody->getRotation() * m_rigidBody->getRotationMAT().inverse() * m_rigidBody->getRotationInitial()).matrix();
+		}
+
+		virtual void updateMeshTransformation()
+		{
+			m_rigidBody->getGeometry().updateMeshTransformation(m_rigidBody->getPosition(), m_rigidBody->getRotationMatrix());
 		}
 
 		virtual const std::vector<Vector3r> &getVertices() const { return *m_rigidBody->getGeometry().getVertexData().getVertices(); };

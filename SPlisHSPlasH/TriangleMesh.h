@@ -16,6 +16,7 @@ namespace SPH
 		typedef std::vector<Vector3r> Vertices;
 
 	protected:
+		Vertices m_x0;
 		Vertices m_x;
 		Faces m_indices;
 		Normals m_normals;
@@ -42,10 +43,13 @@ namespace SPH
 		Normals& getVertexNormals(){ return m_vertexNormals; }
 		const Vertices& getVertices() const { return m_x; }
 		Vertices& getVertices() { return m_x; }
+		const Vertices& getVertices0() const { return m_x0; }
+		Vertices& getVertices0() { return m_x0; }
 
 		unsigned int numVertices() const { return static_cast<unsigned int>(m_x.size()); }
 		unsigned int numFaces() const { return (unsigned int)m_indices.size() / 3; }
 
+		void updateMeshTransformation(const Vector3r& x, const Matrix3r& R);
 		void updateNormals();
 		void updateVertexNormals();
 	};

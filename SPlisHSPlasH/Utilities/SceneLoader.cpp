@@ -107,6 +107,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				data->samplingMode = 0;
 				readValue<unsigned int>(boundaryModel["samplingMode"], data->samplingMode);
 
+				data->isAnimated = false;
+				readValue<bool>(boundaryModel["isAnimated"], data->isAnimated);
+
 				// Maps
 				data->mapInvert = false;
 				readValue(boundaryModel["mapInvert"], data->mapInvert);

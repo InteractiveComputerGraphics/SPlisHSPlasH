@@ -30,7 +30,7 @@ namespace SPH
 
 		virtual void initParameters();
 
-		void approximateNormal(Discregrid::DiscreteGrid* map, const Eigen::Vector3d &x, Vector3r &n, const unsigned int dim);
+		void approximateNormal(Discregrid::DiscreteGrid* map, const Eigen::Vector3d &x, Eigen::Vector3d &n, const unsigned int dim);
 		void computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, const unsigned int i, const Vector3r &xi);
 		void computeVolumeAndBoundaryX();
 		void computeDensityAndGradient(const unsigned int fluidModelIndex, const unsigned int i, const Vector3r &xi);

@@ -17,6 +17,8 @@ void RigidBodyModule(py::module m_sub){
     // ---------------------------------------
     py::class_<SPH::RigidBodyObject>(m_sub, "RigidBodyObject")
             .def("isDynamic", &SPH::RigidBodyObject::isDynamic)
+            .def("isAnimated", &SPH::RigidBodyObject::isAnimated)
+            .def("setIsAnimated", &SPH::RigidBodyObject::setIsAnimated)
             .def("getMass", &SPH::RigidBodyObject::getMass)
             .def("getPosition", &SPH::RigidBodyObject::getPosition)
             .def("setPosition", &SPH::RigidBodyObject::setPosition)
@@ -24,7 +26,11 @@ void RigidBodyModule(py::module m_sub){
             .def("getVelocity", &SPH::RigidBodyObject::getVelocity)
             .def("setVelocity", &SPH::RigidBodyObject::setVelocity)
             .def("getRotation", &SPH::RigidBodyObject::getRotation)
-            .def("setRotation", &SPH::RigidBodyObject::setRotation)
+            .def("setRotation", [](SPH::RigidBodyObject& obj, const Vector4r &qVec) {
+                    Quaternionr q;
+                    q.coeffs() = qVec;
+                    obj.setRotation(q);
+                })
             .def("getWorldSpaceRotation", &SPH::RigidBodyObject::getWorldSpaceRotation)
             .def("getAngularVelocity", &SPH::RigidBodyObject::getAngularVelocity)
             .def("setAngularVelocity", &SPH::RigidBodyObject::setAngularVelocity)
@@ -32,7 +38,8 @@ void RigidBodyModule(py::module m_sub){
             .def("addTorque", &SPH::RigidBodyObject::addTorque)
             .def("getVertices", &SPH::RigidBodyObject::getVertices)
             .def("getVertexNormals", &SPH::RigidBodyObject::getVertexNormals)
-            .def("getFaces", &SPH::RigidBodyObject::getFaces);
+            .def("getFaces", &SPH::RigidBodyObject::getFaces)
+            .def("updateMeshTransformation", &SPH::RigidBodyObject::updateMeshTransformation);
 
     // ---------------------------------------
     // Class Static Rigid Body
@@ -41,6 +48,7 @@ void RigidBodyModule(py::module m_sub){
             .def(py::init<>())
             .def("setWorldSpacePosition", &SPH::StaticRigidBody::setWorldSpacePosition)
             .def("setWorldSpaceRotation", &SPH::StaticRigidBody::setWorldSpaceRotation)
+            .def("animate", &SPH::StaticRigidBody::animate)
             .def("getGeometry", &SPH::StaticRigidBody::getGeometry)
             .def("getVertexBuffer", [](SPH::StaticRigidBody &obj) -> py::memoryview {
                 auto vertices = obj.getVertices();

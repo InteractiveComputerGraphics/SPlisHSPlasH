@@ -14,6 +14,7 @@ TriangleMesh::~TriangleMesh()
 
 void TriangleMesh::initMesh(const unsigned int nPoints, const unsigned int nFaces)
 {
+	m_x0.reserve(nPoints);
 	m_x.reserve(nPoints);
 	m_indices.reserve(nFaces*3);
 	m_normals.reserve(nFaces);
@@ -23,6 +24,7 @@ void TriangleMesh::initMesh(const unsigned int nPoints, const unsigned int nFace
 void TriangleMesh::release()
 {
 	m_indices.clear();
+	m_x0.clear();
 	m_x.clear();
 	m_normals.clear();
 	m_vertexNormals.clear();
@@ -42,6 +44,7 @@ void TriangleMesh::addFace(const int * const indices)
 
 void TriangleMesh::addVertex(const Vector3r &vertex)
 {
+	m_x0.push_back(vertex);
 	m_x.push_back(vertex);
 }
 
@@ -91,5 +94,11 @@ void SPH::TriangleMesh::updateVertexNormals()
 	{
 		m_vertexNormals[i].normalize();
 	}
+}
+
+void TriangleMesh::updateMeshTransformation(const Vector3r& x, const Matrix3r& R)
+{
+	for (unsigned int j = 0; j < numVertices(); j++)
+		m_x[j] = R * m_x0[j] + x;
 }
 

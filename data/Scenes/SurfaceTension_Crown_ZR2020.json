@@ -55,7 +55,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [3,5,10]
+			"mapResolution": [10,20,30]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
@@ -68,7 +68,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [3,5,10]
+			"mapResolution": [10,20,30]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
@@ -81,7 +81,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [10,5,3]
+			"mapResolution": [30,20,10]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
@@ -94,7 +94,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [10,5,3]
+			"mapResolution": [30,20,10]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
@@ -107,7 +107,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [10,2,10]
+			"mapResolution": [20,10,20]
 		},
 		{
 			"geometryFile": "../models/UnitBox.obj",
@@ -120,7 +120,7 @@
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [2,5,10]
+			"mapResolution": [10,20,30]
 		}
 	],
 	"FluidBlocks": [

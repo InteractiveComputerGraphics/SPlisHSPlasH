@@ -26,6 +26,9 @@ namespace SPH
 		* depend on these parameters.
 		*/
 		virtual void deferredInit();
+
+		virtual void timeStep();
+		virtual void reset();
 	};
 }
  

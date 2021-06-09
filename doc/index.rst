@@ -35,6 +35,7 @@
    :caption: Python Package:
 
    py_getting_started
+   py_embedded_python
    py_creating_scenes
    py_restrictions
 

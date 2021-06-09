@@ -129,7 +129,7 @@ void PBDBoundarySimulator::initBoundaryData()
 
 				// transform back to local coordinates
 				for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-					boundaryParticles[j] = rb->getRotation().transpose() * (rb->getWorldSpaceRotation() * boundaryParticles[j] + rb->getWorldSpacePosition() - rb->getPosition());
+					boundaryParticles[j] = rb->getRotation().toRotationMatrix().transpose() * (rb->getWorldSpaceRotation() * boundaryParticles[j] + rb->getWorldSpacePosition() - rb->getPosition());
 			}
 			else		// if no samples file is given, sample the surface model
 			{
@@ -185,7 +185,7 @@ void PBDBoundarySimulator::initBoundaryData()
 
 					// transform back to local coordinates
 					for (unsigned int j = 0; j < boundaryParticles.size(); j++)
-						boundaryParticles[j] = rb->getRotation().transpose() * (boundaryParticles[j] - rb->getPosition());
+						boundaryParticles[j] = rb->getRotation().toRotationMatrix().transpose() * (boundaryParticles[j] - rb->getPosition());
 
 					// Cache sampling
 					if (useCache && (FileSystem::makeDir(cachePath) == 0))
@@ -227,7 +227,7 @@ void PBDBoundarySimulator::initBoundaryData()
 			std::vector<Vector3r> xLocal;
 			xLocal.resize(vd.size());
 			for (unsigned int j = 0; j < vd.size(); j++)
-				xLocal[j] = rb->getRotation().transpose() * (vd.getPosition(j) - rb->getPosition());
+				xLocal[j] = rb->getRotation().toRotationMatrix().transpose() * (vd.getPosition(j) - rb->getPosition());
 			m_base->initVolumeMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
 		}
 		if (useCache && !md5)

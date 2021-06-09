@@ -294,21 +294,23 @@ void Simulator_OpenGL::renderSelectedParticles(FluidModel *model, const std::vec
 
 }
 
-void Simulator_OpenGL::renderBoundaryParticles(BoundaryModel_Akinci2012 *model, const float *col)
+void Simulator_OpenGL::renderBoundaryParticles(BoundaryModel_Akinci2012 *model, const float *col,
+	const Real renderMinValue, const Real renderMaxValue)
 {
 	Simulation *sim = Simulation::getCurrent();
 	const Real particleRadius = sim->getParticleRadius();
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 	{
-		Simulator_OpenGL::pointShaderBegin(&m_shader_scalar, particleRadius, col, 0.0, 100000.0);
+		Simulator_OpenGL::pointShaderBegin(&m_shader_vector, particleRadius, col, renderMinValue, renderMaxValue);
 		glEnableVertexAttribArray(0);
-
 		glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0)[0]);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0)[0]);
 		glDrawArrays(GL_POINTS, 0, model->numberOfParticles());
 		glDisableVertexAttribArray(0);
-
-		Simulator_OpenGL::pointShaderEnd(&m_shader_scalar);
+		glDisableVertexAttribArray(1);
+		Simulator_OpenGL::pointShaderEnd(&m_shader_vector);
 	}
 	else
 	{

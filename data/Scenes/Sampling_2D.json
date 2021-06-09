@@ -40,7 +40,7 @@
 		{
 			"id": "Viscous",
 			"viscosityMethod": 7,
-			"viscosity": 1000,
+			"viscosity": 1,
 			"viscosityBoundary": 0,
 			"colorMapType": 0,
 			"renderMaxValue": 5.0
@@ -59,8 +59,8 @@
 		},
 		{
 			"geometryFile": "../models/Dragon_50k.obj",
-			"translation": [0,-2,0.02],
-			"rotationAxis": [0, 1, 0],
+			"translation": [0,-2,0.0],
+			"rotationAxis": [0, 0, 1],
 			"rotationAngle": 0.0,
 			"scale": [2, 2, 2],
 			"color": [0.1, 0.4, 0.6, 1.0], 

@@ -83,10 +83,10 @@ void SimulationDataDFSPH::performNeighborhoodSearchSort()
 		if (numPart != 0)
 		{
 			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
-			d.sort_field(&m_factor[i][0]);
+			//d.sort_field(&m_factor[i][0]);
 			d.sort_field(&m_kappa[i][0]);
 			d.sort_field(&m_kappaV[i][0]);
-			d.sort_field(&m_density_adv[i][0]);
+			//d.sort_field(&m_density_adv[i][0]);
 		}
 	}
 }

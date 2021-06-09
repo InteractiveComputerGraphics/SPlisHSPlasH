@@ -275,14 +275,14 @@ void UtilitiesModule(py::module m) {
             // .def(py::init<>())
             .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Real, bool, bool,
                          Eigen::Matrix<float, 4, 1, Eigen::DontAlign>, void *, std::string, bool, Real,
-                         Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int>(),
+                         Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
                  "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
                  "rotation"_a = Matrix3r::Identity(), "scale"_a = Vector3r::Ones(),
                  "density"_a = 1000., "isDynamic"_a = false, "isWall"_a = false,
                  "color"_a = Eigen::Vector4f(1.f, 0.f, 0.f, 0.f), "rigidBody"_a = nullptr,
                  "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                  "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                 "samplingMode"_a = 0)
+                 "samplingMode"_a = 0, "isAnimated"_a = false)
             .def_readwrite("samplesFile", &SceneInfo::BoundaryData::samplesFile)
             .def_readwrite("meshFile", &SceneInfo::BoundaryData::meshFile)
             .def_readwrite("translation", &SceneInfo::BoundaryData::translation)
@@ -299,7 +299,7 @@ void UtilitiesModule(py::module m) {
             .def_readwrite("mapThickness", &SceneInfo::BoundaryData::mapThickness)
             .def_readwrite("mapResolution", &SceneInfo::BoundaryData::mapResolution)
             .def_readwrite("samplingMode", &SceneInfo::BoundaryData::samplingMode)
-            .def_readwrite("samplingMode", &SceneInfo::BoundaryData::samplingMode);
+            .def_readwrite("isAnimated", &SceneInfo::BoundaryData::isAnimated);
 
     py::class_<SceneInfo::FluidData>(m_sub_sub, "FluidData")
             .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, Vector3r, unsigned char,

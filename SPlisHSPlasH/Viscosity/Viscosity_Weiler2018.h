@@ -70,7 +70,11 @@ namespace SPH
 		{
 			m_vDiff[i] = val;
 		}
-	};
+
+        void computeRHS(VectorXr &b, VectorXr &g);
+
+        void applyForces(const VectorXr &x);
+    };
 }
 
 #endif

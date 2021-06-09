@@ -1,0 +1,17 @@
+global proc AESPHFluidNodeTemplate( string $nodeName )
+{
+	editorTemplate -beginScrollLayout;
+	
+	editorTemplate -beginLayout "Parameters" -collapse 0;
+	editorTemplate -l "Fluid id" -addControl "id";
+	editorTemplate -l "Initial velocity" -addControl "initialVelocity";
+	editorTemplate -l "Initial angular velocity" -addControl "initialAngularVelocity";
+	editorTemplate -l "SDF resolution" -addControl "resolutionSDF";
+	editorTemplate -l "Invert SDF" -addControl "invert";
+	editorTemplate -l "Dense mode" -addControl "denseMode";
+	editorTemplate -l "Particle sampling file" -addControl "particleFile";
+	editorTemplate -endLayout;
+	
+	editorTemplate -addExtraControls;
+	editorTemplate -endScrollLayout;
+}

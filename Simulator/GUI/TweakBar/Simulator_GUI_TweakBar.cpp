@@ -5,6 +5,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "../OpenGL/Simulator_OpenGL.h"
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
+#include "Simulator/SceneConfiguration.h"
 #include "GUI/OpenGL/Selection.h"
 
 using namespace SPH;
@@ -26,15 +27,15 @@ void Simulator_GUI_TweakBar::init(int argc, char **argv, const char *name)
 	MiniGL::init(argc, argv, 1280, 960, name);
 	MiniGL::initLights();
 
-	auto scene = m_simulatorBase->getScene();
-	const bool sim2D = scene.sim2D;
+	const bool sim2D = Simulation::getCurrent()->is2DSimulation();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	if (sim2D)
 		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
 	else
 		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
 	MiniGL::setSelectionFunc(selection, this);
 	MiniGL::addKeyFunc('i', std::bind(&Simulator_GUI_TweakBar::particleInfo, this));
-	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase));
+	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
 #ifdef WIN32
 	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
 #endif 
@@ -207,10 +208,17 @@ void Simulator_GUI_TweakBar::render()
 		MiniGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
 		FluidModel *model = sim->getFluidModel(i);
 		SimulatorBase *base = getSimulatorBase();
+
+		const FieldDescription* field = nullptr;
+		field = &model->getField(base->getColorField(i));
+
+		bool useScalarField = true;
+		if ((field == nullptr) || (base->getScalarField(i).size() == 0))
+			useScalarField = false;
 		Simulator_OpenGL::renderFluid(model, fluidColor, base->getColorMapType(i),
-			base->getColorField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
+			useScalarField, base->getScalarField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
 		Simulator_OpenGL::renderSelectedParticles(model, getSelectedParticles(), base->getColorMapType(i),
-			base->getColorField(i), base->getRenderMinValue(i), base->getRenderMaxValue(i));
+			base->getRenderMinValue(i), base->getRenderMaxValue(i));
 	}
 	renderBoundary();
 	update();
@@ -220,7 +228,7 @@ void Simulator_GUI_TweakBar::renderBoundary()
 {
 	Simulation *sim = Simulation::getCurrent();
 	SimulatorBase *base = getSimulatorBase();
-	SceneLoader::Scene &scene = base->getScene();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
 
 	if (((renderWalls == 1) || (renderWalls == 2)) &&

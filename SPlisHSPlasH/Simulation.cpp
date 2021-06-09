@@ -9,6 +9,7 @@
 #include "SPlisHSPlasH/IISPH/TimeStepIISPH.h"
 #include "SPlisHSPlasH/DFSPH/TimeStepDFSPH.h"
 #include "SPlisHSPlasH/PF/TimeStepPF.h"
+#include "SPlisHSPlasH/ICSPH/TimeStepICSPH.h"
 #include "BoundaryModel_Akinci2012.h"
 #include "BoundaryModel_Bender2019.h"
 #include "BoundaryModel_Koschier2017.h"
@@ -61,6 +62,7 @@ int Simulation::ENUM_SIMULATION_PBF = -1;
 int Simulation::ENUM_SIMULATION_IISPH = -1;
 int Simulation::ENUM_SIMULATION_DFSPH = -1;
 int Simulation::ENUM_SIMULATION_PF = -1;
+int Simulation::ENUM_SIMULATION_ICSPH = -1;
 int Simulation::BOUNDARY_HANDLING_METHOD = -1;
 int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
@@ -262,6 +264,7 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("IISPH", ENUM_SIMULATION_IISPH);
 	enumParam->addEnumValue("DFSPH", ENUM_SIMULATION_DFSPH);
 	enumParam->addEnumValue("Projective Fluids", ENUM_SIMULATION_PF);
+	enumParam->addEnumValue("ICSPH", ENUM_SIMULATION_ICSPH);
 
 	BOUNDARY_HANDLING_METHOD = createEnumParameter("boundaryHandlingMethod", "Boundary handling method", &m_boundaryHandlingMethod);
 	setGroup(BOUNDARY_HANDLING_METHOD, "Simulation");
@@ -439,7 +442,7 @@ void Simulation::updateTimeStepSizeCFL()
 		for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		{
 			BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(i));
-			if (bm->getRigidBodyObject()->isDynamic())
+			if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 			{
 				for (unsigned int j = 0; j < bm->numberOfParticles(); j++)
 				{
@@ -456,7 +459,7 @@ void Simulation::updateTimeStepSizeCFL()
 		for (unsigned int boundaryModelIndex = 0; boundaryModelIndex < numberOfBoundaryModels(); boundaryModelIndex++)
 		{
 			BoundaryModel_Koschier2017 *bm = static_cast<BoundaryModel_Koschier2017*>(getBoundaryModel(boundaryModelIndex));
-			if (bm->getRigidBodyObject()->isDynamic())
+			if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 			{
 				maxVel = std::max(maxVel, bm->getMaxVel());
 			}
@@ -467,7 +470,7 @@ void Simulation::updateTimeStepSizeCFL()
 		for (unsigned int boundaryModelIndex = 0; boundaryModelIndex < numberOfBoundaryModels(); boundaryModelIndex++)
 		{
 			BoundaryModel_Bender2019 *bm = static_cast<BoundaryModel_Bender2019*>(getBoundaryModel(boundaryModelIndex));
-			if (bm->getRigidBodyObject()->isDynamic())
+			if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 			{
 				maxVel = std::max(maxVel, bm->getMaxVel());
 			}
@@ -578,6 +581,13 @@ void Simulation::setSimulationMethod(const int val)
 		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC);
 		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_PRECOMPUTED_CUBIC);
 	}
+	else if (method == SimulationMethods::ICSPH)
+	{
+		m_timeStep = new TimeStepICSPH();
+		m_timeStep->init();
+		setValue(Simulation::KERNEL_METHOD, Simulation::ENUM_KERNEL_CUBIC);
+		setValue(Simulation::GRAD_KERNEL_METHOD, Simulation::ENUM_GRADKERNEL_CUBIC);
+	}
 
 	if (m_simulationMethodChanged != nullptr)
 		m_simulationMethodChanged();
@@ -686,7 +696,7 @@ void Simulation::updateBoundaryVolume()
 	m_neighborhoodSearch->set_active(false);
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 	{
-		if (!getBoundaryModel(i)->getRigidBodyObject()->isDynamic())
+		if (!getBoundaryModel(i)->getRigidBodyObject()->isDynamic() && !getBoundaryModel(i)->getRigidBodyObject()->isAnimated())
 			m_neighborhoodSearch->set_active(i + nFluids, true, true);
 	}
 
@@ -696,7 +706,7 @@ void Simulation::updateBoundaryVolume()
 	// Boundary objects
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
-		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
+		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic() && !getBoundaryModel(body)->getRigidBodyObject()->isAnimated())
 			static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body))->computeBoundaryVolume();
 	}
 
@@ -709,7 +719,7 @@ void Simulation::updateBoundaryVolume()
 		m_neighborhoodSearch->set_active(false);
 
 		// Only activate next dynamic body
-		if (getBoundaryModel(body)->getRigidBodyObject()->isDynamic())
+		if (getBoundaryModel(body)->getRigidBodyObject()->isDynamic() || getBoundaryModel(body)->getRigidBodyObject()->isAnimated())
 		{
 			m_neighborhoodSearch->set_active(body + nFluids, true, true);
 			m_neighborhoodSearch->find_neighbors();

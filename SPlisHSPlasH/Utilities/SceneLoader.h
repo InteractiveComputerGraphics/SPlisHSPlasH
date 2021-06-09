@@ -44,6 +44,7 @@ namespace Utilities
 			Real mapThickness;	
 			Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution;
 			unsigned int samplingMode;
+			bool isAnimated;
 		};
 
 		/** \brief Struct to store a fluid object */
@@ -167,6 +168,23 @@ namespace Utilities
 					return false;
 
 				v = j2.get<T>();
+				return true;
+			}
+			return false;
+		}
+
+		bool hasValue(const std::string& section, const std::string& key)
+		{
+			if (m_jsonData.find(section) != m_jsonData.end())
+			{
+				nlohmann::json j = m_jsonData[section];
+				if (j.is_null())
+					return false;
+
+				nlohmann::json j2 = j[key];
+				if (j2.is_null())
+					return false;
+
 				return true;
 			}
 			return false;

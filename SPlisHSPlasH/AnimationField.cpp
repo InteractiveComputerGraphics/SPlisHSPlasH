@@ -75,13 +75,22 @@ void AnimationField::step()
 			{
 				const Vector3r &xi = fm->getPosition(i);
 				const Vector3r &vi = fm->getVelocity(i);
+
+				const Eigen::Vector3d xi_double = xi.cast<double>();
+				const Eigen::Vector3d vi_double = vi.cast<double>();
+
 				if (inShape(m_type, xi, m_x, m_rotation, m_scale))
 				{
 					Eigen::Map<Vector3r> value((Real*) particleField->getFct(i));
- 					te_variable vars[] = { {"t", &t}, {"dt", &dt}, 
-										   {"x", &xi[0]}, {"y", &xi[1]}, {"z", &xi[2]},
-										   {"vx", &vi[0]}, {"vy", &vi[1]}, {"vz", &vi[2]},
-										   {"valuex", &value[0]}, {"valuey", &value[1]}, {"valuez", &value[2]},
+					const Eigen::Vector3d value_double = Vector3r(value).cast<double>();
+
+					const double t_double = static_cast<double>(t);
+					const double dt_double = static_cast<double>(dt);
+
+ 					te_variable vars[] = { {"t", &t_double}, {"dt", &dt_double}, 
+										   {"x", &xi_double[0]}, {"y", &xi_double[1]}, {"z", &xi_double[2]},
+										   {"vx", &vi_double[0]}, {"vy", &vi_double[1]}, {"vz", &vi_double[2]},
+										   {"valuex", &value_double[0]}, {"valuey", &value_double[1]}, {"valuez", &value_double[2]},
 										 };
  					const int numVars = 11;
  					int err;

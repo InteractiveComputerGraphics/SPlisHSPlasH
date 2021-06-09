@@ -111,9 +111,9 @@ namespace SPH
 				}
 				index++;
 
-				posIter++;
 				if (posIter == posEnd)
 					break;
+				posIter++;
 			}
 		}
 	};

@@ -188,7 +188,7 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 				std::string helpText = param->description;
 				if (param->readOnly)
 					helpText += " (read-only)";
-				else if (param->name != "")
+				else if ((param->name != "") && (dynamic_cast<imguiParameters::imguiFunctionParameter*>(param) == nullptr))		// no key help text for function parameters
 					helpText += "\n\nkey in scene file:\n" + param->name;
 
 				ImGuiInputTextFlags flags = 0;
@@ -287,7 +287,8 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		std::string group = paramBase->getGroup();
 		std::string subgroup = "";
 		if ((group == "WCSPH") || (group == "PCISPH") || (group == "PBF") || 
-			(group == "IISPH") || (group == "DFSPH") || (group == "PF") || 
+			(group == "IISPH") || (group == "DFSPH") || (group == "PF") ||
+			(group == "ICSPH") ||
 			(group == "CFL") || (group == "Kernel"))
 		{
 			subgroup = group;

@@ -1,3 +1,10 @@
+2.10.0
+	- added support of embedded Python scripts (must be activated in CMake)
+	- added possibility to animate rigid bodies in Python
+	- added Implicit Compressible SPH pressure solver by Gissler et al. 2020
+	- fixed bug in AnimationField (thanks to Lukas Westhofen)
+	- improved stability of volume maps
+
 2.9.2
 	- added ParaView partio plugin
 	- extended tooltips by json key

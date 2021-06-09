@@ -84,6 +84,7 @@ void Viscosity_Takahashi2015::computeViscosityAcceleration(Viscosity_Takahashi20
 {
 	Simulation *sim = Simulation::getCurrent();
 	FluidModel *model = visco->getModel();
+	const Real density0 = model->getDensity0();
 	const unsigned int numParticles = model->numActiveParticles();
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	
@@ -110,7 +111,7 @@ void Viscosity_Takahashi2015::computeViscosityAcceleration(Viscosity_Takahashi20
 
 				nablaV += (model->getMass(neighborIndex) / model->getDensity(neighborIndex)) * dyad;
 			)
-			visco->getViscousStress(i) = visco->m_viscosity * (nablaV + nablaV.transpose());
+			visco->getViscousStress(i) = density0 * visco->m_viscosity * (nablaV + nablaV.transpose());
 		}
 
 		#pragma omp for schedule(static) 

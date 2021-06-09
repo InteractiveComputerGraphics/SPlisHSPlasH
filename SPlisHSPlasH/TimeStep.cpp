@@ -228,7 +228,7 @@ void TimeStep::computeVolumeAndBoundaryX()
 	STOP_TIMING_AVG;
 }
 
-void TimeStep::approximateNormal(Discregrid::DiscreteGrid* map, const Eigen::Vector3d &x, Vector3r &n, const unsigned int dim)
+void TimeStep::approximateNormal(Discregrid::DiscreteGrid* map, const Eigen::Vector3d &x, Eigen::Vector3d &n, const unsigned int dim)
 {
 	// approximate gradient
 	double eps = 0.1*Simulation::getCurrent()->getSupportRadius();
@@ -246,7 +246,7 @@ void TimeStep::approximateNormal(Discregrid::DiscreteGrid* map, const Eigen::Vec
 
 		double res = (e_p - e_m) * (1.0 / (2.0*eps));
 
-		n[j] = static_cast<Real>(res);
+		n[j] = res;
 	}
 }
 
@@ -272,7 +272,7 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 		boundaryVolume = 0.0;
 
 		const Vector3r& t = bm->getRigidBodyObject()->getPosition();
-		const Matrix3r& R = bm->getRigidBodyObject()->getRotation();
+		const Matrix3r& R = bm->getRigidBodyObject()->getRotation().toRotationMatrix();
 
 		Eigen::Vector3d normal;
 		const Eigen::Vector3d localXi = (R.transpose() * (xi - t)).cast<double>();
@@ -295,12 +295,13 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 			dist = bm->getMap()->interpolate(0, localXi, cell, c0, N, &normal, &dN);
 #endif		
 
+		bool animateParticle = false;
 		if (model->getParticleState(i) == ParticleState::Active)
 		{
 			if ((dist > 0.0) && (static_cast<Real>(dist) < supportRadius))
 			{
 				const double volume = bm->getMap()->interpolate(1, localXi, cell, c0, N);
-				if ((volume > 1e-5) && (volume != numeric_limits<double>::max()))
+				if ((volume > 0.0) && (volume != numeric_limits<double>::max()))
 				{
 					boundaryVolume = static_cast<Real>(volume);
 
@@ -312,9 +313,10 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 #endif
 					normal = R.cast<double>() * normal;
 					const double nl = normal.norm();
-					if (nl > 1.0e-5)
+					if (nl > 1.0e-9)
 					{
 						normal /= nl;
+						//const Real d = static_cast<Real>(dist);
 						const Real d = max((static_cast<Real>(dist) + static_cast<Real>(0.5) * particleRadius), static_cast<Real>(2.0)*particleRadius);	
 																								// boundary point is 0.5*particleRadius below the surface. 
 																								// Ensure that the particle is at least one particle diameter away 
@@ -334,8 +336,8 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 			else if (dist <= 0.0)
 			{
 				// if a particle is in the boundary, animate the particle back
-				model->setParticleState(i, ParticleState::AnimatedByVM);
 				LOG_DEBUG << "Particle in boundary.";
+				animateParticle = true;
 				boundaryVolume = 0.0;
 			}
 			else
@@ -347,7 +349,7 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 		// Animate particles that are in the boundary back to the surface.
 		// Typically this never happens, but this is a fallback solution if
 		// too large time steps are used. 
-		if (model->getParticleState(i) == ParticleState::AnimatedByVM)
+		if (animateParticle)
 		{
 			if (dist != numeric_limits<double>::max())				// if dist is numeric_limits<double>::max(), then the particle is not close to the current boundary
 			{
@@ -358,15 +360,13 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 				{
 					normal /= nl;
 					// project to surface
-					Real delta = static_cast<Real>(2.55) * particleRadius - static_cast<Real>(dist);
-					delta = std::min(delta, static_cast<Real>(0.025) * particleRadius);		// get up in small steps
+					Real delta = static_cast<Real>(2.0) * particleRadius - static_cast<Real>(dist);
+					delta = std::min(delta, static_cast<Real>(0.1) * particleRadius);		// get up in small steps
 					model->getPosition(i) = (xi + delta * normal.cast<Real>());
 					// adapt velocity in normal direction
 					//model->getVelocity(i) = 1.0/dt * delta * normal.cast<Real>();
 					model->getVelocity(i).setZero();
 				}
-				if (dist > 2.5 * particleRadius)
-					model->setParticleState(i, ParticleState::Active);
 			}
 			boundaryVolume = 0.0;
 		}
@@ -415,7 +415,7 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 		Real &boundaryDensity = bm->getBoundaryDensity(fluidModelIndex, i);
 
 		const Vector3r &t = bm->getRigidBodyObject()->getPosition();
-		const Matrix3r &R = bm->getRigidBodyObject()->getRotation();
+		const Matrix3r &R = bm->getRigidBodyObject()->getRotation().toRotationMatrix();
 
 		Eigen::Vector3d normal;
 		const Eigen::Vector3d localXi = (R.transpose() * (xi - t)).cast<double>();

@@ -1,0 +1,77 @@
+{
+	"Configuration": 
+	{
+		"cameraPosition": [0,0,8],
+		"cameraLookat": [0,0,0],
+		"pause": true,
+		"sim2D": true, 
+		"particleRadius": 0.025,
+		"numberOfStepsPerRenderUpdate": 2,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.1,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"particleAttributes": "velocity",
+		"renderWalls": 1,
+		"boundaryHandlingMethod": 0,
+		"scriptFile": "AnimatedBody_2D.py"
+	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"surfaceTension": 0.2,
+			"surfaceTensionMethod": 0,		
+			"viscosity": 0.005,
+			"viscosityMethod": 1, 
+			"colorMapType": 1,
+			"renderMaxValue": 4.0
+		}
+	],
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,3,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [3, 6, 1],
+			"color": [0.1, 0.4, 0.5, 1.0], 
+			"isDynamic": false,
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,40,20]
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [-0.45, 1, 0],
+			"rotationAxis": [0, 0, 1],
+			"rotationAngle": 0.0,
+			"scale": [1.5, 1.5, 1.5],
+			"color": [0.5, 0.5, 0.5, 1.0], 
+			"isAnimated_": true,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [25,25,25]
+		}
+	],
+	"FluidBlocks": [
+		{
+			"id": "Fluid",
+			"denseMode": 0,
+			"start": [-1.5, 0.0, -0.1],
+			"end": [1.5 , 1.0, 0.1]
+		}
+	]
+}
+
+
+

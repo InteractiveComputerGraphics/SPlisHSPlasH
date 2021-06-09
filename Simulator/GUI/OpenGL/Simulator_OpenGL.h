@@ -39,7 +39,8 @@ namespace SPH
 			const unsigned int colorMapType, 
 			const Real renderMinValue, const Real renderMaxValue);
 		static void renderBoundary(BoundaryModel *model, const float *col);
-		static void renderBoundaryParticles(BoundaryModel_Akinci2012 *model, const float *col);
+		static void renderBoundaryParticles(BoundaryModel_Akinci2012 *model, const float *col,
+			const Real renderMinValue, const Real renderMaxValue);
 	};
 }
 

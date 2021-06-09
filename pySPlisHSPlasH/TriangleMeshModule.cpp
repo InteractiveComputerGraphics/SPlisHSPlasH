@@ -50,6 +50,7 @@ void TriangleMeshModule(py::module m_sub) {
             .def("numVertices", &SPH::TriangleMesh::numVertices)
             .def("numFaces", &SPH::TriangleMesh::numFaces)
 
+            .def("updateMeshTransformation", &SPH::TriangleMesh::updateMeshTransformation)
             .def("updateNormals", &SPH::TriangleMesh::updateNormals)
             .def("updateVertexNormals", &SPH::TriangleMesh::updateVertexNormals);
 }

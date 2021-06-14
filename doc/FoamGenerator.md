@@ -3,6 +3,7 @@
 The foam generator is a command line tool to generate spray, foam and bubble particles in a postprocessing step which improves the visual realism of the simulation results. It takes a sequences of particle files and generates a sequence of new particles representing spray, foam and air bubbles. These additional particles are advected using the velocity field of the fluid. Below are two examples which were generated using the foam generator tool:
 
 |![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/teaser.gif)|![](https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/river_foam.jpg)|
+| ---- | ---- |
 
 The tool implements the methods of:
 

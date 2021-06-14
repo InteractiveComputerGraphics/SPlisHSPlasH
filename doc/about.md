@@ -6,10 +6,11 @@ SPlisHSPlasH is an open-source library for the physically-based simulation of fl
 
 ## Main features
 
-* open-source SPH fluid simulation (2D & 3D)
+* an open-source SPH fluid simulation (2D & 3D)
 * neighborhood search on CPU or GPU
 * supports vectorization using AVX
 * Python binding (thanks to Stefan Jeske)
+* supports embedded Python scripts
 * several implicit pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF)
 * explicit and implicit viscosity methods
 * current surface tension approaches
@@ -28,6 +29,7 @@ SPlisHSPlasH is an open-source library for the physically-based simulation of fl
 * VTK file export of all particle data (enables the data import in ParaView)
 * rigid body export
 * a Maya plugin to model and generate scene files 
+* a ParaView plugin to import particle data
 
 ## License
 

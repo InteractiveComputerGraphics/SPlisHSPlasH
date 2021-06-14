@@ -42,6 +42,17 @@
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tools:
+
+   FoamGenerator
+   partio2vtk
+   PartioViewer
+   SurfaceSampling
+   VolumeSampling
+
+
+.. toctree::
+   :maxdepth: 2
    :caption: API Documentation:
    
    api/library_root

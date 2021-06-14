@@ -1,3 +1,7 @@
+2.10.1
+	- added new foam generator tool to generate spray, foam and bubble particles in a postprocessing step in order to improve the visual realism of the final rendering
+	- added documentation of the foam generator
+
 2.10.0
 	- added support of embedded Python scripts (must be activated in CMake)
 	- added possibility to animate rigid bodies in Python

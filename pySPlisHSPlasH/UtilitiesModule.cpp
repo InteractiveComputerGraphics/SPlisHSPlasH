@@ -302,13 +302,14 @@ void UtilitiesModule(py::module m) {
             .def_readwrite("isAnimated", &SceneInfo::BoundaryData::isAnimated);
 
     py::class_<SceneInfo::FluidData>(m_sub_sub, "FluidData")
-            .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, Vector3r, unsigned char,
+            .def(py::init<std::string, std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, Vector3r, unsigned char,
                     bool, std::array<unsigned int, 3>>(),
-                    "id"_a="Fluid", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
+                    "id"_a="Fluid", "visMeshFile"_a = "", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
                     "rotation"_a=Matrix3r::Identity(), "scale"_a=Vector3r::Ones(),
                     "initialVelocity"_a=Vector3r::Zero(), "initialAngularVelocity"_a = Vector3r::Zero(), "mode"_a=0, "invert"_a=false,
                     "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))
             .def_readwrite("id", &SceneInfo::FluidData::id)
+            .def_readwrite("visMeshFile", &SceneInfo::FluidData::visMeshFile)
             .def_readwrite("samplesFile", &SceneInfo::FluidData::samplesFile)
             .def_readwrite("translation", &SceneInfo::FluidData::translation)
             .def_readwrite("rotation", &SceneInfo::FluidData::rotation)
@@ -320,10 +321,11 @@ void UtilitiesModule(py::module m) {
             .def_readwrite("resolutionSDF", &SceneInfo::FluidData::resolutionSDF);
 
     py::class_<SceneInfo::FluidBlock>(m_sub_sub, "FluidBlock")
-            .def(py::init<std::string, SceneInfo::Box, unsigned char, Vector3r, Vector3r>(),
-                    "id"_a="Fluid", "box"_a=SceneInfo::Box({Vector3r::Zero(), Vector3r::Ones()}),
+            .def(py::init<std::string, std::string, SceneInfo::Box, unsigned char, Vector3r, Vector3r>(),
+                    "id"_a="Fluid", "visMeshFile"_a="", "box"_a=SceneInfo::Box({Vector3r::Zero(), Vector3r::Ones()}),
                     "mode"_a=0, "initialVelocity"_a=Vector3r::Zero(), "initialVelocity"_a = Vector3r::Zero())
             .def_readwrite("id", &SceneInfo::FluidBlock::id)
+            .def_readwrite("visMeshFile", &SceneInfo::FluidBlock::visMeshFile)
             .def_readwrite("box", &SceneInfo::FluidBlock::box)
             .def_readwrite("mode", &SceneInfo::FluidBlock::mode)
             .def_readwrite("initialVelocity", &SceneInfo::FluidBlock::initialVelocity)

@@ -42,6 +42,7 @@ using AlignedBox3r = Eigen::AlignedBox<Real, 3>;
 using AngleAxisr = Eigen::AngleAxis<Real>;
 using Quaternionr = Eigen::Quaternion<Real, Eigen::DontAlign>;
 using VectorXr = Eigen::Matrix<Real, -1, 1, 0, -1, 1>;
+using MatrixXr = Eigen::Matrix<Real, -1, -1, 0, -1, -1>;
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64)	   
 	// Enable memory leak detection

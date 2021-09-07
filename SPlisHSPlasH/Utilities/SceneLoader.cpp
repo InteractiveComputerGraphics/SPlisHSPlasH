@@ -141,6 +141,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				FluidData *data = new FluidData();
 				data->samplesFile = particleFile;
 
+				data->visMeshFile = "";
+				readValue(fluidModel["visMesh"], data->visMeshFile);
+
 				// id
 				data->id = "Fluid";
 				readValue(fluidModel["id"], data->id);
@@ -208,6 +211,10 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 				readVector(fluidBlock["end"], maxX))
 			{
 				FluidBlock *block = new FluidBlock();
+				
+				block->visMeshFile = "";
+				readValue(fluidBlock["visMesh"], block->visMeshFile);
+				
 				block->box.m_minX[0] = scale[0] * minX[0] + translation[0];
 				block->box.m_minX[1] = scale[1] * minX[1] + translation[1];
 				block->box.m_minX[2] = scale[2] * minX[2] + translation[2];

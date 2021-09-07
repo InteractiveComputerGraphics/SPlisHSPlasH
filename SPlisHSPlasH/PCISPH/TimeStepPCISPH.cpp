@@ -51,24 +51,23 @@ void TimeStepPCISPH::step()
 	const Real h = tm->getTimeStepSize();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
+		clearAccelerations(fluidModelIndex);
+
 	performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
 #endif
 
-
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 		computeDensityAndGradient();
 
-	// Compute accelerations: a(t)
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
-	{
-		clearAccelerations(fluidModelIndex);
 		computeDensities(fluidModelIndex);
-	}
+
 	sim->computeNonPressureForces();
 
 	sim->updateTimeStepSize();
@@ -89,13 +88,11 @@ void TimeStepPCISPH::step()
 			{
 				if (model->getParticleState(i) == ParticleState::Active)
 				{
-					const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
-					const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
-					const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
+					const Vector3r &accel = m_simulationData.getPressureAccel(fluidModelIndex, i);
 					Vector3r &x = model->getPosition(i);
 					Vector3r &v = model->getVelocity(i);
-					v = lastV + h * accel;
-					x = lastX + h * v;
+					v += h * accel;
+					x += h * v;
 				}
 			}
 		}
@@ -112,6 +109,7 @@ void TimeStepPCISPH::pressureSolve()
 {
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
+	const Real h = TimeManager::getCurrent()->getTimeStepSize();
 
 	// Initialization
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
@@ -120,10 +118,11 @@ void TimeStepPCISPH::pressureSolve()
 		const int numParticles = (int)model->numActiveParticles();
 		for (int i = 0; i < numParticles; i++)
 		{
-			Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
-			Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
-			lastX = model->getPosition(i);
-			lastV = model->getVelocity(i);
+			Vector3r& vel = model->getVelocity(i);
+			const Vector3r& accel = model->getAcceleration(i);
+			if (model->getParticleState(i) == ParticleState::Active)
+				vel += h * accel;
+
 			m_simulationData.getPressure(fluidModelIndex, i) = 0.0;
 			m_simulationData.getPressureAccel(fluidModelIndex, i).setZero();
 		}
@@ -176,16 +175,16 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 			if (model->getParticleState(i) == ParticleState::Active)
 			{
 				const Vector3r accel = model->getAcceleration(i) + m_simulationData.getPressureAccel(fluidModelIndex, i);
-				const Vector3r &lastX = m_simulationData.getLastPosition(fluidModelIndex, i);
-				const Vector3r &lastV = m_simulationData.getLastVelocity(fluidModelIndex, i);
-				Vector3r &x = model->getPosition(i);
-				Vector3r &v = model->getVelocity(i);
-				v = lastV + h * accel;
-				x = lastX +h * v;
- 				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
- 					computeVolumeAndBoundaryX(fluidModelIndex, i, x);
+				Vector3r &predX = m_simulationData.getPredictedPosition(fluidModelIndex, i);
+				Vector3r &predV = m_simulationData.getPredictedVelocity(fluidModelIndex, i);
+				const Vector3r &x = model->getPosition(i);
+				const Vector3r &v = model->getVelocity(i);
+				predV = v + h * accel;
+				predX = x + h * predV;
+				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+ 					computeVolumeAndBoundaryX(fluidModelIndex, i, predX);
  				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
- 					computeDensityAndGradient(fluidModelIndex, i, x);
+ 					computeDensityAndGradient(fluidModelIndex, i, predX);
 			}
 		}
 	}
@@ -197,7 +196,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < numParticles; i++)
 		{
-			const Vector3r &xi = model->getPosition(i);
+			const Vector3r &pred_xi = m_simulationData.getPredictedPosition(fluidModelIndex, i);
 			Real &densityAdv = m_simulationData.getDensityAdv(fluidModelIndex, i);
 			densityAdv = model->getVolume(i) * sim->W_zero();
 				
@@ -205,7 +204,8 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 			// Fluid
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors(
-				densityAdv += fm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+				const Vector3r & pred_xj = m_simulationData.getPredictedPosition(pid, neighborIndex);
+				densityAdv += fm_neighbor->getVolume(neighborIndex) * sim->W(pred_xi - pred_xj);
 			);
 
 			//////////////////////////////////////////////////////////////////////////
@@ -214,7 +214,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 			{
 				forall_boundary_neighbors(
-					densityAdv += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
+					densityAdv += bm_neighbor->getVolume(neighborIndex) * sim->W(pred_xi - xj);
 				);
 			}
 			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
@@ -226,14 +226,15 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 			{
 				forall_volume_maps(
-					densityAdv += static_cast<Real>(0.25)*Vj * sim->W(xi - xj);		// reduce volume to make it more stable
+					densityAdv += Vj * sim->W(pred_xi - xj);		
 				);
 			}
 
-			densityAdv = max(densityAdv, static_cast<Real>(1.0));
+			//densityAdv = max(densityAdv, static_cast<Real>(1.0));
 			const Real density_err = density0 * (densityAdv - static_cast<Real>(1.0));
 			Real &pressure = m_simulationData.getPressure(fluidModelIndex, i);
 			pressure += invH2 * m_simulationData.getPCISPH_ScalingFactor(fluidModelIndex) * (densityAdv - static_cast<Real>(1.0));
+			pressure = max(pressure, static_cast<Real>(0.0));
 
 			#pragma omp atomic
 			avg_density_err += density_err;
@@ -248,7 +249,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r &xi = m_simulationData.getLastPosition(fluidModelIndex, i);
+			const Vector3r &xi = model->getPosition(i);
 
 			Vector3r &ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
 			ai.setZero();
@@ -287,7 +288,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
  			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
  			{
  				forall_volume_maps(
- 					const Vector3r a = 0.25*Vj *dpi * sim->gradW(xi - xj);		// reduce volume to make it more stable
+ 					const Vector3r a = Vj *dpi * sim->gradW(xi - xj);		
  					ai -= a;
  					bm_neighbor->addForce(xj, model->getMass(i) * a);
  				);

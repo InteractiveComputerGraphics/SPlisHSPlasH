@@ -38,6 +38,7 @@ struct FluidModelData
 	std::vector<Vector3r> m_v;
 	std::vector<Real> m_density;
 	std::vector<unsigned int> m_particleId;
+	std::vector<unsigned int> m_objectId;
 	std::vector<unsigned int> m_numNeighbors;
 	std::vector<ParticleState> m_particleState;
 	Real m_V;
@@ -62,6 +63,7 @@ struct FluidModelData
 		m_v.resize(numParticles);
 		m_density.resize(numParticles);
 		m_particleId.resize(numParticles);
+		m_objectId.resize(numParticles);
 		m_particleState.resize(numParticles);
 		m_numNeighbors.resize(numParticles);
 		for (auto i = 0u; i < numParticles; i++)
@@ -74,6 +76,7 @@ struct FluidModelData
 			m_v[i] = fm->getVelocity(i);
 			m_density[i] = fm->getDensity(i);
 			m_particleId[i] = fm->getParticleId(i);
+			m_objectId[i] = fm->getObjectId(i);
 			m_particleState[i] = fm->getParticleState(i);
 			m_numNeighbors[i] = sim->numberOfNeighbors(0, 0, i);
 		}
@@ -155,6 +158,7 @@ void compareStateFluidData(const FluidModelData* f1, const FluidModelData* f2)
 	bool chkPos = true;
 	bool chkVel = true;
 	bool chkId = true;
+	bool chkObjId = true;
 	for (auto i = 0; i < numParticles; i++)
 	{
 		if (!cmp(f1->m_x[i], f2->m_x[i]))
@@ -163,6 +167,8 @@ void compareStateFluidData(const FluidModelData* f1, const FluidModelData* f2)
 			chkVel = false;
 		if (f1->m_particleId[i] != f2->m_particleId[i])
 			chkId = false;
+		if (f1->m_objectId[i] != f2->m_objectId[i])
+			chkObjId = false;
 	}
 
 	REQUIRE(f1->m_id == f2->m_id);
@@ -174,6 +180,7 @@ void compareStateFluidData(const FluidModelData* f1, const FluidModelData* f2)
 	REQUIRE(chkPos);
 	REQUIRE(chkVel);
 	REQUIRE(chkId);
+	REQUIRE(chkObjId);
 }
 
 void compareStateBoundaryData(const BoundaryModelData* b1, const BoundaryModelData* b2)

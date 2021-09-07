@@ -82,6 +82,9 @@ void Elasticity_Becker2009::initValues()
 			m_restVolumes[i] = model->getMass(i) / density;
 		}
 	}
+
+	// mark all particles in the bounding box as fixed
+	determineFixedParticles();
 }
 
 void Elasticity_Becker2009::step()
@@ -179,46 +182,51 @@ void Elasticity_Becker2009::computeStress()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const unsigned int i0 = m_current_to_initial_index[i];
-			const Vector3r &xi = m_model->getPosition(i);
-			const Vector3r &xi0 = m_model->getPosition0(i0);
-
-			Matrix3r nablaU;
-			nablaU.setZero();
-			const size_t numNeighbors = m_initialNeighbors[i0].size();
-
-			//////////////////////////////////////////////////////////////////////////
-			// Fluid
-			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < numNeighbors; j++)
+			if (model->getParticleState(i) == ParticleState::Active)
 			{
-				const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
-				// get initial neighbor index considering the current particle order 
-				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+				const unsigned int i0 = m_current_to_initial_index[i];
+				const Vector3r& xi = m_model->getPosition(i);
+				const Vector3r& xi0 = m_model->getPosition0(i0);
 
-				const Vector3r &xj = model->getPosition(neighborIndex);
-				const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
+				Matrix3r nablaU;
+				nablaU.setZero();
+				const size_t numNeighbors = m_initialNeighbors[i0].size();
 
-				const Vector3r xj_xi = xj - xi;
-				const Vector3r xj_xi_0 = xj0 - xi0;
+				//////////////////////////////////////////////////////////////////////////
+				// Fluid
+				//////////////////////////////////////////////////////////////////////////
+				for (unsigned int j = 0; j < numNeighbors; j++)
+				{
+					const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
+					// get initial neighbor index considering the current particle order 
+					const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
 
-				const Vector3r uji = m_rotations[i].transpose() * xj_xi - xj_xi_0;
-				// subtract because kernel gradient is taken in direction of xji0 instead of xij0
-				nablaU -= (m_restVolumes[neighborIndex] * uji) * sim->gradW(xj_xi_0).transpose();
+					const Vector3r& xj = model->getPosition(neighborIndex);
+					const Vector3r& xj0 = m_model->getPosition0(neighborIndex0);
+
+					const Vector3r xj_xi = xj - xi;
+					const Vector3r xj_xi_0 = xj0 - xi0;
+
+					const Vector3r uji = m_rotations[i].transpose() * xj_xi - xj_xi_0;
+					// subtract because kernel gradient is taken in direction of xji0 instead of xij0
+					nablaU -= (m_restVolumes[neighborIndex] * uji) * sim->gradW(xj_xi_0).transpose();
+				}
+				m_F[i] = nablaU + Matrix3r::Identity();
+
+				// compute Cauchy strain: epsilon = 0.5 (nabla u + nabla u^T)
+				Vector6r strain;
+				strain[0] = nablaU(0, 0);						// \epsilon_{00}
+				strain[1] = nablaU(1, 1);						// \epsilon_{11}
+				strain[2] = nablaU(2, 2);						// \epsilon_{22}
+				strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
+				strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
+				strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
+
+				// stress = C * epsilon
+				m_stress[i] = C * strain;
 			}
-			m_F[i] = nablaU + Matrix3r::Identity();
-
-			// compute Cauchy strain: epsilon = 0.5 (nabla u + nabla u^T)
-			Vector6r strain;
-			strain[0] = nablaU(0, 0);						// \epsilon_{00}
-			strain[1] = nablaU(1, 1);						// \epsilon_{11}
-			strain[2] = nablaU(2, 2);						// \epsilon_{22}
-			strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
-			strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
-			strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
-
-			// stress = C * epsilon
-			m_stress[i] = C * strain;
+			else
+				m_stress[i].setZero();
 		}
 	}
 }
@@ -235,88 +243,91 @@ void Elasticity_Becker2009::computeForces()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const unsigned int i0 = m_current_to_initial_index[i];
-			const Vector3r &xi0 = m_model->getPosition0(i0);
-
-			const size_t numNeighbors = m_initialNeighbors[i0].size();
-			Vector3r fi;
-			fi.setZero();
-
-			//////////////////////////////////////////////////////////////////////////
-			// Fluid
-			//////////////////////////////////////////////////////////////////////////
-			for (unsigned int j = 0; j < numNeighbors; j++)
+			if (model->getParticleState(i) == ParticleState::Active)
 			{
-				const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
-				// get initial neighbor index considering the current particle order 
-				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+				const unsigned int i0 = m_current_to_initial_index[i];
+				const Vector3r& xi0 = m_model->getPosition0(i0);
 
-				const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
+				const size_t numNeighbors = m_initialNeighbors[i0].size();
+				Vector3r fi;
+				fi.setZero();
 
-				const Vector3r xj_xi_0 = xj0 - xi0;
-				const Vector3r gradW0 = sim->gradW(xj_xi_0);
-
-				const Vector3r dji = m_restVolumes[i] * gradW0;
-				const Vector3r dij = -m_restVolumes[neighborIndex] * gradW0;
-
-				Vector3r sdji, sdij;
-				symMatTimesVec(m_stress[neighborIndex], dji, sdji);
-				symMatTimesVec(m_stress[i], dij, sdij);
-
-				const Vector3r fij = -m_restVolumes[neighborIndex] * sdji;
-				const Vector3r fji = -m_restVolumes[i] * sdij;
-
-				fi += m_rotations[neighborIndex] * fij - m_rotations[i] * fji;
-			}
-			fi = 0.5*fi;
-
-			if (m_alpha != 0.0)
-			{
 				//////////////////////////////////////////////////////////////////////////
-				// Ganzenmüller, G.C. 2015. An hourglass control algorithm for Lagrangian
-				// Smooth Particle Hydrodynamics. Computer Methods in Applied Mechanics and 
-				// Engineering 286, 87.106.
+				// Fluid
 				//////////////////////////////////////////////////////////////////////////
-				Vector3r fi_hg;
-				fi_hg.setZero();
-				const Vector3r &xi = m_model->getPosition(i);
 				for (unsigned int j = 0; j < numNeighbors; j++)
 				{
 					const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
 					// get initial neighbor index considering the current particle order 
 					const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
 
-					const Vector3r &xj = model->getPosition(neighborIndex);
-					const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
+					const Vector3r& xj0 = m_model->getPosition0(neighborIndex0);
 
-					// Note: Ganzenm�ller defines xij = xj-xi
-					const Vector3r xi_xj = -(xi - xj);
-					const Real xixj_l = xi_xj.norm();
-					if (xixj_l > 1.0e-6)
-					{
-						// Note: Ganzenm�ller defines xij = xj-xi
-						const Vector3r xi_xj_0 = -(xi0 - xj0);
-						const Real xixj0_l2 = xi_xj_0.squaredNorm();
-						const Real W0 = sim->W(xi_xj_0);
+					const Vector3r xj_xi_0 = xj0 - xi0;
+					const Vector3r gradW0 = sim->gradW(xj_xi_0);
 
-						const Vector3r xij_i = m_F[i] * m_rotations[i] * xi_xj_0;
-						const Vector3r xji_j = -m_F[neighborIndex] * m_rotations[neighborIndex] * xi_xj_0;
-						const Vector3r epsilon_ij_i = xij_i - xi_xj;
-						const Vector3r epsilon_ji_j = xji_j + xi_xj;
+					const Vector3r dji = m_restVolumes[i] * gradW0;
+					const Vector3r dij = -m_restVolumes[neighborIndex] * gradW0;
 
-						const Real delta_ij_i = epsilon_ij_i.dot(xi_xj) / xixj_l;
-						const Real delta_ji_j = -epsilon_ji_j.dot(xi_xj) / xixj_l;
+					Vector3r sdji, sdij;
+					symMatTimesVec(m_stress[neighborIndex], dji, sdji);
+					symMatTimesVec(m_stress[i], dij, sdij);
 
-						fi_hg -= m_restVolumes[neighborIndex] * W0 / xixj0_l2 * (delta_ij_i + delta_ji_j) * xi_xj / xixj_l;
-					}
+					const Vector3r fij = -m_restVolumes[neighborIndex] * sdji;
+					const Vector3r fji = -m_restVolumes[i] * sdij;
+
+					fi += m_rotations[neighborIndex] * fij - m_rotations[i] * fji;
 				}
-				fi_hg *= m_alpha * m_youngsModulus * m_restVolumes[i];
-				model->getAcceleration(i) += fi_hg / model->getMass(i);
-			}
+				fi = 0.5*fi;
 
-			// elastic acceleration
-			Vector3r &ai = model->getAcceleration(i);
-			ai += fi / model->getMass(i);
+				if (m_alpha != 0.0)
+				{
+					//////////////////////////////////////////////////////////////////////////
+					// Ganzenmüller, G.C. 2015. An hourglass control algorithm for Lagrangian
+					// Smooth Particle Hydrodynamics. Computer Methods in Applied Mechanics and 
+					// Engineering 286, 87.106.
+					//////////////////////////////////////////////////////////////////////////
+					Vector3r fi_hg;
+					fi_hg.setZero();
+					const Vector3r& xi = m_model->getPosition(i);
+					for (unsigned int j = 0; j < numNeighbors; j++)
+					{
+						const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
+						// get initial neighbor index considering the current particle order 
+						const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+
+						const Vector3r& xj = model->getPosition(neighborIndex);
+						const Vector3r& xj0 = m_model->getPosition0(neighborIndex0);
+
+						// Note: Ganzenm�ller defines xij = xj-xi
+						const Vector3r xi_xj = -(xi - xj);
+						const Real xixj_l = xi_xj.norm();
+						if (xixj_l > 1.0e-6)
+						{
+							// Note: Ganzenm�ller defines xij = xj-xi
+							const Vector3r xi_xj_0 = -(xi0 - xj0);
+							const Real xixj0_l2 = xi_xj_0.squaredNorm();
+							const Real W0 = sim->W(xi_xj_0);
+
+							const Vector3r xij_i = m_F[i] * m_rotations[i] * xi_xj_0;
+							const Vector3r xji_j = -m_F[neighborIndex] * m_rotations[neighborIndex] * xi_xj_0;
+							const Vector3r epsilon_ij_i = xij_i - xi_xj;
+							const Vector3r epsilon_ji_j = xji_j + xi_xj;
+
+							const Real delta_ij_i = epsilon_ij_i.dot(xi_xj) / xixj_l;
+							const Real delta_ji_j = -epsilon_ji_j.dot(xi_xj) / xixj_l;
+
+							fi_hg -= m_restVolumes[neighborIndex] * W0 / xixj0_l2 * (delta_ij_i + delta_ji_j) * xi_xj / xixj_l;
+						}
+					}
+					fi_hg *= m_alpha * m_youngsModulus * m_restVolumes[i];
+					model->getAcceleration(i) += fi_hg / model->getMass(i);
+				}
+
+				// elastic acceleration
+				Vector3r& ai = model->getAcceleration(i);
+				ai += fi / model->getMass(i);
+			}
 		}
 	}
 }

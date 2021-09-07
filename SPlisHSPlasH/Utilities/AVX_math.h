@@ -400,6 +400,14 @@ public:
 				Vf[k][i] = val[k];
 		}
 	}
+
+	inline Vector3r reduce() const {
+		Vector3r res;
+		res[0] = v[0].reduce();
+		res[1] = v[1].reduce();
+		res[2] = v[2].reduce();
+		return res;
+	}
 };
 
 inline Vector3f8 operator + (Vector3f8 const& a, Vector3f8 const& b) {
@@ -545,6 +553,24 @@ public:
 
 	Matrix3f8() {  }
 
+	Matrix3f8(const Matrix3f &x)
+	{
+		const Vector3f8 m1(x.col(0));
+		const Vector3f8 m2(x.col(1));
+		const Vector3f8 m3(x.col(2));
+		m[0][0] = m1.x();
+		m[1][0] = m1.y();
+		m[2][0] = m1.z();
+
+		m[0][1] = m2.x();
+		m[1][1] = m2.y();
+		m[2][1] = m2.z();
+
+		m[0][2] = m3.x();
+		m[1][2] = m3.y();
+		m[2][2] = m3.z();
+	}
+
 	//constructor to create matrix from 3 column vectors
 	Matrix3f8(const Vector3f8& m1, const Vector3f8& m2, const Vector3f8& m3)
 	{
@@ -563,18 +589,17 @@ public:
 
 	inline void setZero() 
 	{ 
-		const Scalarf8 zero(0.0f);
-		m[0][0] = zero;
-		m[1][0] = zero;
-		m[2][0] = zero;
+		m[0][0].v = _mm256_setzero_ps();
+		m[1][0].v = _mm256_setzero_ps();
+		m[2][0].v = _mm256_setzero_ps();
 
-		m[0][1] = zero;
-		m[1][1] = zero;
-		m[2][1] = zero;
+		m[0][1].v = _mm256_setzero_ps();
+		m[1][1].v = _mm256_setzero_ps();
+		m[2][1].v = _mm256_setzero_ps();
 
-		m[0][2] = zero;
-		m[1][2] = zero;
-		m[2][2] = zero;
+		m[0][2].v = _mm256_setzero_ps();
+		m[1][2].v = _mm256_setzero_ps();
+		m[2][2].v = _mm256_setzero_ps();
 	}
 
 	inline Scalarf8& operator()(int i, int j) { return m[i][j]; }
@@ -704,11 +729,124 @@ public:
 	}
 };
 
+inline Matrix3f8& operator -= (Matrix3f8& a, Matrix3f8 const& b) {
+	a.m[0][0].v = _mm256_sub_ps(a.m[0][0].v, b.m[0][0].v);
+	a.m[0][1].v = _mm256_sub_ps(a.m[0][1].v, b.m[0][1].v);
+	a.m[0][2].v = _mm256_sub_ps(a.m[0][2].v, b.m[0][2].v);
+
+	a.m[1][0].v = _mm256_sub_ps(a.m[1][0].v, b.m[1][0].v);
+	a.m[1][1].v = _mm256_sub_ps(a.m[1][1].v, b.m[1][1].v);
+	a.m[1][2].v = _mm256_sub_ps(a.m[1][2].v, b.m[1][2].v);
+
+	a.m[2][0].v = _mm256_sub_ps(a.m[2][0].v, b.m[2][0].v);
+	a.m[2][1].v = _mm256_sub_ps(a.m[2][1].v, b.m[2][1].v);
+	a.m[2][2].v = _mm256_sub_ps(a.m[2][2].v, b.m[2][2].v);
+
+	return a;
+}
+
+static inline Matrix3f8 convertMat_zero(const unsigned int* idx, const Matrix3r* v, const unsigned char count = 8u)
+{
+	Matrix3f8 x;
+	switch (count)
+	{
+	case 1u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 2u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 3u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 4u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), v[idx[3]](0, 0), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), v[idx[3]](0, 1), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), v[idx[3]](0, 2), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), v[idx[3]](1, 0), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), v[idx[3]](1, 1), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), v[idx[3]](1, 2), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), v[idx[3]](2, 0), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), v[idx[3]](2, 1), 0.0f, 0.0f, 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), v[idx[3]](2, 2), 0.0f, 0.0f, 0.0f, 0.0f);
+		break;
+	case 5u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), v[idx[3]](0, 0), v[idx[4]](0, 0), 0.0f, 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), v[idx[3]](0, 1), v[idx[4]](0, 1), 0.0f, 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), v[idx[3]](0, 2), v[idx[4]](0, 2), 0.0f, 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), v[idx[3]](1, 0), v[idx[4]](1, 0), 0.0f, 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), v[idx[3]](1, 1), v[idx[4]](1, 1), 0.0f, 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), v[idx[3]](1, 2), v[idx[4]](1, 2), 0.0f, 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), v[idx[3]](2, 0), v[idx[4]](2, 0), 0.0f, 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), v[idx[3]](2, 1), v[idx[4]](2, 1), 0.0f, 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), v[idx[3]](2, 2), v[idx[4]](2, 2), 0.0f, 0.0f, 0.0f);
+		break;
+	case 6u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), v[idx[3]](0, 0), v[idx[4]](0, 0), v[idx[5]](0, 0), 0.0f, 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), v[idx[3]](0, 1), v[idx[4]](0, 1), v[idx[5]](0, 1), 0.0f, 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), v[idx[3]](0, 2), v[idx[4]](0, 2), v[idx[5]](0, 2), 0.0f, 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), v[idx[3]](1, 0), v[idx[4]](1, 0), v[idx[5]](1, 0), 0.0f, 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), v[idx[3]](1, 1), v[idx[4]](1, 1), v[idx[5]](1, 1), 0.0f, 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), v[idx[3]](1, 2), v[idx[4]](1, 2), v[idx[5]](1, 2), 0.0f, 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), v[idx[3]](2, 0), v[idx[4]](2, 0), v[idx[5]](2, 0), 0.0f, 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), v[idx[3]](2, 1), v[idx[4]](2, 1), v[idx[5]](2, 1), 0.0f, 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), v[idx[3]](2, 2), v[idx[4]](2, 2), v[idx[5]](2, 2), 0.0f, 0.0f);
+		break;
+	case 7u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), v[idx[3]](0, 0), v[idx[4]](0, 0), v[idx[5]](0, 0), v[idx[6]](0, 0), 0.0f);
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), v[idx[3]](0, 1), v[idx[4]](0, 1), v[idx[5]](0, 1), v[idx[6]](0, 1), 0.0f);
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), v[idx[3]](0, 2), v[idx[4]](0, 2), v[idx[5]](0, 2), v[idx[6]](0, 2), 0.0f);
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), v[idx[3]](1, 0), v[idx[4]](1, 0), v[idx[5]](1, 0), v[idx[6]](1, 0), 0.0f);
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), v[idx[3]](1, 1), v[idx[4]](1, 1), v[idx[5]](1, 1), v[idx[6]](1, 1), 0.0f);
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), v[idx[3]](1, 2), v[idx[4]](1, 2), v[idx[5]](1, 2), v[idx[6]](1, 2), 0.0f);
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), v[idx[3]](2, 0), v[idx[4]](2, 0), v[idx[5]](2, 0), v[idx[6]](2, 0), 0.0f);
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), v[idx[3]](2, 1), v[idx[4]](2, 1), v[idx[5]](2, 1), v[idx[6]](2, 1), 0.0f);
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), v[idx[3]](2, 2), v[idx[4]](2, 2), v[idx[5]](2, 2), v[idx[6]](2, 2), 0.0f);
+		break;
+	case 8u:
+		x.m[0][0] = _mm256_setr_ps(v[idx[0]](0, 0), v[idx[1]](0, 0), v[idx[2]](0, 0), v[idx[3]](0, 0), v[idx[4]](0, 0), v[idx[5]](0, 0), v[idx[6]](0, 0), v[idx[7]](0, 0));
+		x.m[0][1] = _mm256_setr_ps(v[idx[0]](0, 1), v[idx[1]](0, 1), v[idx[2]](0, 1), v[idx[3]](0, 1), v[idx[4]](0, 1), v[idx[5]](0, 1), v[idx[6]](0, 1), v[idx[7]](0, 1));
+		x.m[0][2] = _mm256_setr_ps(v[idx[0]](0, 2), v[idx[1]](0, 2), v[idx[2]](0, 2), v[idx[3]](0, 2), v[idx[4]](0, 2), v[idx[5]](0, 2), v[idx[6]](0, 2), v[idx[7]](0, 2));
+		x.m[1][0] = _mm256_setr_ps(v[idx[0]](1, 0), v[idx[1]](1, 0), v[idx[2]](1, 0), v[idx[3]](1, 0), v[idx[4]](1, 0), v[idx[5]](1, 0), v[idx[6]](1, 0), v[idx[7]](1, 0));
+		x.m[1][1] = _mm256_setr_ps(v[idx[0]](1, 1), v[idx[1]](1, 1), v[idx[2]](1, 1), v[idx[3]](1, 1), v[idx[4]](1, 1), v[idx[5]](1, 1), v[idx[6]](1, 1), v[idx[7]](1, 1));
+		x.m[1][2] = _mm256_setr_ps(v[idx[0]](1, 2), v[idx[1]](1, 2), v[idx[2]](1, 2), v[idx[3]](1, 2), v[idx[4]](1, 2), v[idx[5]](1, 2), v[idx[6]](1, 2), v[idx[7]](1, 2));
+		x.m[2][0] = _mm256_setr_ps(v[idx[0]](2, 0), v[idx[1]](2, 0), v[idx[2]](2, 0), v[idx[3]](2, 0), v[idx[4]](2, 0), v[idx[5]](2, 0), v[idx[6]](2, 0), v[idx[7]](2, 0));
+		x.m[2][1] = _mm256_setr_ps(v[idx[0]](2, 1), v[idx[1]](2, 1), v[idx[2]](2, 1), v[idx[3]](2, 1), v[idx[4]](2, 1), v[idx[5]](2, 1), v[idx[6]](2, 1), v[idx[7]](2, 1));
+		x.m[2][2] = _mm256_setr_ps(v[idx[0]](2, 2), v[idx[1]](2, 2), v[idx[2]](2, 2), v[idx[3]](2, 2), v[idx[4]](2, 2), v[idx[5]](2, 2), v[idx[6]](2, 2), v[idx[7]](2, 2));
+	}
+	return x;
+}
+
+
 inline void dyadicProduct(const Vector3f8 &a, const Vector3f8 &b, Matrix3f8 &res)
 {
-	res.m[0][0] = b.x() * a.x(); res.m[0][1] = b.x() * a.y(); res.m[0][2] = b.x() * a.z();
-	res.m[1][0] = b.y() * a.x(); res.m[1][1] = b.y() * a.y(); res.m[1][2] = b.y() * a.z();
-	res.m[2][0] = b.z() * a.x(); res.m[2][1] = b.z() * a.y(); res.m[2][2] = b.z() * a.z();
+	res.m[0][0] = _mm256_mul_ps(a.x().v, b.x().v); res.m[0][1] = _mm256_mul_ps(a.x().v, b.y().v); res.m[0][2] = _mm256_mul_ps(a.x().v, b.z().v);
+	res.m[1][0] = _mm256_mul_ps(a.y().v, b.x().v); res.m[1][1] = _mm256_mul_ps(a.y().v, b.y().v); res.m[1][2] = _mm256_mul_ps(a.y().v, b.z().v);
+	res.m[2][0] = _mm256_mul_ps(a.z().v, b.x().v); res.m[2][1] = _mm256_mul_ps(a.z().v, b.y().v); res.m[2][2] = _mm256_mul_ps(a.z().v, b.z().v);
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -819,7 +957,7 @@ public:
 		}
 	}
 
-	inline void set(const std::vector<Quaternionr>& qf)
+	inline void set(const Quaternionr *qf)
 	{
 		float x[8], y[8], z[8], w[8];
 		for(int i=0; i<8; i++)
@@ -841,4 +979,85 @@ public:
 	}
 };
 
+// ----------------------------------------------------------------------------------------------
+//alligned allocator so that vectorized types can be used in std containers
+//from: https://stackoverflow.com/questions/8456236/how-is-a-vectors-data-aligned
+template <typename T, std::size_t N = 32>
+class AlignmentAllocator {
+public:
+	typedef T value_type;
+	typedef std::size_t size_type;
+	typedef std::ptrdiff_t difference_type;
+
+	typedef T * pointer;
+	typedef const T * const_pointer;
+
+	typedef T & reference;
+	typedef const T & const_reference;
+
+public:
+	inline AlignmentAllocator() throw () { }
+
+	template <typename T2>
+	inline AlignmentAllocator(const AlignmentAllocator<T2, N> &) throw () { }
+
+	inline ~AlignmentAllocator() throw () { }
+
+	inline pointer adress(reference r) {
+		return &r;
+	}
+
+	inline const_pointer adress(const_reference r) const {
+		return &r;
+	}
+
+	inline pointer allocate(size_type n) {
+#ifdef _WIN32
+		return (pointer)_aligned_malloc(n * sizeof(value_type), N);
+#elif __linux__
+		// NB! Argument order is opposite from MSVC/Windows
+		return (pointer) aligned_alloc(N, n * sizeof(value_type));
+#else
+#error "Unknown platform"
+#endif
+	}
+
+	inline void deallocate(pointer p, size_type) {
+#ifdef _WIN32
+		_aligned_free(p);
+#elif __linux__
+		free(p);
+#else
+#error "Unknown platform"
+#endif
+	}
+
+	inline void construct(pointer p, const value_type & wert) {
+		new (p) value_type(wert);
+	}
+
+	inline void destroy(pointer p) {
+		p->~value_type();
+	}
+
+	inline size_type max_size() const throw () {
+		return size_type(-1) / sizeof(value_type);
+	}
+
+	template <typename T2>
+	struct rebind {
+		typedef AlignmentAllocator<T2, N> other;
+	};
+
+	bool operator!=(const AlignmentAllocator<T, N>& other) const {
+		return !(*this == other);
+	}
+
+	// Returns true if and only if storage allocated from *this
+	// can be deallocated from other, and vice versa.
+	// Always returns true for stateless allocators.
+	bool operator==(const AlignmentAllocator<T, N>& other) const {
+		return true;
+	}
+};
 #endif

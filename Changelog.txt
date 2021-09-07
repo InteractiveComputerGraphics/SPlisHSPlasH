@@ -1,3 +1,12 @@
+2.11.0
+	- added implementation of elasticity solver by Kugelstadt et al. "Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control", 2021
+	- added fast AVX Cholesky solver written by José Antonio Fernández-Fernández
+	- added a tool to skin a visual mesh to the moving particles of an elastic solid in a postprocessing step
+	- extended the volume sampling tool by the method of Kugelstadt et al. 2021
+	- extended the volume sampling tool by the method of Jiang et al. 2015
+	- now each fluid model has an id
+	- extended exporters to write one file per object id
+
 2.10.1
 	- added new foam generator tool to generate spray, foam and bubble particles in a postprocessing step in order to improve the visual realism of the final rendering
 	- added documentation of the foam generator

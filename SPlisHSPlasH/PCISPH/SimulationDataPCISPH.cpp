@@ -21,8 +21,8 @@ void SimulationDataPCISPH::init()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
-	m_lastX.resize(nModels);
-	m_lastV.resize(nModels);
+	m_predX.resize(nModels);
+	m_predV.resize(nModels);
 	m_densityAdv.resize(nModels);
 	m_pressure.resize(nModels);
 	m_pressureAccel.resize(nModels);
@@ -30,8 +30,8 @@ void SimulationDataPCISPH::init()
 	for (unsigned int i = 0; i < nModels; i++)
 	{
 		FluidModel *fm = sim->getFluidModel(i);
-		m_lastX[i].resize(fm->numParticles(), Vector3r::Zero());
-		m_lastV[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_predX[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_predV[i].resize(fm->numParticles(), Vector3r::Zero());
 		m_densityAdv[i].resize(fm->numParticles(), 0.0);
 		m_pressure[i].resize(fm->numParticles(), 0.0);
 		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
@@ -109,8 +109,8 @@ void SimulationDataPCISPH::init()
 
 void SimulationDataPCISPH::cleanup()
 {
-	m_lastX.clear();
-	m_lastV.clear();
+	m_predX.clear();
+	m_predV.clear();
 	m_densityAdv.clear();
 	m_pressure.clear();
 	m_pressureAccel.clear();
@@ -132,8 +132,8 @@ void SimulationDataPCISPH::performNeighborhoodSearchSort()
 		if (numPart != 0)
 		{
 			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
-			d.sort_field(&m_lastX[i][0]);
-			d.sort_field(&m_lastV[i][0]);
+			d.sort_field(&m_predX[i][0]);
+			d.sort_field(&m_predV[i][0]);
 			d.sort_field(&m_densityAdv[i][0]);
 			d.sort_field(&m_pressure[i][0]);
 			d.sort_field(&m_pressureAccel[i][0]);
@@ -147,7 +147,7 @@ void SimulationDataPCISPH::emittedParticles(FluidModel *model, const unsigned in
 	const unsigned int fluidModelIndex = model->getPointSetIndex();
 	for (unsigned int j = startIndex; j < model->numActiveParticles(); j++)
 	{
-		m_lastX[fluidModelIndex][j] = model->getPosition(j);
-		m_lastV[fluidModelIndex][j] = model->getVelocity(j);
+		m_predX[fluidModelIndex][j] = model->getPosition(j);
+		m_predV[fluidModelIndex][j] = model->getVelocity(j);
 	}
 }

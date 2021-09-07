@@ -22,8 +22,8 @@ namespace SPH
 		protected:	
 			std::vector<Real> m_pcisph_factor;
 
-			std::vector<std::vector<Vector3r>> m_lastX;
-			std::vector<std::vector<Vector3r>> m_lastV;
+			std::vector<std::vector<Vector3r>> m_predX;
+			std::vector<std::vector<Vector3r>> m_predV;
 			std::vector<std::vector<Real>> m_densityAdv;
 			std::vector<std::vector<Real>> m_pressure;
 			std::vector<std::vector<Vector3r>> m_pressureAccel;
@@ -50,34 +50,34 @@ namespace SPH
 
 			void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-			FORCE_INLINE Vector3r &getLastPosition(const unsigned int fluidIndex, const unsigned int i)
+			FORCE_INLINE Vector3r &getPredictedPosition(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_lastX[fluidIndex][i];
+				return m_predX[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getLastPosition(const unsigned int fluidIndex, const unsigned int i) const
+			FORCE_INLINE const Vector3r &getPredictedPosition(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_lastX[fluidIndex][i];
+				return m_predX[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setLastPosition(const unsigned int fluidIndex, const unsigned int i, const Vector3r &pos)
+			FORCE_INLINE void setPredictedPosition(const unsigned int fluidIndex, const unsigned int i, const Vector3r &pos)
 			{
-				m_lastX[fluidIndex][i] = pos;
+				m_predX[fluidIndex][i] = pos;
 			}
 
-			FORCE_INLINE Vector3r &getLastVelocity(const unsigned int fluidIndex, const unsigned int i)
+			FORCE_INLINE Vector3r &getPredictedVelocity(const unsigned int fluidIndex, const unsigned int i)
 			{
-				return m_lastV[fluidIndex][i];
+				return m_predV[fluidIndex][i];
 			}
 
-			FORCE_INLINE const Vector3r &getLastVelocity(const unsigned int fluidIndex, const unsigned int i) const
+			FORCE_INLINE const Vector3r &getPredictedVelocity(const unsigned int fluidIndex, const unsigned int i) const
 			{
-				return m_lastV[fluidIndex][i];
+				return m_predV[fluidIndex][i];
 			}
 
-			FORCE_INLINE void setLastVelocity(const unsigned int fluidIndex, const unsigned int i, const Vector3r &vel)
+			FORCE_INLINE void setPredictedVelocity(const unsigned int fluidIndex, const unsigned int i, const Vector3r &vel)
 			{
-				m_lastV[fluidIndex][i] = vel;
+				m_predV[fluidIndex][i] = vel;
 			}
 
 			FORCE_INLINE const Real getDensityAdv(const unsigned int fluidIndex, const unsigned int i) const

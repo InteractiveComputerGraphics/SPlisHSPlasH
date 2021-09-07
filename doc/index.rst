@@ -45,6 +45,7 @@
    :caption: Tools:
 
    FoamGenerator
+   MeshSkinning
    partio2vtk
    PartioViewer
    SurfaceSampling

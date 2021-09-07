@@ -70,7 +70,7 @@ namespace SPH
 			name(n), type(t), getFct(fct), storeData(s) { }
 	};
 
-	enum class ParticleState { Active = 0, AnimatedByEmitter };
+	enum class ParticleState { Active = 0, AnimatedByEmitter, Fixed };
 
 	/** \brief The fluid model stores the particle and simulation information 
 	*/
@@ -116,6 +116,8 @@ namespace SPH
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_density;
 			std::vector<unsigned int> m_particleId;
+			std::vector<unsigned int> m_objectId;
+			std::vector<unsigned int> m_objectId0;
 			std::vector<ParticleState> m_particleState;
 			Real m_V;
 
@@ -184,7 +186,7 @@ namespace SPH
 
 			void performNeighborhoodSearchSort();
 
-			void initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles);
+			void initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, unsigned int* fluidObjectIds, const unsigned int nMaxEmitterParticles);
 			
 			const unsigned int numParticles() const { return static_cast<unsigned int>(m_masses.size()); }
 			unsigned int numActiveParticles() const;
@@ -350,6 +352,21 @@ namespace SPH
 			FORCE_INLINE const unsigned int& getParticleId(const unsigned int i) const
 			{
 				return m_particleId[i];
+			}
+
+			FORCE_INLINE unsigned int& getObjectId(const unsigned int i)
+			{
+				return m_objectId[i];
+			}
+
+			FORCE_INLINE const unsigned int& getObjectId(const unsigned int i) const
+			{
+				return m_objectId[i];
+			}
+
+			FORCE_INLINE void setObjectId(const unsigned int i, const unsigned int val)
+			{
+				m_objectId[i] = val;
 			}
 
 			FORCE_INLINE const ParticleState& getParticleState(const unsigned int i) const

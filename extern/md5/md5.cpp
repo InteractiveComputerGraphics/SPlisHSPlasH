@@ -172,10 +172,6 @@ void MD5::update(ifstream& stream){
 }
 
 
-
-
-
-
 // MD5 finalization. Ends an MD5 message-digest operation, writing the
 // the message digest and zeroizing the context.
 
@@ -245,7 +241,26 @@ MD5::MD5(ifstream& stream){
   finalize();
 }
 
+MD5::MD5(unsigned char* input, unsigned int input_length)
+{
+	init();  // must called by all constructors
 
+	int len = 1024;
+	int i = 0;
+	bool chk = true;
+	while (chk) 
+	{	
+		if ((i + 1) * 1024 > input_length)
+		{
+			len = input_length - i * 1024;
+			chk = false;
+		}
+		update(&input[1024*i], len);
+		i++;
+	}
+	//update(input, input_length);
+	finalize();
+}
 
 unsigned char *MD5::raw_digest(){
 

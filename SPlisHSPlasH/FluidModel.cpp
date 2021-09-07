@@ -36,6 +36,8 @@ FluidModel::FluidModel() :
 	m_v(),
 	m_density(),
 	m_particleId(),
+	m_objectId(),
+	m_objectId0(),
 	m_particleState()
 {		
 	m_density0 = 1000.0;
@@ -59,7 +61,10 @@ FluidModel::FluidModel() :
 	m_elasticityMethodChanged = nullptr;
 
 	addField({ "id", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return &getParticleId(i); }, true });
+    addField({ "state", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return (unsigned int*)(&m_particleState[i]); }, true });
+	addField({ "object_id", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return &getObjectId(i); }, true });
 	addField({ "position", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition(i)[0]; }, true });
+	addField({ "position0", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition0(i)[0]; } });
 	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; }, true });
 	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, false });
 }
@@ -67,7 +72,10 @@ FluidModel::FluidModel() :
 FluidModel::~FluidModel(void)
 {
 	removeFieldByName("id");
+	removeFieldByName("state");
+	removeFieldByName("object_id");
 	removeFieldByName("position");
+	removeFieldByName("position0");
 	removeFieldByName("velocity");
 	removeFieldByName("density");
 
@@ -185,6 +193,15 @@ void FluidModel::reset()
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
 
+	struct Comparator {
+		Comparator(FluidModel* _this) : m_this(_this) {};
+		bool operator()(unsigned int a, unsigned int b)
+		{
+			return m_this->getParticleId(a) < m_this->getParticleId(b);
+		}
+		FluidModel* m_this;
+	};
+
 	// Fluid
 	for (unsigned int i = 0; i < nPoints; i++)
 	{
@@ -192,6 +209,7 @@ void FluidModel::reset()
 		getPosition(i) = x0;
 		getVelocity(i) = getVelocity0(i);
 		getAcceleration(i).setZero();
+		m_objectId[i] = m_objectId0[i];
 		m_density[i] = 0.0;
 		m_particleId[i] = i;
 		m_particleState[i] = ParticleState::Active;
@@ -251,7 +269,9 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_masses.resize(newSize);
 	m_density.resize(newSize);
 	m_particleId.resize(newSize);
-	m_particleState.resize(newSize);
+	m_objectId.resize(newSize);
+	m_objectId0.resize(newSize);
+	m_particleState.resize(newSize, ParticleState::Active);
 }
 
 void FluidModel::releaseFluidParticles()
@@ -264,10 +284,12 @@ void FluidModel::releaseFluidParticles()
 	m_masses.clear();
 	m_density.clear();
 	m_particleId.clear();
+	m_objectId.clear();
+	m_objectId0.clear();
 	m_particleState.clear();
 }
 
-void FluidModel::initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles)
+void FluidModel::initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, unsigned int* fluidObjectIds, const unsigned int nMaxEmitterParticles)
 {
 	m_id = id;
 	init();
@@ -287,13 +309,17 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 			getAcceleration(i).setZero();
 			m_density[i] = 0.0;
 			m_particleId[i] = i;
-			m_particleState[i] = ParticleState::Active;
+			m_objectId[i] = fluidObjectIds[i];
+			m_objectId0[i] = fluidObjectIds[i];
+			if (m_particleState[i] != ParticleState::Fixed)
+				m_particleState[i] = ParticleState::Active;
 		}
 	}
 	// set IDs for emitted particles
 	for (unsigned int i = nFluidParticles; i < (nFluidParticles + nMaxEmitterParticles); i++)
 	{
 		m_particleId[i] = i;
+		m_objectId[i] = 0;
 	}
 
 	// initialize masses
@@ -323,6 +349,7 @@ void FluidModel::performNeighborhoodSearchSort()
 	d.sort_field(&m_masses[0]);
 	d.sort_field(&m_density[0]);
 	d.sort_field(&m_particleId[0]);
+	d.sort_field(&m_objectId[0]);
 	d.sort_field(&m_particleState[0]);
 
 	if (m_viscosity)

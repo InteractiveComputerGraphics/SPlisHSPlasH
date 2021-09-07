@@ -52,6 +52,7 @@ namespace Utilities
 		{
 			std::string id;
 			std::string samplesFile;
+			std::string visMeshFile;
 			Vector3r translation;
 			Matrix3r rotation;
 			Vector3r scale;
@@ -66,6 +67,7 @@ namespace Utilities
 		struct FluidBlock
 		{
 			std::string id;
+			std::string visMeshFile;
 			Box box;
 			unsigned char mode;
 			Vector3r initialVelocity;

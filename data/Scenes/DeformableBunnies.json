@@ -1,0 +1,68 @@
+{
+	"Configuration": 
+	{
+		"timeStepSize": 0.002,
+		"particleRadius": 0.025,
+		"numberOfStepsPerRenderUpdate": 2,
+		"density0": 1000, 
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 0, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"maxIterations": 100,
+		"maxError": 0.01,
+		"maxIterationsV": 100,
+		"maxErrorV": 0.1,		
+		"stiffness": 50000,
+		"exponent": 7,
+		"velocityUpdateMethod": 0,
+		"enableDivergenceSolver": true,
+		"enableZSort": false,
+		"boundaryHandlingMethod": 2
+	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"elasticityMethod": 3,
+			"viscosity": 0.01,
+			"viscosityMethod": 1,
+			"surfaceTension": 0.02,
+			"surfaceTensionMethod": 0,
+			"youngsModulus": 1000000.0,
+			"poissonsRatio": 0.33, 
+			"alpha": 0.1, 
+			"maxNeighbors": 15
+		}
+	],
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,-0.5,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [5, 1, 5],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [20,30,20]
+		}
+	],
+	"FluidModels": [
+		{
+			"particleFile": "../models/bunny2.bgeo",
+			"translation": [0,0.5,0],
+			"scale": [1, 1, 1]
+		},
+		{
+			"particleFile": "../models/bunny2.bgeo",
+			"translation": [0,2,0],
+			"scale": [1, 1, 1]
+		}
+	]
+}
+
+
+

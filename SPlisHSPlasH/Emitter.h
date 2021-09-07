@@ -30,6 +30,7 @@ namespace SPH
 			Real m_emitStartTime;
 			Real m_emitEndTime;
 			unsigned int m_emitCounter;
+			unsigned int m_objectId;
 
 			FORCE_INLINE bool inBox(const Vector3r &x, const Vector3r &xBox, const Matrix3r &rotBox, const Vector3r &scaleBox)
 			{
@@ -71,6 +72,8 @@ namespace SPH
 			void setRotation(const Matrix3r& r) { m_rotation = r; }
 			const Real getVelocity() const { return m_velocity; }
 			void setVelocity(const Real v) { m_velocity = v; }
+			const unsigned int getObjectId() const { return m_objectId; }
+			void setObjectId(const unsigned int v) { m_objectId = v; }
 	};
 }
 

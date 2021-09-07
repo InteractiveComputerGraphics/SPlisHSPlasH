@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "SPlisHSPlasH/Common.h"
+#include <Eigen/Sparse>
 
 namespace SPH
 {
@@ -52,6 +53,46 @@ namespace SPH
 		void writeMatrix(const T &m)
 		{
 			writeBuffer((char*)m.data(), m.size() * sizeof(m.data()[0]));
+		}
+
+		template<typename T, int Rows, int Cols>
+		void writeMatrixX(const Eigen::Matrix < T, Rows, Cols> & m)
+		{
+			const Eigen::Index rows = m.rows();
+			const Eigen::Index cols = m.cols();
+			write(rows);
+			write(cols);
+
+			writeBuffer((char*)m.data(), rows * cols* sizeof(T));
+		}
+
+		template <typename T, int Options, typename StorageIndex>
+		void writeSparseMatrix(Eigen::SparseMatrix<T, Options, StorageIndex>& m) 
+		{
+			m.makeCompressed();
+
+			const Eigen::Index rows = m.rows();
+			const Eigen::Index cols = m.cols();
+			const Eigen::Index nnzs = m.nonZeros();
+			const Eigen::Index outS = m.outerSize();
+			const Eigen::Index innS = m.innerSize();
+
+			write(rows);
+			write(cols);
+			write(nnzs);
+			write(outS);
+			write(innS);
+				 
+			writeBuffer((const char*)(m.valuePtr()), sizeof(T) * nnzs);
+			writeBuffer((const char*)(m.outerIndexPtr()), sizeof(StorageIndex) * outS);
+			writeBuffer((const char*)(m.innerIndexPtr()), sizeof(StorageIndex) * nnzs);
+		}
+
+		template<typename T>
+		void writeVector(const std::vector<T>& m)
+		{
+			write(m.size());
+			writeBuffer((char*)m.data(), m.size() * sizeof(T));
 		}
 	};
 	
@@ -103,6 +144,47 @@ namespace SPH
 		void readMatrix(T &m)
 		{
 			readBuffer((char*)m.data(), m.size() * sizeof(m.data()[0]));
+		}
+
+		template<typename T, int Rows, int Cols>
+		void readMatrixX(Eigen::Matrix < T, Rows, Cols>& m)
+		{
+			Eigen::Index rows, cols;
+			read(rows);
+			read(cols);
+			m.resize(rows, cols);
+
+			readBuffer((char*)m.data(), rows * cols * sizeof(T));
+		}
+
+		template <typename T, int Options, typename StorageIndex>
+		void readSparseMatrix(Eigen::SparseMatrix<T, Options, StorageIndex>& m)
+		{
+			Eigen::Index rows, cols, nnzs, innS, outS;
+			read(rows);
+			read(cols);
+			read(nnzs);
+			read(outS);
+			read(innS);
+
+			m.resize(rows, cols);
+			m.makeCompressed();
+			m.resizeNonZeros(nnzs);
+
+			readBuffer((char*)(m.valuePtr()), sizeof(T) * nnzs);
+			readBuffer((char*)(m.outerIndexPtr()), sizeof(StorageIndex) * outS);
+			readBuffer((char*)(m.innerIndexPtr()), sizeof(StorageIndex) * nnzs);
+
+			m.finalize();
+		}
+
+		template<typename T>
+		void readVector(std::vector<T>& m)
+		{
+			size_t size;
+			read(size);
+			m.resize(size);
+			readBuffer((char*)m.data(), m.size() * sizeof(T));
 		}
 	};
 

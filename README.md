@@ -8,7 +8,7 @@
 
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension and vorticity. 
 
-The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), and [imgui](https://github.com/ocornut/imgui) or [AntTweakBar](http://anttweakbar.sourceforge.net/). All external dependencies are included. 
+The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), [hapPLY](https://github.com/nmwsharp/happly), and [imgui](https://github.com/ocornut/imgui) or [AntTweakBar](http://anttweakbar.sourceforge.net/). All external dependencies are included. 
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
@@ -75,6 +75,7 @@ SPlisHSPlasH implements:
 * automatic surface sampling
 * a tool for volume sampling of closed geometries
 * a tool to generate spray, foam and bubble particles in a postprocessing step 
+* a tool to skin a visual mesh to the moving particles of an elastic solid in a postprocessing step
 * partio file export of all particle data
 * VTK file export of all particle data (enables the data import in ParaView)
 * rigid body export
@@ -153,11 +154,22 @@ The SPlisHSPlasH library implements the drag force computation of the following 
 
 * A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017
 
+* Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
+
+  (currently only available as AVX implementation)
+
 ## Multi-Phase Fluid Simulation
 
 The SPlisHSPlasH library implements the following publication to realize multi-phase simulations: 
 
 * B. Solenthaler and R. Pajarola. Density Contrast SPH Interfaces. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2008.
+
+## Volume Sampling
+
+The SPlisHSPlasH library implements the volume sampling techniques of following publications: 
+
+ * M. Jiang, Y. Zhou, R. Wang, R. Southern, J. J. Zhang. Blue noise sampling using an SPH-based method. ACM Transactions on Graphics, 2015
+ * Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
 
 
 ## Screenshots
@@ -179,7 +191,8 @@ The following videos were generated using the SPlisHSPlasH library:
 [![Video](https://img.youtube.com/vi/D_nEhix1G-w/0.jpg)](https://www.youtube.com/watch?v=D_nEhix1G-w) | [![Video](https://img.youtube.com/vi/elZieJNBYqk/0.jpg)](https://www.youtube.com/watch?v=elZieJNBYqk)
 *Volume Maps: An Implicit Boundary Representation for SPH* | *Implicit Frictional Boundary Handling for SPH*
 [![Video](https://img.youtube.com/vi/AV_pl1bMIb8/0.jpg)](https://www.youtube.com/watch?v=AV_pl1bMIb8) | [![Video](https://img.youtube.com/vi/1u5N0eedzic/0.jpg)](https://www.youtube.com/watch?v=1u5N0eedzic) 
-
+*Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control* | 
+[![Video](https://img.youtube.com/vi/8NkyiftmDN0/0.jpg)](https://www.youtube.com/watch?v=8NkyiftmDN0) | 
 
 
 ## References
@@ -202,7 +215,9 @@ The following videos were generated using the SPlisHSPlasH library:
 * Markus Ihmsen, Nadir Akinci, Gizem Akinci, Matthias Teschner. Unified spray, foam and air bubbles for particle-based fluids. The Visual Computer 28(6), 2012
 * Markus Ihmsen, Jens Cornelis, Barbara Solenthaler, Christopher Horvath, and Matthias Teschner. Implicit incompressible SPH. IEEE Transactions on Visualization and Computer Graphics, 20(3):426–435, March 2014.
 * Markus Ihmsen, Jens Orthmann, Barbara Solenthaler, Andreas Kolb, and Matthias Teschner. SPH Fluids in Computer Graphics. In Eurographics 2014 - State of the Art Reports. The Eurographics Association, 2014. 
+* M. Jiang, Y. Zhou, R. Wang, R. Southern, J. J. Zhang. Blue noise sampling using an SPH-based method. ACM Transactions on Graphics, 2015
 * Dan Koschier and Jan Bender, "Density Maps for Improved SPH Boundary Handling", In Proceedings of ACM SIGGRAPH / EUROGRAPHICS Symposium on Computer Animation (SCA), 2017
+* Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
 * Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1–104:12, July 2013.
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
 * A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017

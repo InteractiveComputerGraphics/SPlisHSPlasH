@@ -140,7 +140,21 @@ set(ELASTICITY_SOURCE_FILES
 	Elasticity/ElasticityBase.cpp
 	Elasticity/Elasticity_Becker2009.cpp
 	Elasticity/Elasticity_Peer2018.cpp
-	)	
+	)
+
+# currently only implemented using AVX
+if (USE_AVX)
+	list(APPEND ELASTICITY_HEADER_FILES 
+		Elasticity/Elasticity_Kugelstadt2021.h
+		Elasticity/CholeskyAVXSolver.h
+	)
+	
+	list(APPEND ELASTICITY_SOURCE_FILES
+		Elasticity/Elasticity_Kugelstadt2021.cpp
+		Elasticity/CholeskyAVXSolver.cpp
+	)
+endif()
+		
 	
 set(UTILS_HEADER_FILES
 	Utilities/AVX_math.h
@@ -266,6 +280,7 @@ add_library(SPlisHSPlasH
 add_dependencies(SPlisHSPlasH
 	Utilities
 	tinyexpr
+	MD5
 	Ext_NeighborhoodSearch
 	Ext_GenericParameters
 	Ext_Discregrid

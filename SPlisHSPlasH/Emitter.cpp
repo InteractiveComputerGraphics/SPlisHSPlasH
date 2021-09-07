@@ -125,6 +125,7 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 					fm->getVelocity(i) = emitVel;
 					fm->getPosition(i) += timeStepSize * emitVel;
 					fm->setParticleState(i, ParticleState::AnimatedByEmitter);
+					fm->setObjectId(i, m_objectId);
 				}
 			}
 		}
@@ -172,6 +173,7 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 					m_model->getPosition(index) = (i*diam + startX)*axisWidth + (j*diam + startZ)*axisHeight + offset;
 					m_model->getVelocity(index) = emitVel;
 					m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
+					m_model->setObjectId(index, m_objectId);
 
 					if (reused)
 					{
@@ -208,6 +210,7 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 						m_model->getPosition(index) = (i*diam + startX)*axisWidth + (j*diam + startZ)*axisHeight + offset;
 						m_model->getVelocity(index) = emitVel;
 						m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
+						m_model->setObjectId(index, m_objectId);
 						numEmittedParticles++;
 					}
 					index++;
@@ -267,6 +270,7 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
  					fm->getVelocity(i) = emitVel;
  					fm->getPosition(i) += timeStepSize * emitVel;
  					fm->setParticleState(i, ParticleState::AnimatedByEmitter);
+					fm->setObjectId(i, m_objectId);
  				}
  			}
 		}
@@ -320,6 +324,7 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 					m_model->getPosition(index) = x*axisWidth + y*axisHeight + offset;
 					m_model->getVelocity(index) = velocity;
 					m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
+					m_model->setObjectId(index, m_objectId);
 
 					if (reused)
 					{
@@ -358,6 +363,7 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 						m_model->getPosition(index) = x*axisWidth + y*axisHeight + offset;
 						m_model->getVelocity(index) = velocity;
 						m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
+						m_model->setObjectId(index, m_objectId);
 						numEmittedParticles++;
 						index++;
 					}

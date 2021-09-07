@@ -8,9 +8,12 @@
 #include "NeighborhoodSearch.h"
 #include "BoundaryModel.h"
 #include "AnimationFieldSystem.h"
+#include "Utilities/FileSystem.h"
 #ifdef USE_DEBUG_TOOLS
 #include "SPlisHSPlasH/Utilities/DebugTools.h"
 #endif
+#include <array>
+#include <algorithm>
 
 
 /** Loop over the fluid neighbors of all fluid phases. 
@@ -227,9 +230,62 @@ namespace SPH
 			int m_id;
 		};
 
+		/** Fluid object information */
+		struct FluidInfo
+		{
+			int type;		// 0: block, 1: fluid model, 2: emitter
+			int numParticles;
+			AlignedBox3r box;
+			std::string id;
+			std::string samplesFile;
+			std::string visMeshFile;
+			Vector3r translation;
+			Matrix3r rotation;
+			Vector3r scale;
+			Vector3r initialVelocity;
+			Vector3r initialAngularVelocity;
+			unsigned char mode;
+			bool invert;
+			std::array<unsigned int, 3> resolutionSDF;
+			unsigned int emitter_width;
+			unsigned int emitter_height;
+			Real emitter_velocity; // emission velocity
+			Real emitter_emitStartTime;
+			Real emitter_emitEndTime;
+			unsigned int emitter_type;
+
+			bool hasSameParticleSampling(const FluidInfo &other)
+			{
+				if (numParticles != other.numParticles)
+					return false;
+				if ((type == 1) && (other.type == 1) && (scale == other.scale))
+				{
+					if (samplesFile == other.samplesFile)
+					{
+						std::string ext = Utilities::FileSystem::getFileExt(samplesFile);
+						std::transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
+						if (ext == "OBJ")
+						{
+							if (mode == other.mode)
+								return true;
+						}
+						else
+							return true;
+					}
+				}
+				else if ((type == 0) && (other.type == 0))
+				{
+					if (((box.max() - box.min()).isApprox(other.box.max() - other.box.min()), 1.0e-9) && (mode == other.mode))
+						return true;
+				}
+				return false;
+			}
+		};
+
 	protected:
 		std::vector<FluidModel*> m_fluidModels;
 		std::vector<BoundaryModel*> m_boundaryModels;
+		std::vector<FluidInfo> m_fluidInfos;
 		NeighborhoodSearch *m_neighborhoodSearch;
 		AnimationFieldSystem *m_animationFieldSystem;
 		int m_cflMethod;
@@ -250,6 +306,8 @@ namespace SPH
 		bool m_enableZSort;
 		std::function<void()> m_simulationMethodChanged;		
 		int m_boundaryHandlingMethod;
+		std::string m_cachePath;
+		bool m_useCache;
 		std::vector<NonPressureForceMethod> m_dragMethods;
 		std::vector<NonPressureForceMethod> m_elasticityMethods;
 		std::vector<NonPressureForceMethod> m_surfaceTensionMethods;
@@ -288,7 +346,7 @@ namespace SPH
 		static void setCurrent (Simulation* tm);
 		static bool hasCurrent();
 
-		void addFluidModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, const unsigned int nMaxEmitterParticles);
+		void addFluidModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, unsigned int* fluidObjectIds, const unsigned int nMaxEmitterParticles);
 		FluidModel *getFluidModel(const unsigned int index) { return m_fluidModels[index]; }
 		FluidModel *getFluidModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<FluidModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
 		const unsigned int numberOfFluidModels() const { return static_cast<unsigned int>(m_fluidModels.size()); }
@@ -298,6 +356,10 @@ namespace SPH
 		BoundaryModel *getBoundaryModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<BoundaryModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
 		const unsigned int numberOfBoundaryModels() const { return static_cast<unsigned int>(m_boundaryModels.size()); }
 		void updateBoundaryVolume();
+
+		void addFluidInfo(FluidInfo& info) { m_fluidInfos.push_back(info); }
+		std::vector<FluidInfo>& getFluidInfos() { return m_fluidInfos; }
+		FluidInfo& getFluidInfo(const unsigned int i) { return m_fluidInfos[i]; }
 
 		AnimationFieldSystem* getAnimationFieldSystem() { return m_animationFieldSystem; }
 		
@@ -352,6 +414,11 @@ namespace SPH
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 		NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
+
+		void setCachePath(const std::string& cachePath) { m_cachePath = cachePath; }
+		const std::string& getCachePath() const { return m_cachePath; }
+		void setUseCache(const bool useCache) { m_useCache = useCache; }
+		const bool getUseCache() const { return m_useCache; }
 
 		void saveState(BinaryFileWriter &binWriter);
 		void loadState(BinaryFileReader &binReader);

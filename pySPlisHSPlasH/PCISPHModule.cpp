@@ -23,13 +23,13 @@ void PCISPHModule(py::module m_sub) {
             .def("getPCISPH_ScalingFactor", &SPH::SimulationDataPCISPH::getPCISPH_ScalingFactor)
             .def("emittedParticles", &SPH::SimulationDataPCISPH::emittedParticles)
 
-            .def("getLastPosition", (const Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int)const)(&SPH::SimulationDataPCISPH::getLastPosition))
-            // .def("getLastPosition", (Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int))&SPH::SimulationDataPCISPH::getLastPosition) // TODO: wont work by reference
-            .def("setLastPosition", &SPH::SimulationDataPCISPH::setLastPosition)
+            .def("getPredictedPosition", (const Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int)const)(&SPH::SimulationDataPCISPH::getPredictedPosition))
+            // .def("getPredictedPosition", (Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int))&SPH::SimulationDataPCISPH::getPredictedPosition) // TODO: wont work by reference
+            .def("setPredictedPosition", &SPH::SimulationDataPCISPH::setPredictedPosition)
 
-            .def("getLastVelocity", (const Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int)const)&SPH::SimulationDataPCISPH::getLastVelocity)
-            // .def("getLastVelocity", (Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int))&SPH::SimulationDataPCISPH::getLastVelocity) // TODO: wont work by reference
-            .def("setLastVelocity", &SPH::SimulationDataPCISPH::setLastVelocity)
+            .def("getPredictedVelocity", (const Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int)const)&SPH::SimulationDataPCISPH::getPredictedVelocity)
+            // .def("getPredictedVelocity", (Vector3r& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int))&SPH::SimulationDataPCISPH::getPredictedVelocity) // TODO: wont work by reference
+            .def("setPredictedVelocity", &SPH::SimulationDataPCISPH::setPredictedVelocity)
 
             .def("getDensityAdv", (const Real (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int)const)&SPH::SimulationDataPCISPH::getDensityAdv)
             // .def("getDensityAdv", (Real& (SPH::SimulationDataPCISPH::*)(const unsigned int, const unsigned int))&SPH::SimulationDataPCISPH::getDensityAdv) // TODO: wont work by reference

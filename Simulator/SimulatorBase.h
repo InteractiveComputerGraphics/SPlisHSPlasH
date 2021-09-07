@@ -42,6 +42,7 @@ namespace SPH
 		std::string m_exePath;
 		std::string m_stateFile;
 		std::string m_outputPath;
+		unsigned int m_currentObjectId;
 		bool m_useParticleCaching;
 		bool m_useGUI;
 		bool m_isStaticScene;
@@ -53,6 +54,7 @@ namespace SPH
 		bool m_enableRigidBodyExport;
 		bool m_enableStateExport;
 		bool m_enableAsyncExport;
+		bool m_enableObjectSplitting;
 		Real m_framesPerSecond;
 		Real m_framesPerSecondState;
 		std::string m_particleAttributes;
@@ -93,7 +95,7 @@ namespace SPH
 
 		void initFluidData();
 		void setInitialVelocity(const Vector3r &vel, const Vector3r & angVel, const unsigned int numParticles, Vector3r *fluidParticles, Vector3r *fluidVelocities);
-		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities);
+		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities, std::vector<std::vector<unsigned int>> &fluidObjectIds);
 		void createEmitters();
 		void createAnimationFields();
 		void buildModel();
@@ -115,6 +117,7 @@ namespace SPH
 		static int STATE_EXPORT_FPS;
 		static int ASYNC_EXPORT;
 		static int RENDER_WALLS;
+		static int EXPORT_OBJECT_SPLITTING;
 		
 		static int ENUM_WALLS_NONE;
 		static int ENUM_WALLS_PARTICLES_ALL;
@@ -198,6 +201,8 @@ namespace SPH
 		Real getRenderMinValue(const unsigned int fluidModelIndex) const { return m_renderMinValue[fluidModelIndex]; }
 		void setRenderMinValue(const unsigned int fluidModelIndex, Real val) { m_renderMinValue[fluidModelIndex] = val; }
 		std::string getOutputPath() const { return m_outputPath; }
+
+		unsigned int getLastObjectId() const { return m_currentObjectId;  }
 
 		std::string getStateFile() const { return m_stateFile; }
 		void setStateFile(std::string val) { m_stateFile = val; }

@@ -31,10 +31,22 @@ void ParticleExporter_Partio::step(const unsigned int frame)
 	{
 		FluidModel* model = sim->getFluidModel(i);
 		std::string fileName = "ParticleData";
-		fileName = fileName + "_" + model->getId() + "_" + std::to_string(frame);
-
-		std::string exportFileName = FileSystem::normalizePath(m_exportPath + "/" + fileName);
-		writeParticlesPartio(exportFileName + ".bgeo", model);
+		if (!m_base->getValue<bool>(SimulatorBase::EXPORT_OBJECT_SPLITTING))
+		{
+			fileName = fileName + "_" + model->getId() + "_" + std::to_string(frame);
+			std::string exportFileName = FileSystem::normalizePath(m_exportPath + "/" + fileName);
+			writeParticlesPartio(exportFileName + ".bgeo", model);
+		}
+		else
+		{
+			// object splitting
+			for (auto j = 0u; j < m_base->getLastObjectId(); j++)
+			{
+				std::string fileName2 = fileName + "_" + model->getId() + "_" + std::to_string(j) + "_" + std::to_string(frame);
+				std::string exportFileName = FileSystem::normalizePath(m_exportPath + "/" + fileName2);
+				writeParticlesPartio(exportFileName + ".bgeo", model, j);
+			}
+		}
 	}
 }
 
@@ -50,7 +62,7 @@ void ParticleExporter_Partio::setActive(const bool active)
 }
 
 
-void ParticleExporter_Partio::writeParticlesPartio(const std::string& fileName, FluidModel* model)
+void ParticleExporter_Partio::writeParticlesPartio(const std::string& fileName, FluidModel* model, const unsigned int objId)
 {
 	const bool async = m_base->getValue<bool>(SimulatorBase::ASYNC_EXPORT);
 	if (async)
@@ -121,6 +133,9 @@ void ParticleExporter_Partio::writeParticlesPartio(const std::string& fileName, 
 
 	for (unsigned int i = 0; i < numParticles; i++)
 	{
+		if ((objId != 0xffffffff) && (model->getObjectId(i) != objId))
+			continue;
+			
 		Partio::ParticleIndex index = particleData.addParticle();
 		float* pos = particleData.dataWrite<float>(posAttr, index);
 		int* id = particleData.dataWrite<int>(idAttr, index);

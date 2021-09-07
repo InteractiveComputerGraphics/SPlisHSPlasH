@@ -110,13 +110,19 @@ void Elasticity_Peer2018::initValues()
 			// compute volume
 			Real density = model->getMass(i) * sim->W_zero();
 			const Vector3r &xi = model->getPosition(i);
-			forall_fluid_neighbors_in_same_phase(
+			for (size_t j = 0; j < m_initialNeighbors[i].size(); j++)
+			{
+				const unsigned int neighborIndex = m_initialNeighbors[i][j];
+				const Vector3r& xj = model->getPosition(neighborIndex); 
 				density += model->getMass(neighborIndex) * sim->W(xi - xj);
-			)
+			}
 			m_restVolumes[i] = model->getMass(i) / density;
 			m_rotations[i].setIdentity();
 		}
 	}
+
+	// mark all particles in the bounding box as fixed
+	determineFixedParticles();
 
 	computeMatrixL();
 }
@@ -124,6 +130,7 @@ void Elasticity_Peer2018::initValues()
 
 void Elasticity_Peer2018::step()
 {
+	START_TIMING("Elasticity_Peer2018")
 	const unsigned int numParticles = m_model->numActiveParticles();
 	if (numParticles == 0)
 		return;
@@ -150,7 +157,10 @@ void Elasticity_Peer2018::step()
 	#pragma omp parallel for schedule(static) 
 	for (int i = 0; i < (int)numParticles; i++)
 	{
-		g.segment<3>(3 * i) = m_model->getVelocity(i) + dt * m_model->getAcceleration(i);
+		if (m_model->getParticleState(i) == ParticleState::Active)
+			g.segment<3>(3 * i) = m_model->getVelocity(i) + dt * m_model->getAcceleration(i);
+		else
+			g.segment<3>(3 * i) = m_model->getVelocity(i);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -167,10 +177,14 @@ void Elasticity_Peer2018::step()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			Vector3r &ai = m_model->getAcceleration(i);
-			ai += (1.0 / dt) * (x.segment<3>(3 * i) - m_model->getVelocity(i));
+			if (m_model->getParticleState(i) == ParticleState::Active)
+			{
+				Vector3r& ai = m_model->getAcceleration(i);
+				ai += (1.0 / dt) * (x.segment<3>(3 * i) - m_model->getVelocity(i));
+			}
 		}
 	}
+	STOP_TIMING_AVG
 }
 
 
@@ -340,8 +354,10 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
  				const Vector3r xj_xi = xj - xi;
  				const Vector3r xi_xj_0 = xi0 - xj0;
  				const Vector3r correctedRotatedKernel = m_RL[i] * sim->gradW(xi_xj_0);
- 				m_F[i] += m_restVolumes[neighborIndex] * xj_xi * correctedRotatedKernel.transpose();
+ 				m_F[i] += m_restVolumes[neighborIndex] * (xj_xi - m_rotations[i]*(xj0-xi0)) * correctedRotatedKernel.transpose();
  			}
+
+			m_F[i] += Matrix3r::Identity();
 
 			if (sim->is2DSimulation())
 				m_F[i](2, 2) = 1.0;
@@ -418,12 +434,12 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
 					const Vector3r &xj = model->getPosition(neighborIndex);
 					const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
 
-					// Note: Ganzenm�ller defines xij = xj-xi
+					// Note: Ganzenmueller defines xij = xj-xi
 					const Vector3r xi_xj = -(xi - xj);
 					const Real xixj_l = xi_xj.norm();
 					if (xixj_l > 1.0e-6)
 					{
-						// Note: Ganzenm�ller defines xij = xj-xi
+						// Note: Ganzenmueller defines xij = xj-xi
 						const Vector3r xi_xj_0 = -(xi0 - xj0);
 						const Real xixj0_l2 = xi_xj_0.squaredNorm();
 						const Real W0 = sim->W(xi_xj_0);
@@ -442,8 +458,10 @@ void Elasticity_Peer2018::computeRHS(VectorXr & rhs)
 				fi_hg *= m_alpha * m_youngsModulus * m_restVolumes[i];
 				model->getAcceleration(i) += fi_hg / model->getMass(i);
 			}
-
-			rhs.segment<3>(3 * i) = model->getVelocity(i) + dt * (model->getAcceleration(i) + 1.0 / model->getMass(i) * force);
+			if (model->getParticleState(i) == ParticleState::Active)
+				rhs.segment<3>(3 * i) = model->getVelocity(i) + dt * (model->getAcceleration(i) + 1.0 / model->getMass(i) * force);
+			else
+				rhs.segment<3>(3 * i) = model->getVelocity(i);
 		}
 	}
 }
@@ -532,36 +550,45 @@ void Elasticity_Peer2018::matrixVecProd(const Real* vec, Real *result, void *use
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const unsigned int i0 = current_to_initial_index[i];
-			const Vector3r &xi0 = model->getPosition0(i0);
-			const size_t numNeighbors = initialNeighbors[i0].size();
-
-			//////////////////////////////////////////////////////////////////////////
-			// Compute elastic force
-			//////////////////////////////////////////////////////////////////////////
-			Vector3r force;
-			force.setZero();
-			for (unsigned int j = 0; j < numNeighbors; j++)
+			if (model->getParticleState(i) == ParticleState::Active)
 			{
-				const unsigned int neighborIndex = initial_to_current_index[initialNeighbors[i0][j]];
-				// get initial neighbor index considering the current particle order 
-				const unsigned int neighborIndex0 = initialNeighbors[i0][j];
+				const unsigned int i0 = current_to_initial_index[i];
+				const Vector3r& xi0 = model->getPosition0(i0);
+				const size_t numNeighbors = initialNeighbors[i0].size();
 
-				const Vector3r &xj0 = model->getPosition0(neighborIndex0);
-				const Vector3r xi_xj_0 = xi0 - xj0;
-				const Vector3r gradW = sim->gradW(xi_xj_0);
-				const Vector3r correctedRotatedKernel_i = RL[i] * gradW;
-				const Vector3r correctedRotatedKernel_j = -RL[neighborIndex] * gradW;
-				Vector3r PWi, PWj;
-				elasticity->symMatTimesVec(stress[i], correctedRotatedKernel_i, PWi);
-				elasticity->symMatTimesVec(stress[neighborIndex], correctedRotatedKernel_j, PWj);
-				force += restVolumes[i] * restVolumes[neighborIndex] * (PWi - PWj);
+				//////////////////////////////////////////////////////////////////////////
+				// Compute elastic force
+				//////////////////////////////////////////////////////////////////////////
+				Vector3r force;
+				force.setZero();
+				for (unsigned int j = 0; j < numNeighbors; j++)
+				{
+					const unsigned int neighborIndex = initial_to_current_index[initialNeighbors[i0][j]];
+					// get initial neighbor index considering the current particle order 
+					const unsigned int neighborIndex0 = initialNeighbors[i0][j];
+
+					const Vector3r& xj0 = model->getPosition0(neighborIndex0);
+					const Vector3r xi_xj_0 = xi0 - xj0;
+					const Vector3r gradW = sim->gradW(xi_xj_0);
+					const Vector3r correctedRotatedKernel_i = RL[i] * gradW;
+					const Vector3r correctedRotatedKernel_j = -RL[neighborIndex] * gradW;
+					Vector3r PWi, PWj;
+					elasticity->symMatTimesVec(stress[i], correctedRotatedKernel_i, PWi);
+					elasticity->symMatTimesVec(stress[neighborIndex], correctedRotatedKernel_j, PWj);
+					force += restVolumes[i] * restVolumes[neighborIndex] * (PWi - PWj);
+				}
+
+				const Real factor = dt / model->getMass(i);
+				result[3 * i] = vec[3 * i] - factor * force[0];
+				result[3 * i + 1] = vec[3 * i + 1] - factor * force[1];
+				result[3 * i + 2] = vec[3 * i + 2] - factor * force[2];
 			}
-
-			const Real factor = dt / model->getMass(i);
-			result[3 * i] = vec[3 * i] - factor * force[0];
-			result[3 * i + 1] = vec[3 * i + 1] - factor * force[1];
-			result[3 * i + 2] = vec[3 * i + 2] - factor * force[2];
+			else
+			{
+				result[3 * i] = vec[3 * i];
+				result[3 * i + 1] = vec[3 * i + 1];
+				result[3 * i + 2] = vec[3 * i + 2];
+			}
 		}
 	}
 }

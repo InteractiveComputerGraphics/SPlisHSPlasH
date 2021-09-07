@@ -49,6 +49,7 @@ int SimulatorBase::STATE_EXPORT = -1;
 int SimulatorBase::STATE_EXPORT_FPS = -1;
 int SimulatorBase::ASYNC_EXPORT = -1;
 int SimulatorBase::RENDER_WALLS = -1;
+int SimulatorBase::EXPORT_OBJECT_SPLITTING = -1;
 int SimulatorBase::ENUM_WALLS_NONE = -1;
 int SimulatorBase::ENUM_WALLS_PARTICLES_ALL = -1;
 int SimulatorBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
@@ -74,6 +75,7 @@ SimulatorBase::SimulatorBase()
 	m_enableRigidBodyExport = false;
 	m_enableStateExport = false;
 	m_enableAsyncExport = false;
+	m_enableObjectSplitting = true;
 	m_framesPerSecond = 25;
 	m_framesPerSecondState = 1;
 	m_nextFrameTime = 0.0;
@@ -90,6 +92,7 @@ SimulatorBase::SimulatorBase()
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
 	m_updateGUI = false;
+	m_currentObjectId = 0;
 #ifdef DL_OUTPUT
 	m_nextTiming = 1.0;
 #endif
@@ -180,6 +183,11 @@ void SimulatorBase::initParameters()
 		setGroup(m_rbExporters[i].m_id, "Rigid body exporters");
 		setDescription(m_rbExporters[i].m_id, m_rbExporters[i].m_description);
 	}
+
+	EXPORT_OBJECT_SPLITTING = createBoolParameter("enableObjectSplitting", "Split SPH objects", &m_enableObjectSplitting);
+	setGroup(EXPORT_OBJECT_SPLITTING, "Export");
+	setDescription(EXPORT_OBJECT_SPLITTING, "Enable/disable an export of the SPH particles with an indiviual file per object.");
+	getParameter(EXPORT_OBJECT_SPLITTING)->setReadOnly(true);
 }
 
 void SimulatorBase::run()
@@ -460,7 +468,7 @@ void SimulatorBase::initSimulation()
 			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase()); });
 			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase()); });
 			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase()); });
-			model->setElasticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
+			model->setElasticityMethodChangedCallback([this, model]() { reset();  m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
 		}
 
 		m_gui->initSimulationParameterGUI();
@@ -1073,16 +1081,20 @@ void SimulatorBase::initFluidData()
 
 	std::vector<std::vector<Vector3r>> fluidParticles;
 	std::vector<std::vector<Vector3r>> fluidVelocities;
+	std::vector<std::vector<unsigned int>> fluidObjectIds;
 	fluidParticles.resize(numberOfFluidModels);
 	fluidVelocities.resize(numberOfFluidModels);
+	fluidObjectIds.resize(numberOfFluidModels);
 
-	createFluidBlocks(fluidIDs, fluidParticles, fluidVelocities);
+	createFluidBlocks(fluidIDs, fluidParticles, fluidVelocities, fluidObjectIds);
 
 	std::string base_path = FileSystem::getFilePath(sceneFile);
 
 	const bool useCache = getUseParticleCaching();
 	std::string scene_path = FileSystem::getFilePath(sceneFile);
 	string cachePath = scene_path + "/Cache";
+	sim->setCachePath(cachePath);
+	sim->setUseCache(useCache);
 
 	unsigned int startIndex = 0;
 	unsigned int endIndex = 0;
@@ -1178,6 +1190,28 @@ void SimulatorBase::initFluidData()
 		const unsigned int numAddedParticles = (unsigned int)fluidParticles[fluidIndex].size() - startIndex;
 		setInitialVelocity(scene.fluidModels[i]->initialVelocity, scene.fluidModels[i]->initialAngularVelocity, numAddedParticles, &fluidParticles[fluidIndex][startIndex], &fluidVelocities[fluidIndex][startIndex]);
 		Simulation::getCurrent()->setValue(Simulation::PARTICLE_RADIUS, scene.particleRadius);
+
+		fluidObjectIds[fluidIndex].resize(fluidObjectIds[fluidIndex].size() + numAddedParticles);
+		for (auto j = 0; j < numAddedParticles; j++)
+			fluidObjectIds[fluidIndex][startIndex+j] = m_currentObjectId;
+		
+		Simulation::FluidInfo info;
+		info.type = 1;
+		info.id = scene.fluidModels[i]->id;
+		info.samplesFile = scene.fluidModels[i]->samplesFile;
+		info.visMeshFile = scene.fluidModels[i]->visMeshFile;
+		info.translation = scene.fluidModels[i]->translation;
+		info.rotation = scene.fluidModels[i]->rotation;
+		info.scale = scene.fluidModels[i]->scale;
+		info.initialVelocity = scene.fluidModels[i]->initialVelocity;
+		info.initialAngularVelocity = scene.fluidModels[i]->initialAngularVelocity;
+		info.mode = scene.fluidModels[i]->mode;
+		info.invert = scene.fluidModels[i]->invert;
+		info.resolutionSDF = scene.fluidModels[i]->resolutionSDF;
+		info.numParticles = numAddedParticles;
+		sim->addFluidInfo(info);
+
+		m_currentObjectId++;
 	}
 
 	unsigned int nParticles = 0;
@@ -1191,7 +1225,7 @@ void SimulatorBase::initFluidData()
 			if (material->id == it->first)
 				maxEmitterParticles = material->maxEmitterParticles;
 		}
-		sim->addFluidModel(it->first, (unsigned int)fluidParticles[index].size(), fluidParticles[index].data(), fluidVelocities[index].data(), maxEmitterParticles);
+		sim->addFluidModel(it->first, (unsigned int)fluidParticles[index].size(), fluidParticles[index].data(), fluidVelocities[index].data(), fluidObjectIds[index].data(), maxEmitterParticles);
 		nParticles += (unsigned int)fluidParticles[index].size();
 	}
 
@@ -1286,6 +1320,23 @@ void SimulatorBase::createEmitters()
 
 			emitter->setEmitStartTime(ed->emitStartTime);
 			emitter->setEmitEndTime(ed->emitEndTime);
+			emitter->setObjectId(m_currentObjectId);
+
+			Simulation::FluidInfo info;
+			info.type = 2;
+			info.id = ed->id;
+			info.translation = ed->x;
+			info.rotation = ed->rotation;
+			info.emitter_width = ed->width;
+			info.emitter_height = ed->height;
+			info.emitter_velocity = ed->velocity; // emission velocity
+			info.emitter_emitStartTime = ed->emitStartTime;
+			info.emitter_emitEndTime = ed->emitEndTime;
+			info.emitter_type = ed->type;
+			info.numParticles = 0;
+			sim->addFluidInfo(info);
+
+			m_currentObjectId++;
 		}
 	}
 }
@@ -1315,7 +1366,7 @@ void SimulatorBase::createAnimationFields()
 }
 
 
-void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities)
+void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities, std::vector<std::vector<unsigned int>> &fluidObjectIds)
 {
 	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	for (unsigned int i = 0; i < scene.fluidBlocks.size(); i++)
@@ -1355,6 +1406,7 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 		const unsigned int numAddedParticles = stepsX * stepsY * stepsZ;
 		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + numAddedParticles);
 		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + numAddedParticles);
+		fluidObjectIds[fluidIndex].reserve(fluidObjectIds[fluidIndex].size() + numAddedParticles);
 
 		if (Simulation::getCurrent()->is2DSimulation())
 		{
@@ -1392,10 +1444,24 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 						currPos += shift_vec;
 					}
 					fluidParticles[fluidIndex].push_back(currPos);
+					fluidObjectIds[fluidIndex].push_back(m_currentObjectId);
 				}
 			}
 		}
 		setInitialVelocity(scene.fluidBlocks[i]->initialVelocity, scene.fluidBlocks[i]->initialAngularVelocity, numAddedParticles, &fluidParticles[fluidIndex][startIndex], &fluidVelocities[fluidIndex][startIndex]);
+
+		Simulation::FluidInfo info;
+		info.type = 0;
+		info.id = scene.fluidBlocks[i]->id;
+		info.box = AlignedBox3r(scene.fluidBlocks[i]->box.m_minX, scene.fluidBlocks[i]->box.m_maxX);;
+		info.visMeshFile = scene.fluidBlocks[i]->visMeshFile;
+		info.initialVelocity = scene.fluidBlocks[i]->initialVelocity;
+		info.initialAngularVelocity = scene.fluidBlocks[i]->initialAngularVelocity;
+		info.mode = scene.fluidBlocks[i]->mode;
+		info.numParticles = numAddedParticles;
+		Simulation::getCurrent()->addFluidInfo(info);
+
+		m_currentObjectId++;
 	}
 }
 

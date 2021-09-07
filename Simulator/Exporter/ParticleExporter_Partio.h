@@ -18,7 +18,7 @@ namespace SPH
 		Partio::ParticlesDataMutable* m_particleData;
 		std::future<void> m_handle;
 
-		void writeParticlesPartio(const std::string& fileName, FluidModel* model);
+		void writeParticlesPartio(const std::string& fileName, FluidModel* model, const unsigned int objId=0xffffffff);
 
 	public:
 		ParticleExporter_Partio(SimulatorBase *base);

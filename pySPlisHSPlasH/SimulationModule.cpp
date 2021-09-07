@@ -138,10 +138,12 @@ void SimulationModule(py::module m_sub){
             .def_static("setCurrent", &SPH::Simulation::setCurrent)
             .def_static("hasCurrent", &SPH::Simulation::hasCurrent)
 
-            .def("addFluidModel", [](SPH::Simulation& current, const std::string &id, std::vector<Vector3r> fluidParticles, std::vector<Vector3r> fluidVelocities, const unsigned int nMaxEmitterParticles){
+            .def("addFluidModel", [](SPH::Simulation& current, const std::string &id, std::vector<Vector3r> fluidParticles, std::vector<Vector3r> fluidVelocities, std::vector<unsigned int> fluidObjectIds, const unsigned int nMaxEmitterParticles){
                 if(fluidParticles.size() != fluidVelocities.size())
                     throw std::runtime_error("Sizes of position and velocity array must be equal");
-                current.addFluidModel(id, fluidParticles.size(), fluidParticles.data(), fluidVelocities.data(), nMaxEmitterParticles);
+                if (fluidParticles.size() != fluidObjectIds.size())
+                    throw std::runtime_error("Sizes of position and object id array must be equal");
+                current.addFluidModel(id, fluidParticles.size(), fluidParticles.data(), fluidVelocities.data(), fluidObjectIds.data(), nMaxEmitterParticles);
             })
             .def("getFluidModel", &SPH::Simulation::getFluidModel, py::return_value_policy::reference_internal)
             .def("getFluidModelFromPointSet", &SPH::Simulation::getFluidModelFromPointSet, py::return_value_policy::reference_internal)

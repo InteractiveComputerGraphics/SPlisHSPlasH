@@ -39,6 +39,8 @@ documentation and/or software.
 
 */
 
+#pragma once
+
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
@@ -56,7 +58,7 @@ public:
 
 // constructors for special circumstances.  All these constructors finalize
 // the MD5 context.
-  MD5              (unsigned char *string); // digest string, finalize
+  MD5              (unsigned char *input, unsigned int input_length); // digest string, finalize
   MD5              (std::istream& stream);       // digest stream, finalize
   MD5              (FILE *file);            // digest file, close, finalize
   MD5              (std::ifstream& stream);      // digest stream, close, finalize

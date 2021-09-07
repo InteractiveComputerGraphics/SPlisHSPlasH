@@ -3,6 +3,7 @@
 
 #include "ExporterBase.h"
 #include "SPlisHSPlasH/FluidModel.h"
+#include <fstream>
 
 namespace SPH
 {
@@ -12,8 +13,11 @@ namespace SPH
 	{
 	protected: 
 		std::string m_exportPath;
+		std::ofstream *m_outfile;
+		std::vector<std::string> m_attributes;
 
-		void writeParticles(const std::string& fileName, FluidModel* model);
+		void createParticleFile(const std::string& fileName, FluidModel* model);
+		void writeParticles(const std::string& fileName, FluidModel* model, const unsigned int objId = 0xffffffff);
 
 		// VTK expects big endian
 		template<typename T>

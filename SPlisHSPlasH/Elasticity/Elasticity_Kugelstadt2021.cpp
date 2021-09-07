@@ -1,4 +1,4 @@
-﻿#include "Elasticity_Kugelstadt2021.h"
+#include "Elasticity_Kugelstadt2021.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/Utilities/MathFunctions.h"
 #include "SPlisHSPlasH/TimeManager.h"

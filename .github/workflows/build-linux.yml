@@ -49,7 +49,7 @@ jobs:
         build-requirements: ''
         system-packages: 'cmake3 libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGLU-devel'
         package-path: ''
-        pip-wheel-args: '--manylinux-build -DUSE_AVX=On -DCI_BUILD=On'
+        pip-wheel-args: '--manylinux-build -DUSE_AVX=Off -DCI_BUILD=On'
 
     # Upload artifacts
     - name: Upload compiled wheel

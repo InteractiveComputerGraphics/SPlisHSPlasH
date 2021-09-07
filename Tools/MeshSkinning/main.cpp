@@ -291,7 +291,9 @@ void init()
 	supportRadius = supportRadiusFactor * radius;
 
 	CubicKernel::setRadius(supportRadius);
+#ifdef USE_AVX
 	CubicKernel_AVX::setRadius(supportRadius);
+#endif
 	W_zero = CubicKernel::W_zero();
 	kernelFct = CubicKernel::W;
 	gradKernelFct = CubicKernel::gradW;
@@ -913,10 +915,10 @@ void precomputeValues()
 		{
 			const unsigned int index = activeParticles[i];
 			const Vector3r& xi0 = x0[index];
-			const Vector3f8 xi0_avx(xi0);
 			const unsigned int numNeighbors = (unsigned int)initialNeighbors[index].size();
 
 #ifdef USE_AVX
+			const Vector3f8 xi0_avx(xi0);
 			unsigned int base8 = precomputed_indices8[i];
 			unsigned int idx = 0;
 			Matrix3f8 L_avx(L[index]);

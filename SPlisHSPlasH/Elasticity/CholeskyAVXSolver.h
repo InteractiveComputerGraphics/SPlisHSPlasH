@@ -34,7 +34,7 @@ namespace SPH
 
 
 	/** Cholesky solver which uses AVX instructions. 
-	* Written by JosÈ Antonio Fern·ndez-Fern·ndez.
+	* Written by Jos√© Antonio Fern√°ndez-Fern√°ndez.
 	*/
 	class CholeskyAVXSolver
 	{

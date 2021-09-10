@@ -75,7 +75,6 @@ void ElasticityBase::determineFixedParticles()
 
 	if (!m_fixedBoxMin.isZero() || !m_fixedBoxMax.isZero())
 	{
-		int counter = 0;
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const Vector3r& x = m_model->getPosition(i);
@@ -84,10 +83,7 @@ void ElasticityBase::determineFixedParticles()
 			{
 				m_model->setParticleState(i, ParticleState::Fixed);
 			}
-			if (m_model->getParticleState(i) == ParticleState::Fixed)
-				counter++;
 		}
-		LOG_INFO << "Fixed particles: " << counter;
 	}
 }
 

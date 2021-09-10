@@ -6,9 +6,7 @@
 #include <SPlisHSPlasH/Elasticity/ElasticityBase.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Becker2009.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Peer2018.h>
-#ifdef USE_AVX
 #include <SPlisHSPlasH/Elasticity/Elasticity_Kugelstadt2021.h>
-#endif
 
 #include <pybind11/pybind11.h>
 
@@ -43,18 +41,14 @@ void ElasticityModule(py::module m_sub) {
             .def_static("matrixVecProd", &SPH::Elasticity_Peer2018::matrixVecProd)
             .def(py::init<SPH::FluidModel*>());
 
-#ifdef USE_AVX
     py::class_<SPH::Elasticity_Kugelstadt2021, SPH::ElasticityBase>(m_sub, "Elasticity_Kugelstadt2021")
             .def_readwrite_static("ITERATIONS_V", &SPH::Elasticity_Kugelstadt2021::ITERATIONS_V)
             .def_readwrite_static("MAX_ITERATIONS_V", &SPH::Elasticity_Kugelstadt2021::MAX_ITERATIONS_V)
             .def_readwrite_static("MAX_ERROR_V", &SPH::Elasticity_Kugelstadt2021::MAX_ERROR_V)
             .def_readwrite_static("ALPHA", &SPH::Elasticity_Kugelstadt2021::ALPHA)
-            .def_readwrite_static("MASS_DAMPING_COEFF", &SPH::Elasticity_Kugelstadt2021::MASS_DAMPING_COEFF)
-            .def_readwrite_static("STIFFNESS_DAMPING_COEFF", &SPH::Elasticity_Kugelstadt2021::STIFFNESS_DAMPING_COEFF)
             .def_readwrite_static("MAX_NEIGHBORS", &SPH::Elasticity_Kugelstadt2021::MAX_NEIGHBORS)
 
             .def_static("matrixVecProd", &SPH::Elasticity_Kugelstadt2021::matrixVecProd)
             .def("computeRotations", &SPH::Elasticity_Kugelstadt2021::computeRotations)
             .def(py::init<SPH::FluidModel*>());
-#endif
 }

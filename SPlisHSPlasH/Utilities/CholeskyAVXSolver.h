@@ -1,4 +1,7 @@
 #pragma once
+
+#if USE_AVX
+
 #include <iostream>
 #include <vector>
 #include <array>
@@ -6,7 +9,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include "SPlisHSPlasH/Utilities/AVX_math.h"
+#include "AVX_math.h"
 #include "Utilities/BinaryFileReaderWriter.h"
 
 namespace SPH
@@ -74,3 +77,5 @@ namespace SPH
 		void _init(const Eigen::SparseMatrix<double>& lhs);
 	};
 };
+
+#endif

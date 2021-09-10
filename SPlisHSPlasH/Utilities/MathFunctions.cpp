@@ -246,3 +246,62 @@ void MathFunctions::getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vecto
 	y.normalize();
 }
 
+// ----------------------------------------------------------------------------------------------
+void MathFunctions::APD_Newton(const Matrix3r& F, Quaternionr& q)
+{
+	//one iteration is sufficient for plausible results
+	for (int it = 0; it < 1; it++)
+	{
+		//transform quaternion to rotation matrix
+		Matrix3r R;
+		R = q.matrix();
+
+		//columns of B = RT * F
+		Vector3r B0 = R.transpose() * F.col(0);
+		Vector3r B1 = R.transpose() * F.col(1);
+		Vector3r B2 = R.transpose() * F.col(2);
+
+		Vector3r gradient(B2[1] - B1[2], B0[2] - B2[0], B1[0] - B0[1]);
+
+		//compute Hessian, use the fact that it is symmetric
+		const Real h00 = B1[1] + B2[2];
+		const Real h11 = B0[0] + B2[2];
+		const Real h22 = B0[0] + B1[1];
+		const Real h01 = static_cast<Real>(-0.5) * (B1[0] + B0[1]);
+		const Real h02 = static_cast<Real>(-0.5) * (B2[0] + B0[2]);
+		const Real h12 = static_cast<Real>(-0.5) * (B2[1] + B1[2]);
+
+		const Real detH = static_cast<Real>(-1.0) * h02 * h02 * h11 + static_cast<Real>(2.0) * h01 * h02 * h12 - h00 * h12 * h12 - h01 * h01 * h22 + h00 * h11 * h22;
+
+		Vector3r omega;
+		//compute symmetric inverse
+		const Real factor = static_cast<Real>(-0.25) / detH;
+		omega[0] = (h11 * h22 - h12 * h12) * gradient[0]
+			+ (h02 * h12 - h01 * h22) * gradient[1]
+			+ (h01 * h12 - h02 * h11) * gradient[2];
+		omega[0] *= factor;
+
+		omega[1] = (h02 * h12 - h01 * h22) * gradient[0]
+			+ (h00 * h22 - h02 * h02) * gradient[1]
+			+ (h01 * h02 - h00 * h12) * gradient[2];
+		omega[1] *= factor;
+
+		omega[2] = (h01 * h12 - h02 * h11) * gradient[0]
+			+ (h01 * h02 - h00 * h12) * gradient[1]
+			+ (h00 * h11 - h01 * h01) * gradient[2];
+		omega[2] *= factor;
+
+		//if det(H) = 0 use gradient descent, never happened in our tests, could also be removed 
+		if (fabs(detH) < static_cast<Real>(1.0e-9))
+			omega = -gradient;
+
+		//instead of clamping just use gradient descent. also works fine and does not require the norm
+		if (omega.dot(gradient) > 0.0)
+			omega = gradient * static_cast<Real>(-0.125);
+
+		const Real l_omega2 = omega.squaredNorm();
+		const Real w = (static_cast<Real>(1.0) - l_omega2) / (static_cast<Real>(1.0) + l_omega2);
+		const Vector3r vec = omega * (static_cast<Real>(2.0) / (static_cast<Real>(1.0) + l_omega2));
+		q = q * Quaternionr(w, vec.x(), vec.y(), vec.z());		//no normalization needed because the Cayley map returs a unit quaternion
+	}
+}

@@ -156,7 +156,6 @@ The SPlisHSPlasH library implements the drag force computation of the following 
 
 * Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
 
-  (currently only available as AVX implementation)
 
 ## Multi-Phase Fluid Simulation
 

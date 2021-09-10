@@ -1,3 +1,4 @@
+	- implemented a non-avx version of the elasticity solver by Kugelstadt et al. "Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control", 2021
 	- Linux fixes
 	
 2.11.0

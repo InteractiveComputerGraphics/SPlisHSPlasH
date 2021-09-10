@@ -24,6 +24,10 @@ namespace SPH
 		/** Returns two orthogonal vectors to vec which are also orthogonal to each other.
 		*/
 		static void getOrthogonalVectors(const Vector3r &vec, Vector3r &x, Vector3r &y);
+
+		/** computes the APD of 8 deformation gradients. (Alg. 3 from the paper: Kugelstadt et al. "Fast Corotated FEM using Operator Splitting", CGF 2018)
+		*/
+		static void APD_Newton(const Matrix3r& F, Quaternionr& q);
 	};
 }
 

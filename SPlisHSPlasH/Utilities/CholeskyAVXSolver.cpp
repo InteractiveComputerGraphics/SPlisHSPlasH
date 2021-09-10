@@ -1,6 +1,8 @@
 #include "CholeskyAVXSolver.h"
 #include "Utilities/Logger.h"
 
+#if USE_AVX
+
 using namespace SPH;
 
 CholeskyAVXSolver::CholeskyAVXSolver(const Eigen::SparseMatrix<float>& lhs)
@@ -191,3 +193,5 @@ void CholeskySparseMatrixfAVX::load(SPH::BinaryFileReader& binReader)
 	binReader.readVector(diagonal_inv);
 	binReader.read(n_rhs_lines);
 }
+
+#endif

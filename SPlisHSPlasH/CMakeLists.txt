@@ -134,30 +134,19 @@ set(ELASTICITY_HEADER_FILES
 	Elasticity/ElasticityBase.h
 	Elasticity/Elasticity_Becker2009.h	
 	Elasticity/Elasticity_Peer2018.h
+	Elasticity/Elasticity_Kugelstadt2021.h
 	)
 	
 set(ELASTICITY_SOURCE_FILES
 	Elasticity/ElasticityBase.cpp
 	Elasticity/Elasticity_Becker2009.cpp
 	Elasticity/Elasticity_Peer2018.cpp
+	Elasticity/Elasticity_Kugelstadt2021.cpp
 	)
-
-# currently only implemented using AVX
-if (USE_AVX)
-	list(APPEND ELASTICITY_HEADER_FILES 
-		Elasticity/Elasticity_Kugelstadt2021.h
-		Elasticity/CholeskyAVXSolver.h
-	)
-	
-	list(APPEND ELASTICITY_SOURCE_FILES
-		Elasticity/Elasticity_Kugelstadt2021.cpp
-		Elasticity/CholeskyAVXSolver.cpp
-	)
-endif()
-		
 	
 set(UTILS_HEADER_FILES
 	Utilities/AVX_math.h
+	Utilities/CholeskyAVXSolver.h	
 	Utilities/DebugTools.h
 	Utilities/MathFunctions.h
 	Utilities/GaussQuadrature.h
@@ -174,6 +163,7 @@ set(UTILS_HEADER_FILES
 	)
 	
 set(UTILS_SOURCE_FILES
+	Utilities/CholeskyAVXSolver.cpp
 	Utilities/DebugTools.cpp
 	Utilities/MathFunctions.cpp
 	Utilities/GaussQuadrature.cpp

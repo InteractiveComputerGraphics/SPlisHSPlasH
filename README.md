@@ -23,6 +23,16 @@ SPlisHSPlasH can export the particle data in the partio and vtk format. If you w
 
 **Author**: [Jan Bender](http://www.interactive-graphics.de), **License**: MIT
 
+## Documentation
+
+* [Documentation](https://splishsplash.readthedocs.io)
+* [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
+
+## Forum
+
+On our [GitHub discussions](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/discussions) page you can ask questions, discuss about simulation topics, and share ideas.
+
+
 ## Build Instructions
 
 This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with a compiler of your choice that supports C++11. The code was tested with the following configurations:
@@ -46,11 +56,6 @@ The command line simulator is available by running one of the following
 splash
 splash --help
 ```
-
-## Documentation
-
-* [Documentation](https://splishsplash.readthedocs.io)
-* [SPH tutorial](https://interactivecomputergraphics.github.io/SPH-Tutorial)
 
 ## Features
 

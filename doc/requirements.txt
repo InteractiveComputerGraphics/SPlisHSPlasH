@@ -1,5 +1,4 @@
 exhale
 recommonmark
-sphinx==4.2.0
+sphinx==3.4.0
 sphinxcontrib.bibtex < 2.0.0
-myst-parser==0.15.2

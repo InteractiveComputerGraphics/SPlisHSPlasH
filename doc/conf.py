@@ -37,7 +37,6 @@ extensions = [
     'breathe',
     'exhale',
     'sphinx_rtd_theme',
-    'recommonmark',
 	'sphinxcontrib.bibtex',
     'myst_parser'
 ]
@@ -74,7 +73,7 @@ highlight_language = 'cpp'
 # Tell sphinx about file endings
 source_suffix = {
     '.rst': 'restructuredtext',
-#    '.md': 'markdown',
+    '.md': 'markdown',
 }
 
 # Add any paths that contain templates here, relative to this directory.

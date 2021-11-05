@@ -38,7 +38,8 @@ extensions = [
     'exhale',
     'sphinx_rtd_theme',
     'recommonmark',
-	'sphinxcontrib.bibtex'
+	'sphinxcontrib.bibtex',
+    'myst_parser'
 ]
 
 # Setup the breathe extension

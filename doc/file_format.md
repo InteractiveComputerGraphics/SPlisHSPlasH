@@ -196,7 +196,15 @@ Example code:
 ]
 ```
 
-* particleFile (string): Path of the partio file which contains the particle data.
+* particleFile (string): 
+  - Path of the partio file which contains the particle sampling or
+  - Path of an OBJ file containing a closed mesh which is automatically sampled by SPlisHSPlasH. If you choose this option, you can define the sampling mode (denseMode), the resolution of the signed distance field which is used for the sampling (resolutionSDF) and if the signed distance field should be inverted (invert).
+* denseMode (int): 
+  - 0: regular sampling (default)
+  - 1: more dense sampling
+  - 2: dense sampling
+* invert (bool):  Invert the signed distance field, flips inside/outside (default: false) 
+* resolutionSDF (vec3): Resolution of the signed distance field (defaut: [20,20,20])
 * translation (vec3): Translation vector of the fluid model.
 * scale (vec3): Scaling vector of the fluid model. 
 * rotationAxis (vec3): Axis used to rotate the particle data after loading.
@@ -204,6 +212,7 @@ Example code:
 * id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
 * initialVelocity (vec3): The initial velocity is set for all particles in the fluid model.
 * initialAngularVelocity (vec3): The initial angular velocity of the fluid model.
+* visMesh (string): Path of an OBJ file containing a high resolution mesh which is used by the tool MeshSkinning to generate a sequence of deformed meshes (more info about this can be found in the documentation of the tool).
 
 ## Emitters
 
@@ -217,10 +226,10 @@ Example code:
         "height": 5, 
         "translation": [-1,0.75,0.0],
         "rotationAxis": [0, 1, 0],
-		"rotationAngle": 3.1415926535897932384626433832795,
+        "rotationAngle": 3.1415926535897932384626433832795,
         "velocity": 2,	
         "emitStartTime": 2,
-		"emitEndTime": 6,
+        "emitEndTime": 6,
         "type": 0
     }
 ]
@@ -257,8 +266,8 @@ Example code:
         "isDynamic": false,
         "isWall": true,
         "mapInvert": true, 
-		"mapThickness": 0.0,
-		"mapResolution": [20,20,20],
+        "mapThickness": 0.0,
+        "mapResolution": [20,20,20],
         "samplingMode": 1
     }
 ]
@@ -283,7 +292,7 @@ Example code:
 
 ```json
 "Materials": [
-	{
+    {
         "id": "Fluid",
         "density0": 1000, 
         "colorField": "velocity",
@@ -302,7 +311,7 @@ Example code:
         "emitterReuseParticles": false,
         "emitterBoxMin": [-4.0,-1.0,-4.0],
         "emitterBoxMax": [0.0,4,4.0]
-	}
+    }
 ]
 ```
 

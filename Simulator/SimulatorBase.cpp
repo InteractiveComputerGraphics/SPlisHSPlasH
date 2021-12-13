@@ -315,6 +315,12 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			if (sceneFile == "")
 				exit(0);
 		}
+#else 
+		else
+		{
+			std::cout << options.help({ "" }) << std::endl;
+			exit(0);
+		}
 #endif
 		SceneConfiguration::getCurrent()->setSceneFile(sceneFile);
 
@@ -481,7 +487,6 @@ void SimulatorBase::initSimulation()
 #endif
 			});
 	}
-	setCommandLineParameter();
 	updateScalarField();
 }
 
@@ -539,6 +544,7 @@ void SimulatorBase::runSimulation()
 
 	if (getStateFile() != "")
 		loadState(getStateFile());
+	setCommandLineParameter();
 
 	if (!m_useGUI)
 	{
@@ -555,8 +561,7 @@ void SimulatorBase::runSimulation()
 				break;
 		}
 	}
-
-	if (m_useGUI)
+	else
 		m_gui->run();
 }
 
@@ -1808,7 +1813,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 			updateVMVelocity();
 	}
 	binReader.closeFile();
-
+	updateScalarField();
 	//sim->performNeighborhoodSearchSort();
 }
 

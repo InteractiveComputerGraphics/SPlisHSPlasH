@@ -137,7 +137,8 @@ namespace SPH
 			char* temp = new char[len + 1u];
 			readBuffer(temp, len);
 			temp[len] = '\0';
-			str = temp;
+			str = std::string(temp);
+			delete[] temp;
 		}
 
 		template<typename T>

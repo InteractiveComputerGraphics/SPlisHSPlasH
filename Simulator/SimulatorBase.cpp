@@ -273,9 +273,11 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			setUseGUI(false);
 		}
 
+		m_cmdLineStopAt = false;
 		if (result.count("stopAt"))
 		{
 			m_stopAt = result["stopAt"].as<Real>();
+			m_cmdLineStopAt = true;
 		}
 
 		if (result.count("param"))
@@ -330,9 +332,11 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			m_outputPath = result["output-dir"].as<std::string>();
 		}
 
+		m_cmdLineNoInitialPause = false;
 		if (result.count("no-initial-pause"))
 		{
 			m_doPause = false;
+			m_cmdLineNoInitialPause = true;
 		}
 
 		setStateFile("");
@@ -543,7 +547,15 @@ void SimulatorBase::runSimulation()
 	deferredInit();
 
 	if (getStateFile() != "")
+	{
+		// avoid that command line parameter is overwritten
+		const Real temp = m_stopAt;
 		loadState(getStateFile());
+		if (m_cmdLineStopAt)
+			m_stopAt = temp;
+		if (m_cmdLineNoInitialPause)
+			m_doPause = false;
+	}
 	setCommandLineParameter();
 
 	if (!m_useGUI)

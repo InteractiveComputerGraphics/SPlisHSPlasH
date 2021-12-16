@@ -1,4 +1,8 @@
+2.11.2
+	- fixed command line parameter evaluation
 	- updated documentation
+
+2.11.1
 	- implemented a non-avx version of the elasticity solver by Kugelstadt et al. "Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control", 2021
 	- Linux fixes
 	

@@ -50,6 +50,8 @@ namespace SPH
 		bool m_doPause;
 		Real m_pauseAt;
 		Real m_stopAt;
+		bool m_cmdLineStopAt;
+		bool m_cmdLineNoInitialPause;
 		bool m_enableRigidBodyVTKExport;
 		bool m_enableRigidBodyExport;
 		bool m_enableStateExport;

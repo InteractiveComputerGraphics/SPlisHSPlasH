@@ -11,8 +11,6 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: apt-get update
-      run: apt-get update
     - name: Install packages
       run: sudo apt-get -y install xorg-dev freeglut3-dev
     - name: configure

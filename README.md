@@ -24,10 +24,10 @@ SPlisHSPlasH can export the particle data in the partio and vtk format. If you w
 
 ## License
 
-The SPlisHSPlasH library code is licensed under the MIT license. See (LICENSE)[https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/LICENSE] for details.
+The SPlisHSPlasH library code is licensed under the MIT license. See [LICENSE](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/LICENSE) for details.
 
 External dependencies are covered by separate licensing terms.
-See the (extern)[https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/tree/master/extern] folder for the code and respective licensing terms of each dependency.
+See the [extern](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/tree/master/extern) folder for the code and respective licensing terms of each dependency.
 
 
 ## Documentation

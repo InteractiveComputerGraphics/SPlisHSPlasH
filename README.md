@@ -20,8 +20,15 @@ Furthermore we use our own libraries:
 SPlisHSPlasH can export the particle data in the partio and vtk format. If you want to import partio files in Maya, try out our Maya plugin: 
 - [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
 
+**Author**: [Jan Bender](http://www.interactive-graphics.de)
 
-**Author**: [Jan Bender](http://www.interactive-graphics.de), **License**: MIT
+## License
+
+The SPlisHSPlasH library code is licensed under the MIT license. See (LICENSE)[https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/LICENSE] for details.
+
+External dependencies are covered by separate licensing terms.
+See the (extern)[https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/tree/master/extern] folder for the code and respective licensing terms of each dependency.
+
 
 ## Documentation
 

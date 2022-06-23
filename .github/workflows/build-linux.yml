@@ -2,7 +2,7 @@ name: build-linux
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, update-ci-python ]
 
 jobs:
   build-ubuntu:
@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         # python-version: [3.7]
-        python-version: [cp36-cp36m, cp37-cp37m, cp38-cp38]
+        python-version: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
 
     steps:
     - uses: actions/checkout@v1
@@ -62,9 +62,9 @@ jobs:
       if: always()
 
     # Publish to pypi
-    - name: Publish wheels to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        twine upload wheelhouse/*-manylinux*.whl --skip-existing
+    # - name: Publish wheels to PyPI
+    #   env:
+    #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+    #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    #   run: |
+    #     twine upload wheelhouse/*-manylinux*.whl --skip-existing

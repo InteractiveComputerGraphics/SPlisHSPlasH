@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         # python-version: [3.7]
-        python-version: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        python-version: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310]
 
     steps:
     - uses: actions/checkout@v1
@@ -51,7 +51,7 @@ jobs:
         build-requirements: ''
         system-packages: 'cmake3 libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGLU-devel'
         package-path: ''
-        pip-wheel-args: '--manylinux-build -DUSE_AVX=Off -DCI_BUILD=On'
+        pip-wheel-args: '--manylinux-build -DCI_BUILD=On'
 
     # Upload artifacts
     - name: Upload compiled wheel

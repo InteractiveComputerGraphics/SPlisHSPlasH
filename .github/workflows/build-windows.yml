@@ -2,7 +2,7 @@ name: build-windows
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, update-ci-python ]
 
 jobs:
   build-windows:
@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         # python-version: [3.7]
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10]
 
     steps:
     # Checkout repo
@@ -68,8 +68,8 @@ jobs:
       if: always()
 
     # Upload wheel to pypi
-    - name: Upload wheel to pypi
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: twine upload build/dist/* --skip-existing
+    # - name: Upload wheel to pypi
+    #   env:
+    #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+    #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    #   run: twine upload build/dist/* --skip-existing

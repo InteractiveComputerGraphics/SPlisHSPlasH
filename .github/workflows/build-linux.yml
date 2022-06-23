@@ -2,7 +2,7 @@ name: build-linux
 
 on:
   push:
-    branches: [ master, update-ci-python ]
+    branches: [ master ]
 
 jobs:
   build-ubuntu:
@@ -62,9 +62,9 @@ jobs:
       if: always()
 
     # Publish to pypi
-    # - name: Publish wheels to PyPI
-    #   env:
-    #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-    #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-    #   run: |
-    #     twine upload wheelhouse/*-manylinux*.whl --skip-existing
+    - name: Publish wheels to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        twine upload wheelhouse/*-manylinux*.whl --skip-existing

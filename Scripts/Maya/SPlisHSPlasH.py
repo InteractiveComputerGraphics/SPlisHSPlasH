@@ -1347,7 +1347,6 @@ class loadRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 		
 	def undoIt(self):
 		for node in self.addedNodes:
-			print node
 			cmds.delete(node)
 
 	def isUndoable(self):

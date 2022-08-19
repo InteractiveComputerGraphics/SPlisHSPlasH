@@ -629,8 +629,9 @@ void Elasticity_Kugelstadt2021::initFactorization(std::shared_ptr<Factorization>
 	unsigned int row_index = 0;
 	for (int i = 0; i < (int)numParticles; i++)
 	{
-		int particleIndex = group[i];
-		const unsigned int i0 = m_current_to_initial_index[particleIndex];
+		int particleIndex0 = group[i];
+		const unsigned int i0 = particleIndex0;
+		unsigned int particleIndex = m_initial_to_current_index[i0];
 
 		const double restVolumes_id = m_restVolumes[i];
 
@@ -651,7 +652,7 @@ void Elasticity_Kugelstadt2021::initFactorization(std::shared_ptr<Factorization>
 		for (unsigned int j = 0; j < numNeighbors; j++)
 		{
 			const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
-			const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
+			const unsigned int neighborIndex = m_initial_to_current_index[neighborIndex0];
 			const Eigen::Vector3d xj0d = m_model->getPosition0(neighborIndex0).cast<double>();
 
 			const Eigen::Vector3d correctedKernelGradient = m_L[particleIndex].cast<double>() * sim->gradW((xi0d - xj0d).cast<Real>()).cast<double>();
@@ -680,7 +681,7 @@ void Elasticity_Kugelstadt2021::initFactorization(std::shared_ptr<Factorization>
 			for (unsigned int k = 0; k < numNeighbors; k++)
 			{
 				const unsigned int kIndex0 = m_initialNeighbors[i0][k];
-				const unsigned int kIndex = m_initial_to_current_index[m_initialNeighbors[i0][k]];
+				const unsigned int kIndex = m_initial_to_current_index[kIndex0];
 				const Eigen::Vector3d xk0d = m_model->getPosition0(kIndex0).cast<double>();
 				
 				const Eigen::Vector3d correctedKernelGradientd = m_L[particleIndex].cast<double>() * sim->gradW((xi0d - xk0d).cast<Real>()).cast<double>();
@@ -810,6 +811,7 @@ void Elasticity_Kugelstadt2021::performNeighborhoodSearchSort()
 	d.sort_field(&m_current_to_initial_index[0]);
 	d.sort_field(&m_L[0]);
 	d.sort_field(&m_restVolumes[0]);
+	d.sort_field(&m_vDiff[0]);
 
 	for (unsigned int i = 0; i < numPart; i++)
 		m_initial_to_current_index[m_current_to_initial_index[i]] = i;
@@ -845,9 +847,9 @@ void Elasticity_Kugelstadt2021::computeMatrixL()
 			//////////////////////////////////////////////////////////////////////////
 			for (unsigned int j = 0; j < numNeighbors; j++)
 			{
-				const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
 				// get initial neighbor index considering the current particle order 
 				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+				const unsigned int neighborIndex = m_initial_to_current_index[neighborIndex0];
 
 				const Vector3r &xj0 = m_model->getPosition0(neighborIndex0);
 				const Vector3r xj_xi_0 = xj0 - xi0;
@@ -1002,7 +1004,7 @@ void Elasticity_Kugelstadt2021::rotationMatricesToAVXQuaternions()
 			{
 				const int count = std::min(numParticles - i * 8, 8);
 
-				// store the deformation gradient of 8 particles in avx vectors
+				// store the rotation matrices of 8 particles in avx vectors
 				int idx[8];
 				for (int j = 0; j < count; j++)
 					idx[j] = m_initial_to_current_index[group[8 * i + j]];
@@ -1011,9 +1013,9 @@ void Elasticity_Kugelstadt2021::rotationMatricesToAVXQuaternions()
 
 				Quaternionr q[8];
 				for (auto j = 0; j < count; j++)
-					q[j] = Quaternionr(m_rotations[idx[j]].transpose());
+					q[j] = Quaternionr(m_rotations[idx[j]]).normalized();
 				for (auto j = count; j < 8; j++)
-					q[j] = Quaternionr();
+					q[j] = Quaternionr(1,0,0,0);
 
 				Quaternion8f& q_avx = quats[i];
 				q_avx.set(q);
@@ -1128,9 +1130,9 @@ void Elasticity_Kugelstadt2021::computeRotations()
 				R3.store(r2.data());
 				for (auto j = 0; j < count; j++)
 				{
-					m_rotations[idx[j]].row(0) = r0[j];
-					m_rotations[idx[j]].row(1) = r1[j];
-					m_rotations[idx[j]].row(2) = r2[j];
+					m_rotations[idx[j]].col(0) = r0[j];
+					m_rotations[idx[j]].col(1) = r1[j];
+					m_rotations[idx[j]].col(2) = r2[j];
 				}
 			}
 		}
@@ -1588,9 +1590,9 @@ void Elasticity_Kugelstadt2021::computeRHS(VectorXr & rhs)
 				//const Real trace = RTF(0, 0) + RTF(1, 1) + RTF(2, 2) - 3.0;
 				
 				// short form of: trace(R^T F - I) 
-				const Real trace =	m_rotations[i].col(0).dot(m_F[i].col(0)) + 
-									m_rotations[i].col(1).dot(m_F[i].col(1)) + 
-									m_rotations[i].col(2).dot(m_F[i].col(2)) - static_cast<Real>(3.0);
+				const Real trace =	m_rotations[i].row(0).dot(m_F[i].col(0)) + 
+									m_rotations[i].row(1).dot(m_F[i].col(1)) + 
+									m_rotations[i].row(2).dot(m_F[i].col(2)) - static_cast<Real>(3.0);
 				
 				m_stress[i] = m_lambda * trace;
 			}
@@ -2215,7 +2217,7 @@ void Elasticity_Kugelstadt2021::precomputeValues()
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			m_RL[i] = m_rotations[i] * m_L[i];
+			m_RL[i] = m_rotations[i].transpose() * m_L[i];
 		}
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)

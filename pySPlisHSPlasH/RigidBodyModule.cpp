@@ -25,7 +25,9 @@ void RigidBodyModule(py::module m_sub){
             .def("getWorldSpacePosition", &SPH::RigidBodyObject::getWorldSpacePosition)
             .def("getVelocity", &SPH::RigidBodyObject::getVelocity)
             .def("setVelocity", &SPH::RigidBodyObject::setVelocity)
-            .def("getRotation", &SPH::RigidBodyObject::getRotation)
+            .def("getRotation", [](SPH::RigidBodyObject& obj) -> Vector4r {
+                return obj.getRotation().coeffs();
+            })
             .def("setRotation", [](SPH::RigidBodyObject& obj, const Vector4r &qVec) {
                     Quaternionr q;
                     q.coeffs() = qVec;

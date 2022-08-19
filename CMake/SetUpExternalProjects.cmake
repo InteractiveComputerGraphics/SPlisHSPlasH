@@ -47,12 +47,12 @@ ExternalProject_Add(
 	Ext_PBD
 	PREFIX "${CMAKE_BINARY_DIR}/extern/PositionBasedDynamics"
 	GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/PositionBasedDynamics.git
-	GIT_TAG "67cea4478d58de55f64f78fcfea16629bfb79152"
+	GIT_TAG "544cc0cba4db8cabe2217cd48b87fb095848ea92"
 	INSTALL_DIR ${ExternalInstallDir}/PositionBasedDynamics
 	DEPENDS Ext_GenericParameters Ext_Discregrid
 	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE}
 	-DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/PositionBasedDynamics
-	-DPBD_NO_DEMOS:BOOL=1
+	-DPBD_LIBS_ONLY:BOOL=1
 	-DPBD_EXTERNALINSTALLDIR:PATH=${ExternalInstallDir}
 	-DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION}
 	-DGenericParameters_INCLUDE_DIR:PATH=${GENERICPARAMETERS_INCLUDE_DIR}

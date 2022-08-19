@@ -132,7 +132,6 @@ void ParticleExporter_VTK::writeParticles(const std::string& fileName, FluidMode
 			unsigned int idSwapped = counter++;
 			swapByteOrder(&idSwapped);
 			cells.push_back({ nodes_per_cell_swapped, idSwapped });
-			attrData.push_back(idSwapped);
 		}
 		//////////////////////////////////////////////////////////////////////////
 		// export cell types

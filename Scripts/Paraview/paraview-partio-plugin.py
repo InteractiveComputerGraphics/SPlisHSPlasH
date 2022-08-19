@@ -103,7 +103,10 @@ class PartioReader(VTKPythonAlgorithmBase):
         data_time = self.getCurrentTime(outInfoVec.GetInformationObject(0))     
         output = dsa.WrapDataObject(vtkUnstructuredGrid.GetData(outInfoVec))
 
-        currentFile = self.fileList[data_time]
+        if (data_time != None):
+            currentFile = self.fileList[data_time]
+        else:
+            currentFile = self.fileList[0]
         
         p = partio.read(currentFile)
 

@@ -58,6 +58,13 @@ void ScriptObject::initParameters()
 				m_scriptLoaded = true;
 				Embedded::getCurrent()->exec_init(m_scriptModule, m_base);
 				updateFunctionParameters();
+
+#ifdef DL_OUTPUT
+				// copy script files in output so that the simulation can be reproduced
+				std::string sceneFilePath = FileSystem::normalizePath(m_base->getOutputPath() + "/scene");
+				FileSystem::makeDirs(sceneFilePath);
+				FileSystem::copyFile(m_scriptFile, sceneFilePath + "/" + FileSystem::getFileNameWithExt(m_scriptFile));
+#endif
 			}
 			else
 			{

@@ -461,7 +461,7 @@ void performMeshSkinning(const std::string &id, const int objId)
 
 		if (!FileSystem::fileExists(meshFile))
 		{
-			LOG_ERR << "Visualization mesh is missing in scene file";
+			LOG_ERR << "Visualization mesh file defined in scene file is missing: " << meshFile;
 			return;
 		}
 
@@ -524,6 +524,8 @@ void performMeshSkinning()
 			radius = scene.particleRadius;
 			std::string id = scene.fluidModels[i]->id;
 			meshFile = FileSystem::normalizePath(FileSystem::getFilePath(sceneFile) + "/" + scene.fluidModels[i]->visMeshFile);
+			LOG_INFO << FileSystem::getFilePath(sceneFile) << ", " << sceneFile;
+			LOG_INFO << meshFile;
 
 			performMeshSkinning(id, objId);
 			objId++;
@@ -604,6 +606,7 @@ std::string convertFileName(const std::string &inputFileName, const unsigned int
 bool readFrame(std::vector<Vector3r>& x, const unsigned int frame)
 {
 	std::string fileName = convertFileName(input, frame);
+
 	x.clear();
 	id.clear();
 
@@ -642,6 +645,12 @@ bool readFrame(std::vector<Vector3r>& x, const unsigned int frame)
 		}
 	}
 
+	// compute the first id since for multiple objects, the ids might not start at 0
+	int firstId = INT_MAX;
+	for (int i = 0; i < id.size(); i++)
+		firstId = std::min(id[i], firstId);
+
+
 	// read positions
 	if (posIndex != 0xffffffff)
 	{
@@ -653,7 +662,7 @@ bool readFrame(std::vector<Vector3r>& x, const unsigned int frame)
 
 			// use id as index if possible to consider z-sorting in the particle data
 			if (idIndex != 0xffffffff)
-				x[id[i]] = Vector3r(pos[0], pos[1], pos[2]);
+				x[id[i]- firstId] = Vector3r(pos[0], pos[1], pos[2]);
 			else 
 				x[i] = Vector3r(pos[0], pos[1], pos[2]);
 		}

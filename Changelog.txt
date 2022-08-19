@@ -1,3 +1,7 @@
+2.11.3
+	- updated to Eigen 3.4.0
+	- updated to PBD 2.0.1
+	
 2.11.2
 	- fixed command line parameter evaluation
 	- updated documentation

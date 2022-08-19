@@ -10,10 +10,10 @@ namespace SPH
 {
 	/** \brief This class implements the implicit SPH formulation for 
 	* incompressible linearly elastic solids introduced
-	* by Peer et al. [PGBT17].
+	* by Peer et al. [PGBT18].
 	*
 	* References:
-	* - [PGBT17] Andreas Peer, Christoph Gissler, Stefan Band, and Matthias Teschner. An implicit SPH formulation for incompressible linearly elastic solids. Computer Graphics Forum, 2017. URL: http://dx.doi.org/10.1111/cgf.13317
+	* - [PGBT18] Andreas Peer, Christoph Gissler, Stefan Band, and Matthias Teschner. An implicit SPH formulation for incompressible linearly elastic solids. Computer Graphics Forum, 2018. URL: http://dx.doi.org/10.1111/cgf.13317
 	*/
 	class Elasticity_Peer2018 : public ElasticityBase
 	{

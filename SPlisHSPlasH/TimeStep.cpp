@@ -525,7 +525,6 @@ void TimeStep::precomputeValues()
 		{
 			for (unsigned int pid = 0; pid < nFluids; pid++)
 			{
-				FluidModel* fm_neighbor = sim->getFluidModelFromPointSet(pid);
 				const unsigned int maxN = sim->numberOfNeighbors(fluidModelIndex, pid, i);
 
 				// same phase
@@ -551,7 +550,7 @@ void TimeStep::precomputeValues()
 			{
 				const Vector3r& xi = model->getPosition(i);
 				const Vector3f8 xi_avx(xi);
-				unsigned int base = precomputed_indices[i];
+				const unsigned int base = precomputed_indices[i];
 				unsigned int idx = 0;
 				forall_fluid_neighbors_avx(
 					const Scalarf8 Vj_avx = convert_zero(fm_neighbor->getVolume(0), count);

@@ -70,7 +70,7 @@ namespace SPH
 			m_rigidBody->getGeometry().updateMeshTransformation(m_rigidBody->getPosition(), m_rigidBody->getRotationMatrix());
 		}
 
-		virtual const std::vector<Vector3r> &getVertices() const { return *m_rigidBody->getGeometry().getVertexData().getVertices(); };
+		virtual const std::vector<Vector3r> &getVertices() const { return m_rigidBody->getGeometry().getVertexData().getVertices(); };
 		virtual const std::vector<Vector3r> &getVertexNormals() const { return m_rigidBody->getGeometry().getMesh().getVertexNormals(); };
 		virtual const std::vector<unsigned int> &getFaces() const { return m_rigidBody->getGeometry().getMesh().getFaces(); };
 	};

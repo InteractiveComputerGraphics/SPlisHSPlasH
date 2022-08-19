@@ -12,11 +12,11 @@ The plugin can be used to import [Partio](https://www.disneyanimation.com/techno
 
    	python setup.py build_ext
 
-   in the directory partio_extension. Note that you have to use the same Python version as your Paraview version uses (for Paraview 5.9.0 this is Python 3.8).
+   in the directory partio_extension. Note that you have to use the same Python version as your Paraview version uses (for Paraview 5.9.0 this is Python 3.8, for Paraview 5.10.0 this is Python 3.9).
 
-3. Copy the generated file partio.* (name depends on system) to the Paraview site-packages folder (in Windows: bin\Lib\site-packages).
+3. Copy the file paraview-partio-plugin.py and the generated file partio.* (name depends on system) to the Paraview site-packages folder (in Windows: bin\Lib\site-packages).
 
-4. Start Paraview and load plugin (Tools/Manage Plugins.../Load New...)
+4. Start Paraview and load plugin (Tools/Manage Plugins.../Load New...) paraview-partio-plugin.py
 
 4. Optinally activate Auto Load.
 

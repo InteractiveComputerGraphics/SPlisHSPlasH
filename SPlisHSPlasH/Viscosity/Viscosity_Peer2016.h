@@ -11,10 +11,10 @@ namespace SPH
 {
 	/** \brief This class implements the implicit simulation method for
 	* viscous fluids introduced
-	* by Peer and Teschner [PGBT17].
+	* by Peer and Teschner [PT16].
 	*
 	* References:
-	* - [PGBT17] Andreas Peer, Christoph Gissler, Stefan Band, and Matthias Teschner. An implicit SPH formulation for incompressible linearly elastic solids. Computer Graphics Forum, 2017. URL: http://dx.doi.org/10.1111/cgf.13317
+	* - [PT16] Andreas Peer and Matthias Teschner. Prescribed Velocity Gradients for Highly Viscous SPH Fluids with Vorticity Diffusion. IEEE Transactions on Visualization and Computer Graphics, 2016. URL: https://doi.org/10.1109/TVCG.2016.2636144
 	*/
 	class Viscosity_Peer2016 : public ViscosityBase
 	{

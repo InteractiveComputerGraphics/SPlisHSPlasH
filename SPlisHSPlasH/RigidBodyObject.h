@@ -19,7 +19,7 @@ namespace SPH
 
 		virtual bool isDynamic() const = 0;
 		bool isAnimated() const { return m_isAnimated; }
-		virtual void setIsAnimated(const bool b) { m_isAnimated = true; }
+		virtual void setIsAnimated(const bool b) { m_isAnimated = b; }
 
 		virtual Real const getMass() const = 0;
 		virtual Vector3r const& getPosition() const = 0;

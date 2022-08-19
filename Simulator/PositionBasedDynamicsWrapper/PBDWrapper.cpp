@@ -24,6 +24,20 @@ PBDWrapper::PBDWrapper()
 	m_clothSimulationMethod = 2;
 	m_solidSimulationMethod = 2;
 	m_bendingMethod = 2;
+	m_distanceStiffness = 1.0;
+	m_xxStiffness = 1.0;
+	m_yyStiffness = 1.0;
+	m_xyStiffness = 1.0;
+	m_xyPoissonRatio = 0.3;
+	m_yxPoissonRatio = 0.3;
+	m_normalizeStretch = false;
+	m_normalizeShear = false;
+	m_bendingStiffness = 0.01;
+	m_solidStiffness = 1.0;
+	m_solidPoissonRatio = 0.3;
+	m_solidNormalizeStretch = false;
+	m_solidNormalizeShear = false;
+	m_volumeStiffness = 1.0;
 	m_sceneName = "";
 	m_sceneFileName = "";
 	m_dampingCoeff = 0.0;
@@ -39,28 +53,6 @@ PBDWrapper::~PBDWrapper()
 	delete m_timeStep;
 }
 
-//void PBDWrapper::initGUI_TweakBar(TwBar *tweakBar)
-//{
-//	TwType enumType2 = TwDefineEnum("ClothSimulationMethodType", NULL, 0);
-//	TwAddVarCB(tweakBar, "ClothSimulationMethod", enumType2, setClothSimulationMethod, getClothSimulationMethod, this, " label='Cloth sim. method' enum='0 {None}, 1 {Distance constraints}, 2 {FEM based PBD}, 3 {Strain based dynamics}' group=PBD");
-//	TwType enumType3 = TwDefineEnum("SolidSimulationMethodType", NULL, 0);
-//	TwAddVarCB(tweakBar, "SolidSimulationMethod", enumType3, setSolidSimulationMethod, getSolidSimulationMethod, this,
-//		" label='Solid sim. method' enum='0 {None}, 1 {Volume constraints}, 2 {FEM based PBD}, 3 {Strain based dynamics (no inversion handling)}, 4 {Shape matching (no inversion handling)}' group=PBD");
-//	TwAddVarCB(tweakBar, "Stiffness", TW_TYPE_REAL, setStiffness, getStiffness, &m_model, " label='Stiffness'  min=0.0 step=0.1 precision=4 group='Distance constraints' ");
-//	TwAddVarCB(tweakBar, "XXStiffness", TW_TYPE_REAL, setXXStiffness, getXXStiffness, &m_model, " label='Stiffness XX'  min=0.0 step=0.1 precision=4 group='Strain based dynamics' ");
-//	TwAddVarCB(tweakBar, "YYStiffness", TW_TYPE_REAL, setYYStiffness, getYYStiffness, &m_model, " label='Stiffness YY'  min=0.0 step=0.1 precision=4 group='Strain based dynamics' ");
-//	TwAddVarCB(tweakBar, "XYStiffness", TW_TYPE_REAL, setXYStiffness, getXYStiffness, &m_model, " label='Stiffness XY'  min=0.0 step=0.1 precision=4 group='Strain based dynamics' ");
-//	TwAddVarCB(tweakBar, "XXStiffnessFEM", TW_TYPE_REAL, setXXStiffness, getXXStiffness, &m_model, " label='Youngs modulus XX'  min=0.0 step=0.1 precision=4 group='FEM based PBD' ");
-//	TwAddVarCB(tweakBar, "YYStiffnessFEM", TW_TYPE_REAL, setYYStiffness, getYYStiffness, &m_model, " label='Youngs modulus YY'  min=0.0 step=0.1 precision=4 group='FEM based PBD' ");
-//	TwAddVarCB(tweakBar, "XYStiffnessFEM", TW_TYPE_REAL, setXYStiffness, getXYStiffness, &m_model, " label='Youngs modulus XY'  min=0.0 step=0.1 precision=4 group='FEM based PBD' ");
-//	TwAddVarCB(tweakBar, "XYPoissonRatioFEM", TW_TYPE_REAL, setXYPoissonRatio, getXYPoissonRatio, &m_model, " label='Poisson ratio XY'  min=0.0 step=0.1 precision=4 group='FEM based PBD' ");
-//	TwAddVarCB(tweakBar, "YXPoissonRatioFEM", TW_TYPE_REAL, setYXPoissonRatio, getYXPoissonRatio, &m_model, " label='Poisson ratio YX'  min=0.0 step=0.1 precision=4 group='FEM based PBD' ");
-//	TwAddVarCB(tweakBar, "NormalizeStretch", TW_TYPE_BOOL32, setNormalizeStretch, getNormalizeStretch, &m_model, " label='Normalize stretch' group='Strain based dynamics' ");
-//	TwAddVarCB(tweakBar, "NormalizeShear", TW_TYPE_BOOL32, setNormalizeShear, getNormalizeShear, &m_model, " label='Normalize shear' group='Strain based dynamics' ");
-//	TwType enumType4 = TwDefineEnum("BendingMethodType", NULL, 0);
-//	TwAddVarCB(tweakBar, "BendingMethod", enumType4, setBendingMethod, getBendingMethod, this, " label='Bending method' enum='0 {None}, 1 {Dihedral angle}, 2 {Isometric bending}' group=Bending");
-//	TwAddVarCB(tweakBar, "BendingStiffness", TW_TYPE_REAL, setBendingStiffness, getBendingStiffness, &m_model, " label='Bending stiffness'  min=0.0 step=0.01 precision=4 group=Bending ");
-//}
  void PBDWrapper::reset()
  {
 	m_model.reset();
@@ -174,8 +166,6 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 
 	PBD::Simulation *sim = PBD::Simulation::getCurrent();
 	sim->setVecValue<Real>(PBD::Simulation::GRAVITATION, &data.m_gravity[0]);
-	m_timeStep->setValue(PBD::TimeStepController::MAX_ITERATIONS, data.m_maxIter);
-	m_timeStep->setValue(PBD::TimeStepController::MAX_ITERATIONS_V, data.m_maxIterVel);
 	m_timeStep->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, data.m_velocityUpdateMethod);
 	if (data.m_triangleModelSimulationMethod != -1)
 		m_clothSimulationMethod = data.m_triangleModelSimulationMethod;
@@ -187,15 +177,21 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 	m_model.setContactStiffnessRigidBody(data.m_contactStiffnessRigidBody);
 	m_model.setContactStiffnessParticleRigidBody(data.m_contactStiffnessParticleRigidBody);
 
-	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS, data.m_cloth_stiffness);
-	m_model.setValue(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS, data.m_cloth_bendingStiffness);
-	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XX, data.m_cloth_xxStiffness);
-	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_YY, data.m_cloth_yyStiffness);
-	m_model.setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XY, data.m_cloth_xyStiffness);
-	m_model.setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY, data.m_cloth_xyPoissonRatio);
-	m_model.setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX, data.m_cloth_yxPoissonRatio);
-	m_model.setValue(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH, data.m_cloth_normalizeStretch);
-	m_model.setValue(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR, data.m_cloth_normalizeShear);
+	m_distanceStiffness = data.m_cloth_stiffness;
+	m_bendingStiffness = data.m_cloth_bendingStiffness;
+	m_xxStiffness = data.m_cloth_xxStiffness;
+	m_yyStiffness = data.m_cloth_yyStiffness;
+	m_xyStiffness = data.m_cloth_xyStiffness;
+	m_xyPoissonRatio = data.m_cloth_xyPoissonRatio;
+	m_yxPoissonRatio = data.m_cloth_yxPoissonRatio;
+	m_normalizeStretch = data.m_cloth_normalizeStretch;
+	m_normalizeShear = data.m_cloth_normalizeShear;
+
+	m_solidStiffness = data.m_solid_stiffness;
+	m_solidPoissonRatio = data.m_solid_poissonRatio;
+	m_solidNormalizeStretch = data.m_solid_normalizeStretch;
+	m_solidNormalizeShear = data.m_solid_normalizeShear;
+	m_volumeStiffness = data.m_volume_stiffness;
 
 	//////////////////////////////////////////////////////////////////////////
 	// rigid bodies
@@ -388,29 +384,29 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 		rb[i]->setRestitutionCoeff(rbd.m_restitutionCoeff);
 		rb[i]->setFrictionCoeff(rbd.m_frictionCoeff);
 
-		const std::vector<Vector3r> *vertices = rb[i]->getGeometry().getVertexDataLocal().getVertices();
-		const unsigned int nVert = static_cast<unsigned int>(vertices->size());
+		const std::vector<Vector3r>& vertices = rb[i]->getGeometry().getVertexDataLocal().getVertices();
+		const unsigned int nVert = static_cast<unsigned int>(vertices.size());
 
 		switch (rbd.m_collisionObjectType)
 		{
 		case Utilities::SceneLoader::No_Collision_Object: break;
 		case Utilities::SceneLoader::Sphere:
-			m_cd.addCollisionSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale[0], rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale[0], rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::Box:
-			m_cd.addCollisionBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::Cylinder:
-			m_cd.addCollisionCylinder(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionCylinder(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::Torus:
-			m_cd.addCollisionTorus(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionTorus(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale.head<2>(), rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::HollowSphere:
-			m_cd.addCollisionHollowSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale[0], rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionHollowSphere(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale[0], rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::HollowBox:
-			m_cd.addCollisionHollowBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, rbd.m_collisionObjectScale, rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
+			m_cd.addCollisionHollowBox(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, rbd.m_collisionObjectScale, rbd.m_thicknessSDF, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		case Utilities::SceneLoader::SDF:
 		{
@@ -421,10 +417,10 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 				const string resStr = to_string(rbd.m_resolutionSDF[0]) + "_" + to_string(rbd.m_resolutionSDF[1]) + "_" + to_string(rbd.m_resolutionSDF[2]);
 				const std::string modelFileName = Utilities::FileSystem::getFileNameWithExt(rbd.m_modelFile);
 				const string sdfFileName = Utilities::FileSystem::normalizePath(cachePath + "/" + modelFileName + "_" + resStr + ".csdf");
-				m_cd.addCubicSDFCollisionObject(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, distanceFields[sdfFileName], rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
+				m_cd.addCubicSDFCollisionObject(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, distanceFields[sdfFileName], rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
 			}
 			else
-				m_cd.addCubicSDFCollisionObject(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, &(*vertices)[0], nVert, distanceFields[rbd.m_collisionObjectFileName], rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
+				m_cd.addCubicSDFCollisionObject(i, PBD::CollisionDetection::CollisionObject::RigidBodyCollisionObjectType, vertices.data(), nVert, distanceFields[rbd.m_collisionObjectFileName], rbd.m_collisionObjectScale, rbd.m_testMesh, rbd.m_invertSDF);
 			break;
 		}
 		}
@@ -702,169 +698,33 @@ PBD::TimeStepController & PBDWrapper::getTimeStepController()
 	// init constraints
 	for (unsigned int cm = 0; cm < m_model.getTriangleModels().size(); cm++)
 	{
-		const unsigned int offset = m_model.getTriangleModels()[cm]->getIndexOffset();
-		if (m_clothSimulationMethod == 1)
-		{
-			const unsigned int nEdges = m_model.getTriangleModels()[cm]->getParticleMesh().numEdges();
-			const Utilities::IndexedFaceMesh::Edge *edges = m_model.getTriangleModels()[cm]->getParticleMesh().getEdges().data();
-			for (unsigned int i = 0; i < nEdges; i++)
-			{
-				const unsigned int v1 = edges[i].m_vert[0] + offset;
-				const unsigned int v2 = edges[i].m_vert[1] + offset;
- 
-				m_model.addDistanceConstraint(v1, v2);
-			}
-		}
-		else if (m_clothSimulationMethod == 2)
-		{
-			
-			PBD::TriangleModel::ParticleMesh &mesh = m_model.getTriangleModels()[cm]->getParticleMesh();
-			const unsigned int *tris = mesh.getFaces().data();
-			const unsigned int nFaces = mesh.numFaces();
-			for (unsigned int i = 0; i < nFaces; i++)
-			{
-				const unsigned int v1 = tris[3 * i] + offset;
-				const unsigned int v2 = tris[3 * i + 1] + offset;
-				const unsigned int v3 = tris[3 * i + 2] + offset;
-				m_model.addFEMTriangleConstraint(v1, v2, v3);
-			}
-		}
-		else if (m_clothSimulationMethod == 3)
-		{
-			PBD::TriangleModel::ParticleMesh &mesh = m_model.getTriangleModels()[cm]->getParticleMesh();
-			const unsigned int *tris = mesh.getFaces().data();
-			const unsigned int nFaces = mesh.numFaces();
-			for (unsigned int i = 0; i < nFaces; i++)
-			{
-				const unsigned int v1 = tris[3 * i] + offset;
-				const unsigned int v2 = tris[3 * i + 1] + offset;
-				const unsigned int v3 = tris[3 * i + 2] + offset;
-				m_model.addStrainTriangleConstraint(v1, v2, v3);
-			}
-		}
-		if (m_bendingMethod != 0)
-		{
-			PBD::TriangleModel::ParticleMesh &mesh = m_model.getTriangleModels()[cm]->getParticleMesh();
-			unsigned int nEdges = mesh.numEdges();
-			const PBD::TriangleModel::ParticleMesh::Edge *edges = mesh.getEdges().data();
-			const unsigned int *tris = mesh.getFaces().data();
-			for (unsigned int i = 0; i < nEdges; i++)
-			{
-				const int tri1 = edges[i].m_face[0];
-				const int tri2 = edges[i].m_face[1];
-				if ((tri1 != 0xffffffff) && (tri2 != 0xffffffff))
-				{
-					// Find the triangle points which do not lie on the axis
-					const int axisPoint1 = edges[i].m_vert[0];
-					const int axisPoint2 = edges[i].m_vert[1];
-					int point1 = -1;
-					int point2 = -1;
-					for (int j = 0; j < 3; j++)
-					{
-						if ((tris[3 * tri1 + j] != axisPoint1) && (tris[3 * tri1 + j] != axisPoint2))
-						{
-							point1 = tris[3 * tri1 + j];
-							break;
-						}
-					}
-					for (int j = 0; j < 3; j++)
-					{
-						if ((tris[3 * tri2 + j] != axisPoint1) && (tris[3 * tri2 + j] != axisPoint2))
-						{
-							point2 = tris[3 * tri2 + j];
-							break;
-						}
-					}
-					if ((point1 != -1) && (point2 != -1))
-					{
-						const unsigned int vertex1 = point1 + offset;
-						const unsigned int vertex2 = point2 + offset;
-						const unsigned int vertex3 = edges[i].m_vert[0] + offset;
-						const unsigned int vertex4 = edges[i].m_vert[1] + offset;
-						if (m_bendingMethod == 1)
-							m_model.addDihedralConstraint(vertex1, vertex2, vertex3, vertex4);
-						else if (m_bendingMethod == 2)
-							m_model.addIsometricBendingConstraint(vertex1, vertex2, vertex3, vertex4);
-					}
-				}
-			}
-		}
+		m_distanceStiffness = 1.0;
+		if (m_clothSimulationMethod == 4)
+			m_distanceStiffness = 100000;
+		m_model.addClothConstraints(m_model.getTriangleModels()[cm], m_clothSimulationMethod, m_distanceStiffness, m_xxStiffness,
+			m_yyStiffness, m_xyStiffness, m_xyPoissonRatio, m_yxPoissonRatio, m_normalizeStretch, m_normalizeShear);
+
+		m_bendingStiffness = 0.01;
+		if (m_bendingMethod == 3)
+			m_bendingStiffness = 100.0;
+		m_model.addBendingConstraints(m_model.getTriangleModels()[cm], m_bendingMethod, m_bendingStiffness);
 	}
  }
  
  void PBDWrapper::initTetModelConstraints()
  {
-	// init constraints
-	for (unsigned int cm = 0; cm < m_model.getTetModels().size(); cm++)
-	{
-		const unsigned int offset = m_model.getTetModels()[cm]->getIndexOffset();
-		const unsigned int nTets = m_model.getTetModels()[cm]->getParticleMesh().numTets();
-		const unsigned int *tets = m_model.getTetModels()[cm]->getParticleMesh().getTets().data();
-		const Utilities::IndexedTetMesh::VertexTets *vTets = m_model.getTetModels()[cm]->getParticleMesh().getVertexTets().data();
-		if (m_solidSimulationMethod == 1)
-		{
-			const unsigned int offset = m_model.getTetModels()[cm]->getIndexOffset();
-			const unsigned int nEdges = m_model.getTetModels()[cm]->getParticleMesh().numEdges();
-			const Utilities::IndexedTetMesh::Edge *edges = m_model.getTetModels()[cm]->getParticleMesh().getEdges().data();
-			for (unsigned int i = 0; i < nEdges; i++)
-			{
-				const unsigned int v1 = edges[i].m_vert[0] + offset;
-				const unsigned int v2 = edges[i].m_vert[1] + offset;
- 
-				m_model.addDistanceConstraint(v1, v2);
-			}
- 
-			for (unsigned int i = 0; i < nTets; i++)
-			{
-				const unsigned int v1 = tets[4 * i] + offset;
-				const unsigned int v2 = tets[4 * i + 1] + offset;
-				const unsigned int v3 = tets[4 * i + 2] + offset;
-				const unsigned int v4 = tets[4 * i + 3] + offset;
- 
-				m_model.addVolumeConstraint(v1, v2, v3, v4);
-			}
-		}
-		else if (m_solidSimulationMethod == 2)
-		{
-			PBD::TetModel::ParticleMesh &mesh = m_model.getTetModels()[cm]->getParticleMesh();
-			for (unsigned int i = 0; i < nTets; i++)
-			{
-				const unsigned int v1 = tets[4 * i] + offset;
-				const unsigned int v2 = tets[4 * i + 1] + offset;
-				const unsigned int v3 = tets[4 * i + 2] + offset;
-				const unsigned int v4 = tets[4 * i + 3] + offset;
- 
-				m_model.addFEMTetConstraint(v1, v2, v3, v4);
-			}
-		}
-		else if (m_solidSimulationMethod == 3)
-		{
-			PBD::TetModel::ParticleMesh &mesh = m_model.getTetModels()[cm]->getParticleMesh();
-			for (unsigned int i = 0; i < nTets; i++)
-			{
-				const unsigned int v1 = tets[4 * i] + offset;
-				const unsigned int v2 = tets[4 * i + 1] + offset;
-				const unsigned int v3 = tets[4 * i + 2] + offset;
-				const unsigned int v4 = tets[4 * i + 3] + offset;
- 
-				m_model.addStrainTetConstraint(v1, v2, v3, v4);
-			}
-		}
-		else if (m_solidSimulationMethod == 4)
-		{
-			PBD::TetModel::ParticleMesh &mesh = m_model.getTetModels()[cm]->getParticleMesh();
-			for (unsigned int i = 0; i < nTets; i++)
-			{
-				const unsigned int v[4] = { tets[4 * i] + offset,
-											tets[4 * i + 1] + offset, 
-											tets[4 * i + 2] + offset, 
-											tets[4 * i + 3] + offset };
-				// Important: Divide position correction by the number of clusters 
-				// which contain the vertex.
-				const unsigned int nc[4] = { vTets[v[0]].m_numTets, vTets[v[1]].m_numTets, vTets[v[2]].m_numTets, vTets[v[3]].m_numTets };
-				m_model.addShapeMatchingConstraint(4, v, nc);
-			}
-		}
-	}
+	 // init constraints
+	 m_solidStiffness = 1.0;
+	 if (m_solidSimulationMethod == 5)
+		 m_solidStiffness = 100000;
+
+	 m_volumeStiffness = 1.0;
+	 if (m_solidSimulationMethod == 5)
+		 m_volumeStiffness = 100000;
+	 for (unsigned int cm = 0; cm < m_model.getTetModels().size(); cm++)
+	 {
+		 m_model.addSolidConstraints(m_model.getTetModels()[cm], m_solidSimulationMethod, m_solidStiffness,
+			 m_solidPoissonRatio, m_volumeStiffness, m_solidNormalizeStretch, m_solidNormalizeShear);
+	 }
  }
  

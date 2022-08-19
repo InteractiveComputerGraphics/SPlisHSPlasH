@@ -75,7 +75,7 @@ SimulatorBase::SimulatorBase()
 	m_enableRigidBodyExport = false;
 	m_enableStateExport = false;
 	m_enableAsyncExport = false;
-	m_enableObjectSplitting = true;
+	m_enableObjectSplitting = false;
 	m_framesPerSecond = 25;
 	m_framesPerSecondState = 1;
 	m_nextFrameTime = 0.0;
@@ -434,6 +434,13 @@ void SimulatorBase::initSimulation()
 				mapFileName = FileSystem::normalizePath(FileSystem::getFilePath(sceneFile) + "/" + mapFileName);
 			FileSystem::copyFile(scene.boundaryModels[i]->mapFile, modelsFilePath + "/" + FileSystem::getFileNameWithExt(scene.boundaryModels[i]->mapFile));
 		}
+		std::string samplesFileName = scene.boundaryModels[i]->samplesFile;
+		if (samplesFileName != "")
+		{
+			if (FileSystem::isRelativePath(samplesFileName))
+				samplesFileName = FileSystem::normalizePath(FileSystem::getFilePath(sceneFile) + "/" + samplesFileName);
+			FileSystem::copyFile(samplesFileName, modelsFilePath + "/" + FileSystem::getFileNameWithExt(samplesFileName));
+		}
 	}
 
 	for (unsigned int i = 0; i < scene.fluidModels.size(); i++)
@@ -511,6 +518,10 @@ void SimulatorBase::deferredInit()
 #ifdef USE_EMBEDDED_PYTHON
 	m_scriptObject = new ScriptObject(this);
 	m_scriptObject->init();
+	getSceneLoader()->readParameterObject("Configuration", (ParameterObject*)m_scriptObject);
+#else
+	if (getSceneLoader()->hasValue("Configuration", "scriptFile"))
+		LOG_WARN << "Key 'scriptFile' is set in the scene but SPlisHSPlasH is built without embedded Python support.";
 #endif
 
 	if (m_useGUI)
@@ -530,12 +541,6 @@ void SimulatorBase::deferredInit()
 				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase());
 		}
 		getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
-#ifdef USE_EMBEDDED_PYTHON
-		getSceneLoader()->readParameterObject("Configuration", (ParameterObject*)m_scriptObject);
-#else
-		if (getSceneLoader()->hasValue("Configuration", "scriptFile"))
-			LOG_WARN << "Key 'scriptFile' is set in the scene but SPlisHSPlasH is built without embedded Python support.";
-#endif
 		m_gui->initSimulationParameterGUI();
 	}
 	sim->setSimulationInitialized(true);
@@ -944,6 +949,12 @@ bool SimulatorBase::timeStepNoGUI()
 
 	if (m_timeStepCB)
 		m_timeStepCB();
+
+#ifdef USE_EMBEDDED_PYTHON
+	if (m_scriptObject)
+		m_scriptObject->execStepFct();
+#endif
+
 	return true;
 }
 

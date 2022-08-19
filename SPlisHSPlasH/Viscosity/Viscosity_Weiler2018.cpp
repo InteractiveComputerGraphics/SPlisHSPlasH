@@ -1251,5 +1251,12 @@ void Viscosity_Weiler2018::reset()
 
 void Viscosity_Weiler2018::performNeighborhoodSearchSort()
 {
+	 const unsigned int numPart = m_model->numActiveParticles();
+     if (numPart == 0)
+         return;
+
+     Simulation *sim = Simulation::getCurrent();
+     auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
+     d.sort_field(&m_vDiff[0]);
 }
 

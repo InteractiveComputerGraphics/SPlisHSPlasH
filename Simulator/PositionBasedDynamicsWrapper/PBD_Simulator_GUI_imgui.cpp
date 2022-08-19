@@ -546,6 +546,14 @@ void PBD_Simulator_GUI_imgui::initSimulationParameterGUI()
 	imguiParameters::addParam("PBD", "Simulation", eparam);
 
 	imguiParameters::imguiNumericParameter<int>* uparam = new imguiParameters::imguiNumericParameter<int>();
+	uparam->description = "Number of sub steps of the solver.";
+	uparam->label = "# sub steps";
+	uparam->minValue = 1;
+	uparam->getFct = [this]() -> unsigned int { return m_pbdWrapper->getTimeStepController().getValue<int>(PBD::TimeStepController::NUM_SUB_STEPS); };
+	uparam->setFct = [this](unsigned int v) { m_pbdWrapper->getTimeStepController().setValue(PBD::TimeStepController::NUM_SUB_STEPS, v); };
+	imguiParameters::addParam("PBD", "Simulation", uparam);
+
+	uparam = new imguiParameters::imguiNumericParameter<int>();
 	uparam->description = "Max. iterations";
 	uparam->label = "Max. iterations";
 	uparam->minValue = 1;
@@ -613,99 +621,167 @@ void PBD_Simulator_GUI_imgui::initSimulationParameterGUI()
 	eparam->items.push_back("Isometric bending");
 	eparam->getFct = [this]() -> int { return m_pbdWrapper->getBendingMethod(); };
 	eparam->setFct = [this](int v) { m_pbdWrapper->setBendingMethod(v); m_pbdWrapper->reset(); };
-	imguiParameters::addParam("PBD", "Simulation", eparam);
+	imguiParameters::addParam("PBD", "Bending", eparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Bending stiffness";
 	rparam->label = "Bending stiffness";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_BENDING_STIFFNESS, v); };
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getBendingStiffness(); };
+	rparam->setFct = [this](Real v) { 
+		m_pbdWrapper->setBendingStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::DihedralConstraint, Real, &PBD::DihedralConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::IsometricBendingConstraint, Real, &PBD::IsometricBendingConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::IsometricBendingConstraint_XPBD, Real, &PBD::IsometricBendingConstraint_XPBD::m_stiffness>(v);
+	};
 	imguiParameters::addParam("PBD", "Bending", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
-	rparam->description = "Stiffness";
-	rparam->label = "Stiffness";
+	rparam->description = "Distance constraint stiffness";
+	rparam->label = "Distance constraint stiffness";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS, v); };
-	imguiParameters::addParam("PBD", "Distance constraints", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getDistanceStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setDistanceStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::DistanceConstraint, Real, &PBD::DistanceConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::DistanceConstraint_XPBD, Real, &PBD::DistanceConstraint_XPBD::m_stiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Youngs modulus XX";
 	rparam->label = "Youngs modulus XX";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XX); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XX, v); };
-	imguiParameters::addParam("PBD", "FEM based PBD", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getXXStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setXXStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTriangleConstraint, Real, &PBD::FEMTriangleConstraint::m_xxStiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTriangleConstraint, Real, &PBD::StrainTriangleConstraint::m_xxStiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Youngs modulus YY";
 	rparam->label = "Youngs modulus YY";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_YY); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_YY, v); };
-	imguiParameters::addParam("PBD", "FEM based PBD", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getYYStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setYYStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTriangleConstraint, Real, &PBD::FEMTriangleConstraint::m_yyStiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTriangleConstraint, Real, &PBD::StrainTriangleConstraint::m_yyStiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Youngs modulus XY";
 	rparam->label = "Youngs modulus XY";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XY); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XY, v); };
-	imguiParameters::addParam("PBD", "FEM based PBD", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getXYStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setXYStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTriangleConstraint, Real, &PBD::FEMTriangleConstraint::m_xyStiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTriangleConstraint, Real, &PBD::StrainTriangleConstraint::m_xyStiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Poisson ratio XY";
 	rparam->label = "Poisson ratio XY";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_XY, v); };
-	imguiParameters::addParam("PBD", "FEM based PBD", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getXYPoissonRatio(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setXYPoissonRatio(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTriangleConstraint, Real, &PBD::FEMTriangleConstraint::m_xyPoissonRatio>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
 	rparam->description = "Poisson ratio YX";
 	rparam->label = "Poisson ratio YX";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_POISSON_RATIO_YX, v); };
-	imguiParameters::addParam("PBD", "FEM based PBD", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getYXPoissonRatio(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setYXPoissonRatio(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTriangleConstraint, Real, &PBD::FEMTriangleConstraint::m_yxPoissonRatio>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
-	rparam->description = "Stiffness XX";
-	rparam->label = "Stiffness XX";
+	rparam->description = "Stiffness";
+	rparam->label = "Stiffness";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XX); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XX, v); };
-	imguiParameters::addParam("PBD", "Strain based dynamics", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSolidStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setSolidStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTetConstraint, Real, &PBD::FEMTetConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTetConstraint, Real, &PBD::StrainTetConstraint::m_stretchStiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTetConstraint, Real, &PBD::StrainTetConstraint::m_shearStiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::DistanceConstraint, Real, &PBD::DistanceConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::DistanceConstraint_XPBD, Real, &PBD::DistanceConstraint_XPBD::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::ShapeMatchingConstraint, Real, &PBD::ShapeMatchingConstraint::m_stiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Solid", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
-	rparam->description = "Stiffness YY";
-	rparam->label = "Stiffness YY";
+	rparam->description = "Poisson ratio";
+	rparam->label = "Poisson ratio";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_YY); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_YY, v); };
-	imguiParameters::addParam("PBD", "Strain based dynamics", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSolidPoissonRatio(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setSolidPoissonRatio(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::FEMTetConstraint, Real, &PBD::FEMTetConstraint::m_poissonRatio>(v);
+	};
+	imguiParameters::addParam("PBD", "Solid", rparam);
 
 	rparam = new imguiParameters::imguiNumericParameter<Real>();
-	rparam->description = "Stiffness XY";
-	rparam->label = "Stiffness XY";
+	rparam->description = "Volume stiffness";
+	rparam->label = "Volume stiffness";
 	rparam->minValue = 0.0;
-	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getSimulationModel().getValue<Real>(PBD::SimulationModel::CLOTH_STIFFNESS_XY); };
-	rparam->setFct = [this](Real v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_STIFFNESS_XY, v); };
-	imguiParameters::addParam("PBD", "Strain based dynamics", rparam);
+	rparam->getFct = [this]() -> Real { return m_pbdWrapper->getVolumeStiffness(); };
+	rparam->setFct = [this](Real v) {
+		m_pbdWrapper->setVolumeStiffness(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::VolumeConstraint, Real, &PBD::VolumeConstraint::m_stiffness>(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::VolumeConstraint_XPBD, Real, &PBD::VolumeConstraint_XPBD::m_stiffness>(v);
+	};
+	imguiParameters::addParam("PBD", "Solid", rparam);
 
 	bparam = new imguiParameters::imguiBoolParameter();
 	bparam->description = "Normalize stretch";
 	bparam->label = "Normalize stretch";
-	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getSimulationModel().getValue<bool>(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH); };
-	bparam->setFct = [this](bool v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_NORMALIZE_STRETCH, v); };
-	imguiParameters::addParam("PBD", "Strain based dynamics", bparam);
+	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getNormalizeStretch(); };
+	bparam->setFct = [this](bool v) {
+		m_pbdWrapper->setNormalizeStretch(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTriangleConstraint, bool, &PBD::StrainTriangleConstraint::m_normalizeStretch>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth - Strain based dynamics", bparam);
 
 	bparam = new imguiParameters::imguiBoolParameter();
 	bparam->description = "Normalize shear";
 	bparam->label = "Normalize shear";
-	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getSimulationModel().getValue<bool>(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR); };
-	bparam->setFct = [this](bool v) { m_pbdWrapper->getSimulationModel().setValue(PBD::SimulationModel::CLOTH_NORMALIZE_SHEAR, v); };
-	imguiParameters::addParam("PBD", "Strain based dynamics", bparam);
+	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getNormalizeShear(); };
+	bparam->setFct = [this](bool v) {
+		m_pbdWrapper->setNormalizeShear(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTriangleConstraint, bool, &PBD::StrainTriangleConstraint::m_normalizeShear>(v);
+	};
+	imguiParameters::addParam("PBD", "Cloth - Strain based dynamics", bparam);
+
+	bparam = new imguiParameters::imguiBoolParameter();
+	bparam->description = "Normalize stretch";
+	bparam->label = "Normalize stretch";
+	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getSolidNormalizeStretch(); };
+	bparam->setFct = [this](bool v) {
+		m_pbdWrapper->setSolidNormalizeStretch(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTetConstraint, bool, &PBD::StrainTetConstraint::m_normalizeStretch>(v);
+	};
+	imguiParameters::addParam("PBD", "Solid - Strain based dynamics", bparam);
+
+	bparam = new imguiParameters::imguiBoolParameter();
+	bparam->description = "Normalize shear";
+	bparam->label = "Normalize shear";
+	bparam->getFct = [this]() -> bool { return m_pbdWrapper->getSolidNormalizeShear(); };
+	bparam->setFct = [this](bool v) {
+		m_pbdWrapper->setSolidNormalizeShear(v);
+		m_pbdWrapper->getSimulationModel().setConstraintValue<PBD::StrainTetConstraint, bool, &PBD::StrainTetConstraint::m_normalizeShear>(v);
+	};
+	imguiParameters::addParam("PBD", "Solid - Strain based dynamics", bparam);
 }

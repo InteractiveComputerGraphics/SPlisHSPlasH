@@ -957,6 +957,23 @@ public:
 		}
 	}
 
+	inline void store(Quaternionr *qf) const
+	{
+		float x[8], y[8], z[8], w[8];
+		q[0].store(x);
+		q[1].store(y);
+		q[2].store(z);
+		q[3].store(w);
+
+		for (int i = 0; i < 8; i++)
+		{
+			qf[i].x() = x[i];
+			qf[i].y() = y[i];
+			qf[i].z() = z[i];
+			qf[i].w() = w[i];
+		}
+	}
+
 	inline void set(const Quaternionr *qf)
 	{
 		float x[8], y[8], z[8], w[8];

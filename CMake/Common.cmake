@@ -9,12 +9,17 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "_rd")
 set(CMAKE_MINSIZEREL_POSTFIX "_ms")
 
 include(CMakeDependentOption)
-include(avx)
+
 
 OPTION(USE_DOUBLE_PRECISION "Use double precision"	OFF)
 if (USE_DOUBLE_PRECISION)
 	add_definitions( -DUSE_DOUBLE)	
-else()
+	message("AVX is only supported for single precision.")
+endif (USE_DOUBLE_PRECISION)
+
+cmake_dependent_option(USE_AVX "Use AVX" ON "NOT USE_DOUBLE_PRECISION" OFF)
+if (USE_AVX)
+	include(avx)
 	set_avx_flags()
 	if (FOUND_AVX2)
 		message(STATUS "Using AVX2")

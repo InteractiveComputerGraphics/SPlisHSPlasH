@@ -240,4 +240,29 @@ The following videos were generated using the SPlisHSPlasH library:
 * Tetsuya Takahashi, Yoshinori Dobashi, Issei Fujishiro, Tomoyuki Nishita, and Ming C. Lin. Implicit Formulation for SPH-based Viscous Fluids. Computer Graphics Forum, 34, 2015.
 * Marcel Weiler, Dan Koschier and Jan Bender. Projective Fluids. Proceedings of the 9th International Conference on Motion in Games, ACM, 2016, 79-84
 * Marcel Weiler, Dan Koschier, Magnus Brand and Jan Bender. A Physically Consistent Implicit Viscosity Solver for SPH Fluids. Computer Graphics Forum (Eurographics), 37(2), 2018
-* F. Zorilla, M. Ritter, J. Sappl, W. Rauch, M. Harders, "Accelerating  Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration", Computers 9, 23, 2020.
+* F. Zorilla, M. Ritter, J. Sappl, W. Rauch, M. Harders. Accelerating  Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration. Computers 9, 23, 2020.
+
+
+## Other research projects using SPlisHSPlasH
+
+* Diogo Schaffer, Andre Antonitsch, Amyr Neto, Soraia Musse. Towards Animating Virtual Humans in Flooded Environments. Motion, Interaction and Games, 2020
+https://dl.acm.org/doi/10.1145/3424636.3426900
+* Byungsoo Kim, Vinicius C. Azevedo, Markus Gross, Barbara Solenthaler. Lagrangian neural style transfer for fluids. ACM Transactions on Graphics 39, 4, 2020
+https://dl.acm.org/doi/abs/10.1145/3386569.3392473
+* Fernando Zorilla, Marcel Ritter, Johannes Sappl, Wolfgang Rauch, Matthias Harders. Accelerating Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration. Computer Graphics and Visual Computing (CGVC), 2019
+https://diglib.eg.org/handle/10.2312/cgvc20191260
+*  H. R. Abbasia and R. Lubbad. A numerical model for the simulation of oil–ice interaction. Physics of Fluids 33, 2021
+https://aip.scitation.org/doi/10.1063/5.0065587
+* Uljad Berdica, Yuewei Fu, Yuchen Liu, Emmanouil Angelidis, Chen Feng. Mobile 3D Printing Robot Simulation with Viscoelastic Fluids. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2021
+https://ieeexplore.ieee.org/document/9636114
+* Arnaud Schoentgen, Pierre Poulin, Emmanuelle Darles, Philippe Meseure. Particle-based liquid control using animation templates. ACM SIGGRAPH/Eurographics Symposium on Computer Animation 2020
+https://dl.acm.org/doi/10.1111/cgf.14103
+* B. Ummenhofer, L. Prantl, N. Thuerey, V. Koltun. Lagrangian Fluid Simulation with Continuous Convolutions. ICLR 2020
+https://ge.in.tum.de/publications/2020-ummenhofer-iclr/
+*  Stefan Reinhardt, Tim Krake, Bernhard Eberhardt, Daniel Weiskopf. Consistent Shepard Interpolation for SPH-Based Fluid Animation. ACM Transactions on Graphics 38, 6, 2019
+https://dl.acm.org/doi/10.1145/3355089.3356503
+* Zhongyao Yang, Maolin Wu, Shiguang Liu. Helmholtz decomposition-based SPH. Virtual Reality & Intelligent Hardware 3, 2, 2021
+https://www.sciencedirect.com/science/article/pii/S2096579621000176
+
+
+

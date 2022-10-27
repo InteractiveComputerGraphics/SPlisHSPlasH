@@ -1,3 +1,6 @@
+2.11.5 
+	- updated cxxopts
+
 2.11.4
 	- updated Readme
 	- removed numpy restriction

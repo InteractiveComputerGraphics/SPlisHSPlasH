@@ -283,7 +283,7 @@ int PartioViewer::run(int argc, char **argv)
 
 		m_image.resize(3 * m_width * m_height);
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		LOG_INFO << "error parsing options: " << e.what();
 		exit(1);

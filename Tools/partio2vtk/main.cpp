@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 		LOG_INFO << "End frame: " << endFrame;
 		
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		LOG_INFO << "error parsing options: " << e.what();
 		exit(1);

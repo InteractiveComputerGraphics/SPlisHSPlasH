@@ -391,7 +391,7 @@ int main( int argc, char **argv )
 		if (skipframes > 0)
 			std::cout << "Skipping " << skipframes << " frame(s) between writes." << std::endl;
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		LOG_ERR << "error parsing options: " << e.what();
 		exit(1);

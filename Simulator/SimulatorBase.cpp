@@ -347,7 +347,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 				setStateFile(FileSystem::normalizePath(m_exePath + "/" + getStateFile()));
 		}
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		std::cout << "error parsing options: " << e.what() << std::endl;
 		exit(1);

@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 			LOG_INFO << "Region: " << region;
 		}
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		std::cout << "error parsing options: " << e.what() << std::endl;
 		exit(1);

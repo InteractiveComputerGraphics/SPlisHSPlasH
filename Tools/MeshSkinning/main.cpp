@@ -262,7 +262,7 @@ int main( int argc, char **argv )
 		if (result.count("maxNeighbors"))
 			maxNeighbors = result["maxNeighbors"].as<unsigned int>();
 	}
-	catch (const cxxopts::OptionException& e)
+	catch (const cxxopts::exceptions::exception& e)
 	{
 		LOG_ERR << "error parsing options: " << e.what();
 		exit(1);

@@ -36,11 +36,6 @@ Vector3r translation = Vector3r::Zero();
 Vector3r rotationAxis = Vector3r::UnitY();
 Real angle = 0;
 
-std::istream& operator >> (std::istream& istream, Vector3r& v)
-{
-	return istream >> std::skipws >> v[0] >> v[1] >> v[2];
-}
-
 
 // main 
 int main( int argc, char **argv )
@@ -60,10 +55,10 @@ int main( int argc, char **argv )
 			("i,input", "Input file (obj)", cxxopts::value<std::string>())
 			("o,output", "Output file (bgeo)", cxxopts::value<std::string>())
 			("r,radius", "Particle radius", cxxopts::value<Real>()->default_value("0.025"))
-			("s,scale", "Scaling of input geometry (e.g. --scale \"1 2 3\")", cxxopts::value<Vector3r>())
+			("s,scale", "Scaling of input geometry (e.g. --scale 1,2,3)", cxxopts::value<std::vector<Real>>())
 			("m,mode", "Sampling mode 0 Poisson disk, 1 Regular, 2 2D sampling", cxxopts::value<unsigned int>()->default_value("1"))
-			("t,translation", "Translation for 2D sampling (default: \"0 0 0\")", cxxopts::value<Vector3r>())
-			("rotationAxis", "Rotation axis for 2D sampling (default: \"0 1 0\")", cxxopts::value<Vector3r>())
+			("t,translation", "Translation for 2D sampling (default: 0,0,0)", cxxopts::value<std::vector<Real>>())
+			("rotationAxis", "Rotation axis for 2D sampling (default: 0,1,0)", cxxopts::value<std::vector<Real>>())
 			("a,angle", "Rotation angle for 2D simulation", cxxopts::value<Real>()->default_value("0"))
 			;
 
@@ -94,7 +89,7 @@ int main( int argc, char **argv )
 		std::cout << "Radius: " << particleRadius << std::endl;
 
 		if (result.count("scale"))
-			scale = result["scale"].as<Vector3r>();
+			scale = Vector3r(result["scale"].as<std::vector<Real>>().data());
 		std::cout << "Scale: [" << scale.transpose() << "]^T" << std::endl;
 
 		if (result.count("mode"))
@@ -102,9 +97,9 @@ int main( int argc, char **argv )
 		std::cout << "Sampling mode: " << samplingMode << std::endl;
 
 		if (result.count("translation"))
-			translation = result["translation"].as<Vector3r>();
+			translation = Vector3r(result["translation"].as<std::vector<Real>>().data());
 		if (result.count("rotationAxis"))
-			rotationAxis = result["rotationAxis"].as<Vector3r>();
+			rotationAxis = Vector3r(result["rotationAxis"].as<std::vector<Real>>().data());
 		if (result.count("angle"))
 			angle = result["angle"].as<Real>();
 

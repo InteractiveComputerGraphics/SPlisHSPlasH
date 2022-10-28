@@ -15,12 +15,6 @@
 using namespace SPH;
 
 
-std::istream& operator >> (std::istream& istream, Vector3r& v)
-{
-	return istream >> std::skipws >> v[0] >> v[1] >> v[2];
-}
-
-
 PartioViewer_GUI_imgui::PartioViewer_GUI_imgui(PartioViewer *viewer) :
 	PartioViewer_GUI_Base()
 {	
@@ -85,8 +79,8 @@ void PartioViewer_GUI_imgui::stop()
 void PartioViewer_GUI_imgui::addOptions(cxxopts::Options &options)
 {
  	options.add_options()
-		("camPos", "Camera position (e.g. --camPos \"0 1 5\")", cxxopts::value<Vector3r>()->default_value("0 3 10"))
-		("camLookat", "Camera lookat (e.g. --camLookat \"0 0 0\")", cxxopts::value<Vector3r>()->default_value("0 0 0"))
+		("camPos", "Camera position (e.g. --camPos 0,1,5)", cxxopts::value<std::vector<Real>>()->default_value("0,3,10"))
+		("camLookat", "Camera lookat (e.g. --camLookat 0,0,0)", cxxopts::value<std::vector<Real>>()->default_value("0,0,0"))
 		("showBBox", "Show bounding box.")
  		;
 }
@@ -94,10 +88,10 @@ void PartioViewer_GUI_imgui::addOptions(cxxopts::Options &options)
 void PartioViewer_GUI_imgui::parseOptions(cxxopts::ParseResult &result)
 {
 	if (result.count("camPos"))
-		m_camPos = result["camPos"].as<Vector3r>();
+		m_camPos = Vector3r(result["camPos"].as<std::vector<Real>>().data());
 
 	if (result.count("camLookat"))
-		m_camLookat = result["camLookat"].as<Vector3r>();
+		m_camLookat = Vector3r(result["camLookat"].as<std::vector<Real>>().data());
 
 	m_showBBox = result.count("showBBox") != 0;
 }

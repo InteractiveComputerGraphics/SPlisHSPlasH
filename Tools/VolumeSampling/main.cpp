@@ -62,31 +62,10 @@ bool useCache = true;
 std::shared_ptr<Discregrid::CubicLagrangeDiscreteGrid> distanceField;
 
 
-std::istream& operator >> (std::istream& istream, SamplingBase::Region& r)
-{
-	return istream >> std::skipws >> r.m_min[0] >> r.m_min[1] >> r.m_min[2] >> r.m_max[0] >> r.m_max[1] >> r.m_max[2];
-}
-
-std::ostream& operator << (std::ostream& out, const SamplingBase::Region& r)
-{
-	out << r.m_min[0] << ", " << r.m_min[1] << ", " << r.m_min[2] << ", " << r.m_max[0] << ", " << r.m_max[1] << ", " << r.m_max[2];
-	return out;
-}
-
-std::istream& operator >> (std::istream& istream, Eigen::Matrix<unsigned int, 3, 1>& r)
-{
-	return istream >> std::skipws >> r[0] >> r[1] >> r[2];
-}
-
 std::ostream& operator << (std::ostream& out, const Eigen::Matrix<unsigned int, 3, 1>& r)
 {
 	out << r[0] << ", " << r[1] << ", " << r[2];
 	return out;
-}
-
-std::istream& operator >> (std::istream& istream, Vector3r& r)
-{
-	return istream >> std::skipws >> r[0] >> r[1] >> r[2];
 }
 
 std::ostream& operator << (std::ostream& out, const Vector3r& r)
@@ -113,9 +92,9 @@ int main(int argc, char **argv)
 			("i,input", "Input file (obj)", cxxopts::value<std::string>())
 			("o,output", "Output file (bgeo or vtk)", cxxopts::value<std::string>())
 			("r,radius", "Particle radius", cxxopts::value<Real>()->default_value("0.025"))
-			("s,scale", "Scaling of input geometry (e.g. --scale \"2 1 2\")", cxxopts::value<Vector3r>()->default_value("1 1 1"))
+			("s,scale", "Scaling of input geometry (e.g. --scale 2,1,2)", cxxopts::value<std::vector<Real>>()->default_value("1,1,1"))
 			("m,mode", "Mode (regular=0, almost dense=1, dense=2, Jiang et al. 2015=3, Kugelstadt et al. 2021=4)", cxxopts::value<int>()->default_value("4"))
-			("region", "Region to fill with particles (e.g. --region \"0 0 0 1 1 1\")", cxxopts::value<SamplingBase::Region>())
+			("region", "Region to fill with particles (e.g. --region 0,0,0,1,1,1)", cxxopts::value<std::vector<Real>>())
 			("steps", "SPH time steps", cxxopts::value<unsigned int>()->default_value("100"))
 			("cflFactor", "CFL factor", cxxopts::value<Real>()->default_value("0.25"))
 			("viscosity", "Viscosity coefficient (XSPH)", cxxopts::value<Real>()->default_value("0.25"))
@@ -123,7 +102,7 @@ int main(int argc, char **argv)
 			("adhesion", "Adhesion coefficient", cxxopts::value<Real>())
 			("stiffness", "Stiffness coefficient (only mode 3)", cxxopts::value<Real>()->default_value("10000.0"))
 			("dt", "Time step size (only mode 3)", cxxopts::value<Real>()->default_value("0.0005"))
-			("res", "Resolution of the Signed Distance Field (e.g. --res \"30 30 30\")", cxxopts::value<Eigen::Matrix<unsigned int, 3, 1>>())
+			("res", "Resolution of the Signed Distance Field (e.g. --res 30,30,30)", cxxopts::value<std::vector<unsigned int>>())
 			("invert", "Invert the SDF to sample the outside of the object in the bounding box/region")
 			("no-cache", "Disable caching of SDF.")
 			;
@@ -182,7 +161,7 @@ int main(int argc, char **argv)
 		LOG_INFO << "Radius: " << radius;
 
 		if (result.count("scale"))
-			scale = result["scale"].as<Vector3r>();
+			scale = Vector3r(result["scale"].as<std::vector<Real>>().data()); 
 		LOG_INFO << "Scale: " << scale;
 
 		if (result.count("steps"))
@@ -213,7 +192,7 @@ int main(int argc, char **argv)
 
 		if (result.count("res"))
 		{
-			resolutionSDF = result["res"].as<Eigen::Matrix<unsigned int, 3, 1>>();
+			resolutionSDF = Eigen::Matrix<unsigned int, 3, 1>(result["res"].as<std::vector<unsigned int>>().data());
 			LOG_INFO << "SDF resolution: " << resolutionSDF;
 		}
 
@@ -227,9 +206,14 @@ int main(int argc, char **argv)
 
 		if (result.count("region"))
 		{
-			region = result["region"].as<SamplingBase::Region>();
+			const std::vector<Real> &v = result["region"].as<std::vector<Real>>();
+			if (v.size() == 6)
+				region = SamplingBase::Region(v[0], v[1], v[2], v[3], v[4], v[5]);
+			else 
+				LOG_WARN << "Region parameter has wrong number of elements.";
 			useRegion = true;
-			LOG_INFO << "Region: " << region;
+			LOG_INFO << "Region - min: " << region.m_min.transpose();
+			LOG_INFO << "Region - max: " << region.m_max.transpose();
 		}
 	}
 	catch (const cxxopts::exceptions::exception& e)

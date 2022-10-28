@@ -112,11 +112,6 @@ unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int in
 	return neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
 }
 
-std::istream& operator >> (std::istream& istream, Vector3r& r)
-{
-	return istream >> std::skipws >> r[0] >> r[1] >> r[2];
-}
-
 std::ostream& operator << (std::ostream& out, const Vector3r& r)
 {
 	out << r[0] << ", " << r[1] << ", " << r[2];
@@ -142,9 +137,9 @@ int main( int argc, char **argv )
 			("m,mesh", "Mesh file ", cxxopts::value<std::string>())
 			("scene", "Scene file (all settings are imported from the scene file)", cxxopts::value<std::string>())
 			("partioPath", "Path of the partio files (when using a scene file). If not set, it is assumed that the files are in the standard output path.", cxxopts::value<std::string>())
-			("scale", "Scaling of input geometry (e.g. --scale \"2 1 2\")", cxxopts::value<Vector3r>()->default_value("1 1 1"))
-			("t,translation", "Translation of input geometry (e.g. --translation \"2 1 2\")", cxxopts::value<Vector3r>()->default_value("1 1 1"))
-			("axis", "Rotation axis of input geometry (e.g. --axis \"1 0 0\")", cxxopts::value<Vector3r>()->default_value("1 0 0"))
+			("scale", "Scaling of input geometry (e.g. --scale 2,1,2)", cxxopts::value<std::vector<Real>>()->default_value("1,1,1"))
+			("t,translation", "Translation of input geometry (e.g. --translation 2,1,2)", cxxopts::value<std::vector<Real>>()->default_value("0,0,0"))
+			("axis", "Rotation axis of input geometry (e.g. --axis 1,0,0)", cxxopts::value<std::vector<Real>>()->default_value("1,0,0"))
 			("angle", "Angle of input geometry (e.g. --angle 1)", cxxopts::value<Real>()->default_value("0.0"))
 			("s,startframe", "Start frame", cxxopts::value<unsigned int>()->default_value("1"))
 			("e,endframe", "End frame", cxxopts::value<unsigned int>())
@@ -222,18 +217,18 @@ int main( int argc, char **argv )
 			}
 
 			if (result.count("scale"))
-				scale = result["scale"].as<Vector3r>();
+				scale = Vector3r(result["scale"].as<std::vector<Real>>().data()); 
 			LOG_INFO << "Scale: " << scale;
 
 			if (result.count("translation"))
-				translation = result["translation"].as<Vector3r>();
+				translation = Vector3r(result["translation"].as<std::vector<Real>>().data()); 
 			LOG_INFO << "Translation: " << translation;
 
 			Vector3r axis = Vector3r::Zero();
 			Real angle = 0.0;
 			rotation = Matrix3r::Identity();
 			if (result.count("axis"))
-				axis = result["axis"].as<Vector3r>();
+				axis = Vector3r(result["axis"].as<std::vector<Real>>().data()); 
 			if (result.count("angle"))
 			{
 				angle = result["angle"].as<Real>();

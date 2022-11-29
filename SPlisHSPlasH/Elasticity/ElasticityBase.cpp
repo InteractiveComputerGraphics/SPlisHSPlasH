@@ -31,13 +31,13 @@ void ElasticityBase::initParameters()
 	NonPressureForceBase::initParameters();
 
 	YOUNGS_MODULUS = createNumericParameter("youngsModulus", "Young`s modulus", &m_youngsModulus);
-	setGroup(YOUNGS_MODULUS, "Elasticity");
+	setGroup(YOUNGS_MODULUS, "Fluid Model|Elasticity");
 	setDescription(YOUNGS_MODULUS, "Stiffness of the elastic material");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(YOUNGS_MODULUS));
 	rparam->setMinValue(0.0);
 
 	POISSON_RATIO = createNumericParameter("poissonsRatio", "Poisson`s ratio", &m_poissonRatio);
-	setGroup(POISSON_RATIO, "Elasticity");
+	setGroup(POISSON_RATIO, "Fluid Model|Elasticity");
 	setDescription(POISSON_RATIO, "Ratio of transversal expansion and axial compression");
 	rparam = static_cast<RealParameter*>(getParameter(POISSON_RATIO));
 	rparam->setMinValue(static_cast<Real>(-1.0 + 1e-4));
@@ -50,7 +50,7 @@ void ElasticityBase::initParameters()
 		determineFixedParticles();
 	};
 	FIXED_BOX_MIN = createVectorParameter("fixedBoxMin", "Fixed box min", 3u, getFct, setFct);
-	setGroup(FIXED_BOX_MIN, "Elasticity");
+	setGroup(FIXED_BOX_MIN, "Fluid Model|Elasticity");
 	setDescription(FIXED_BOX_MIN, "Minimum point of box of which contains the fixed particles.");
 	getParameter(FIXED_BOX_MIN)->setReadOnly(true);
 
@@ -62,7 +62,7 @@ void ElasticityBase::initParameters()
 		determineFixedParticles();
 	};
 	FIXED_BOX_MAX = createVectorParameter("fixedBoxMax", "Fixed box max", 3u, getFct2, setFct2);
-	setGroup(FIXED_BOX_MAX, "Elasticity");
+	setGroup(FIXED_BOX_MAX, "Fluid Model|Elasticity");
 	setDescription(FIXED_BOX_MAX, "Maximum point of box of which contains the fixed particles.");
 	getParameter(FIXED_BOX_MAX)->setReadOnly(true);
 }

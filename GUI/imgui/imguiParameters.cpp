@@ -2,6 +2,7 @@
 #include "SPlisHSPlasH/TimeManager.h"
 #include "GUI/OpenGL/MiniGL.h"
 #include "Utilities/Logger.h"
+#include "Utilities/StringTools.h"
 
 using namespace SPH;
 using namespace std;
@@ -12,6 +13,7 @@ Real imguiParameters::m_step = static_cast<Real>(0.001);
 Real imguiParameters::m_faststep = static_cast<Real>(0.01);
 int imguiParameters::m_istep = 1;
 int imguiParameters::m_ifaststep = 10;
+std::vector<std::function<void()>> imguiParameters::m_setFcts;
 std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::vector<imguiParameters::imguiParameter*>>>>> imguiParameters::m_imguiParams;
 
 void imguiParameters::createRealParameter(imguiParameters::imguiParameter* param, ImGuiInputTextFlags flags, const std::string &helpText)
@@ -137,10 +139,11 @@ bool imguiParameters::createEnumParameter(imguiParameters::imguiParameter* param
 				{
 					item_current = eparam->items[n].c_str();
 					if (!eparam->readOnly)
-					{
-						eparam->setFct(n);
+					{					
 						// stop the creation of the GUI since the change of an enum value
 						// could cause a change of the GUI
+						// store the callback function and call it at the end of the GUI function
+						m_setFcts.push_back([eparam,n]() { eparam->setFct(n); });
 						ImGui::EndCombo();
 						return true;
 					}
@@ -218,9 +221,10 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 					// could cause a change of the GUI
 					if (param->readOnly)
 						ImGui::PopStyleColor(3);
+					ImGui::PopStyleColor(1);
 					if (subgroup.first != "")
 						ImGui::TreePop();
-					ImGui::PopStyleColor(2);
+					ImGui::PopStyleColor(1);
 					return;
 				}
 
@@ -228,10 +232,10 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
 					ImGui::PopStyleColor(3);
 			}
 
+			ImGui::PopStyleColor(1);
 			if (subgroup.first != "")
 				ImGui::TreePop();
 			ImGui::Separator();
-			ImGui::PopStyleColor(1);
 		}
 		ImGui::PopStyleColor(1);
 	}
@@ -239,10 +243,19 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
  
 void imguiParameters::createParameterGUI()
 {
+	//struct Comparator {
+	//	bool operator()(std::pair<std::string, std::vector<std::pair<std::string, std::vector<imguiParameters::imguiParameter*>>>>& p1,
+	//		std::pair<std::string, std::vector<std::pair<std::string, std::vector<imguiParameters::imguiParameter*>>>>& p2)
+	//	{
+	//		return p1.first.compare(p2.first) < 0;
+	//	}
+	//};
+	//std::sort(m_imguiParams.begin(), m_imguiParams.end(), Comparator());
+
 	// always show "General"
 	for (auto group_index = 0; group_index < m_imguiParams.size(); group_index++)
 	{
-		auto group = m_imguiParams[group_index];
+		auto &group = m_imguiParams[group_index];
 		if (group.first == "General")
 		{
 			createSubgroupParameters(group.second);
@@ -272,6 +285,11 @@ void imguiParameters::createParameterGUI()
 		ImGui::EndTabBar();
 	}
 	ImGui::PopStyleColor(3);
+
+	// deferred call of callback functions
+	for (size_t i = 0; i < m_setFcts.size(); i++)
+		m_setFcts[i]();
+	m_setFcts.clear();
 }
 
 void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
@@ -286,35 +304,13 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 		ParameterBase* paramBase = paramObj->getParameter(i);
 		std::string group = paramBase->getGroup();
 		std::string subgroup = "";
-		if ((group == "WCSPH") || (group == "PCISPH") || (group == "PBF") || 
-			(group == "IISPH") || (group == "DFSPH") || (group == "PF") ||
-			(group == "ICSPH") ||
-			(group == "CFL") || (group == "Kernel"))
+
+		std::vector<std::string> tokens;
+		Utilities::StringTools::tokenize(group, tokens, "|");
+		if (tokens.size() > 1)
 		{
-			subgroup = group;
-			group = "Simulation";			
-		}
-
-		if ((group == "FluidModel") || (group == "Elasticity") || (group == "Viscosity") || 
-			(group == "Vorticity") || (group == "Drag force") || (group == "Surface tension"))
-		{
-			subgroup = group;
-			group = "Fluid Model";
-		}
-
-		if ((group == "Simulation") && (subgroup == ""))
-			subgroup = group;
-
-		if (group == "General")
-			subgroup = group;
-
-		if (group == "Export")
-			subgroup = "General";
-
-		if ((group == "Particle exporters") || (group == "Rigid body exporters"))
-		{
-			subgroup = group;
-			group = "Export";
+			group = tokens[0];
+			subgroup = tokens[1];
 		}
 
 		if (paramBase->getType() == RealParameterType)

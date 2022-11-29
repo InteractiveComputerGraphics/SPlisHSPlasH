@@ -22,7 +22,7 @@ void ViscosityBase::initParameters()
 	NonPressureForceBase::initParameters();
 
 	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
-	setGroup(VISCOSITY_COEFFICIENT, "Viscosity");
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
 	rparam->setMinValue(0.0);

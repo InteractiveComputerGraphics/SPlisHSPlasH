@@ -132,6 +132,7 @@ namespace Utilities
 			Vector3r camLookat;
 		};
 
+		nlohmann::json& getJSONData() { return m_jsonData; };
 		void readScene(const char *fileName, Scene &scene);
 
 		template <typename T>

@@ -8,11 +8,7 @@
 #include "Utilities/Timing.h"
 #include "extern/toojpeg/toojpeg.h"
 #include "GUI/OpenGL/PartioViewer_OpenGL.h"
-#ifdef USE_IMGUI
 #include "GUI/imgui/PartioViewer_GUI_imgui.h"
-#else
-#include "GUI/TweakBar/PartioViewer_GUI_TweakBar.h"
-#endif
 
 using namespace std;
 using namespace SPH;
@@ -63,11 +59,7 @@ int PartioViewer::run(int argc, char **argv)
 	LOG_INFO << "Git status: " << GIT_LOCAL_STATUS;
 
 	m_exePath = FileSystem::getProgramPath();
-#ifdef USE_IMGUI
 	m_gui = new PartioViewer_GUI_imgui(this);
-#else
-	m_gui = new PartioViewer_GUI_TweakBar(this);
-#endif
 
 	try
 	{

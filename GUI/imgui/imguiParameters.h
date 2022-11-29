@@ -94,6 +94,7 @@ namespace SPH
 		static Real m_faststep;
 		static int m_istep;
 		static int m_ifaststep;
+		static std::vector<std::function<void()>> m_setFcts;
 
 		typedef std::pair<GenParam::ParameterObject*, unsigned int> ParameterIndex;
 

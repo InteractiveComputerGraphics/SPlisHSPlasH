@@ -55,6 +55,11 @@ global proc AESPHFluidConfigurationNodeTemplate( string $nodeName )
 	editorTemplate -l "Zero-energy modes suppression" -addControl "alpha";
 	editorTemplate -endLayout;
 
+	editorTemplate -beginLayout "XSPH" -collapse 0;
+	editorTemplate -l "Fluid coefficient" -addControl "xsph";
+	editorTemplate -l "Boundary coefficient" -addControl "xsphBoundary";
+	editorTemplate -endLayout;
+
 	editorTemplate -addExtraControls;
 	editorTemplate -endScrollLayout;
 }

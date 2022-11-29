@@ -12,6 +12,7 @@
 #include "Vorticity/VorticityBase.h"
 #include "Drag/DragBase.h"
 #include "Elasticity/ElasticityBase.h"
+#include "XSPH.h"
 
 
 using namespace SPH;
@@ -59,6 +60,7 @@ FluidModel::FluidModel() :
 	m_elasticityMethod = 0;
 	m_elasticity = nullptr;
 	m_elasticityMethodChanged = nullptr;
+	m_xsph = nullptr;
 
 	addField({ "id", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return &getParticleId(i); }, true });
     addField({ "state", FieldType::UInt, [&](const unsigned int i) -> unsigned int* { return (unsigned int*)(&m_particleState[i]); }, true });
@@ -79,6 +81,7 @@ FluidModel::~FluidModel(void)
 	removeFieldByName("velocity");
 	removeFieldByName("density");
 
+	delete m_xsph;
 	delete m_emitterSystem;
 	delete m_surfaceTension;
 	delete m_drag;
@@ -91,6 +94,9 @@ FluidModel::~FluidModel(void)
 
 void FluidModel::init()
 {
+	m_xsph = new XSPH(this);
+	m_xsph->init();
+
 	initParameters();
 
 	setViscosityMethod(1);
@@ -98,6 +104,8 @@ void FluidModel::init()
 
 void FluidModel::deferredInit()
 {
+	if (m_xsph)
+		m_xsph->deferredInit();
 	if (m_surfaceTension)
 		m_surfaceTension->deferredInit();
 	if (m_viscosity)
@@ -113,7 +121,7 @@ void FluidModel::deferredInit()
 
 void FluidModel::initParameters()
 {
-	std::string groupName = "FluidModel";
+	std::string groupName = std::string("Fluid Model|") + getId();
 	ParameterObject::initParameters();
 
 	ParameterBase::GetFunc<Real> getDensity0Fct = std::bind(&FluidModel::getDensity0, this);
@@ -136,7 +144,7 @@ void FluidModel::initParameters()
 	ParameterBase::GetFunc<int> getDragFct = std::bind(&FluidModel::getDragMethod, this);
 	ParameterBase::SetFunc<int> setDragFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setDragMethod), this, std::placeholders::_1);
 	DRAG_METHOD = createEnumParameter("dragMethod", "Drag method", getDragFct, setDragFct);
-	setGroup(DRAG_METHOD, "Drag force");
+	setGroup(DRAG_METHOD, "Fluid Model|Drag force");
 	setDescription(DRAG_METHOD, "Method to compute drag forces.");
 	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(DRAG_METHOD));
 	Simulation* sim = Simulation::getCurrent();
@@ -144,11 +152,20 @@ void FluidModel::initParameters()
 	for (unsigned int i = 0; i < dragMethods.size(); i++)
 		enumParam->addEnumValue(dragMethods[i].m_name, dragMethods[i].m_id);
 
+	ParameterBase::GetFunc<int> getElasticityFct = std::bind(&FluidModel::getElasticityMethod, this);
+	ParameterBase::SetFunc<int> setElasticityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setElasticityMethod), this, std::placeholders::_1);
+	ELASTICITY_METHOD = createEnumParameter("elasticityMethod", "Elasticity method", getElasticityFct, setElasticityFct);
+	setGroup(ELASTICITY_METHOD, "Fluid Model|Elasticity");
+	setDescription(ELASTICITY_METHOD, "Method to compute elastic forces.");
+	enumParam = static_cast<EnumParameter*>(getParameter(ELASTICITY_METHOD));
+	std::vector<Simulation::NonPressureForceMethod>& elasticityMethods = sim->getElasticityMethods();
+	for (unsigned int i = 0; i < elasticityMethods.size(); i++)
+		enumParam->addEnumValue(elasticityMethods[i].m_name, elasticityMethods[i].m_id);
 
 	ParameterBase::GetFunc<int> getSurfaceTensionFct = std::bind(&FluidModel::getSurfaceTensionMethod, this);
 	ParameterBase::SetFunc<int> setSurfaceTensionFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setSurfaceTensionMethod), this, std::placeholders::_1);
 	SURFACE_TENSION_METHOD = createEnumParameter("surfaceTensionMethod", "Surface tension", getSurfaceTensionFct, setSurfaceTensionFct);
-	setGroup(SURFACE_TENSION_METHOD, "Surface tension");
+	setGroup(SURFACE_TENSION_METHOD, "Fluid Model|Surface tension");
 	setDescription(SURFACE_TENSION_METHOD, "Method to compute surface tension forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(SURFACE_TENSION_METHOD));
 	std::vector<Simulation::NonPressureForceMethod>& surfaceTensionMethods = sim->getSurfaceTensionMethods();
@@ -158,7 +175,7 @@ void FluidModel::initParameters()
 	ParameterBase::GetFunc<int> getViscosityFct = std::bind(&FluidModel::getViscosityMethod, this);
 	ParameterBase::SetFunc<int> setViscosityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setViscosityMethod), this, std::placeholders::_1);
 	VISCOSITY_METHOD = createEnumParameter("viscosityMethod", "Viscosity", getViscosityFct, setViscosityFct);
-	setGroup(VISCOSITY_METHOD, "Viscosity");
+	setGroup(VISCOSITY_METHOD, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_METHOD, "Method to compute viscosity forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(VISCOSITY_METHOD));
 
@@ -169,22 +186,14 @@ void FluidModel::initParameters()
 	ParameterBase::GetFunc<int> getVorticityFct = std::bind(&FluidModel::getVorticityMethod, this);
 	ParameterBase::SetFunc<int> setVorticityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setVorticityMethod), this, std::placeholders::_1);
 	VORTICITY_METHOD = createEnumParameter("vorticityMethod", "Vorticity", getVorticityFct, setVorticityFct);
-	setGroup(VORTICITY_METHOD, "Vorticity");
+	setGroup(VORTICITY_METHOD, "Fluid Model|Vorticity");
 	setDescription(VORTICITY_METHOD, "Method to compute vorticity forces.");
 	enumParam = static_cast<EnumParameter*>(getParameter(VORTICITY_METHOD));
 	std::vector<Simulation::NonPressureForceMethod>& vorticityMethods = sim->getVorticityMethods();
 	for (unsigned int i = 0; i < vorticityMethods.size(); i++)
 		enumParam->addEnumValue(vorticityMethods[i].m_name, vorticityMethods[i].m_id);
 
-	ParameterBase::GetFunc<int> getElasticityFct = std::bind(&FluidModel::getElasticityMethod, this);
-	ParameterBase::SetFunc<int> setElasticityFct = std::bind(static_cast<void (FluidModel::*)(const unsigned int)>(&FluidModel::setElasticityMethod), this, std::placeholders::_1);
-	ELASTICITY_METHOD = createEnumParameter("elasticityMethod", "Elasticity method", getElasticityFct, setElasticityFct);
-	setGroup(ELASTICITY_METHOD, "Elasticity");
-	setDescription(ELASTICITY_METHOD, "Method to compute elastic forces.");
-	enumParam = static_cast<EnumParameter*>(getParameter(ELASTICITY_METHOD));
-	std::vector<Simulation::NonPressureForceMethod>& elasticityMethods = sim->getElasticityMethods();
-	for (unsigned int i = 0; i < elasticityMethods.size(); i++)
-		enumParam->addEnumValue(elasticityMethods[i].m_name, elasticityMethods[i].m_id);
+
 }
 
 
@@ -234,6 +243,8 @@ void FluidModel::reset()
 		m_drag->reset();
 	if (m_elasticity)
 		m_elasticity->reset();
+	if (m_xsph)
+		m_xsph->reset();
 
 	m_emitterSystem->reset();
 }
@@ -362,6 +373,8 @@ void FluidModel::performNeighborhoodSearchSort()
 		m_drag->performNeighborhoodSearchSort();
 	if (m_elasticity)
 		m_elasticity->performNeighborhoodSearchSort();
+	if (m_xsph)
+		m_xsph->performNeighborhoodSearchSort();
 }
 
 void SPH::FluidModel::setDensity0(const Real v)
@@ -449,6 +462,12 @@ void FluidModel::computeElasticity()
 		m_elasticity->step();
 }
 
+void FluidModel::computeXSPH()
+{
+	if (m_xsph)
+		m_xsph->step();
+}
+
 void FluidModel::emittedParticles(const unsigned int startIndex)
 {
 	if (m_viscosity)
@@ -461,6 +480,8 @@ void FluidModel::emittedParticles(const unsigned int startIndex)
 		m_drag->emittedParticles(startIndex);
 	if (m_elasticity)
 		m_elasticity->emittedParticles(startIndex);
+	if (m_xsph)
+		m_xsph->emittedParticles(startIndex);
 }
 
 void FluidModel::setSurfaceTensionMethod(const std::string& val)
@@ -721,6 +742,8 @@ void SPH::FluidModel::saveState(BinaryFileWriter &binWriter)
 		m_drag->saveState(binWriter);
 	if (m_elasticity)
 		m_elasticity->saveState(binWriter);
+	if (m_xsph)
+		m_xsph->saveState(binWriter);
 	m_emitterSystem->saveState(binWriter);
 }
 
@@ -743,6 +766,8 @@ void SPH::FluidModel::loadState(BinaryFileReader &binReader)
 		m_drag->loadState(binReader);
 	if (m_elasticity)
 		m_elasticity->loadState(binReader);
+	if (m_xsph)
+		m_xsph->loadState(binReader);
 
 	m_emitterSystem->loadState(binReader);
 }

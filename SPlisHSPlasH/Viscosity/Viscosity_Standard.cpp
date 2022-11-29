@@ -28,7 +28,7 @@ void Viscosity_Standard::initParameters()
 	ViscosityBase::initParameters();
 
 	VISCOSITY_COEFFICIENT_BOUNDARY = createNumericParameter("viscosityBoundary", "Viscosity coefficient (Boundary)", &m_boundaryViscosity);
-	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Viscosity");
+	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_COEFFICIENT_BOUNDARY, "Coefficient for the viscosity force computation at the boundary.");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
 	rparam->setMinValue(0.0);

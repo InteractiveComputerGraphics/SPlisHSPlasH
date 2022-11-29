@@ -21,8 +21,6 @@ endif()
 
 set(TOPLEVEL_INCLUDE_DIR ${PROJECT_SOURCE_DIR})
 
-option(USE_IMGUI "Use imgui instead of AntTweakBar"	ON)
-
 ################################################################################
 # foreign external libraries
 ################################################################################
@@ -32,11 +30,8 @@ add_subdirectory(extern/md5)
 add_subdirectory(extern/tinyexpr)
 if (NOT SPH_LIBS_ONLY)
 	add_subdirectory(extern/glfw)
-	if (USE_IMGUI)
-		add_subdirectory(extern/imgui)
-	else()
-		add_subdirectory(extern/AntTweakBar)
-	endif()
+	add_subdirectory(extern/imgui)
+	add_subdirectory(extern/nfd)
 	if (USE_PYTHON_BINDINGS)
 		add_subdirectory(extern/pybind)
 	endif ()

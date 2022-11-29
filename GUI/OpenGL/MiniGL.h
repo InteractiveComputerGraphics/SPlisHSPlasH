@@ -107,6 +107,7 @@ namespace SPH
 		static unsigned int m_texId;
 		static void(*selectionfunc) (const Vector2i&, const Vector2i&, void*);
 		static void* selectionfuncClientData;
+		static bool selectionMode;
 		static void(*mousefunc)(int, int, void*);
 		static int mouseFuncButton;		
 		static Vector2i m_selectionStart;
@@ -131,6 +132,7 @@ namespace SPH
 	public:
 		static void getOpenGLVersion(int &major_version, int &minor_version);
 		static void coordinateSystem ();
+		static void drawSelectionRect();
 		static void drawVector(const Vector3r &a, const Vector3r &b, const float w, float *color);
 		/** Renders a closed cylinder between two points.
 		*/
@@ -205,6 +207,10 @@ namespace SPH
 		static void swapBuffers();
 
 		static GLFWwindow* getWindow() { return m_glfw_window; }
+		static void getWindowPos(int& x, int& y);
+		static void getWindowSize(int& w, int& h);
+		static void setWindowPos(int x, int y);
+		static void setWindowSize(int w, int h);
 	};
 }
 

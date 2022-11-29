@@ -64,9 +64,10 @@ namespace SPH
 			Vector3r res;
 			const Real rl = r.norm();
 			const Real q = rl / m_radius;
-			if ((rl > 1.0e-5) && (q <= 1.0))
+			if ((rl > 1.0e-9) && (q <= 1.0))
 			{
-				const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
+				Vector3r gradq = r / rl;
+				gradq /= m_radius;
 				if (q <= 0.5)
 				{
 					res = m_l*q*((Real) 3.0*q - static_cast<Real>(2.0))*gradq;
@@ -514,9 +515,10 @@ namespace SPH
 			const Real q = rl / m_radius;
 			if (q <= 1.0)
 			{
-				if (rl > 1.0e-5)
+				if (rl > 1.0e-9)
 				{
-					const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
+					Vector3r gradq = r / rl;
+					gradq /= m_radius;
 					if (q <= 0.5)
 					{
 						res = m_l*q*(static_cast<Real>(3.0)*q - static_cast<Real>(2.0))*gradq;
@@ -731,7 +733,7 @@ namespace SPH
 			m_zero = Scalarf8(0.0f);
 			m_half = Scalarf8(0.5f);
 			m_one = Scalarf8(1.0f);
-			m_eps = Scalarf8(1.0e-5f);
+			m_eps = Scalarf8(1.0e-9f);
 			Scalarf8 W_zero = W(m_zero);
 			float tmp[8];
 			W_zero.store(tmp);
@@ -892,7 +894,7 @@ namespace SPH
  			m_l = -static_cast<Real>(45.0) / (pi*radius6);
 			m_radius_avx = Scalarf8(m_radius);
  			m_W_zero = W(Scalarf8(0.0f));
- 			m_eps = Scalarf8(1.0e-5f);
+ 			m_eps = Scalarf8(1.0e-9f);
 		}
 
 	public:

@@ -102,7 +102,7 @@ import pysplishsplash as sph
 def main():
     base = sph.Exec.SimulatorBase()
     base.init()
-    gui = sph.GUI.Simulator_GUI_TweakBar(base)
+    gui = sph.GUI.Simulator_GUI_imgui(base)
     base.setGui(gui)
     base.run()
 
@@ -161,7 +161,7 @@ import pysplishsplash.Utilities.SceneLoaderStructs as Scene
 def main():
     base = pysplishsplash.Exec.SimulatorBase()
     args = base.init()
-    gui = pysplishsplash.GUI.Simulator_GUI_TweakBar(base)
+    gui = pysplishsplash.GUI.Simulator_GUI_imgui(base)
     base.setGui(gui)
     scene = base.getScene()
     add_block = Scene.FluidBlock('Fluid', Scene.Box([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]), 0, [0.0, 0.0, 0.0])

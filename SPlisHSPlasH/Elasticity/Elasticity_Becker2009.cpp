@@ -42,7 +42,7 @@ void Elasticity_Becker2009::initParameters()
 	ElasticityBase::initParameters();
 
 	ALPHA = createNumericParameter("alpha", "Zero-energy modes suppression", &m_alpha);
-	setGroup(ALPHA, "Elasticity");
+	setGroup(ALPHA, "Fluid Model|Elasticity");
 	setDescription(ALPHA, "Coefficent for zero-energy modes suppression method");
 	RealParameter *rparam = static_cast<RealParameter*>(getParameter(ALPHA));
 	rparam->setMinValue(0.0);

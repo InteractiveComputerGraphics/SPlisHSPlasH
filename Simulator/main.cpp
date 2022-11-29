@@ -2,13 +2,8 @@
 #include "Simulator/SimulatorBase.h"
 #include "Simulator/GUI/OpenGL/Simulator_OpenGL.h"
 #include "PositionBasedDynamicsWrapper/PBDBoundarySimulator.h"
-#ifdef USE_IMGUI
-	#include "Simulator/GUI/imgui/Simulator_GUI_imgui.h"
-	#include "PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h"
-#else
-	#include "Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h"
-	#include "PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h"
-#endif
+#include "Simulator/GUI/imgui/Simulator_GUI_imgui.h"
+#include "PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -32,17 +27,10 @@ int main( int argc, char **argv )
 
 	if (base->getUseGUI())
 	{
-#ifdef USE_IMGUI
 		if (base->isStaticScene())
 			gui = new Simulator_GUI_imgui(base);
 		else
 			gui = new PBD_Simulator_GUI_imgui(base, ((PBDBoundarySimulator*)base->getBoundarySimulator())->getPBDWrapper());
-#else
-		if (base->isStaticScene())
-			gui = new Simulator_GUI_TweakBar(base);
-		else
-			gui = new PBD_Simulator_GUI_TweakBar(base, ((PBDBoundarySimulator*)base->getBoundarySimulator())->getPBDWrapper());
-#endif
 		base->setGui(gui);
 	}
 	base->run();

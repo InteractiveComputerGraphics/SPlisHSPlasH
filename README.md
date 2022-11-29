@@ -8,7 +8,7 @@
 
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension and vorticity. 
 
-The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), [hapPLY](https://github.com/nmwsharp/happly), and [imgui](https://github.com/ocornut/imgui) or [AntTweakBar](http://anttweakbar.sourceforge.net/). All external dependencies are included. 
+The library uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), [hapPLY](https://github.com/nmwsharp/happly), [nfd](https://github.com/btzy/nativefiledialog-extended), and [imgui](https://github.com/ocornut/imgui). All external dependencies are included. 
 
 Furthermore we use our own libraries:
 - [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/) to simulate dynamic rigid bodies
@@ -17,7 +17,8 @@ Furthermore we use our own libraries:
 - [cuNSearch](https://github.com/InteractiveComputerGraphics/cuNSearch) to perform the neighborhood search on the GPU
 - [GenericParameters](https://github.com/InteractiveComputerGraphics/GenericParameters) to handle generic parameters
 
-SPlisHSPlasH can export the particle data in the partio and vtk format. If you want to import partio files in Maya, try out our Maya plugin: 
+SPlisHSPlasH can export the particle data in the partio and vtk format. If you want to import partio files in Maya or Blender, try out our plugins: 
+- [Blender Sequence Loader](https://github.com/InteractiveComputerGraphics/blender-sequence-loader)
 - [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
 
 **Author**: [Jan Bender](http://www.interactive-graphics.de)
@@ -44,7 +45,7 @@ On our [GitHub discussions](https://github.com/InteractiveComputerGraphics/SPlis
 
 This project is based on [CMake](https://cmake.org/). Simply generate project, Makefiles, etc. using [CMake](https://cmake.org/) and compile the project with a compiler of your choice that supports C++11. The code was tested with the following configurations:
 - Windows 10 64-bit, CMake 3.18.3, Visual Studio 2019
-- Debian 9 64-bit, CMake 3.12.3, GCC 6.3.0.
+- Debian 11.5 64-bit, CMake 3.18.4, GCC 10.2.1.
 
 Note: Please use a 64-bit target on a 64-bit operating system. 32-bit builds on a 64-bit OS are not supported.
 
@@ -81,6 +82,7 @@ SPlisHSPlasH implements:
 * simulation of deformable solids 
 * rigid-fluid coupling with static and dynamic bodies
 * two-way coupling with deformable solids
+* XSPH velocity filter
 * fluid emitters
 * scripted animation fields
 * a json-based scene file importer
@@ -111,9 +113,7 @@ The SPlisHSPlasH library implements the following pressure solvers:
 The SPlisHSPlasH library implements the following boundary handling methods:
 
 * Nadir Akinci, Markus Ihmsen, Gizem Akinci, Barbara Solenthaler, and Matthias Teschner, "Versatile rigid-fluid coupling for incompressible SPH", ACM Transactions on Graphics 31(4), 2012
-
 * Dan Koschier and Jan Bender, "Density Maps for Improved SPH Boundary Handling", In Proceedings of ACM SIGGRAPH / EUROGRAPHICS Symposium on Computer Animation (SCA), 2017
-
 * Jan Bender, Tassilo Kugelstadt, Marcel Weiler, Dan Koschier, "Volume Maps: An Implicit Boundary Representation for SPH", ACM SIGGRAPH Conference on Motion, Interaction and Games, 2019
 
 ## Viscosity
@@ -121,18 +121,13 @@ The SPlisHSPlasH library implements the following boundary handling methods:
 The SPlisHSPlasH library implements explicit viscosity methods:
 
 * Standard SPH formulation of viscosity
-* XSPH
 
 and the implicit methods of the following publications:  
 
 * Jan Bender and Dan Koschier, "Divergence-free SPH for incompressible and viscous fluids", IEEE Transactions on Visualization and Computer Graphics, 2017
-
 * Andreas Peer, Markus Ihmsen, Jens Cornelis, and Matthias Teschner, "An Implicit Viscosity Formulation for SPH Fluids", ACM Transactions on Graphics, 34(4), 2015
-
 * Andreas Peer and Matthias Teschner. Prescribed Velocity Gradients for Highly Viscous SPH Fluids with Vorticity Diffusion. IEEE Transactions on Visualization and Computer Graphics, 2016
-
 * An improved version of: Tetsuya Takahashi, Yoshinori Dobashi, Issei Fujishiro, Tomoyuki Nishita, and Ming C. Lin. Implicit Formulation for SPH-based Viscous Fluids. Computer Graphics Forum, 34, 2015.
-
 * Marcel Weiler, Dan Koschier, Magnus Brand and Jan Bender. A Physically Consistent Implicit Viscosity Solver for SPH Fluids. Computer Graphics Forum (Eurographics), 37(2), 2018
 
 ## Surface Tension
@@ -149,7 +144,6 @@ The SPlisHSPlasH library implements the surface tension methods of the following
 The SPlisHSPlasH library implements the vorticity methods of the following publications: 
 
 * Jan Bender, Dan Koschier, Tassilo Kugelstadt and Marcel Weiler. A Micropolar Material Model for Turbulent SPH Fluids. In Proceedings of ACM SIGGRAPH / EUROGRAPHICS Symposium on Computer Animation, 2017
-
 * Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1–104:12, July 2013.
 
 ## Drag Forces
@@ -157,15 +151,12 @@ The SPlisHSPlasH library implements the vorticity methods of the following publi
 The SPlisHSPlasH library implements the drag force computation of the following publications: 
 
 * Christoph Gissler, Stefan Band, Andreas Peer, Markus Ihmsen and Matthias Teschner. Approximate Air-Fluid Interactions for SPH. In Proceedings of Virtual Reality Interactions and Physical Simulations, 2017
-
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
 
 ## Elastic Forces
 
 * M. Becker, M. Ihmsen, and M. Teschner. Corotated SPH for deformable solids. Proceedings of Eurographics Conference on Natural Phenomena, 2009
-
 * A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017
-
 * Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
 
 
@@ -231,10 +222,10 @@ The following videos were generated using the SPlisHSPlasH library:
 * Tassilo Kugelstadt, Jan Bender, José Antonio Fernández-Fernández, Stefan Rhys  Jeske, Fabian Löschner, and Andreas Longva. Fast Corotated Elastic SPH  Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM  on Computer Graphics and Interactive Techniques, 2021
 * Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1–104:12, July 2013.
 * Miles Macklin, Matthias Müller, Nuttapong Chentanez and Tae-Yong Kim. Unified Particle Physics for Real-Time Applications. ACM Trans. Graph., 33(4), 2014
+* J. J. Monaghan. Smoothed Particle Hydrodynamics. Annual Review of Astronomy and Astrophysics, 1992, 30, 543-574. 
 * A. Peer, C. Gissler, S. Band, and M. Teschner. An Implicit SPH Formulation for Incompressible Linearly Elastic Solids. Computer Graphics Forum, 2017
 * Andreas Peer, Markus Ihmsen, Jens Cornelis, and Matthias Teschner. An Implicit Viscosity Formulation for SPH Fluids. ACM Trans. Graph., 34(4), 2015.
 * Andreas Peer and Matthias Teschner. Prescribed Velocity Gradients for Highly Viscous SPH Fluids with Vorticity Diffusion. IEEE Transactions on Visualization and Computer Graphics, 2016.
-* Hagit Schechter and Robert Bridson. Ghost sph for animating water. ACM Trans. Graph., 31(4):61:1–61:8, July 2012. 
 * B. Solenthaler and R. Pajarola. Density Contrast SPH Interfaces. In Proceedings of ACM SIGGRAPH/Eurographics Symposium on Computer Animation, 2008.
 * B. Solenthaler and R. Pajarola. Predictive-corrective incompressible SPH. ACM Trans. Graph., 28(3):40:1–40:6, July 2009. 
 * Tetsuya Takahashi, Yoshinori Dobashi, Issei Fujishiro, Tomoyuki Nishita, and Ming C. Lin. Implicit Formulation for SPH-based Viscous Fluids. Computer Graphics Forum, 34, 2015.

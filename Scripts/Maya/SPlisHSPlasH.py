@@ -1058,7 +1058,7 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createVec3Param("emitterBoxMax", "Emitter box max.", "Maximum coordinates of an axis-aligned box (used in combination with emitterReuseParticles).", [1.0,1.0,1.0])
 		]
 		SPHFluidConfigurationNode.sphParameters["Viscosity"] = [	
-			PluginFunctions.createEnumParam("viscosityMethod", "Viscosity", "Method to compute viscosity forces.", 1, ["None", "Standard", "XSPH", "Bender and Koschier 2017", "Peer et al. 2015", "Peer et al. 2016", "Takahashi et al. 2015 (improved)", "Weiler et al. 2018"]),
+			PluginFunctions.createEnumParam("viscosityMethod", "Viscosity", "Method to compute viscosity forces.", 1, ["None", "Standard", "Bender and Koschier 2017", "Peer et al. 2015", "Peer et al. 2016", "Takahashi et al. 2015 (improved)", "Weiler et al. 2018"]),
 			PluginFunctions.createFloatParam("viscosity", "Viscosity coefficient", "Coefficient for the viscosity force computation.", 0.01, 0, 1000, 0),
 			PluginFunctions.createIntParam("viscoMaxIter", "Max. iterations (visco)", "(Implicit solvers) Max. iterations of the viscosity solver.", 100, 1, 1000),
 			PluginFunctions.createFloatParam("viscoMaxError", "Max. visco error", "(Implicit solvers) Max. error of the viscosity solver.", 0.01, 1e-6, 1, 0),
@@ -1087,6 +1087,10 @@ class SPHFluidConfigurationNode(OpenMayaMPx.MPxLocatorNode):
 			PluginFunctions.createIntParam("elasticityMaxIter", "Max. iterations (elasticity)", "(Implicit solvers) Max. iterations of the elasticity solver.", 100, 1, 1000),
 			PluginFunctions.createFloatParam("elasticityMaxError", "Max. elasticity error", "(Implicit solvers) Max. error of the elasticity solver.", 0.0001, 1e-6, 1, 0),
 			PluginFunctions.createFloatParam("alpha", "Zero-energy modes suppression", "Coefficent for zero-energy modes suppression method.", 0.0, 0, 10000.0, 0)
+		]
+		SPHFluidConfigurationNode.sphParameters["XSPH"] = [	
+			PluginFunctions.createFloatParam("xsph", "Fluid coefficient", "Coefficient for the XSPH velocity filter in the fluid.", 0.0, 0, 1.0, 0),
+			PluginFunctions.createFloatParam("xsphBoundary", "Boundary coefficient", "Coefficient for the XSPH velocity filter at the boundary.", 0.0, 0, 1.0, 0),
 		]
         
         
@@ -1265,7 +1269,7 @@ class loadRigidBodiesCmd(OpenMayaMPx.MPxCommand):
 				transformNodes.append(newNodes[0])
 				self.addedNodes.append(newNodes)
 			else:
-				objFileName = os.path.join(folderName, objFile)
+				objFileName = os.path.join(folderName, objFile.decode('ascii'))
 				newNodes = cmds.file(objFileName, i=True, rnn=True, type="OBJ", options="mo=1") 
 				
 				transformNodes.append(newNodes[0])

@@ -14,14 +14,6 @@
 #include "BoundaryModel_Bender2019.h"
 #include "BoundaryModel_Koschier2017.h"
 
-#include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_XSPH.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_Takahashi2015.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_Weiler2018.h"
-
 
 using namespace SPH;
 using namespace std;
@@ -170,27 +162,27 @@ void Simulation::initParameters()
 	ParameterObject::initParameters();
 
 	SIM_2D = createBoolParameter("sim2D", "2D Simulation", &m_sim2D);
-	setGroup(SIM_2D, "Simulation");
+	setGroup(SIM_2D, "Simulation|Simulation");
 	setDescription(SIM_2D, "2D/3D simulation.");
 	getParameter(SIM_2D)->setReadOnly(true);
 
 	ENABLE_Z_SORT = createBoolParameter("enableZSort", "Enable z-sort", &m_enableZSort);
-	setGroup(ENABLE_Z_SORT, "Simulation");
+	setGroup(ENABLE_Z_SORT, "Simulation|Simulation");
 	setDescription(ENABLE_Z_SORT, "Enable z-sort to improve cache hits.");
 
 	ParameterBase::GetFunc<Real> getRadiusFct = std::bind(&Simulation::getParticleRadius, this);
 	ParameterBase::SetFunc<Real> setRadiusFct = std::bind(&Simulation::setParticleRadius, this, std::placeholders::_1);
 	PARTICLE_RADIUS = createNumericParameter("particleRadius", "Particle radius", getRadiusFct, setRadiusFct);
-	setGroup(PARTICLE_RADIUS, "Simulation");
+	setGroup(PARTICLE_RADIUS, "Simulation|Simulation");
 	setDescription(PARTICLE_RADIUS, "Radius of the fluid particles.");
 	getParameter(PARTICLE_RADIUS)->setReadOnly(true);
 
  	GRAVITATION = createVectorParameter("gravitation", "Gravitation", 3u, m_gravitation.data());
- 	setGroup(GRAVITATION, "Simulation");
+ 	setGroup(GRAVITATION, "Simulation|Simulation");
  	setDescription(GRAVITATION, "Vector to define the gravitational acceleration.");
 
 	CFL_METHOD = createEnumParameter("cflMethod", "CFL - method", &m_cflMethod);
-	setGroup(CFL_METHOD, "CFL");
+	setGroup(CFL_METHOD, "Simulation|CFL");
 	setDescription(CFL_METHOD, "CFL method used for adaptive time stepping.");
 	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(CFL_METHOD));
 	enumParam->addEnumValue("None", ENUM_CFL_NONE);
@@ -198,24 +190,24 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("CFL - iterations", ENUM_CFL_ITER);
 
 	CFL_FACTOR = createNumericParameter("cflFactor", "CFL - factor", &m_cflFactor);
-	setGroup(CFL_FACTOR, "CFL");
+	setGroup(CFL_FACTOR, "Simulation|CFL");
 	setDescription(CFL_FACTOR, "Factor to scale the CFL time step size.");
 	static_cast<RealParameter*>(getParameter(CFL_FACTOR))->setMinValue(1e-6);
 
 	CFL_MIN_TIMESTEPSIZE = createNumericParameter("cflMinTimeStepSize", "CFL - min. time step size", &m_cflMinTimeStepSize);
-	setGroup(CFL_MIN_TIMESTEPSIZE, "CFL");
+	setGroup(CFL_MIN_TIMESTEPSIZE, "Simulation|CFL");
 	setDescription(CFL_MIN_TIMESTEPSIZE, "Min. time step size.");
 	static_cast<RealParameter*>(getParameter(CFL_MIN_TIMESTEPSIZE))->setMinValue(1e-9);
 
 	CFL_MAX_TIMESTEPSIZE = createNumericParameter("cflMaxTimeStepSize", "CFL - max. time step size", &m_cflMaxTimeStepSize);
-	setGroup(CFL_MAX_TIMESTEPSIZE, "CFL");
+	setGroup(CFL_MAX_TIMESTEPSIZE, "Simulation|CFL");
 	setDescription(CFL_MAX_TIMESTEPSIZE, "Max. time step size.");
 	static_cast<RealParameter*>(getParameter(CFL_MAX_TIMESTEPSIZE))->setMinValue(1e-6);
 
 	ParameterBase::GetFunc<int> getKernelFct = std::bind(&Simulation::getKernel, this);
 	ParameterBase::SetFunc<int> setKernelFct = std::bind(&Simulation::setKernel, this, std::placeholders::_1);
 	KERNEL_METHOD = createEnumParameter("kernel", "Kernel", getKernelFct, setKernelFct);
-	setGroup(KERNEL_METHOD, "Kernel");
+	setGroup(KERNEL_METHOD, "Simulation|Kernel");
 	setDescription(KERNEL_METHOD, "Kernel function used in the SPH model.");
 	enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
 	if (!m_sim2D)
@@ -235,7 +227,7 @@ void Simulation::initParameters()
 	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&Simulation::getGradKernel, this);
 	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&Simulation::setGradKernel, this, std::placeholders::_1);
 	GRAD_KERNEL_METHOD = createEnumParameter("gradKernel", "Gradient of kernel", getGradKernelFct, setGradKernelFct);
-	setGroup(GRAD_KERNEL_METHOD, "Kernel");
+	setGroup(GRAD_KERNEL_METHOD, "Simulation|Kernel");
 	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the SPH model.");
 	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
 	if (!m_sim2D)
@@ -255,7 +247,7 @@ void Simulation::initParameters()
 	ParameterBase::GetFunc<int> getSimulationFct = std::bind(&Simulation::getSimulationMethod, this);
 	ParameterBase::SetFunc<int> setSimulationFct = std::bind(&Simulation::setSimulationMethod, this, std::placeholders::_1);
 	SIMULATION_METHOD = createEnumParameter("simulationMethod", "Simulation method", getSimulationFct, setSimulationFct);
-	setGroup(SIMULATION_METHOD, "Simulation");
+	setGroup(SIMULATION_METHOD, "Simulation|Simulation");
 	setDescription(SIMULATION_METHOD, "Simulation method.");
 	enumParam = static_cast<EnumParameter*>(getParameter(SIMULATION_METHOD));
 	enumParam->addEnumValue("WCSPH", ENUM_SIMULATION_WCSPH);
@@ -267,7 +259,7 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("ICSPH", ENUM_SIMULATION_ICSPH);
 
 	BOUNDARY_HANDLING_METHOD = createEnumParameter("boundaryHandlingMethod", "Boundary handling method", &m_boundaryHandlingMethod);
-	setGroup(BOUNDARY_HANDLING_METHOD, "Simulation");
+	setGroup(BOUNDARY_HANDLING_METHOD, "Simulation|Simulation");
 	setDescription(BOUNDARY_HANDLING_METHOD, "Boundary handling method.");
 	enumParam = static_cast<EnumParameter*>(getParameter(BOUNDARY_HANDLING_METHOD));
 	enumParam->addEnumValue("Akinci et al. 2012", ENUM_AKINCI2012);
@@ -418,7 +410,7 @@ void Simulation::updateTimeStepSizeCFL()
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	// Approximate max. position change due to current velocities
-	Real maxVel = 0.1;
+	Real maxVel = 0.0;
 	const Real diameter = static_cast<Real>(2.0)*radius;
 
 	// fluid particles
@@ -477,6 +469,10 @@ void Simulation::updateTimeStepSizeCFL()
 		}
 	}
 
+	// avoid division by zero
+	if (maxVel < 1.0e-9)
+		maxVel = 1.0e-9;
+
 	// Approximate max. time step size 		
 	h = m_cflFactor * static_cast<Real>(0.4) * (diameter / (sqrt(maxVel)));
 
@@ -497,6 +493,7 @@ void Simulation::computeNonPressureForces()
 		fm->computeVorticity();
 		fm->computeDragForce();
 		fm->computeElasticity();
+		fm->computeXSPH();
 	}
 	STOP_TIMING_AVG
 }

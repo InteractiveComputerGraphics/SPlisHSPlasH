@@ -47,8 +47,8 @@ def main():
     base = sph.Exec.SimulatorBase()
     base.init(useGui=True,  sceneFile=sph.Extras.Scenes.Empty)
 
-    # Create a tweak bar simulator
-    gui = sph.GUI.Simulator_GUI_TweakBar(base)
+    # Create a simulator
+    gui = sph.GUI.Simulator_GUI_imgui(base)
     base.setGui(gui)
 
     # Get the scene and add objects

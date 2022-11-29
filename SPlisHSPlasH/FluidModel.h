@@ -54,6 +54,7 @@ namespace SPH
 	class VorticityBase;
 	class DragBase;
 	class ElasticityBase;
+	class XSPH;
 	class EmitterSystem;
 
 	enum FieldType { Scalar = 0, Vector3, Vector6, Matrix3, Matrix6, UInt };
@@ -127,6 +128,7 @@ namespace SPH
 			std::vector<unsigned int> m_precompIndicesSamePhase;
 #endif
 
+			XSPH* m_xsph;
 			unsigned int m_surfaceTensionMethod;
 			SurfaceTensionBase *m_surfaceTension;
 			unsigned int m_viscosityMethod;
@@ -217,6 +219,7 @@ namespace SPH
 			VorticityBase *getVorticityBase() { return m_vorticity; }
 			DragBase *getDragBase() { return m_drag; }
 			ElasticityBase *getElasticityBase() { return m_elasticity; }
+			XSPH* getXSPH() { return m_xsph; }
 
 			void setDragMethodChangedCallback(std::function<void()> const& callBackFct);
 			void setSurfaceMethodChangedCallback(std::function<void()> const& callBackFct);
@@ -229,6 +232,7 @@ namespace SPH
 			void computeVorticity();
 			void computeDragForce();
 			void computeElasticity();
+			void computeXSPH();
 
 			void saveState(BinaryFileWriter &binWriter);
 			void loadState(BinaryFileReader &binReader);

@@ -84,7 +84,7 @@ void Elasticity_Kugelstadt2021::initParameters()
 			Simulation::getCurrent()->reset();
 	};
 	YOUNGS_MODULUS = createNumericParameter("youngsModulus", "Young`s modulus", getFctYM, setFctYM);
-	setGroup(YOUNGS_MODULUS, "Elasticity");
+	setGroup(YOUNGS_MODULUS, "Fluid Model|Elasticity");
 	setDescription(YOUNGS_MODULUS, "Stiffness of the elastic material");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(YOUNGS_MODULUS));
 	rparam->setMinValue(0.0);
@@ -100,24 +100,24 @@ void Elasticity_Kugelstadt2021::initParameters()
 			Simulation::getCurrent()->reset();
 	};
 	POISSON_RATIO = createNumericParameter("poissonsRatio", "Poisson`s ratio", getFctPR, setFctPR);
-	setGroup(POISSON_RATIO, "Elasticity");
+	setGroup(POISSON_RATIO, "Fluid Model|Elasticity");
 	setDescription(POISSON_RATIO, "Ratio of transversal expansion and axial compression");
 	rparam = static_cast<RealParameter*>(getParameter(POISSON_RATIO));
 	rparam->setMinValue(static_cast<Real>(-1.0 + 1e-4));
 	rparam->setMaxValue(static_cast<Real>(0.5 - 1e-4));
 
 	ITERATIONS_V = createNumericParameter("volumeIterations", "Iterations", &m_iterationsV);
-	setGroup(ITERATIONS_V, "Elasticity");
+	setGroup(ITERATIONS_V, "Fluid Model|Elasticity");
 	setDescription(ITERATIONS_V, "Iterations required by the volume solver.");
 	getParameter(ITERATIONS_V)->setReadOnly(true);
 
 	MAX_ITERATIONS_V = createNumericParameter("volumeMaxIter", "Max. iterations (volume solver)", &m_maxIterV);
-	setGroup(MAX_ITERATIONS_V, "Elasticity");
+	setGroup(MAX_ITERATIONS_V, "Fluid Model|Elasticity");
 	setDescription(MAX_ITERATIONS_V, "Max. iterations of the volume solver");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS_V))->setMinValue(0);
 
 	MAX_ERROR_V = createNumericParameter("volumeMaxError", "Max. volume error", &m_maxErrorV);
-	setGroup(MAX_ERROR_V, "Elasticity");
+	setGroup(MAX_ERROR_V, "Fluid Model|Elasticity");
 	setDescription(MAX_ERROR_V, "Max. error of the volume solver");
 	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_V));
 	rparam->setMinValue(1e-9);
@@ -130,7 +130,7 @@ void Elasticity_Kugelstadt2021::initParameters()
 			Simulation::getCurrent()->reset();
 	};
 	ALPHA = createNumericParameter("alpha", "Zero-energy modes suppression", getFctAlpha, setFctAlpha);
-	setGroup(ALPHA, "Elasticity");
+	setGroup(ALPHA, "Fluid Model|Elasticity");
 	setDescription(ALPHA, "Coefficent for zero-energy modes suppression method");
 	rparam = static_cast<RealParameter*>(getParameter(ALPHA));
 	rparam->setMinValue(0.0);
@@ -143,7 +143,7 @@ void Elasticity_Kugelstadt2021::initParameters()
 			Simulation::getCurrent()->reset();
 	};
 	MAX_NEIGHBORS = createNumericParameter("maxNeighbors", "Max. neighbors", getFct5, setFct5);
-	setGroup(MAX_NEIGHBORS, "Elasticity");
+	setGroup(MAX_NEIGHBORS, "Fluid Model|Elasticity");
 	setDescription(MAX_NEIGHBORS, "Maximum number of neighbors that are considered.");
 
 	ParameterBase::GetVecFunc<Real> getFctFMin = [&]()-> Real* { return m_fixedBoxMin.data(); };
@@ -153,7 +153,7 @@ void Elasticity_Kugelstadt2021::initParameters()
 		determineFixedParticles();
 	};
 	FIXED_BOX_MIN = createVectorParameter("fixedBoxMin", "Fixed box min", 3u, getFctFMin, setFctFMin);
-	setGroup(FIXED_BOX_MIN, "Elasticity");
+	setGroup(FIXED_BOX_MIN, "Fluid Model|Elasticity");
 	setDescription(FIXED_BOX_MIN, "Minimum point of box of which contains the fixed particles.");
 	getParameter(FIXED_BOX_MIN)->setReadOnly(true);
 
@@ -165,7 +165,7 @@ void Elasticity_Kugelstadt2021::initParameters()
 		determineFixedParticles();
 	};
 	FIXED_BOX_MAX = createVectorParameter("fixedBoxMax", "Fixed box max", 3u, getFctFMax, setFctFMax);
-	setGroup(FIXED_BOX_MAX, "Elasticity");
+	setGroup(FIXED_BOX_MAX, "Fluid Model|Elasticity");
 	setDescription(FIXED_BOX_MAX, "Maximum point of box of which contains the fixed particles.");
 	getParameter(FIXED_BOX_MAX)->setReadOnly(true);
 }

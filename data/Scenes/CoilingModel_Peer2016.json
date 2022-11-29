@@ -26,7 +26,7 @@
 			"surfaceTension": 0.2,
 			"surfaceTensionMethod": 0,
 			"viscosity": 0.05,
-			"viscosityMethod": 5,
+			"viscosityMethod": 4,
 			"viscoMaxIter": 200, 
 			"viscoMaxError": 0.08,
 			"viscoMaxIterOmega": 200, 

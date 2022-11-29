@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <sstream>
 
 namespace Utilities
 {
@@ -27,11 +28,21 @@ namespace Utilities
 			}
 		}
 
+		/** converts a value to a string with a given precistion */
+		template <typename T>
+		static std::string to_string_with_precision(const T val, const int n = 6)
+		{
+			std::ostringstream ostr;
+			ostr.precision(n);
+			ostr << std::fixed << val;
+			return ostr.str();
+		}
+
 		/** converts a double or a float to a string */
 		template<typename T>
 		static std::string real2String(const T r)
 		{
-			std::string str = std::to_string(r);
+			std::string str = to_string_with_precision(r,20);
 			str.erase(str.find_last_not_of('0') + 1, std::string::npos);
 			str.erase(str.find_last_not_of('.') + 1, std::string::npos);
 			return str;

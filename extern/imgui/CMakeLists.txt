@@ -1,21 +1,25 @@
 set(IMGUI_HEADERS
 	imconfig.h
 	imgui.h
-	imgui_impl_glfw.h
-	imgui_impl_opengl3.h
 	imgui_internal.h
 	imstb_rectpack.h
 	imstb_textedit.h
 	imstb_truetype.h
+	
+	backends/imgui_impl_glfw.h
+	backends/imgui_impl_opengl3.h
+	backends/imgui_impl_opengl3_loader.h
 )
 
 set(IMGUI_SOURCES
 	imgui.cpp
 	imgui_demo.cpp # useful examples of how to use imgui
 	imgui_draw.cpp
-	imgui_impl_glfw.cpp
-	imgui_impl_opengl3.cpp
+	imgui_tables.cpp
 	imgui_widgets.cpp
+	
+	backends/imgui_impl_glfw.cpp
+	backends/imgui_impl_opengl3.cpp
 )
 
 add_library(imgui

@@ -38,14 +38,14 @@ void MicropolarModel_Bender2017::initParameters()
 	VorticityBase::initParameters();
 
  	VISCOSITY_OMEGA = createNumericParameter("viscosityOmega", "Angular viscosity coefficient", &m_viscosityOmega);
- 	setGroup(VISCOSITY_OMEGA, "Vorticity");
+ 	setGroup(VISCOSITY_OMEGA, "Fluid Model|Vorticity");
  	setDescription(VISCOSITY_OMEGA, "Viscosity coefficient for the angular velocity field.");
  	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_OMEGA));
  	rparam->setMinValue(0.0);
 
 
 	INERTIA_INVERSE = createNumericParameter("inertiaInverse", "Inertia inverse", &m_inertiaInverse);
-	setGroup(INERTIA_INVERSE, "Vorticity");
+	setGroup(INERTIA_INVERSE, "Fluid Model|Vorticity");
 	setDescription(INERTIA_INVERSE, "Inverse microinertia used in the micropolar model.");
 	rparam = static_cast<RealParameter*>(getParameter(INERTIA_INVERSE));
 	rparam->setMinValue(0.0);

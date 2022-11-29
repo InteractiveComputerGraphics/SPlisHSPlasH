@@ -28,13 +28,13 @@ PBDWrapper::PBDWrapper()
 	m_xxStiffness = 1.0;
 	m_yyStiffness = 1.0;
 	m_xyStiffness = 1.0;
-	m_xyPoissonRatio = 0.3;
-	m_yxPoissonRatio = 0.3;
+	m_xyPoissonRatio = static_cast<Real>(0.3);
+	m_yxPoissonRatio = static_cast<Real>(0.3);
 	m_normalizeStretch = false;
 	m_normalizeShear = false;
-	m_bendingStiffness = 0.01;
+	m_bendingStiffness = static_cast<Real>(0.01);
 	m_solidStiffness = 1.0;
-	m_solidPoissonRatio = 0.3;
+	m_solidPoissonRatio = static_cast<Real>(0.3);
 	m_solidNormalizeStretch = false;
 	m_solidNormalizeShear = false;
 	m_volumeStiffness = 1.0;

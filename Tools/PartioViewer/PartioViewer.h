@@ -4,7 +4,6 @@
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "extern/partio/src/lib/Partio.h"
 #include "GUI/PartioViewer_GUI_Base.h"
-#include "extern/AntTweakBar/include/AntTweakBar.h"
 
 namespace SPH
 {

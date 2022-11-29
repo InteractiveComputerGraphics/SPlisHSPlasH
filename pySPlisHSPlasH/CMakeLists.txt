@@ -28,6 +28,7 @@ pybind11_add_module(pysplishsplash
   ExporterModule.cpp
   ExtrasModule.cpp
   PBDModule.cpp
+  XSPHModule.cpp
 )
 
 # All the same postfix, otherwise the module name ist not the same as the exported name and python gets confused

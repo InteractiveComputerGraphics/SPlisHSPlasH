@@ -1,34 +1,18 @@
 include(${PROJECT_SOURCE_DIR}/GUI/OpenGL/CMakeLists.txt)
 
-if (USE_IMGUI)
-	include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
-	set(VIEWER_LINK_LIBRARIES imgui SPlisHSPlasH)
-	set(VIEWER_DEPENDENCIES imgui SPlisHSPlasH CopySPlisHSPlasHShaders CopyImguiFonts)
+include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
+set(VIEWER_LINK_LIBRARIES imgui SPlisHSPlasH)
+set(VIEWER_DEPENDENCIES imgui SPlisHSPlasH CopySPlisHSPlasHShaders CopyImguiFonts)
 
-	set(GUI_SOURCE_FILES 
-		GUI/imgui/PartioViewer_GUI_imgui.cpp
-	)
-	set(GUI_HEADER_FILES
-		GUI/imgui/PartioViewer_GUI_imgui.h
-	)
+set(GUI_SOURCE_FILES 
+	GUI/imgui/PartioViewer_GUI_imgui.cpp
+)
+set(GUI_HEADER_FILES
+	GUI/imgui/PartioViewer_GUI_imgui.h
+)
 
-	source_group("Header Files\\GUI\\imgui" FILES ${GUI_HEADER_FILES})
-	source_group("Source Files\\GUI\\imgui" FILES ${GUI_SOURCE_FILES})
-else()
-	include(${PROJECT_SOURCE_DIR}/GUI/TweakBar/CMakeLists.txt)
-	set(VIEWER_LINK_LIBRARIES AntTweakBar glfw SPlisHSPlasH)
-	set(VIEWER_DEPENDENCIES AntTweakBar glfw SPlisHSPlasH CopySPlisHSPlasHShaders)
-
-	set(GUI_SOURCE_FILES 
-		GUI/TweakBar/PartioViewer_GUI_TweakBar.cpp
-	)
-	set(GUI_HEADER_FILES
-		GUI/TweakBar/PartioViewer_GUI_TweakBar.h
-	)
-
-	source_group("Header Files\\GUI\\TweakBar" FILES ${GUI_HEADER_FILES})
-	source_group("Source Files\\GUI\\TweakBar" FILES ${GUI_SOURCE_FILES})
-endif()
+source_group("Header Files\\GUI\\imgui" FILES ${GUI_HEADER_FILES})
+source_group("Source Files\\GUI\\imgui" FILES ${GUI_SOURCE_FILES})
 
 if(WIN32)
   set(VIEWER_LINK_LIBRARIES opengl32.lib glu32.lib ${VIEWER_LINK_LIBRARIES})
@@ -66,13 +50,6 @@ add_executable(PartioViewer
 	${VIS_FILES}
 	${GUI_FILES}
 )
-
-if (NOT USE_IMGUI)
-	target_compile_definitions(PartioViewer PRIVATE -DTW_NO_LIB_PRAGMA -DTW_STATIC)
-else()
-	target_compile_definitions(PartioViewer PUBLIC -DUSE_IMGUI)
-endif()
-
 
 add_dependencies(PartioViewer ${VIEWER_DEPENDENCIES})
 target_link_libraries(PartioViewer ${VIEWER_LINK_LIBRARIES})

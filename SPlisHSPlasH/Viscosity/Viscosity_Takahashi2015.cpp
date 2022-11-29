@@ -42,17 +42,17 @@ void Viscosity_Takahashi2015::initParameters()
 	ViscosityBase::initParameters();
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
-	setGroup(ITERATIONS, "Viscosity");
+	setGroup(ITERATIONS, "Fluid Model|Viscosity");
 	setDescription(ITERATIONS, "Iterations required by the viscosity solver.");
 	getParameter(ITERATIONS)->setReadOnly(true);
 
 	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
-	setGroup(MAX_ITERATIONS, "Viscosity");
+	setGroup(MAX_ITERATIONS, "Fluid Model|Viscosity");
 	setDescription(MAX_ITERATIONS, "Max. iterations of the viscosity solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
 
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
-	setGroup(MAX_ERROR, "Viscosity");
+	setGroup(MAX_ERROR, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
 	rparam->setMinValue(1e-6);

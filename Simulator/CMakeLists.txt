@@ -1,38 +1,20 @@
 include(${PROJECT_SOURCE_DIR}/GUI/OpenGL/CMakeLists.txt)
 
-if (USE_IMGUI)
-	include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
-	set(SIMULATION_LINK_LIBRARIES imgui SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
-	set(SIMULATION_DEPENDENCIES imgui SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
+include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
+set(SIMULATION_LINK_LIBRARIES imgui ${NFD_LIB} SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
+set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
 	
-	set(GUI_SOURCE_FILES 
-		${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
-		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.cpp
-	)
-	set(GUI_HEADER_FILES
-		${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.h
-		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h
-	)
+set(GUI_SOURCE_FILES 
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
+	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.cpp
+)
+set(GUI_HEADER_FILES
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.h
+	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h
+)
 	
-	source_group("Header Files\\GUI\\imgui" FILES ${GUI_HEADER_FILES})
-	source_group("Source Files\\GUI\\imgui" FILES ${GUI_SOURCE_FILES})
-else()
-	include(${PROJECT_SOURCE_DIR}/GUI/TweakBar/CMakeLists.txt)
-	set(SIMULATION_LINK_LIBRARIES AntTweakBar glfw SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
-	set(SIMULATION_DEPENDENCIES AntTweakBar glfw SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels)
-	
-	set(GUI_SOURCE_FILES 
-		${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.cpp
-		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.cpp
-	)
-	set(GUI_HEADER_FILES
-		${PROJECT_SOURCE_DIR}/Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h
-		PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h
-	)
-	
-	source_group("Header Files\\GUI\\TweakBar" FILES ${GUI_HEADER_FILES})
-	source_group("Source Files\\GUI\\TweakBar" FILES ${GUI_SOURCE_FILES})
-endif()
+source_group("Header Files\\GUI\\imgui" FILES ${GUI_HEADER_FILES})
+source_group("Source Files\\GUI\\imgui" FILES ${GUI_SOURCE_FILES})
 
 
 if(WIN32)
@@ -70,6 +52,7 @@ set(EXPORTER_SOURCE_FILES
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_VTK.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_BIN.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_OBJ.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_PLY.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.cpp
 )
 
@@ -79,6 +62,7 @@ set(EXPORTER_HEADER_FILES
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/ParticleExporter_VTK.h
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_BIN.h
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_OBJ.h
+	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_PLY.h
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.h
 )
 
@@ -122,16 +106,8 @@ add_library(SimulatorBase
 	${EMBEDDED_PYTHON_HEADER_FILES}
 )
 
-if (NOT USE_IMGUI)
-	target_compile_definitions(SimulatorBase PRIVATE -DTW_NO_LIB_PRAGMA -DTW_STATIC)
-endif()
-
 if(DL_OUTPUT)
 	target_compile_definitions(SimulatorBase PUBLIC -DDL_OUTPUT)
-endif()
-
-if (USE_IMGUI)
-	target_compile_definitions(SimulatorBase PUBLIC -DUSE_IMGUI)
 endif()
 
 

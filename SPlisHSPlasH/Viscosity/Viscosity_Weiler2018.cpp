@@ -42,23 +42,23 @@ void Viscosity_Weiler2018::initParameters()
 	ViscosityBase::initParameters();
 
 	VISCOSITY_COEFFICIENT_BOUNDARY = createNumericParameter("viscosityBoundary", "Viscosity coefficient (Boundary)", &m_boundaryViscosity);
-	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Viscosity");
+	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_COEFFICIENT_BOUNDARY, "Coefficient for the viscosity force computation at the boundary.");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
 	rparam->setMinValue(0.0);
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
-	setGroup(ITERATIONS, "Viscosity");
+	setGroup(ITERATIONS, "Fluid Model|Viscosity");
 	setDescription(ITERATIONS, "Iterations required by the viscosity solver.");
 	getParameter(ITERATIONS)->setReadOnly(true);
 
 	MAX_ITERATIONS = createNumericParameter("viscoMaxIter", "Max. iterations (visco)", &m_maxIter);
-	setGroup(MAX_ITERATIONS, "Viscosity");
+	setGroup(MAX_ITERATIONS, "Fluid Model|Viscosity");
 	setDescription(MAX_ITERATIONS, "Max. iterations of the viscosity solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
 
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
-	setGroup(MAX_ERROR, "Viscosity");
+	setGroup(MAX_ERROR, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
 	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
 	rparam->setMinValue(static_cast<Real>(1e-6));

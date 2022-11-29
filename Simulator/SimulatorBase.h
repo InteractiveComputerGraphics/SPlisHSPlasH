@@ -107,6 +107,8 @@ namespace SPH
 		void createExporters();
 		void cleanupExporters();
 		void initExporters();
+		std::string openFileDialog(const std::string& defaultPath, const std::string filterName, const std::string fileFilter);
+		std::string saveFileDialog(const std::string& defaultPath, const std::string& defaultName, const std::string filterName, const std::string fileFilter);
 
 	public:
 		static int PAUSE;
@@ -160,6 +162,9 @@ namespace SPH
 		void readParameters();
 
 		void step();
+
+		void writeScene();
+		void writeSceneFile(const std::string& fileName);
 
 		void singleTimeStep();
 		void saveState(const std::string& stateFile = "");

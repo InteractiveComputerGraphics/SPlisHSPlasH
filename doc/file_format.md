@@ -299,6 +299,8 @@ Example code:
         "colorMapType": 1,
         "renderMinValue": 0.0,
         "renderMaxValue": 5.0,
+        "xsph": 0.0,
+        "xsphBoundary": 0.0,
         "surfaceTension": 0.2,
         "surfaceTensionMethod": 0,		
         "viscosity": 0.01,
@@ -319,7 +321,9 @@ Example code:
 
 * id (string): Defines the id of the material.  You have to give the same id to a FluidBlock, a FluidModel or an Emitter if they should have the defined material behavior.
 * density0 (float): Rest density of the corresponding fluid.
-
+* xsph (float): Coefficient (in [0,1]) for the XSPH velocity filter in the fluid (default: 0.0).
+* xsphBoundary (float): Coefficient (in [0,1]) for the XSPH velocity filter at the boundary (default: 0.0).
+  
 ##### Particle Coloring 
 
 * colorField (string): Choose vector or scalar field for particle coloring.
@@ -338,16 +342,14 @@ Example code:
 * viscosityMethod (int): Viscosity method
   - 0: None
   - 1: Standard
-  - 2: XSPH
-  - 3: Bender and Koschier 2017
-  - 4: Peer et al. 2015
-  - 5: Peer et al. 2016
-  - 6: Takahashi et al. 2015 (improved)
-  - 7: Weiler et al. 2018
+  - 2: Bender and Koschier 2017
+  - 3: Peer et al. 2015
+  - 4: Peer et al. 2016
+  - 5: Takahashi et al. 2015 (improved)
+  - 6: Weiler et al. 2018
 * viscosity (float): Coefficient for the viscosity force computation
   * "Standard" and "Weiler et al. 2018" use the kinematic viscosity as parameter
   * "Bender and Koschier 2017" and "Peer et al. 2015/2016" use a coefficient in [0,1]
-  * For "XSPH" the coefficient is the smoothing parameter in [0,1]
 * viscoMaxIter (int): (Implicit solvers) Max. iterations of the viscosity solver.
 * viscoMaxError (float): (Implicit solvers) Max. error of the viscosity solver.
 * viscoMaxIterOmega (int): (Peer et al. 2016) Max. iterations of the vorticity diffusion solver.

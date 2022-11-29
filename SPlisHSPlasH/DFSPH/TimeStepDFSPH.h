@@ -37,21 +37,18 @@ namespace SPH
 		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 		void divergenceSolve();
 		void divergenceSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
-		void computeDensityAdv(const unsigned int fluidModelIndex, const unsigned int index, const int numParticles, const Real h, const Real density0);
+		void computeDensityAdv(const unsigned int fluidModelIndex, const unsigned int index, const Real h, const Real density0);
 		void computeDensityChange(const unsigned int fluidModelIndex, const unsigned int index, const Real h);
 
-#ifdef USE_WARMSTART_V
-		void warmstartDivergenceSolve(const unsigned int fluidModelIndex);
-#endif
-#ifdef USE_WARMSTART
-		void warmstartPressureSolve(const unsigned int fluidModelIndex);
-#endif
+		void computePressureAccel(const unsigned int fluidModelIndex, const unsigned int i, const Real density0, std::vector<std::vector<Real>>& pressure_rho2, const bool applyBoundaryForces = false);
+		Real compute_aij_pj(const unsigned int fluidModelIndex, const unsigned int i);
 
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
+		/** Init all generic parameters */
 		virtual void initParameters();
 
 	public:
@@ -63,6 +60,7 @@ namespace SPH
 		TimeStepDFSPH();
 		virtual ~TimeStepDFSPH(void);
 
+		/** perform a simulation step */
 		virtual void step();
 		virtual void reset();
 

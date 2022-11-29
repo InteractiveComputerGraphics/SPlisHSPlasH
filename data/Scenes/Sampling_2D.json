@@ -39,7 +39,7 @@
 		},
 		{
 			"id": "Viscous",
-			"viscosityMethod": 7,
+			"viscosityMethod": 6,
 			"viscosity": 1,
 			"viscosityBoundary": 0,
 			"colorMapType": 0,

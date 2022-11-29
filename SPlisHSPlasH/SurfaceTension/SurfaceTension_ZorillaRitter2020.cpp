@@ -160,13 +160,13 @@ void SurfaceTension_ZorillaRitter2020::initParameters()
 
 	SurfaceTensionBase::initParameters();
 
-	const string grp19 = "Surface tension"; // "Surface tension ZR19";
-	const string grp20 = "Surface tension"; // "Surface tension ZR20";
+	const string grp19 = "Fluid Model|Surface tension"; // "Surface tension ZR19";
+	const string grp20 = "Fluid Model|Surface tension"; // "Surface tension ZR20";
 
 	enumGet getVersionFct = std::bind( &SurfaceTension_ZorillaRitter2020::getVersionMethod, this );
 	enumSet setVersionFct = std::bind( &SurfaceTension_ZorillaRitter2020::setVersionMethod, this, std::placeholders::_1 );
 
-	setupGUIEnum(VERSION, "version", "Surface tension", "Method or extended method.",
+	setupGUIEnum(VERSION, "version", "Fluid Model|Surface tension", "Method or extended method.",
 		{ { "V2019", &ENUM_VERSION_V2019 }, { "V2020", &ENUM_VERSION_V2020 } },
 		getVersionFct, setVersionFct );
 

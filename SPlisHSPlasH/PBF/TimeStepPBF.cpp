@@ -54,7 +54,7 @@ void TimeStepPBF::initParameters()
 	TimeStep::initParameters();
 
 	VELOCITY_UPDATE_METHOD = createEnumParameter("velocityUpdateMethod", "Velocity update method", &m_velocityUpdateMethod);
-	setGroup(VELOCITY_UPDATE_METHOD, "PBF");
+	setGroup(VELOCITY_UPDATE_METHOD, "Simulation|PBF");
 	setDescription(VELOCITY_UPDATE_METHOD, "Method for the velocity integration.");
 	EnumParameter *enumParam = static_cast<EnumParameter*>(getParameter(VELOCITY_UPDATE_METHOD));
 	enumParam->addEnumValue("First Order Update", ENUM_PBF_FIRST_ORDER);

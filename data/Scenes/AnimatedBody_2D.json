@@ -56,7 +56,7 @@
 			"rotationAngle": 0.0,
 			"scale": [1.5, 1.5, 1.5],
 			"color": [0.5, 0.5, 0.5, 1.0], 
-			"isAnimated_": true,
+			"isAnimated": true,
 			"isWall": false,
 			"mapInvert": false, 
 			"mapThickness": 0.0,

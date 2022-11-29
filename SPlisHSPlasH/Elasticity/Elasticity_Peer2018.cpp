@@ -59,23 +59,23 @@ void Elasticity_Peer2018::initParameters()
 	ElasticityBase::initParameters();
 
 	ITERATIONS = createNumericParameter("elasticityIterations", "Iterations", &m_iterations);
-	setGroup(ITERATIONS, "Elasticity");
+	setGroup(ITERATIONS, "Fluid Model|Elasticity");
 	setDescription(ITERATIONS, "Iterations required by the elasticity solver.");
 	getParameter(ITERATIONS)->setReadOnly(true);
 
 	MAX_ITERATIONS = createNumericParameter("elasticityMaxIter", "Max. iterations (elasticity)", &m_maxIter);
-	setGroup(MAX_ITERATIONS, "Elasticity");
+	setGroup(MAX_ITERATIONS, "Fluid Model|Elasticity");
 	setDescription(MAX_ITERATIONS, "Coefficient for the elasticity force computation");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
 
 	MAX_ERROR = createNumericParameter("elasticityMaxError", "Max. elasticity error", &m_maxError);
-	setGroup(MAX_ERROR, "Elasticity");
+	setGroup(MAX_ERROR, "Fluid Model|Elasticity");
 	setDescription(MAX_ERROR, "Coefficient for the elasticity force computation");
 	RealParameter * rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
 	rparam->setMinValue(1e-7);
 
 	ALPHA = createNumericParameter("alpha", "Zero-energy modes suppression", &m_alpha);
-	setGroup(ALPHA, "Elasticity");
+	setGroup(ALPHA, "Fluid Model|Elasticity");
 	setDescription(ALPHA, "Coefficent for zero-energy modes suppression method");
 	rparam = static_cast<RealParameter*>(getParameter(ALPHA));
 	rparam->setMinValue(0.0);

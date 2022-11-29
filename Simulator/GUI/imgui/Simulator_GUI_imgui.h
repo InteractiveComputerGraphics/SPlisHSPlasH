@@ -5,8 +5,22 @@
 #include "../Simulator_GUI_Base.h"
 #include <vector>
 
+struct ImFont;
+struct ImGuiContext;
+struct ImGuiSettingsHandler;
+struct ImGuiTextBuffer;
+
 namespace SPH 
 {	
+	struct UserSettings
+	{
+		int scaleIndex;
+		int win_x, win_y;
+		int win_width, win_height;
+
+		UserSettings() { win_x = 0; win_y = 0; win_width = 1280; win_height = 960; scaleIndex = 0; }
+	};
+
 	class Simulator_GUI_imgui : public Simulator_GUI_Base
 	{
 		public:
@@ -18,9 +32,15 @@ namespace SPH
 			Vector3r m_oldMousePos;
 			std::vector<std::string> m_colorFieldNames;
 			std::vector<std::vector<unsigned int>> m_selectedParticles;			
+			std::vector<ImFont*> m_fonts;
+			std::vector<float> m_scales;
+			unsigned int m_currentScaleIndex;
+			ImGuiContext* m_context;
+			UserSettings m_userSettings;
 
 			std::vector<std::vector<unsigned int>>& getSelectedParticles() { return m_selectedParticles; }
 			void initImgui();
+			void initStyle();
 			void initImguiParameters();
 			void renderBoundary();
 			void particleInfo();
@@ -32,6 +52,11 @@ namespace SPH
 			static void switchDrawMode();
 				
 			void destroy();
+
+			static void writeIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf);
+			static void readIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line);
+			static void* readOpenIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, const char* name);
+			static void applySettings(ImGuiContext* ctx, ImGuiSettingsHandler* handler);
 
 		public:
 			virtual void init(int argc, char **argv, const char *name);

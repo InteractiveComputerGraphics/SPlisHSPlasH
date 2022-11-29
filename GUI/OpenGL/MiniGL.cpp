@@ -53,6 +53,7 @@ unsigned char MiniGL::texData[IMAGE_ROWS][IMAGE_COLS][3];
 unsigned int MiniGL::m_texId = 0;
 void(*MiniGL::selectionfunc)(const Vector2i&, const Vector2i&, void*) = NULL;
 void *MiniGL::selectionfuncClientData = NULL;
+bool MiniGL::selectionMode = false;
 void(*MiniGL::mousefunc)(int, int, void*) = NULL;
 int MiniGL::mouseFuncButton;
 Vector2i MiniGL::m_selectionStart;
@@ -790,7 +791,10 @@ void MiniGL::mousePress(GLFWwindow* window, int button, int action, int mods)
 		if (button == GLFW_MOUSE_BUTTON_1)
 		{
 			if (action == GLFW_PRESS)
+			{
 				m_selectionStart = Vector2i(mouse_pos_x_old, mouse_pos_y_old);
+				selectionMode = true;
+			}
 			else
 			{
 				if (m_selectionStart[0] != -1)
@@ -799,6 +803,7 @@ void MiniGL::mousePress(GLFWwindow* window, int button, int action, int mods)
 					selectionfunc(m_selectionStart, pos, selectionfuncClientData);
 				}
 				m_selectionStart = Vector2i(-1, -1);
+				selectionMode = false;
 			}
 		}
 	}
@@ -948,6 +953,29 @@ void MiniGL::error_callback(int error, const char* description)
 	LOG_ERR << description;
 }
 
+void MiniGL::drawSelectionRect()
+{
+	glDisable(GL_LIGHTING);
+	glPushMatrix();
+	glLoadIdentity();
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0.0f, m_width, m_height, 0.0f, -1.0f, 1.0f);
+	glBegin(GL_LINE_LOOP);
+	glColor3f(1, 0, 0); //Set the colour to red 
+	glVertex2f(m_selectionStart[0], m_selectionStart[1]);
+	glVertex2f(m_selectionStart[0], mouse_pos_y_old);
+	glVertex2f(mouse_pos_x_old, mouse_pos_y_old);
+	glVertex2f(mouse_pos_x_old, m_selectionStart[1]);
+	glEnd();
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+
+	glPopMatrix();
+	glEnable(GL_LIGHTING);
+}
+
 void MiniGL::mainLoop()
 {
 	while (!glfwWindowShouldClose(m_glfw_window))
@@ -962,6 +990,9 @@ void MiniGL::mainLoop()
 
 		if (scenefunc != nullptr)
 			scenefunc();
+
+		if (selectionMode)
+			drawSelectionRect();
 
 		glfwSwapBuffers(m_glfw_window);
 		//glFlush();
@@ -986,6 +1017,26 @@ void MiniGL::swapBuffers()
 {
 	glfwSwapBuffers(m_glfw_window);
 	//glFlush();
+}
+
+void MiniGL::getWindowPos(int &x, int &y)
+{
+	glfwGetWindowPos(m_glfw_window, &x, &y);
+}
+
+void MiniGL::getWindowSize(int& w, int& h)
+{
+	glfwGetWindowSize(m_glfw_window, &w, &h);
+}
+
+void MiniGL::setWindowPos(int x, int y)
+{
+	glfwSetWindowPos(m_glfw_window, x, y);
+}
+
+void MiniGL::setWindowSize(int w, int h)
+{
+	glfwSetWindowSize(m_glfw_window, w, h);
 }
 
 void MiniGL::breakPointMainLoop()

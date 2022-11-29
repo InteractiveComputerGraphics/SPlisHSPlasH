@@ -86,7 +86,6 @@ set(SURFACETENSION_SOURCE_FILES
 
 set(VISCOSITY_HEADER_FILES
 	Viscosity/ViscosityBase.h
-	Viscosity/Viscosity_XSPH.h
 	Viscosity/Viscosity_Standard.h
 	Viscosity/Viscosity_Bender2017.h
 	Viscosity/Viscosity_Peer2015.h
@@ -97,7 +96,6 @@ set(VISCOSITY_HEADER_FILES
 	
 set(VISCOSITY_SOURCE_FILES
 	Viscosity/ViscosityBase.cpp
-	Viscosity/Viscosity_XSPH.cpp
 	Viscosity/Viscosity_Standard.cpp
 	Viscosity/Viscosity_Bender2017.cpp
 	Viscosity/Viscosity_Peer2015.cpp
@@ -156,6 +154,7 @@ set(UTILS_HEADER_FILES
 	Utilities/RegularTriangleSampling.h
 	Utilities/RegularSampling2D.h
 	Utilities/SceneLoader.h
+	Utilities/SceneWriter.h
 	Utilities/VolumeSampling.h
 	Utilities/SDFFunctions.h
 	Utilities/SimpleQuadrature.h
@@ -171,6 +170,7 @@ set(UTILS_SOURCE_FILES
 	Utilities/RegularTriangleSampling.cpp
 	Utilities/RegularSampling2D.cpp
 	Utilities/SceneLoader.cpp
+	Utilities/SceneWriter.cpp
 	Utilities/VolumeSampling.cpp
 	Utilities/SDFFunctions.cpp
 	Utilities/SimpleQuadrature.cpp
@@ -226,6 +226,9 @@ add_library(SPlisHSPlasH
 	TriangleMesh.h
 	NonPressureForceBase.cpp
 	NonPressureForceBase.h
+	XSPH.cpp
+	XSPH.h
+
 	
 	${WCSPH_HEADER_FILES}
 	${WCSPH_SOURCE_FILES}

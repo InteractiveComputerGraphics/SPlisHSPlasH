@@ -20,7 +20,7 @@ void VorticityBase::initParameters()
 	NonPressureForceBase::initParameters();
 
 	VORTICITY_COEFFICIENT = createNumericParameter("vorticity", "Vorticity transfer coefficient", &m_vorticityCoeff);
-	setGroup(VORTICITY_COEFFICIENT, "Vorticity");
+	setGroup(VORTICITY_COEFFICIENT, "Fluid Model|Vorticity");
 	setDescription(VORTICITY_COEFFICIENT, "Coefficient for the vorticity force computation");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VORTICITY_COEFFICIENT));
 	rparam->setMinValue(0.0);

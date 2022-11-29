@@ -42,22 +42,22 @@ void TimeStep::initParameters()
 	ParameterObject::initParameters();
 
 	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
-	setGroup(SOLVER_ITERATIONS, "Simulation");
+	setGroup(SOLVER_ITERATIONS, "Simulation|Simulation");
 	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
 	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
 
 	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
-	setGroup(MIN_ITERATIONS, "Simulation");
+	setGroup(MIN_ITERATIONS, "Simulation|Simulation");
 	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
 
 	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
-	setGroup(MAX_ITERATIONS, "Simulation");
+	setGroup(MAX_ITERATIONS, "Simulation|Simulation");
 	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
 
 	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
-	setGroup(MAX_ERROR, "Simulation");
+	setGroup(MAX_ERROR, "Simulation|Simulation");
 	setDescription(MAX_ERROR, "Maximal density error (%).");
 	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(1e-6);
 }
@@ -514,7 +514,7 @@ void TimeStep::precomputeValues()
 		auto& precomputed_indices = model->get_precomputed_indices();
 		auto& precomputed_indices_same_phase = model->get_precomputed_indices_same_phase();
 		auto& precomputed_V_gradW = model->get_precomputed_V_gradW();
-		precomputed_indices.reserve(numParticles);
+		precomputed_indices.reserve(numParticles+1);
 		precomputed_indices.push_back(0);
 
 		precomputed_indices_same_phase.reserve(numParticles);

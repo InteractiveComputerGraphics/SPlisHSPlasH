@@ -59,12 +59,12 @@ void TimeStepICSPH::initParameters()
 	TimeStep::initParameters();
 
 	LAMBDA = createNumericParameter("lambda", "Lambda", &m_lambda);
-	setGroup(LAMBDA, "ICSPH");
+	setGroup(LAMBDA, "Simulation|ICSPH");
 	setDescription(LAMBDA, "Lame parameter lambda.");
 	static_cast<RealParameter*>(getParameter(LAMBDA))->setMinValue(static_cast<Real>(0.0));
 
 	PRESSURE_CLAMPING = createBoolParameter("pressureClamping", "Enable pressure clamping", &m_clamping);
-	setGroup(PRESSURE_CLAMPING, "ICSPH");
+	setGroup(PRESSURE_CLAMPING, "Simulation|ICSPH");
 	setDescription(PRESSURE_CLAMPING, "Turn pressure clamping on/off.");
 }
 

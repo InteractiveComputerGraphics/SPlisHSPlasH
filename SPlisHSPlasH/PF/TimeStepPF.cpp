@@ -87,7 +87,7 @@ void TimeStepPF::initParameters()
 	TimeStep::initParameters();
 
 	STIFFNESS = createNumericParameter("stiffnessPF", "Stiffness", &m_stiffness);
-	setGroup(STIFFNESS, "PF");
+	setGroup(STIFFNESS, "Simulation|PF");
 	setDescription(STIFFNESS, "Stiffness coefficient.");
 	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(1e-6);
 }

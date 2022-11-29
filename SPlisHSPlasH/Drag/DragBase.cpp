@@ -21,7 +21,7 @@ void DragBase::initParameters()
 	NonPressureForceBase::initParameters();
 
 	DRAG_COEFFICIENT = createNumericParameter("drag", "Drag coefficient", &m_dragCoefficient);
-	setGroup(DRAG_COEFFICIENT, "Drag force");
+	setGroup(DRAG_COEFFICIENT, "Fluid Model|Drag force");
 	setDescription(DRAG_COEFFICIENT, "Coefficient for the drag force computation");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(DRAG_COEFFICIENT));
 	rparam->setMinValue(0.0);

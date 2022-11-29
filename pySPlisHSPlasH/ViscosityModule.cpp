@@ -12,7 +12,6 @@
 #include <SPlisHSPlasH/Viscosity/Viscosity_Standard.h>
 #include <SPlisHSPlasH/Viscosity/Viscosity_Takahashi2015.h>
 #include <SPlisHSPlasH/Viscosity/Viscosity_Weiler2018.h>
-#include <SPlisHSPlasH/Viscosity/Viscosity_XSPH.h>
 
 namespace py = pybind11;
 
@@ -119,12 +118,4 @@ void ViscosityModule(py::module m_sub) {
             .def_static("matrixVecProd", &SPH::Viscosity_Weiler2018::matrixVecProd)
             .def("getVDiff", (const Vector3r& (SPH::Viscosity_Weiler2018::*)(const unsigned int)const)& SPH::Viscosity_Weiler2018::getVDiff)
             .def("setVDiff", &SPH::Viscosity_Weiler2018::setVDiff);
-
-    // ---------------------------------------
-    // Viscosity XSPH
-    // ---------------------------------------
-    py::class_<SPH::Viscosity_XSPH, SPH::ViscosityBase>(m_sub, "Viscosity_XSPH")
-            .def_readwrite_static("VISCOSITY_COEFFICIENT_BOUNDARY", &SPH::Viscosity_XSPH::VISCOSITY_COEFFICIENT_BOUNDARY)
-
-            .def(py::init<SPH::FluidModel*>());
 }

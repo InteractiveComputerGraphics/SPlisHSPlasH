@@ -10,8 +10,9 @@
 #include "Simulator/SceneConfiguration.h"
 
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
 
 
 using namespace SPH;
@@ -42,9 +43,10 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 	MiniGL::setSelectionFunc(selection, this);
 	MiniGL::addKeyFunc('i', std::bind(&Simulator_GUI_imgui::particleInfo, this));
 	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
-#ifdef WIN32
+#ifdef USE_NFD_FILE_DIALOG
 	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
-#endif 
+#endif
+	MiniGL::addKeyFunc('w', std::bind(&SimulatorBase::writeScene, m_simulatorBase));
 	MiniGL::addKeyFunc('+', std::bind(&SimulatorBase::singleTimeStep, m_simulatorBase));
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
@@ -70,12 +72,9 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 	MiniGL::setClientSceneFunc(std::bind(&Simulator_GUI_imgui::render, this));
 }
 
-void Simulator_GUI_imgui::initImgui()
+void Simulator_GUI_imgui::initStyle()
 {
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	m_context->Style = ImGuiStyle();
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -87,10 +86,85 @@ void Simulator_GUI_imgui::initImgui()
 	style->FrameBorderSize = 0.5f;
 	style->FrameRounding = 3.0f;
 	style->TabBorderSize = 1.0f;
+	style->ScaleAllSizes(1);
+}
+
+void* Simulator_GUI_imgui::readOpenIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, const char* name)
+{
+	Simulator_GUI_imgui* gui = (Simulator_GUI_imgui*)handler->UserData;
+	return &gui->m_userSettings;
+}
+
+void Simulator_GUI_imgui::readIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{ 
+	Simulator_GUI_imgui* gui = (Simulator_GUI_imgui*)handler->UserData;
+	UserSettings* settings = (UserSettings*)entry;
+	int x, y, w, h;
+	int i;
+	if (sscanf(line, "pos=%d,%d", &x, &y) == 2) { settings->win_x = x; settings->win_y = y; }
+	else if (sscanf(line, "size=%d,%d", &w, &h) == 2) { settings->win_width = w; settings->win_height = h; }
+	else if (sscanf(line, "scale=%d", &i) == 1) { settings->scaleIndex = i; }
+}
+
+void Simulator_GUI_imgui::writeIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf)
+{ 
+	Simulator_GUI_imgui* gui = (Simulator_GUI_imgui*)handler->UserData;
+	out_buf->reserve(out_buf->size() + 200);
+	out_buf->appendf("[%s][%s]\n", handler->TypeName, "Settings");
+	out_buf->appendf("scale=%d\n", gui->m_currentScaleIndex);
+
+	int x, y;
+	MiniGL::getWindowPos(x, y);
+	out_buf->appendf("pos=%d,%d\n", x, y);
+
+	int w, h;
+	MiniGL::getWindowSize(w, h);
+	out_buf->appendf("size=%d,%d\n", w, h);
+}
+
+void Simulator_GUI_imgui::applySettings(ImGuiContext* ctx, ImGuiSettingsHandler* handler)
+{
+	Simulator_GUI_imgui* gui = (Simulator_GUI_imgui*)handler->UserData;
+	UserSettings* settings = (UserSettings*) &gui->m_userSettings;
+	gui->m_currentScaleIndex = settings->scaleIndex;
+	MiniGL::setWindowPos(settings->win_x, settings->win_y);
+	MiniGL::setWindowSize(settings->win_width, settings->win_height);
+}
+
+void Simulator_GUI_imgui::initImgui()
+{
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	m_context = ImGui::CreateContext();
+
+	// Add .ini handle for UserData type
+	ImGuiSettingsHandler ini_handler;
+	ini_handler.TypeName = "SPHSimulator";
+	ini_handler.TypeHash = ImHashStr("SPHSimulator");
+	ini_handler.ReadOpenFn = readOpenIni;
+	ini_handler.ReadLineFn = readIni;
+	ini_handler.WriteAllFn = writeIni;
+	ini_handler.ApplyAllFn = applySettings;
+	ini_handler.UserData = this;
+	m_context->SettingsHandlers.push_back(ini_handler);
+
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	
 	std::string font = Utilities::FileSystem::normalizePath(m_simulatorBase->getExePath() + "/resources/fonts/Roboto-Medium.ttf");
 	//std::string font = Utilities::FileSystem::normalizePath(m_simulatorBase->getExePath() + "/resources/fonts/DroidSans.ttf");
-	io.Fonts->AddFontFromFileTTF(font.c_str(), 15.0f);
+
+	m_scales.push_back(1.0f);
+	m_scales.push_back(1.25f);
+	m_scales.push_back(1.5f);
+	m_scales.push_back(1.75f);
+	m_scales.push_back(2.0f);
+
+	float baseSize = 15.0f;
+	for(int i=0; i < 5; i++)
+		m_fonts.push_back(io.Fonts->AddFontFromFileTTF(font.c_str(), baseSize * m_scales[i]));
+	m_currentScaleIndex = 0;
+
+	initStyle();
 
 	// Setup Platform/Renderer bindings
 	ImGui_ImplGlfw_InitForOpenGL(MiniGL::getWindow(), false);
@@ -135,8 +209,71 @@ void Simulator_GUI_imgui::createSimulationParameterGUI()
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(390, 900), ImGuiCond_FirstUseEver);
 
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Write scene file", "w"))
+				getSimulatorBase()->writeScene();
+			ImGui::Separator();
+			if (ImGui::MenuItem("Save state", "s"))
+				getSimulatorBase()->saveState();
+			if (ImGui::MenuItem("Load state", "l"))
+				getSimulatorBase()->loadStateDialog();
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Simulation"))
+		{
+			if (ImGui::MenuItem("Pause/run simulation", "Space"))
+				switchPause();
+			if (ImGui::MenuItem("Reset simulation", "r"))
+				getSimulatorBase()->reset();
+			if (ImGui::MenuItem("Single step", "+"))
+				getSimulatorBase()->singleTimeStep();
+			ImGui::Separator();
+			if (ImGui::MenuItem("Print particle info", "i", false, (m_selectedParticles.size() > 0)))
+				particleInfo();
+			if (ImGui::MenuItem("Rescale scalar field", "m"))
+				getSimulatorBase()->determineMinMaxOfScalarField();
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("GUI"))
+		{
+			if (ImGui::MenuItem("Scale - 100%", "", m_currentScaleIndex == 0))
+			{
+				m_currentScaleIndex = 0;
+				initStyle();
+			}
+			if (ImGui::MenuItem("Scale - 125%", "", m_currentScaleIndex == 1))
+			{
+				m_currentScaleIndex = 1;
+				initStyle();
+			}
+			if (ImGui::MenuItem("Scale - 150%", "", m_currentScaleIndex == 2))
+			{
+				m_currentScaleIndex = 2;
+				initStyle();
+			}
+			if (ImGui::MenuItem("Scale - 175%", "", m_currentScaleIndex == 3))
+			{
+				m_currentScaleIndex = 3;
+				initStyle();
+			}
+			if (ImGui::MenuItem("Scale - 200%", "", m_currentScaleIndex == 4))
+			{
+				m_currentScaleIndex = 4;
+				initStyle();
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
+
+
 	ImGui::Begin("Settings");  
-	ImGui::PushItemWidth(175);
+	ImGui::PushItemWidth(175 * m_scales[m_currentScaleIndex]);
 
 	imguiParameters::createParameterGUI();
 
@@ -148,22 +285,10 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 {
 	imguiParameters::cleanup();
 
-	initImguiParameters();
-
 	Simulation *sim = Simulation::getCurrent();
-	if (m_simulatorBase)
-	{
-		imguiParameters::createParameterObjectGUI(m_simulatorBase);
-#ifdef USE_EMBEDDED_PYTHON
-		if (m_simulatorBase->getScriptObject())
-			imguiParameters::createParameterObjectGUI(m_simulatorBase->getScriptObject());
-#endif
-	}
+
 	imguiParameters::createParameterObjectGUI(sim);
 	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) sim->getTimeStep());
-#ifdef USE_DEBUG_TOOLS
-	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) sim->getDebugTools());
-#endif
 
 	// Enum for all fluid models
 	if (sim->numberOfFluidModels() > 0)
@@ -269,12 +394,28 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		}
 
 		imguiParameters::createParameterObjectGUI(model);
+		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getXSPH());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getDragBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getSurfaceTensionBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getViscosityBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getVorticityBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getElasticityBase());
 	}
+	
+	initImguiParameters();
+
+	if (m_simulatorBase)
+	{
+		imguiParameters::createParameterObjectGUI(m_simulatorBase);
+#ifdef USE_EMBEDDED_PYTHON
+		if (m_simulatorBase->getScriptObject())
+			imguiParameters::createParameterObjectGUI(m_simulatorBase->getScriptObject());
+#endif
+	}
+
+#ifdef USE_DEBUG_TOOLS
+	imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*)sim->getDebugTools());
+#endif
 }
 
 void Simulator_GUI_imgui::initParameterGUI()
@@ -288,7 +429,9 @@ void Simulator_GUI_imgui::update()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	
+	ImGui::PushFont(m_fonts[m_currentScaleIndex]);
 	createSimulationParameterGUI();
+	ImGui::PopFont();
 
 	// Rendering
 	ImGui::Render();
@@ -437,7 +580,8 @@ void Simulator_GUI_imgui::mouseMove(int x, int y, void *clientData)
 
 void Simulator_GUI_imgui::particleInfo()
 {
-	SimulatorBase::particleInfo(m_selectedParticles);
+	if (m_selectedParticles.size() > 0)
+		SimulatorBase::particleInfo(m_selectedParticles);
 }
 
 void Simulator_GUI_imgui::run()

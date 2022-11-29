@@ -22,13 +22,13 @@ void SurfaceTensionBase::initParameters()
 	NonPressureForceBase::initParameters();
 
 	SURFACE_TENSION = createNumericParameter("surfaceTension", "Surface tension coefficient", &m_surfaceTension);
-	setGroup(SURFACE_TENSION, "Surface tension");
+	setGroup(SURFACE_TENSION, "Fluid Model|Surface tension");
 	setDescription(SURFACE_TENSION, "Coefficient for the surface tension computation");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION));
 	rparam->setMinValue(0.0);
 
 	SURFACE_TENSION_BOUNDARY = createNumericParameter("surfaceTensionBoundary", "Boundary surface tension coefficient", &m_surfaceTensionBoundary);
-	setGroup(SURFACE_TENSION_BOUNDARY, "Surface tension");
+	setGroup(SURFACE_TENSION_BOUNDARY, "Fluid Model|Surface tension");
 	setDescription(SURFACE_TENSION_BOUNDARY, "Coefficient for the surface tension computation at the boundary");
 	rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION_BOUNDARY));
 	rparam->setMinValue(0.0);

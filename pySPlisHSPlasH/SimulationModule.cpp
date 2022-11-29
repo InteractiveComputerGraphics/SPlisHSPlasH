@@ -279,7 +279,7 @@ void SimulationModule(py::module m_sub){
             .def("step", &SPH::SimulatorBase::step)
 
             .def("saveState", &SPH::SimulatorBase::saveState)
-            // .def("loadStateDialog", &SPH::SimulatorBase::loadStateDialog)
+            .def("loadStateDialog", &SPH::SimulatorBase::loadStateDialog)
             .def("loadState", &SPH::SimulatorBase::loadState)
             .def("writeFluidParticlesState", &SPH::SimulatorBase::writeFluidParticlesState)
             .def("readFluidParticlesState", &SPH::SimulatorBase::readFluidParticlesState)

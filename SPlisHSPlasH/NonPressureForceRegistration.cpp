@@ -4,7 +4,6 @@
 #include "SPlisHSPlasH/Drag/DragForce_Gissler2017.h"
 
 #include "SPlisHSPlasH/Viscosity/Viscosity_Standard.h"
-#include "SPlisHSPlasH/Viscosity/Viscosity_XSPH.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h"
 #include "SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h"
@@ -49,7 +48,6 @@ void Simulation::registerNonpressureForces()
 
 	addViscosityMethod("None", [](FluidModel*) -> NonPressureForceBase* { return nullptr; });
 	addViscosityMethod("Standard", Viscosity_Standard::creator);
-	addViscosityMethod("XSPH", Viscosity_XSPH::creator);
 	addViscosityMethod("Bender and Koschier 2017", Viscosity_Bender2017::creator);
 	addViscosityMethod("Peer et al. 2015", Viscosity_Peer2015::creator);
 	addViscosityMethod("Peer et al. 2016", Viscosity_Peer2016::creator);

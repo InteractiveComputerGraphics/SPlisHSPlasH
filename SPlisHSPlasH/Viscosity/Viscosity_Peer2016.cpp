@@ -51,33 +51,33 @@ void Viscosity_Peer2016::initParameters()
 	ViscosityBase::initParameters();
 
 	ITERATIONS_V = createNumericParameter("viscoIterationsV", "Iterations (velocity field)", &m_iterationsV);
-	setGroup(ITERATIONS_V, "Viscosity");
+	setGroup(ITERATIONS_V, "Fluid Model|Viscosity");
 	setDescription(ITERATIONS_V, "Iterations required by the viscosity solver.");
 	getParameter(ITERATIONS_V)->setReadOnly(true);
 
 	ITERATIONS_OMEGA = createNumericParameter("viscoIterationsOmega", "Iterations (vorticity diffusion)", &m_iterationsOmega);
-	setGroup(ITERATIONS_OMEGA, "Viscosity");
+	setGroup(ITERATIONS_OMEGA, "Fluid Model|Viscosity");
 	setDescription(ITERATIONS_OMEGA, "Iterations required by the viscosity solver.");
 	getParameter(ITERATIONS_OMEGA)->setReadOnly(true);
 
 	MAX_ITERATIONS_V = createNumericParameter("viscoMaxIter", "Max. iterations", &m_maxIterV);
-	setGroup(MAX_ITERATIONS_V, "Viscosity");
+	setGroup(MAX_ITERATIONS_V, "Fluid Model|Viscosity");
 	setDescription(MAX_ITERATIONS_V, "Max. iterations of the viscosity solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS_V))->setMinValue(1);
 
 	MAX_ERROR_V = createNumericParameter("viscoMaxError", "Max. error", &m_maxErrorV);
-	setGroup(MAX_ERROR_V, "Viscosity");
+	setGroup(MAX_ERROR_V, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR_V, "Max. error of the viscosity solver.");
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_V));
 	rparam->setMinValue(1e-6);
 
 	MAX_ITERATIONS_OMEGA = createNumericParameter("viscoMaxIterOmega", "Max. iterations (vorticity diffusion)", &m_maxIterOmega);
-	setGroup(MAX_ITERATIONS_OMEGA, "Viscosity");
+	setGroup(MAX_ITERATIONS_OMEGA, "Fluid Model|Viscosity");
 	setDescription(MAX_ITERATIONS_OMEGA, "Max. iterations of the vorticity diffusion solver.");
 	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS_OMEGA))->setMinValue(1);
 
 	MAX_ERROR_OMEGA = createNumericParameter("viscoMaxErrorOmega", "Max. vorticity diffusion error", &m_maxErrorOmega);
-	setGroup(MAX_ERROR_OMEGA, "Viscosity");
+	setGroup(MAX_ERROR_OMEGA, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR_OMEGA, "Max. error of the vorticity diffusion solver.");
 	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_OMEGA));
 	rparam->setMinValue(1e-6);

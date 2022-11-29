@@ -1,5 +1,6 @@
 #include "SimulatorBase.h"
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
+#include "SPlisHSPlasH/Utilities/SceneWriter.h"
 #include "SceneConfiguration.h"
 #include "Utilities/FileSystem.h"
 #include "SPlisHSPlasH/TimeManager.h"
@@ -25,6 +26,9 @@
 #include "PositionBasedDynamicsWrapper/PBDBoundarySimulator.h"
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
+#if USE_NFD_FILE_DIALOG
+#include "extern/nfd/include/nfd.h"
+#endif 
 
 #ifdef USE_EMBEDDED_PYTHON
 #include "pySPlisHSPlasH/Embedded.h"
@@ -118,16 +122,16 @@ void SimulatorBase::initParameters()
 	ParameterObject::initParameters();
 
 	PAUSE = createBoolParameter("pause", "Pause", &m_doPause);
-	setGroup(PAUSE, "General");
+	setGroup(PAUSE, "General|General");
 	setDescription(PAUSE, "Pause simulation.");
 	setHotKey(PAUSE, "space");
 
 	PAUSE_AT = createNumericParameter("pauseAt", "Pause simulation at", &m_pauseAt);
-	setGroup(PAUSE_AT, "General");
+	setGroup(PAUSE_AT, "General|General");
 	setDescription(PAUSE_AT, "Pause simulation at the given time. When the value is negative, the simulation is not paused.");
 
 	STOP_AT = createNumericParameter("stopAt", "Stop simulation at", &m_stopAt);
-	setGroup(STOP_AT, "General");
+	setGroup(STOP_AT, "General|General");
 	setDescription(STOP_AT, "Stop simulation at the given time. When the value is negative, the simulation is not stopped.");
 
 	NUM_STEPS_PER_RENDER = createNumericParameter("numberOfStepsPerRenderUpdate", "# time steps / update", &m_numberOfStepsPerRenderUpdate);
@@ -146,24 +150,24 @@ void SimulatorBase::initParameters()
 	enumParam->addEnumValue("Geometry (no walls)", ENUM_WALLS_GEOMETRY_NO_WALLS);
 
 	DATA_EXPORT_FPS = createNumericParameter("dataExportFPS", "Export FPS", &m_framesPerSecond);
-	setGroup(DATA_EXPORT_FPS, "Export");
+	setGroup(DATA_EXPORT_FPS, "Export|General");
 	setDescription(DATA_EXPORT_FPS, "Frame rate of partio, vtk and rigid body export.");
 
 	STATE_EXPORT = createBoolParameter("enableStateExport", "Simulation state export", &m_enableStateExport);
-	setGroup(STATE_EXPORT, "Export");
+	setGroup(STATE_EXPORT, "Export|General");
 	setDescription(STATE_EXPORT, "Enable/disable export of complete simulation state.");
 
 	STATE_EXPORT_FPS = createNumericParameter("stateExportFPS", "State export FPS", &m_framesPerSecondState);
-	setGroup(STATE_EXPORT_FPS, "Export");
+	setGroup(STATE_EXPORT_FPS, "Export|General");
 	setDescription(STATE_EXPORT_FPS, "Frame rate of simulation state export.");
 
 	PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("particleAttributes", "Export attributes", &m_particleAttributes);
 	getParameter(PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
-	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export");
+	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export|General");
 	setDescription(PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
 
 	ASYNC_EXPORT = createBoolParameter("enableAsyncExport", "Asynchronous export", &m_enableAsyncExport);
-	setGroup(ASYNC_EXPORT, "Export");
+	setGroup(ASYNC_EXPORT, "Export|General");
 	setDescription(ASYNC_EXPORT, "Enable/disable asynchronous export of data. The total performance is faster but disable it when measuring the timings of simulation components. \n\n Currently only supported by partio exporter.");
 
 	for (size_t i = 0; i < m_particleExporters.size(); i++)
@@ -171,7 +175,7 @@ void SimulatorBase::initParameters()
 		m_particleExporters[i].m_id = createBoolParameter(m_particleExporters[i].m_key, m_particleExporters[i].m_name, 
 			[i,this]() -> bool { return m_particleExporters[i].m_exporter->getActive(); },
 			[i,this](bool active) { m_particleExporters[i].m_exporter->setActive(active); });
-		setGroup(m_particleExporters[i].m_id, "Particle exporters");
+		setGroup(m_particleExporters[i].m_id, "Export|Particle exporters");
 		setDescription(m_particleExporters[i].m_id, m_particleExporters[i].m_description);
 	}
 
@@ -180,12 +184,12 @@ void SimulatorBase::initParameters()
 		m_rbExporters[i].m_id = createBoolParameter(m_rbExporters[i].m_key, m_rbExporters[i].m_name,
 			[i, this]() -> bool { return m_rbExporters[i].m_exporter->getActive(); },
 			[i, this](bool active) { m_rbExporters[i].m_exporter->setActive(active); });
-		setGroup(m_rbExporters[i].m_id, "Rigid body exporters");
+		setGroup(m_rbExporters[i].m_id, "Export|Rigid body exporters");
 		setDescription(m_rbExporters[i].m_id, m_rbExporters[i].m_description);
 	}
 
 	EXPORT_OBJECT_SPLITTING = createBoolParameter("enableObjectSplitting", "Split SPH objects", &m_enableObjectSplitting);
-	setGroup(EXPORT_OBJECT_SPLITTING, "Export");
+	setGroup(EXPORT_OBJECT_SPLITTING, "Export|General");
 	setDescription(EXPORT_OBJECT_SPLITTING, "Enable/disable an export of the SPH particles with an indiviual file per object.");
 	getParameter(EXPORT_OBJECT_SPLITTING)->setReadOnly(true);
 }
@@ -305,15 +309,15 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			if (FileSystem::isRelativePath(sceneFile))
 				sceneFile = FileSystem::normalizePath(m_exePath + "/" + sceneFile);
 		}
-#ifdef WIN32
+#ifdef USE_NFD_FILE_DIALOG
 		else
 		{
 			std::string scenePath = FileSystem::normalizePath(m_exePath + "/../data/Scenes/");
 			if (!FileSystem::isDirectory(scenePath))
 				scenePath = m_exePath;
 			std::replace(scenePath.begin(), scenePath.end(), '/', '\\');
-			sceneFile = FileSystem::fileDialog(0, scenePath.c_str(), "*.json");
-
+			//sceneFile = FileSystem::fileDialog(0, scenePath.c_str(), "*.json");
+			sceneFile = openFileDialog(scenePath, "Scene files", "json");
 			if (sceneFile == "")
 				exit(0);
 		}
@@ -324,6 +328,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 			exit(0);
 		}
 #endif
+
 		SceneConfiguration::getCurrent()->setSceneFile(sceneFile);
 
 		m_outputPath = FileSystem::normalizePath(getExePath() + "/output/" + FileSystem::getFileName(sceneFile));
@@ -529,6 +534,8 @@ void SimulatorBase::deferredInit()
 		for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 		{
 			FluidModel* model = sim->getFluidModel(i);
+			if (model->getXSPH())
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getXSPH());
 			if (model->getDragBase())
 				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getDragBase());
 			if (model->getSurfaceTensionBase())
@@ -612,6 +619,7 @@ void SimulatorBase::readParameters()
 		FluidModel *model = sim->getFluidModel(i);
 		const std::string &key = model->getId();
 		m_sceneLoader->readMaterialParameterObject(key, model);
+		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*)model->getXSPH());
 		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getDragBase());
 		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
 		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getViscosityBase());
@@ -651,6 +659,7 @@ void SimulatorBase::setCommandLineParameter()
 		if (m_paramTokens[0] == key)
 		{			
 			setCommandLineParameter((ParameterObject*)model);
+			setCommandLineParameter((ParameterObject*)model->getXSPH());
  			setCommandLineParameter((ParameterObject*)model->getDragBase());
  			setCommandLineParameter((ParameterObject*)model->getSurfaceTensionBase());
 			setCommandLineParameter((ParameterObject*)model->getViscosityBase());
@@ -1065,13 +1074,13 @@ void SimulatorBase::setInitialVelocity(const Vector3r& vel, const Vector3r& angV
 {
 	Vector3r com;
 	com.setZero();
-	for (auto i = 0; i < numParticles; i++)
+	for (auto i = 0u; i < numParticles; i++)
 	{
 		// all have the same mass
 		com += fluidParticles[i];
 	}
 	com /= (Real)numParticles;
-	for (auto i = 0; i < numParticles; i++)
+	for (auto i = 0u; i < numParticles; i++)
 	{
 		fluidVelocities[i] = vel + angVel.cross(fluidParticles[i] - com);
 	}
@@ -1186,7 +1195,7 @@ void SimulatorBase::initFluidData()
 
 				LOG_INFO << "SDF resolution: " << resolutionSDF[0] << ", " << resolutionSDF[1] << ", " << resolutionSDF[2];
 
-				const unsigned int size_before_sampling = fluidParticles[fluidIndex].size();
+				const unsigned int size_before_sampling = static_cast<unsigned int>(fluidParticles[fluidIndex].size());
 				START_TIMING("Volume sampling");
 				Utilities::VolumeSampling::sampleMesh(mesh.numVertices(), mesh.getVertices().data(), mesh.numFaces(), mesh.getFaces().data(),
 					scene.particleRadius, nullptr, resolutionSDF, invert, mode, fluidParticles[fluidIndex]);
@@ -1220,7 +1229,7 @@ void SimulatorBase::initFluidData()
 		Simulation::getCurrent()->setValue(Simulation::PARTICLE_RADIUS, scene.particleRadius);
 
 		fluidObjectIds[fluidIndex].resize(fluidObjectIds[fluidIndex].size() + numAddedParticles);
-		for (auto j = 0; j < numAddedParticles; j++)
+		for (auto j = 0u; j < numAddedParticles; j++)
 			fluidObjectIds[fluidIndex][startIndex+j] = m_currentObjectId;
 		
 		Simulation::FluidInfo info;
@@ -1737,16 +1746,14 @@ void SPH::SimulatorBase::saveState(const std::string& stateFile)
 	LOG_INFO << "Saved state: " << exportFileName + ".bin";
 }
 
-#ifdef WIN32
 void SPH::SimulatorBase::loadStateDialog()
 {
 	const std::string stateFilePath = FileSystem::normalizePath(m_outputPath + "/state");
-	const std::string stateFileName = FileSystem::fileDialog(0, stateFilePath, "*.bin");
+	const std::string stateFileName = openFileDialog(stateFilePath, "State files", "bin");
 	if (stateFileName == "")
 		return;
 	loadState(stateFileName);
 }
-#endif 
 
 void SPH::SimulatorBase::loadState(const std::string &stateFile)
 {
@@ -1854,6 +1861,7 @@ void SimulatorBase::writeParameterState(BinaryFileWriter &binWriter)
 	{
 		FluidModel *model = sim->getFluidModel(i);
 		writeParameterObjectState(binWriter, model);
+		writeParameterObjectState(binWriter, (ParameterObject*)model->getXSPH());
 		writeParameterObjectState(binWriter, (ParameterObject*)model->getDragBase());
 		writeParameterObjectState(binWriter, (ParameterObject*)model->getSurfaceTensionBase());
 		writeParameterObjectState(binWriter, (ParameterObject*)model->getViscosityBase());
@@ -1921,6 +1929,7 @@ void SimulatorBase::readParameterState(BinaryFileReader &binReader)
  	{
  		FluidModel *model = sim->getFluidModel(i);
  		readParameterObjectState(binReader, model);
+		readParameterObjectState(binReader, (ParameterObject*)model->getXSPH());
  		readParameterObjectState(binReader, (ParameterObject*)model->getDragBase());
  		readParameterObjectState(binReader, (ParameterObject*)model->getSurfaceTensionBase());
  		readParameterObjectState(binReader, (ParameterObject*)model->getViscosityBase());
@@ -2754,3 +2763,114 @@ void SimulatorBase::determineMinMaxOfScalarField()
 	//updateScalarField();
 }
 
+std::string SimulatorBase::openFileDialog(const std::string &defaultPath, const std::string filterName, const std::string fileFilter)
+{
+	std::string fileName = "";
+#ifdef USE_NFD_FILE_DIALOG
+	NFD_Init();
+
+	nfdchar_t* outPath;
+	nfdfilteritem_t filterItem[1] = { { filterName.c_str(), fileFilter.c_str() } };
+	nfdresult_t result = NFD_OpenDialog(&outPath, filterItem, 1, defaultPath.c_str());
+	if (result == NFD_OKAY)
+	{
+		fileName = outPath;
+		NFD_FreePath(outPath);
+	}
+	else if (result == NFD_CANCEL)
+	{
+	}
+	else
+	{
+		LOG_ERR << "Error: " << NFD_GetError();
+	}
+
+	NFD_Quit();
+#endif
+
+	return fileName;
+}
+
+std::string SimulatorBase::saveFileDialog(const std::string& defaultPath, const std::string &defaultName, const std::string filterName, const std::string fileFilter)
+{
+	std::string fileName = "";
+#ifdef USE_NFD_FILE_DIALOG
+	NFD_Init();
+
+	nfdchar_t* outPath;
+	nfdfilteritem_t filterItem[1] = { { filterName.c_str(), fileFilter.c_str() } };
+	nfdresult_t result = NFD_SaveDialog(&outPath, filterItem, 1, defaultPath.c_str(), defaultName.c_str());
+	if (result == NFD_OKAY)
+	{
+		fileName = outPath;
+		NFD_FreePath(outPath);
+	}
+	else if (result == NFD_CANCEL)
+	{
+	}
+	else
+	{
+		LOG_ERR << "Error: " << NFD_GetError();
+	}
+
+	NFD_Quit();
+#endif
+
+	return fileName;
+}
+
+void SimulatorBase::writeScene()
+{
+	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();
+	const std::string scene_path = FileSystem::getFilePath(sceneFile);
+	const std::string scene_name = FileSystem::getFileName(sceneFile);
+#ifdef USE_NFD_FILE_DIALOG
+	std::string fileName = saveFileDialog(scene_path, scene_name, "Scene files", "json");
+	if (fileName == "")
+		return;
+#else 
+	// standard name if no file dialog is available
+	std::string fileName = FileSystem::normalizePath(scene_path + "/" + scene_name + "_modified.json");
+#endif
+	writeSceneFile(fileName);
+}
+
+void SimulatorBase::writeSceneFile(const std::string &fileName)
+{
+	Utilities::SceneWriter writer(m_sceneLoader->getJSONData());
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+
+	Simulation* sim = Simulation::getCurrent();
+	writer.writeParameterObject("Configuration", this);
+	writer.writeParameterObject("Configuration", Simulation::getCurrent());
+	writer.writeParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+#ifdef USE_DEBUG_TOOLS
+	writer.writeParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
+#endif
+
+	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
+	{
+		FluidModel* model = sim->getFluidModel(i);
+		const std::string& key = model->getId();
+		writer.updateMaterialParameterConfig(model->getId(), model);
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getXSPH());
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getDragBase());
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getSurfaceTensionBase());
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getViscosityBase());
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getVorticityBase());
+		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getElasticityBase());
+
+		for (auto material : scene.materials)
+		{
+			if (material->id == key)
+			{
+				writer.updateMaterialParameterConfig(model->getId(), "colorField", getColorField(i));
+				writer.updateMaterialParameterConfig(model->getId(), "colorMapType", getColorMapType(i));
+				writer.updateMaterialParameterConfig(model->getId(), "renderMinValue", getRenderMinValue(i));
+				writer.updateMaterialParameterConfig(model->getId(), "renderMaxValue", getRenderMaxValue(i));
+			}
+		}
+	}
+
+	writer.writeScene(fileName.c_str());
+}

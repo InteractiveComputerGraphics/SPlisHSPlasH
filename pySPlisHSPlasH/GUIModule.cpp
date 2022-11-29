@@ -4,14 +4,9 @@
 #include "common.h"
 
 #include <Simulator/GUI/Simulator_GUI_Base.h>
-#ifdef USE_IMGUI
 #include <Simulator/GUI/imgui/Simulator_GUI_imgui.h>
 #include <Simulator/PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h>
 #include <Simulator/PositionBasedDynamicsWrapper/PBDWrapper.h>
-#else
-#include <Simulator/GUI/TweakBar/Simulator_GUI_TweakBar.h>
-#include <Simulator/PositionBasedDynamicsWrapper/PBD_Simulator_GUI_TweakBar.h>
-#endif
 #include <Simulator/GUI/OpenGL/Simulator_OpenGL.h>
 
 #include <pybind11/pybind11.h>
@@ -51,7 +46,6 @@ void GUIModule(py::module m) {
             .def("addKeyFunc", &SPH::Simulator_GUI_Base::addKeyFunc)
             .def("getSimulatorBase", &SPH::Simulator_GUI_Base::getSimulatorBase, py::return_value_policy::reference_internal);
 
-#ifdef USE_IMGUI
     // ---------------------------------------
     // imgui GUI Class
     // ---------------------------------------
@@ -63,21 +57,6 @@ void GUIModule(py::module m) {
     // ---------------------------------------
     py::class_<SPH::PBD_Simulator_GUI_imgui, SPH::Simulator_GUI_imgui>(m_sub, "PBD_Simulator_GUI_imgui")
             .def(py::init<SPH::SimulatorBase*, PBDWrapper*>());
-
-#else
-    // ---------------------------------------
-    // Tweakbar GUI Class
-    // ---------------------------------------
-    py::class_<SPH::Simulator_GUI_TweakBar, SPH::Simulator_GUI_Base>(m_sub, "Simulator_GUI_TweakBar")
-            .def(py::init<SPH::SimulatorBase*>());
-            // .def("getTweakBar", &SPH::Simulator_GUI_TweakBar::getTweakBar); //TODO: Wrap tweak bar for this
-
-    // ---------------------------------------
-    // pbd tweakbar GUI Class
-    // ---------------------------------------
-    py::class_<SPH::PBD_Simulator_GUI_TweakBar, SPH::Simulator_GUI_TweakBar>(m_sub, "PBD_Simulator_GUI_TweakBar")
-            .def(py::init<SPH::SimulatorBase*, PBDWrapper*>());
-#endif
 
     // ---------------------------------------
     // OpenGL GUI Class // TODO implement missing functions

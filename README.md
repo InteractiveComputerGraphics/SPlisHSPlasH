@@ -55,7 +55,7 @@ For Windows and Linux targets there exists prebuilt python wheel files which can
 ```
 pip install pysplishsplash
 ```
-These are available for Python Versions: 2.7, 3.5, 3.6, 3.7, 3.8.
+These are available for Python Versions. See also here: [pySPlisHSPlasH](https://pypi.org/project/pySPlisHSPlasH/).
 If you do not meet these conditions please refer to the build instructions and to the python binding 
 [Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_getting_started.md).
 

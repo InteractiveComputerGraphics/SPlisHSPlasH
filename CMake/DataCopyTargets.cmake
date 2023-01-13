@@ -24,9 +24,9 @@ add_dependencies(CopyPBDShaders Ext_PBD)
 set_target_properties(CopyPBDShaders PROPERTIES FOLDER "Data copy")
 
 add_custom_target(CopyImguiFonts
-	${CMAKE_COMMAND} -E copy
-	${PROJECT_SOURCE_DIR}/extern/imgui/misc/fonts/Roboto-Medium.ttf
-	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/fonts/Roboto-Medium.ttf
+	${CMAKE_COMMAND} -E copy_directory
+	${PROJECT_SOURCE_DIR}/extern/imgui/misc/fonts
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/fonts
 	COMMENT "Copying fonts"
 )
 set_target_properties(CopyImguiFonts PROPERTIES FOLDER "Data copy")

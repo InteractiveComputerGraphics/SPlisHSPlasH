@@ -16,6 +16,7 @@
 #include <Utilities/Counting.h>
 #include <Utilities/FileSystem.h>
 #include <Utilities/OBJLoader.h>
+#include <Utilities/PLYLoader.h>
 #include <Utilities/PartioReaderWriter.h>
 #include <SPlisHSPlasH/Utilities/GaussQuadrature.h>
 #include <SPlisHSPlasH/Utilities/MathFunctions.h>
@@ -29,6 +30,7 @@
 #include <SPlisHSPlasH/Utilities/SurfaceSampling.h>
 #include <SPlisHSPlasH/Utilities/VolumeSampling.h>
 #include <SPlisHSPlasH/Utilities/WindingNumbers.h>
+#include <SPlisHSPlasH/Utilities/MeshImport.h>
 
 #include "bind_pointer_vector.h"
 
@@ -144,6 +146,10 @@ void UtilitiesModule(py::module m) {
     py::class_<Utilities::OBJLoader>(m_sub, "OBJLoader")
             .def(py::init<>())
             .def_static("loadObj", &Utilities::OBJLoader::loadObj);
+
+    py::class_<Utilities::PLYLoader>(m_sub, "PLYLoader")
+        .def(py::init<>())
+        .def_static("loadPly", &Utilities::PLYLoader::loadPly);
 
     // ---------------------------------------
     // Partio reader and writer
@@ -266,137 +272,139 @@ void UtilitiesModule(py::module m) {
 
     auto m_sub_sub = m_sub.def_submodule("SceneLoaderStructs");
     using SceneInfo = Utilities::SceneLoader;
-    py::class_<SceneInfo::Box>(m_sub_sub, "Box")
-            .def(py::init<Vector3r, Vector3r>(), "minX"_a=Vector3r::Zero(), "maxX"_a=Vector3r::Ones())
-            .def_readwrite("m_minX", &SceneInfo::Box::m_minX)
-            .def_readwrite("m_maxX", &SceneInfo::Box::m_maxX);
 
-    py::class_<SceneInfo::BoundaryData>(m_sub_sub, "BoundaryData")
-            // .def(py::init<>())
-            .def(py::init<std::string, std::string, Vector3r, Matrix3r, Vector3r, Real, bool, bool,
-                         Eigen::Matrix<float, 4, 1, Eigen::DontAlign>, void *, std::string, bool, Real,
-                         Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
-                 "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
-                 "rotation"_a = Matrix3r::Identity(), "scale"_a = Vector3r::Ones(),
-                 "density"_a = 1000., "isDynamic"_a = false, "isWall"_a = false,
-                 "color"_a = Eigen::Vector4f(1.f, 0.f, 0.f, 0.f), "rigidBody"_a = nullptr,
-                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
-                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                 "samplingMode"_a = 0, "isAnimated"_a = false)
-            .def_readwrite("samplesFile", &SceneInfo::BoundaryData::samplesFile)
-            .def_readwrite("meshFile", &SceneInfo::BoundaryData::meshFile)
-            .def_readwrite("translation", &SceneInfo::BoundaryData::translation)
-            .def_readwrite("rotation", &SceneInfo::BoundaryData::rotation)
-            .def_readwrite("scale", &SceneInfo::BoundaryData::scale)
-            .def_readwrite("density", &SceneInfo::BoundaryData::density)
-            .def_readwrite("dynamic", &SceneInfo::BoundaryData::dynamic)
-            .def_readwrite("isWall", &SceneInfo::BoundaryData::isWall)
-            .def_readwrite("color", &SceneInfo::BoundaryData::color)
-            .def_readwrite("rigidBody",
-                           &SceneInfo::BoundaryData::rigidBody) // TODO: find out if void pointer is problem
-            .def_readwrite("mapFile", &SceneInfo::BoundaryData::mapFile)
-            .def_readwrite("mapInvert", &SceneInfo::BoundaryData::mapInvert)
-            .def_readwrite("mapThickness", &SceneInfo::BoundaryData::mapThickness)
-            .def_readwrite("mapResolution", &SceneInfo::BoundaryData::mapResolution)
-            .def_readwrite("samplingMode", &SceneInfo::BoundaryData::samplingMode)
-            .def_readwrite("isAnimated", &SceneInfo::BoundaryData::isAnimated);
+    py::class_<Utilities::BoundaryParameterObject, GenParam::ParameterObject>(m_sub_sub, "BoundaryData")
+        .def(py::init<>())
+        .def(py::init<std::string, std::string, Vector3r, Vector3r, Real, Vector3r, bool, bool,
+                        Eigen::Matrix<float, 4, 1, Eigen::DontAlign>, std::string, bool, Real,
+                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
+                "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
+                "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(),
+                "isDynamic"_a = false, "isWall"_a = false,
+                "color"_a = Eigen::Vector4f(1.f, 0.f, 0.f, 0.f), 
+                "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
+                "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
+                "samplingMode"_a = 0, "isAnimated"_a = false)
+        .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
+        .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
+        .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)
+        .def_readwrite("axis", &Utilities::BoundaryParameterObject::axis)
+        .def_readwrite("angle", &Utilities::BoundaryParameterObject::angle)
+        .def_readwrite("scale", &Utilities::BoundaryParameterObject::scale)
+        .def_readwrite("dynamic", &Utilities::BoundaryParameterObject::dynamic)
+        .def_readwrite("isWall", &Utilities::BoundaryParameterObject::isWall)
+        .def_readwrite("color", &Utilities::BoundaryParameterObject::color)
+        .def_readwrite("mapFile", &Utilities::BoundaryParameterObject::mapFile)
+        .def_readwrite("mapInvert", &Utilities::BoundaryParameterObject::mapInvert)
+        .def_readwrite("mapThickness", &Utilities::BoundaryParameterObject::mapThickness)
+        .def_readwrite("mapResolution", &Utilities::BoundaryParameterObject::mapResolution)
+        .def_readwrite("samplingMode", &Utilities::BoundaryParameterObject::samplingMode)
+        .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated);
 
-    py::class_<SceneInfo::FluidData>(m_sub_sub, "FluidData")
-            .def(py::init<std::string, std::string, std::string, Vector3r, Matrix3r, Vector3r, Vector3r, Vector3r, unsigned char,
-                    bool, std::array<unsigned int, 3>>(),
-                    "id"_a="Fluid", "visMeshFile"_a = "", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
-                    "rotation"_a=Matrix3r::Identity(), "scale"_a=Vector3r::Ones(),
-                    "initialVelocity"_a=Vector3r::Zero(), "initialAngularVelocity"_a = Vector3r::Zero(), "mode"_a=0, "invert"_a=false,
-                    "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))
-            .def_readwrite("id", &SceneInfo::FluidData::id)
-            .def_readwrite("visMeshFile", &SceneInfo::FluidData::visMeshFile)
-            .def_readwrite("samplesFile", &SceneInfo::FluidData::samplesFile)
-            .def_readwrite("translation", &SceneInfo::FluidData::translation)
-            .def_readwrite("rotation", &SceneInfo::FluidData::rotation)
-            .def_readwrite("scale", &SceneInfo::FluidData::scale)
-            .def_readwrite("initialVelocity", &SceneInfo::FluidData::initialVelocity)
-            .def_readwrite("initialAngularVelocity", &SceneInfo::FluidData::initialAngularVelocity)
-            .def_readwrite("mode", &SceneInfo::FluidData::mode)
-            .def_readwrite("invert", &SceneInfo::FluidData::invert)
-            .def_readwrite("resolutionSDF", &SceneInfo::FluidData::resolutionSDF);
+    py::class_<Utilities::FluidModelParameterObject, GenParam::ParameterObject>(m_sub_sub, "FluidData")
+        .def(py::init<>())
+        .def(py::init<std::string, std::string, std::string, Vector3r, Vector3r, Real, Vector3r, Vector3r, Vector3r, unsigned char,
+                bool, std::array<unsigned int, 3>>(),
+                "id"_a="Fluid", "visMeshFile"_a = "", "samplesFile"_a, "translation"_a=Vector3r::Zero(), // TODO: samples file here has no default because it needs to be provided
+                "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "scale"_a=Vector3r::Ones(),
+                "initialVelocity"_a=Vector3r::Zero(), "initialAngularVelocity"_a = Vector3r::Zero(), "mode"_a=0, "invert"_a=false,
+                "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))
+        .def_readwrite("id", &Utilities::FluidModelParameterObject::id)
+        .def_readwrite("visMeshFile", &Utilities::FluidModelParameterObject::visMeshFile)
+        .def_readwrite("samplesFile", &Utilities::FluidModelParameterObject::samplesFile)
+        .def_readwrite("translation", &Utilities::FluidModelParameterObject::translation)
+        .def_readwrite("axis", &Utilities::FluidModelParameterObject::axis)
+        .def_readwrite("angle", &Utilities::FluidModelParameterObject::angle)
+        .def_readwrite("scale", &Utilities::FluidModelParameterObject::scale)
+        .def_readwrite("initialVelocity", &Utilities::FluidModelParameterObject::initialVelocity)
+        .def_readwrite("initialAngularVelocity", &Utilities::FluidModelParameterObject::initialAngularVelocity)
+        .def_readwrite("mode", &Utilities::FluidModelParameterObject::mode)
+        .def_readwrite("invert", &Utilities::FluidModelParameterObject::invert)
+        .def_readwrite("resolutionSDF", &Utilities::FluidModelParameterObject::resolutionSDF);
 
-    py::class_<SceneInfo::FluidBlock>(m_sub_sub, "FluidBlock")
-            .def(py::init<std::string, std::string, SceneInfo::Box, unsigned char, Vector3r, Vector3r>(),
-                    "id"_a="Fluid", "visMeshFile"_a="", "box"_a=SceneInfo::Box({Vector3r::Zero(), Vector3r::Ones()}),
-                    "mode"_a=0, "initialVelocity"_a=Vector3r::Zero(), "initialVelocity"_a = Vector3r::Zero())
-            .def_readwrite("id", &SceneInfo::FluidBlock::id)
-            .def_readwrite("visMeshFile", &SceneInfo::FluidBlock::visMeshFile)
-            .def_readwrite("box", &SceneInfo::FluidBlock::box)
-            .def_readwrite("mode", &SceneInfo::FluidBlock::mode)
-            .def_readwrite("initialVelocity", &SceneInfo::FluidBlock::initialVelocity)
-            .def_readwrite("initialAngularVelocity", &SceneInfo::FluidBlock::initialAngularVelocity);
+    py::class_<Utilities::FluidBlockParameterObject, GenParam::ParameterObject>(m_sub_sub, "FluidBlock")
+        .def(py::init<>())
+        .def(py::init<std::string, std::string, Vector3r, Vector3r, unsigned char, Vector3r, Vector3r, Vector3r, Vector3r>(),
+                "id"_a="Fluid", "visMeshFile"_a="", "boxMin"_a=Vector3r::Zero(), "boxMax"_a = Vector3r::Ones(),
+                "mode"_a=0, "translation"_a = Vector3r::Zero(), "scale"_a = Vector3r::Ones(), "initialVelocity"_a=Vector3r::Zero(), "initialVelocity"_a = Vector3r::Zero())
+        .def_readwrite("id", &Utilities::FluidBlockParameterObject::id)
+        .def_readwrite("visMeshFile", &Utilities::FluidBlockParameterObject::visMeshFile)
+        .def_readwrite("boxMin", &Utilities::FluidBlockParameterObject::boxMin)
+        .def_readwrite("boxMax", &Utilities::FluidBlockParameterObject::boxMax)
+        .def_readwrite("mode", &Utilities::FluidBlockParameterObject::mode)
+        .def_readwrite("translation", &Utilities::FluidBlockParameterObject::translation)
+        .def_readwrite("scale", &Utilities::FluidBlockParameterObject::scale)
+        .def_readwrite("initialVelocity", &Utilities::FluidBlockParameterObject::initialVelocity)
+        .def_readwrite("initialAngularVelocity", &Utilities::FluidBlockParameterObject::initialAngularVelocity);
 
-    py::class_<SceneInfo::EmitterData>(m_sub_sub, "EmitterData")
-            .def(py::init<std::string, unsigned int, unsigned int, Vector3r, Real, Matrix3r, Real, Real, unsigned int>(),
-                    "id"_a="Fluid", "width"_a=5, "height"_a=5, "x"_a=Vector3r::Zero(),
-                    "velocity"_a=1, "rotation"_a=Matrix3r::Identity(), "emitStartTime"_a=0,
-                    "emitEndTime"_a=std::numeric_limits<Real>::max(), "type"_a=0)
-            .def_readwrite("id", &SceneInfo::EmitterData::id)
-            .def_readwrite("width", &SceneInfo::EmitterData::width)
-            .def_readwrite("height", &SceneInfo::EmitterData::height)
-            .def_readwrite("x", &SceneInfo::EmitterData::x)
-            .def_readwrite("velocity", &SceneInfo::EmitterData::velocity)
-            .def_readwrite("rotation", &SceneInfo::EmitterData::rotation)
-            .def_readwrite("emitStartTime", &SceneInfo::EmitterData::emitStartTime)
-            .def_readwrite("emitEndTime", &SceneInfo::EmitterData::emitEndTime)
-            .def_readwrite("type", &SceneInfo::EmitterData::type);
+    py::class_<Utilities::EmitterParameterObject, GenParam::ParameterObject>(m_sub_sub, "EmitterData")
+        .def(py::init<>())
+        .def(py::init<std::string, unsigned int, unsigned int, Vector3r, Real, Vector3r, Real, Real, Real, unsigned int>(),
+                "id"_a="Fluid", "width"_a=5, "height"_a=5, "x"_a=Vector3r::Zero(),
+                "velocity"_a=1, "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "emitStartTime"_a=0,
+                "emitEndTime"_a=std::numeric_limits<Real>::max(), "type"_a=0)
+        .def_readwrite("id", &Utilities::EmitterParameterObject::id)
+        .def_readwrite("width", &Utilities::EmitterParameterObject::width)
+        .def_readwrite("height", &Utilities::EmitterParameterObject::height)
+        .def_readwrite("x", &Utilities::EmitterParameterObject::x)
+        .def_readwrite("velocity", &Utilities::EmitterParameterObject::velocity)
+        .def_readwrite("axis", &Utilities::EmitterParameterObject::axis)
+        .def_readwrite("angle", &Utilities::EmitterParameterObject::angle)
+        .def_readwrite("emitStartTime", &Utilities::EmitterParameterObject::emitStartTime)
+        .def_readwrite("emitEndTime", &Utilities::EmitterParameterObject::emitEndTime)
+        .def_readwrite("type", &Utilities::EmitterParameterObject::type);
 
-    py::class_<SceneInfo::AnimationFieldData>(m_sub_sub, "AnimationFieldData")
-            .def(py::init<std::string, std::string, std::string, std::string, unsigned int, Vector3r, Matrix3r, Vector3r, Real, Real>(),
-                    "particleFieldName"_a="", "expressionX"_a="", "expressionY"_a="",
-                    "expressionZ"_a="", "shapeType"_a=0, "x"_a=Vector3r::Zero(),
-                    "rotation"_a=Matrix3r::Identity(), "scale"_a=Vector3r::Ones(), "startTime"_a=0,
-                    "endTime"_a=std::numeric_limits<Real>::max())
-            .def_readwrite("particleFieldName", &SceneInfo::AnimationFieldData::particleFieldName)
-                    // .def_readwrite("expression", &SceneInfo::AnimationFieldData::expression) // TODO: bind this type manually
-            .def_readwrite("shapeType", &SceneInfo::AnimationFieldData::shapeType)
-            .def_readwrite("x", &SceneInfo::AnimationFieldData::x)
-            .def_readwrite("rotation", &SceneInfo::AnimationFieldData::rotation)
-            .def_readwrite("scale", &SceneInfo::AnimationFieldData::scale)
-            .def_readwrite("startTime", &SceneInfo::AnimationFieldData::startTime)
-            .def_readwrite("endTime", &SceneInfo::AnimationFieldData::endTime);
+    py::class_<Utilities::AnimationFieldParameterObject, GenParam::ParameterObject>(m_sub_sub, "AnimationFieldData")
+        .def(py::init<>())
+        .def(py::init<std::string, std::string, std::string, std::string, unsigned int, Vector3r, Vector3r, Real, Vector3r, Real, Real>(),
+                "particleFieldName"_a="", "expressionX"_a="", "expressionY"_a="",
+                "expressionZ"_a="", "shapeType"_a=0, "translation"_a=Vector3r::Zero(),
+                "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "scale"_a=Vector3r::Ones(), "startTime"_a=0,
+                "endTime"_a=std::numeric_limits<Real>::max())
+        .def_readwrite("particleFieldName", &Utilities::AnimationFieldParameterObject::particleFieldName)
+                // .def_readwrite("expression", &Utilities::AnimationFieldParameterObject::expression) // TODO: bind this type manually
+        .def_readwrite("shapeType", &Utilities::AnimationFieldParameterObject::shapeType)
+        .def_readwrite("translation", &Utilities::AnimationFieldParameterObject::translation)
+        .def_readwrite("axis", &Utilities::AnimationFieldParameterObject::axis)
+        .def_readwrite("angle", &Utilities::AnimationFieldParameterObject::angle)
+        .def_readwrite("scale", &Utilities::AnimationFieldParameterObject::scale)
+        .def_readwrite("startTime", &Utilities::AnimationFieldParameterObject::startTime)
+        .def_readwrite("endTime", &Utilities::AnimationFieldParameterObject::endTime);
 
-    py::class_<SceneInfo::MaterialData>(m_sub_sub, "MaterialData")
-            .def(py::init<>())
-            .def(py::init<std::string, std::string, unsigned int, Real, Real, unsigned int, bool, Vector3r, Vector3r>(),
-                    "id"_a, "colorField"_a="velocity", "colorMapType"_a=1, "minVal"_a=0.0, "maxVal"_a=10.0, //TODO: an id has to be provided
-                    "maxEmitterParticles"_a=10000, "emitterReuseParticles"_a=false, "emitterBoxMin"_a=Vector3r(-1.0, -1.0, -1.0),
-                    "emitterBoxMax"_a=Vector3r(1.0, 1.0, 1.0))
-            .def_readwrite("id", &SceneInfo::MaterialData::id)
-            .def_readwrite("colorField", &SceneInfo::MaterialData::colorField)
-            .def_readwrite("colorMapType", &SceneInfo::MaterialData::colorMapType)
-            .def_readwrite("minVal", &SceneInfo::MaterialData::minVal)
-            .def_readwrite("maxVal", &SceneInfo::MaterialData::maxVal)
-            .def_readwrite("maxEmitterParticles", &SceneInfo::MaterialData::maxEmitterParticles)
-            .def_readwrite("emitterReuseParticles", &SceneInfo::MaterialData::emitterReuseParticles)
-            .def_readwrite("emitterBoxMin", &SceneInfo::MaterialData::emitterBoxMin)
-            .def_readwrite("emitterBoxMax", &SceneInfo::MaterialData::emitterBoxMax);
+    py::class_<Utilities::MaterialParameterObject, GenParam::ParameterObject>(m_sub_sub, "MaterialData")
+        .def(py::init<>())
+        .def(py::init<std::string, std::string, unsigned int, Real, Real, unsigned int, bool, Vector3r, Vector3r>(),
+                "id"_a, "colorField"_a="velocity", "colorMapType"_a=1, "minVal"_a=0.0, "maxVal"_a=10.0, //TODO: an id has to be provided
+                "maxEmitterParticles"_a=10000, "emitterReuseParticles"_a=false, "emitterBoxMin"_a=Vector3r(-1.0, -1.0, -1.0),
+                "emitterBoxMax"_a=Vector3r(1.0, 1.0, 1.0))
+        .def_readwrite("id", &Utilities::MaterialParameterObject::id)
+        .def_readwrite("colorField", &Utilities::MaterialParameterObject::colorField)
+        .def_readwrite("colorMapType", &Utilities::MaterialParameterObject::colorMapType)
+        .def_readwrite("minVal", &Utilities::MaterialParameterObject::minVal)
+        .def_readwrite("maxVal", &Utilities::MaterialParameterObject::maxVal)
+        .def_readwrite("maxEmitterParticles", &Utilities::MaterialParameterObject::maxEmitterParticles)
+        .def_readwrite("emitterReuseParticles", &Utilities::MaterialParameterObject::emitterReuseParticles)
+        .def_readwrite("emitterBoxMin", &Utilities::MaterialParameterObject::emitterBoxMin)
+        .def_readwrite("emitterBoxMax", &Utilities::MaterialParameterObject::emitterBoxMax);
 
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::BoundaryData *>>(m_sub, "BoundaryDataVector");
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::FluidData *>>(m_sub, "FluidDataVector");
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::FluidBlock *>>(m_sub, "FluidBlockVector");
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::EmitterData *>>(m_sub, "EmitterDataVector");
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::AnimationFieldData *>>(m_sub, "AnimationFieldDataVector");
-    py::bind_pointer_vector<std::vector<Utilities::SceneLoader::MaterialData *>>(m_sub, "MaterialData");
+    py::bind_pointer_vector<std::vector<Utilities::BoundaryParameterObject*>>(m_sub, "BoundaryParameterObjectVector");
+    py::bind_pointer_vector<std::vector<Utilities::FluidModelParameterObject *>>(m_sub, "FluidModelParameterObjectVector");
+    py::bind_pointer_vector<std::vector<Utilities::FluidBlockParameterObject *>>(m_sub, "FluidBlockParameterObjectVector");
+    py::bind_pointer_vector<std::vector<Utilities::EmitterParameterObject *>>(m_sub, "EmitterParameterObjectVector");
+    py::bind_pointer_vector<std::vector<Utilities::AnimationFieldParameterObject*>>(m_sub, "AnimationFieldParameterObjectVector");
+    py::bind_pointer_vector<std::vector<Utilities::MaterialParameterObject *>>(m_sub, "MaterialParameterObjectVector");
 
+    using SceneInfo = Utilities::SceneLoader;
     py::class_<SceneInfo::Scene>(m_sub_sub, "Scene")
-            .def(py::init<>())
-            .def_readwrite("boundaryModels", &SceneInfo::Scene::boundaryModels)
-            .def_readwrite("fluidModels", &SceneInfo::Scene::fluidModels)
-            .def_readwrite("fluidBlocks", &SceneInfo::Scene::fluidBlocks)
-            .def_readwrite("emitters", &SceneInfo::Scene::emitters)
-            .def_readwrite("animatedFields", &SceneInfo::Scene::animatedFields)
-            .def_readwrite("materials", &SceneInfo::Scene::materials)
-            .def_readwrite("particleRadius", &SceneInfo::Scene::particleRadius)
-            .def_readwrite("sim2D", &SceneInfo::Scene::sim2D)
-            .def_readwrite("timeStepSize", &SceneInfo::Scene::timeStepSize)
-            .def_readwrite("camPosition", &SceneInfo::Scene::camPosition)
-            .def_readwrite("camLookat", &SceneInfo::Scene::camLookat);
+        .def(py::init<>())
+        .def_readwrite("boundaryModels", &SceneInfo::Scene::boundaryModels)
+        .def_readwrite("fluidModels", &SceneInfo::Scene::fluidModels)
+        .def_readwrite("fluidBlocks", &SceneInfo::Scene::fluidBlocks)
+        .def_readwrite("emitters", &SceneInfo::Scene::emitters)
+        .def_readwrite("animatedFields", &SceneInfo::Scene::animatedFields)
+        .def_readwrite("materials", &SceneInfo::Scene::materials)
+        .def_readwrite("particleRadius", &SceneInfo::Scene::particleRadius)
+        .def_readwrite("sim2D", &SceneInfo::Scene::sim2D);
 
     // ---------------------------------------
     // SDF Functions TODO: implement discregrid
@@ -448,4 +456,10 @@ void UtilitiesModule(py::module m) {
             .def_static("computeGeneralizedWindingNumber",
                         overload_cast_<const Vector3r &, const SPH::TriangleMesh &>()(
                                 &Utilities::WindingNumbers::computeGeneralizedWindingNumber));
+
+    // ---------------------------------------
+    // Mesh Import
+    // ---------------------------------------
+    py::class_<SPH::MeshImport>(m_sub, "MeshImport")
+        .def_static("importMesh", SPH::MeshImport::importMesh);
 }

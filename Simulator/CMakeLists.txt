@@ -6,10 +6,12 @@ set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD CopySPlisHSPla
 	
 set(GUI_SOURCE_FILES 
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/LogWindow.cpp
 	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.cpp
 )
 set(GUI_HEADER_FILES
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.h
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/LogWindow.h
 	PositionBasedDynamicsWrapper/PBD_Simulator_GUI_imgui.h
 )
 	

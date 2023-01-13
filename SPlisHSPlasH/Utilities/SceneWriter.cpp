@@ -102,32 +102,32 @@ void SceneWriter::writeParameterObject(nlohmann::json& config, ParameterObject* 
 		}
 		else if (paramBase->getType() == ParameterBase::UINT32)
 		{
-			const unsigned int val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const unsigned int val = static_cast<NumericParameter<unsigned int>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::UINT16)
 		{
-			const unsigned short val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const unsigned short val = static_cast<NumericParameter<unsigned short>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::UINT8)
 		{
-			const unsigned char val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const unsigned char val = static_cast<NumericParameter<unsigned char>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::INT32)
 		{
-			const int val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const int val = static_cast<NumericParameter<int>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::INT16)
 		{
-			const short val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const short val = static_cast<NumericParameter<short>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::INT8)
 		{
-			const char val = static_cast<NumericParameter<Real>*>(paramBase)->getValue();
+			const char val = static_cast<NumericParameter<char>*>(paramBase)->getValue();
 			writeValue(config, paramBase->getName(), val);
 		}
 		else if (paramBase->getType() == ParameterBase::ENUM)

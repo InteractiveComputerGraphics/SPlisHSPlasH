@@ -14,7 +14,9 @@ void TimeModule(py::module m_sub) {
     // ---------------------------------------
     // Class Time Manager
     // ---------------------------------------
-    py::class_<SPH::TimeManager>(m_sub, "TimeManager")
+    py::class_<SPH::TimeManager, GenParam::ParameterObject>(m_sub, "TimeManager")
+            .def_readwrite_static("TIME_STEP_SIZE", &SPH::TimeManager::TIME_STEP_SIZE)
+
             .def(py::init<>())
             .def_static("getCurrent", &SPH::TimeManager::getCurrent, py::return_value_policy::reference)
             .def_static("setCurrent", &SPH::TimeManager::setCurrent)

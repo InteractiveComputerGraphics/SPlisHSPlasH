@@ -243,15 +243,6 @@ void imguiParameters::createSubgroupParameters(const std::vector<std::pair<std::
  
 void imguiParameters::createParameterGUI()
 {
-	//struct Comparator {
-	//	bool operator()(std::pair<std::string, std::vector<std::pair<std::string, std::vector<imguiParameters::imguiParameter*>>>>& p1,
-	//		std::pair<std::string, std::vector<std::pair<std::string, std::vector<imguiParameters::imguiParameter*>>>>& p2)
-	//	{
-	//		return p1.first.compare(p2.first) < 0;
-	//	}
-	//};
-	//std::sort(m_imguiParams.begin(), m_imguiParams.end(), Comparator());
-
 	// always show "General"
 	for (auto group_index = 0; group_index < m_imguiParams.size(); group_index++)
 	{
@@ -302,6 +293,10 @@ void imguiParameters::createParameterObjectGUI(ParameterObject* paramObj)
 	for (unsigned int i = 0; i < numParams; i++)
 	{
 		ParameterBase* paramBase = paramObj->getParameter(i);
+
+		if (!paramBase->getVisible())
+			continue;
+
 		std::string group = paramBase->getGroup();
 		std::string subgroup = "";
 

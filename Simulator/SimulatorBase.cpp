@@ -21,11 +21,11 @@
 #include "extern/cxxopts/cxxopts.hpp"
 #include "Simulator/GUI/Simulator_GUI_Base.h"
 #include "SPlisHSPlasH/Utilities/VolumeSampling.h"
-#include "Utilities/OBJLoader.h"
 #include "Utilities/BinaryFileReaderWriter.h"
 #include "PositionBasedDynamicsWrapper/PBDBoundarySimulator.h"
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
 #if USE_NFD_FILE_DIALOG
 #include "extern/nfd/include/nfd.h"
 #endif 
@@ -59,11 +59,13 @@ int SimulatorBase::ENUM_WALLS_PARTICLES_ALL = -1;
 int SimulatorBase::ENUM_WALLS_PARTICLES_NO_WALLS = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_ALL = -1;
 int SimulatorBase::ENUM_WALLS_GEOMETRY_NO_WALLS = -1;
+int SimulatorBase::CAMERA_POSITION = -1;
+int SimulatorBase::CAMERA_LOOKAT = -1;
 
  
 SimulatorBase::SimulatorBase()
 {
-	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+	Utilities::logger.addSink(shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 
 	m_boundarySimulator = nullptr;
 	m_gui = nullptr;
@@ -80,6 +82,8 @@ SimulatorBase::SimulatorBase()
 	m_enableStateExport = false;
 	m_enableAsyncExport = false;
 	m_enableObjectSplitting = false;
+	m_cameraPosition = Vector3r(0.0, 3.0, 8.0);
+	m_cameraLookAt = Vector3r::Zero();
 	m_framesPerSecond = 25;
 	m_framesPerSecondState = 1;
 	m_nextFrameTime = 0.0;
@@ -148,6 +152,18 @@ void SimulatorBase::initParameters()
 	enumParam->addEnumValue("Particles (no walls)", ENUM_WALLS_PARTICLES_NO_WALLS);
 	enumParam->addEnumValue("Geometry (all)", ENUM_WALLS_GEOMETRY_ALL);
 	enumParam->addEnumValue("Geometry (no walls)", ENUM_WALLS_GEOMETRY_NO_WALLS);
+
+	CAMERA_POSITION = createVectorParameter("cameraPosition", "Camera position", 3u, m_cameraPosition.data());
+	setGroup(CAMERA_POSITION, "Visualization");
+	setDescription(CAMERA_POSITION, "Initial position of the camera.");
+	setReadOnly(CAMERA_POSITION, true);
+	setVisible(CAMERA_POSITION, false);
+
+	CAMERA_LOOKAT = createVectorParameter("cameraLookat", "Camera lookat", 3u, m_cameraLookAt.data());
+	setGroup(CAMERA_LOOKAT, "Visualization");
+	setDescription(CAMERA_LOOKAT, "Lookat point of the camera.");
+	setReadOnly(CAMERA_LOOKAT, true);
+	setVisible(CAMERA_LOOKAT, false);
 
 	DATA_EXPORT_FPS = createNumericParameter("dataExportFPS", "Export FPS", &m_framesPerSecond);
 	setGroup(DATA_EXPORT_FPS, "Export|General");
@@ -276,6 +292,11 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 		{
 			setUseGUI(false);
 		}
+		else
+		{
+			// the buffer sink is only used in the GUI
+			Utilities::logger.addSink(shared_ptr<Utilities::BufferSink>(new Utilities::BufferSink(Utilities::LogLevel::DEBUG)));
+		}
 
 		m_cmdLineStopAt = false;
 		if (result.count("stopAt"))
@@ -361,7 +382,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 
 	std::string logPath = FileSystem::normalizePath(m_outputPath + "/log");
 	FileSystem::makeDirs(logPath);
-	Utilities::logger.addSink(unique_ptr<Utilities::FileSink>(new Utilities::FileSink(Utilities::LogLevel::DEBUG, logPath + "/SPH_log.txt")));
+	Utilities::logger.addSink(shared_ptr<Utilities::FileSink>(new Utilities::FileSink(Utilities::LogLevel::DEBUG, logPath + "/SPH_log.txt")));
 
 	LOG_INFO  << "SPlisHSPlasH version: " << SPLISHSPLASH_VERSION;
 	LOG_DEBUG << "Git refspec:          " << GIT_REFSPEC;
@@ -383,6 +404,11 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 		m_sceneLoader->readScene(sceneFile.c_str(), scene);
 	else
 		return;
+
+	if (scene.sim2D)
+		m_cameraPosition = Vector3r(0.0, 0.0, 8.0);
+	else
+		m_cameraPosition = Vector3r(0.0, 3.0, 8.0);
 
 	//////////////////////////////////////////////////////////////////////////
 	// init boundary simulation
@@ -473,12 +499,13 @@ void SimulatorBase::initSimulation()
 	sim->createDebugTools();
 #endif
 
+	readParameters();
+
 	if (m_useGUI)
-		m_gui->init(m_argc, m_argv, m_windowName.c_str());
+		m_gui->init(m_windowName.c_str());
 
 	m_boundarySimulator->init();
 
-	readParameters();
 	if (m_useGUI)
 	{
 		Simulation *sim = Simulation::getCurrent();
@@ -606,6 +633,7 @@ void SimulatorBase::cleanup()
 void SimulatorBase::readParameters()
 {
 	m_sceneLoader->readParameterObject("Configuration", this);
+	m_sceneLoader->readParameterObject("Configuration", TimeManager::getCurrent());
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent());
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
@@ -768,9 +796,6 @@ void SimulatorBase::initExporters()
 
 void SimulatorBase::buildModel()
 {
-	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
-	TimeManager::getCurrent()->setTimeStepSize(scene.timeStepSize);
-
 	initFluidData();
 
 	createEmitters();
@@ -801,6 +826,10 @@ void SimulatorBase::reset()
 	Utilities::Counting::printAverageCounts();
 	Utilities::Counting::reset();
 
+	// reset the time step size if using a CFL condition
+	if (Simulation::getCurrent()->getValue<int>(Simulation::CFL_METHOD) != Simulation::ENUM_CFL_NONE)
+		getSceneLoader()->readParameterObject("Configuration", TimeManager::getCurrent());
+
 	Simulation::getCurrent()->reset();
 #ifdef USE_DEBUG_TOOLS
 	Simulation::getCurrent()->getDebugTools()->reset();
@@ -810,9 +839,6 @@ void SimulatorBase::reset()
 	if (m_gui)
 		m_gui->reset();
 
-	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
-	if (Simulation::getCurrent()->getValue<int>(Simulation::CFL_METHOD) != Simulation::ENUM_CFL_NONE)
-		TimeManager::getCurrent()->setTimeStepSize(scene.timeStepSize);
 	m_nextFrameTime = 0.0;
 	m_nextFrameTimeState = 0.0;
 	m_frameCounter = 1;
@@ -1018,38 +1044,6 @@ void SimulatorBase::updateScalarField()
 	}
 }
 
-void SimulatorBase::loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
-{
-	std::vector<OBJLoader::Vec3f> x;
-	std::vector<OBJLoader::Vec3f> normals;
-	std::vector<MeshFaceIndices> faces;
-	OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
-	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
-
-	mesh.release();
-	const unsigned int nPoints = (unsigned int)x.size();
-	const unsigned int nFaces = (unsigned int)faces.size();
-	mesh.initMesh(nPoints, nFaces);
-	for (unsigned int i = 0; i < nPoints; i++)
-	{
-		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
-	}
-	for (unsigned int i = 0; i < nFaces; i++)
-	{
-		// Reduce the indices by one
-		int posIndices[3];
-		for (int j = 0; j < 3; j++)
-		{
-			posIndices[j] = faces[i].posIndices[j] - 1;
-		}
-
-		mesh.addFace(&posIndices[0]);
-	}
-
-	LOG_INFO << "Number of triangles: " << nFaces;
-	LOG_INFO << "Number of vertices: " << nPoints;
-}
-
 void SimulatorBase::activateExporter(const std::string& exporterName, const bool active)
 {
 	for (auto i = 0; i < m_particleExporters.size(); i++)
@@ -1139,16 +1133,18 @@ void SimulatorBase::initFluidData()
 	{
 		const unsigned int fluidIndex = fluidIDs[scene.fluidModels[i]->id];
 		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
+		const Matrix3r rotation = AngleAxisr(scene.fluidModels[i]->angle, scene.fluidModels[i]->axis).toRotationMatrix();
 
 		std::string fileName;
 		if (FileSystem::isRelativePath(scene.fluidModels[i]->samplesFile))
 			fileName = base_path + "/" + scene.fluidModels[i]->samplesFile;
 		else
 			fileName = scene.fluidModels[i]->samplesFile;
+		fileName = FileSystem::normalizePath(fileName);
 
 		string ext = FileSystem::getFileExt(fileName);
 		transform(ext.begin(), ext.end(), ext.begin(), ::toupper);
-		if (ext == "OBJ")
+		if ((ext == "OBJ") || (ext == "PLY"))
 		{
 			// check if mesh file has changed
 			std::string md5FileName = FileSystem::normalizePath(cachePath + "/" + FileSystem::getFileNameWithExt(fileName) + "_fluid.md5");
@@ -1178,7 +1174,7 @@ void SimulatorBase::initFluidData()
 
 			if (useCache && foundCacheFile && md5)
 			{
-				PartioReaderWriter::readParticles(particleFileName, scene.fluidModels[i]->translation, scene.fluidModels[i]->rotation, 1.0, fluidParticles[fluidIndex], fluidVelocities[fluidIndex]);
+				PartioReaderWriter::readParticles(particleFileName, scene.fluidModels[i]->translation, rotation, 1.0, fluidParticles[fluidIndex], fluidVelocities[fluidIndex]);
 				LOG_INFO << "Loaded cached fluid sampling: " << particleFileName;
 			}
 
@@ -1187,7 +1183,7 @@ void SimulatorBase::initFluidData()
 				LOG_INFO << "Volume sampling of " << fileName;
 
 				TriangleMesh mesh;
-				loadObj(fileName, mesh, scene.fluidModels[i]->scale);
+				MeshImport::importMesh(fileName, mesh, Vector3r::Zero(), Matrix3r::Identity(), scene.fluidModels[i]->scale);
 
 				bool invert = scene.fluidModels[i]->invert;
 				int mode = scene.fluidModels[i]->mode;
@@ -1200,7 +1196,7 @@ void SimulatorBase::initFluidData()
 				Utilities::VolumeSampling::sampleMesh(mesh.numVertices(), mesh.getVertices().data(), mesh.numFaces(), mesh.getFaces().data(),
 					scene.particleRadius, nullptr, resolutionSDF, invert, mode, fluidParticles[fluidIndex]);
 				STOP_TIMING_AVG;
-                const unsigned int size_after_sampling = fluidParticles[fluidIndex].size();
+                const unsigned int size_after_sampling = static_cast<unsigned int>(fluidParticles[fluidIndex].size());
 
 				fluidVelocities[fluidIndex].resize(fluidParticles[fluidIndex].size());
 
@@ -1215,13 +1211,13 @@ void SimulatorBase::initFluidData()
 
 				// transform particles
 				for (unsigned int j = size_before_sampling; j < size_after_sampling; j++)
-					fluidParticles[fluidIndex][j] = scene.fluidModels[i]->rotation * fluidParticles[fluidIndex][j] + scene.fluidModels[i]->translation;
+					fluidParticles[fluidIndex][j] = rotation * fluidParticles[fluidIndex][j] + scene.fluidModels[i]->translation;
 			}
 		}
 		else
 		{
-			if (!PartioReaderWriter::readParticles(fileName, scene.fluidModels[i]->translation, scene.fluidModels[i]->rotation, scene.fluidModels[i]->scale[0], fluidParticles[fluidIndex], fluidVelocities[fluidIndex]))
-				LOG_ERR << "File not found: " << fileName;
+			if (!PartioReaderWriter::readParticles(fileName, scene.fluidModels[i]->translation, rotation, scene.fluidModels[i]->scale[0], fluidParticles[fluidIndex], fluidVelocities[fluidIndex]))
+				LOG_ERR << "Could not load file: " << fileName;
 		}
 
 		const unsigned int numAddedParticles = (unsigned int)fluidParticles[fluidIndex].size() - startIndex;
@@ -1238,7 +1234,7 @@ void SimulatorBase::initFluidData()
 		info.samplesFile = scene.fluidModels[i]->samplesFile;
 		info.visMeshFile = scene.fluidModels[i]->visMeshFile;
 		info.translation = scene.fluidModels[i]->translation;
-		info.rotation = scene.fluidModels[i]->rotation;
+		info.rotation = AngleAxisr(scene.fluidModels[i]->angle, scene.fluidModels[i]->axis).toRotationMatrix();
 		info.scale = scene.fluidModels[i]->scale;
 		info.initialVelocity = scene.fluidModels[i]->initialVelocity;
 		info.initialAngularVelocity = scene.fluidModels[i]->initialAngularVelocity;
@@ -1284,7 +1280,7 @@ void SimulatorBase::createEmitters()
 	//////////////////////////////////////////////////////////////////////////
 	for (unsigned int i = 0; i < scene.emitters.size(); i++)
 	{
-		SceneLoader::EmitterData *ed = scene.emitters[i];
+		EmitterParameterObject *ed = scene.emitters[i];
 
 		FluidModel *model = nullptr;
 		unsigned int j;
@@ -1306,21 +1302,23 @@ void SimulatorBase::createEmitters()
 				ed->width = 1;
 				ed->type = 0;
 			}
+			Matrix3r rot = AngleAxisr(ed->angle, ed->axis).toRotationMatrix();
 			model->getEmitterSystem()->addEmitter(
 				ed->width, ed->height,
-				ed->x, ed->rotation,
+				ed->x, rot,
 				ed->velocity,
 				ed->type);
 
 			// Generate boundary geometry around emitters
 			Emitter *emitter = model->getEmitterSystem()->getEmitters().back();
-			SceneLoader::BoundaryData *emitterBoundary = new SceneLoader::BoundaryData();
+			BoundaryParameterObject *emitterBoundary = new BoundaryParameterObject();
 			emitterBoundary->dynamic = false;
 			emitterBoundary->isWall = false;
 			emitterBoundary->color = { 0.2f, 0.2f, 0.2f, 1.0f };
-			emitterBoundary->rotation = ed->rotation;
+			emitterBoundary->axis = ed->axis;
+			emitterBoundary->angle = ed->angle;
 			const Real supportRadius = sim->getSupportRadius();
-			const Vector3r & emitDir = ed->rotation.col(0);
+			const Vector3r & emitDir = rot.col(0);
 			emitterBoundary->scale = Emitter::getSize(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
 			const Vector3r pos = ed->x;
 			emitterBoundary->translation = pos;
@@ -1363,7 +1361,7 @@ void SimulatorBase::createEmitters()
 			info.type = 2;
 			info.id = ed->id;
 			info.translation = ed->x;
-			info.rotation = ed->rotation;
+			info.rotation = rot;
 			info.emitter_width = ed->width;
 			info.emitter_height = ed->height;
 			info.emitter_velocity = ed->velocity; // emission velocity
@@ -1388,11 +1386,12 @@ void SimulatorBase::createAnimationFields()
 	//////////////////////////////////////////////////////////////////////////
 	for (unsigned int i = 0; i < scene.animatedFields.size(); i++)
 	{
-		SceneLoader::AnimationFieldData *data = scene.animatedFields[i];
+		AnimationFieldParameterObject *data = scene.animatedFields[i];
 
+		const Matrix3r rotation = AngleAxisr(data->angle, data->axis).toRotationMatrix();
 		sim->getAnimationFieldSystem()->addAnimationField(
 				data->particleFieldName, 
-				data->x, data->rotation, data->scale,
+				data->translation, rotation, data->scale,
 				data->expression, 
 				data->shapeType);
 
@@ -1422,7 +1421,10 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 			yshift = sqrt(static_cast<Real>(3.0)) * scene.particleRadius + eps;
 		}
 
-		Vector3r diff = scene.fluidBlocks[i]->box.m_maxX - scene.fluidBlocks[i]->box.m_minX;
+		// apply transformation
+		Vector3r minX = scene.fluidBlocks[i]->scale.cwiseProduct(scene.fluidBlocks[i]->boxMin) + scene.fluidBlocks[i]->translation;
+		Vector3r maxX = scene.fluidBlocks[i]->scale.cwiseProduct(scene.fluidBlocks[i]->boxMax) + scene.fluidBlocks[i]->translation;
+		Vector3r diff = maxX - minX;
 		if (scene.fluidBlocks[i]->mode == 1)
 		{
 			diff[0] -= diam;
@@ -1438,9 +1440,16 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 		const int stepsY = (int)round(diff[1] / yshift) - 1;
 		int stepsZ = (int)round(diff[2] / diam) - 1;
 
-		Vector3r start = scene.fluidBlocks[i]->box.m_minX + static_cast<Real>(2.0)*scene.particleRadius*Vector3r::Ones();
+		Vector3r start = minX + static_cast<Real>(2.0)*scene.particleRadius*Vector3r::Ones();
 		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
 		const unsigned int numAddedParticles = stepsX * stepsY * stepsZ;
+
+		if ((stepsX <= 1) || (stepsY <= 1) || (stepsZ <= 1))
+		{
+			LOG_WARN << "FluidBlock with id \"" << scene.fluidBlocks[i]->id << "\" is empty.";
+			continue;
+		}
+
 		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + numAddedParticles);
 		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + numAddedParticles);
 		fluidObjectIds[fluidIndex].reserve(fluidObjectIds[fluidIndex].size() + numAddedParticles);
@@ -1490,7 +1499,7 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 		Simulation::FluidInfo info;
 		info.type = 0;
 		info.id = scene.fluidBlocks[i]->id;
-		info.box = AlignedBox3r(scene.fluidBlocks[i]->box.m_minX, scene.fluidBlocks[i]->box.m_maxX);;
+		info.box = AlignedBox3r(minX, maxX);;
 		info.visMeshFile = scene.fluidBlocks[i]->visMeshFile;
 		info.initialVelocity = scene.fluidBlocks[i]->initialVelocity;
 		info.initialAngularVelocity = scene.fluidBlocks[i]->initialAngularVelocity;
@@ -1850,6 +1859,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 void SimulatorBase::writeParameterState(BinaryFileWriter &binWriter)
 {
 	writeParameterObjectState(binWriter, this);
+	writeParameterObjectState(binWriter, TimeManager::getCurrent());
 	writeParameterObjectState(binWriter, Simulation::getCurrent());
 	writeParameterObjectState(binWriter, Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
@@ -1917,6 +1927,7 @@ void SimulatorBase::writeParameterObjectState(BinaryFileWriter &binWriter, GenPa
 void SimulatorBase::readParameterState(BinaryFileReader &binReader)
 {
 	readParameterObjectState(binReader, this);
+	readParameterObjectState(binReader, TimeManager::getCurrent());
  	readParameterObjectState(binReader, Simulation::getCurrent());
  	readParameterObjectState(binReader, Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
@@ -2290,7 +2301,7 @@ void SimulatorBase::readBoundaryState(const std::string &fileName, BoundaryModel
 }
 
 
-void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel)
+void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel)
 {
 	Simulation *sim = Simulation::getCurrent();
 	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();
@@ -2480,7 +2491,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 	}
 }
 
-void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel)
+void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel)
 {
 	Simulation *sim = Simulation::getCurrent();
 	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();

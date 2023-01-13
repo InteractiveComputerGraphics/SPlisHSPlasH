@@ -1,3 +1,12 @@
+2.12.1
+	- all scene file parameters are now GenericParameters
+	- updated Python examples
+	- added ParameterParser tool which can generate a scene file json schema or an example scene file with all parameters
+	- added json schema for scene files 
+	- fixed OBJ meshes
+	- updated glfw
+	- updated pybind11 
+
 2.12.0
 	- added PLY exporter
 	- improved the DFSPH implementation significantly

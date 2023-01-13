@@ -1,13 +1,15 @@
 #include "TimeManager.h"
 
 using namespace SPH;
+using namespace GenParam;
 
+int TimeManager::TIME_STEP_SIZE = -1;
 TimeManager* TimeManager::current = 0;
 
 TimeManager::TimeManager () 
 {
 	time = 0;
-	h = 0.001;
+	h = static_cast<Real>(0.001);
 }
 
 TimeManager::~TimeManager () 
@@ -15,11 +17,22 @@ TimeManager::~TimeManager ()
 	current = 0;
 }
 
+void TimeManager::initParameters()
+{
+	ParameterObject::initParameters();
+
+	TIME_STEP_SIZE = createNumericParameter("timeStepSize", "Time step size", &h);
+	setGroup(TIME_STEP_SIZE, "General|General");
+	setDescription(TIME_STEP_SIZE, "The initial time step size used for the time integration. If you use an adaptive time stepping, this size will change during the simulation.");
+	static_cast<RealParameter*>(getParameter(TIME_STEP_SIZE))->setMinValue(static_cast<Real>(1e-9));
+}
+
 TimeManager* TimeManager::getCurrent ()
 {
 	if (current == 0)
 	{
 		current = new TimeManager ();
+		current->initParameters();
 	}
 	return current;
 }

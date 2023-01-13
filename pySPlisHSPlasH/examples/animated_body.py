@@ -26,10 +26,9 @@ def main():
     scene = sph.Exec.SceneConfiguration.getCurrent().getScene()
     
     scene.boundaryModels.append(Scenes.BoundaryData(meshFile="../models/UnitBox.obj", translation=[0., 3.0, 0.], scale=[3., 6., 3.], color=[0.1, 0.4, 0.5, 1.0], isWall=True, mapInvert=True, mapResolution=[25, 25, 25]))
-    r = R.from_euler('y', 30.0, degrees=True).as_matrix()
-    scene.boundaryModels.append(Scenes.BoundaryData(meshFile="../models/Dragon_50k.obj", translation=[0., 0.05, 0.], scale=[1,1,1], color=[0.5, 0.5, 0.5, 1.0], rotation=r, isAnimated=True, isWall=False, mapInvert=False, mapResolution=[25, 25, 25]))
+    scene.boundaryModels.append(Scenes.BoundaryData(meshFile="../models/Dragon_50k.obj", translation=[0., 0.05, 0.], scale=[1,1,1], color=[0.5, 0.5, 0.5, 1.0], axis=[0,1,0], angle=30.0*math.pi/180.0, isAnimated=True, isWall=False, mapInvert=False, mapResolution=[25, 25, 25]))
     
-    scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([-1.25, 0.0, -1.25], [-0.25, 1.5, -0.25]), mode=0, initialVelocity=[0.0, 0.0, 0.0]))
+    scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', boxMin=[-1.25, 0.0, -1.25], boxMax = [-0.25, 1.5, -0.25], mode=0, initialVelocity=[0.0, 0.0, 0.0]))
 
     # init the simulation
     base.initSimulation()

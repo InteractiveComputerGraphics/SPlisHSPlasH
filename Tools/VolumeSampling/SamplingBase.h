@@ -70,7 +70,6 @@ namespace SPH
 		virtual void generateSampling(const std::string& inputFile, const std::string& outputFile);
 
 		static void writeParticlesVTK(const std::string& fileName, std::vector<Vector3r>& x);
-		static void loadObj(const std::string& filename, TriangleMesh& mesh, const Vector3r& scale);
 
 		Real getRadius() const { return m_radius; }
 		void setRadius(const Real radius) { this->m_radius = radius; m_diameter = static_cast<Real>(2.0)*m_radius; }

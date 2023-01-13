@@ -46,7 +46,6 @@ void TriangleMeshModule(py::module m_sub) {
             })
 
             // .def("getVertices", (Vertices & (SPH::TriangleMesh::*)())(&SPH::TriangleMesh::getVertices)) // TODO: wont work by reference
-
             .def("numVertices", &SPH::TriangleMesh::numVertices)
             .def("numFaces", &SPH::TriangleMesh::numFaces)
 

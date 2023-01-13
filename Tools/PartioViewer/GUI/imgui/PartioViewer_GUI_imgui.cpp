@@ -11,6 +11,9 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 
 using namespace SPH;
 
@@ -35,21 +38,21 @@ PartioViewer_GUI_imgui::~PartioViewer_GUI_imgui(void)
 void PartioViewer_GUI_imgui::init()
 {
 	// OpenGL
-	MiniGL::init(m_viewer->getArgc(), m_viewer->getArgv(), m_viewer->getWidth(), m_viewer->getHeight(), "Partio Viewer");
+	MiniGL::init(m_viewer->getWidth(), m_viewer->getHeight(), "Partio Viewer", false);
 	MiniGL::initLights();
 	MiniGL::setViewport(40.0, 0.1f, 500.0, m_camPos, m_camLookat);
 
 	MiniGL::setSelectionFunc(selection, m_viewer);
 
-	MiniGL::addKeyFunc('i', std::bind(&PartioViewer::particleInfo, m_viewer));
-	MiniGL::addKeyFunc('+', std::bind(&PartioViewer::nextFrame, m_viewer));
-	MiniGL::addKeyFunc('-', std::bind(&PartioViewer::prevFrame, m_viewer));
-	MiniGL::addKeyFunc('s', std::bind(&PartioViewer::saveFrame, m_viewer));
-	MiniGL::addKeyFunc('v', std::bind(&PartioViewer::generateVideo, m_viewer));
-	MiniGL::addKeyFunc('j', std::bind(&PartioViewer::generateSequence, m_viewer));
-	MiniGL::addKeyFunc(' ', [&] { m_viewer->setPause(!m_viewer->getPause()); });
-	MiniGL::addKeyFunc('r', [&] { m_viewer->reset(); update();  });
-	MiniGL::addKeyFunc('m', [&] { determineMinMaxValues(); });
+	MiniGL::addKeyFunc(GLFW_KEY_I, 0, std::bind(&PartioViewer::particleInfo, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_KP_ADD, 0, std::bind(&PartioViewer::nextFrame, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_KP_SUBTRACT, 0, std::bind(&PartioViewer::prevFrame, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_S, 0, std::bind(&PartioViewer::saveFrame, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_V, 0, std::bind(&PartioViewer::generateVideo, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_J, 0, std::bind(&PartioViewer::generateSequence, m_viewer));
+	MiniGL::addKeyFunc(GLFW_KEY_SPACE, 0, [&] { m_viewer->setPause(!m_viewer->getPause()); });
+	MiniGL::addKeyFunc(GLFW_KEY_R, 0, [&] { m_viewer->reset(); update();  });
+	MiniGL::addKeyFunc(GLFW_KEY_M, 0, [&] { determineMinMaxValues(); });
 
 	MiniGL::setClientIdleFunc(std::bind(&PartioViewer::timeStep, m_viewer));	
 	MiniGL::setClientDestroyFunc(std::bind(&PartioViewer_GUI_imgui::destroy, this));

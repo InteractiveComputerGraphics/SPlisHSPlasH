@@ -1031,7 +1031,7 @@ public:
 
         return getDataFromListPropertyRecursive<T, OppsignType>(prop.get());
 
-      } catch (const std::runtime_error& new_e) {
+      } catch (const std::runtime_error& ) {
         throw orig_e;
       }
 
@@ -1493,7 +1493,7 @@ public:
       for (const std::string& p : std::vector<std::string>{"vertex_indices", "vertex_index"}) {
         try {
           return getElement(f).getListPropertyAnySign<T>(p);
-        } catch (const std::runtime_error& e) {
+        } catch (const std::runtime_error&) {
           // that's fine
         }
       }

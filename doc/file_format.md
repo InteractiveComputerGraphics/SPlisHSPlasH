@@ -178,6 +178,7 @@ Example code:
 * initialVelocity (vec3): The initial velocity is set for all particles in the block.
 * initialAngularVelocity (vec3): The initial angular velocity of the block.
 * id (string): This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
+* visMesh (string): Path of an OBJ file containing a high resolution mesh which is used by the tool MeshSkinning to generate a sequence of deformed meshes (more info about this can be found in the documentation of the tool).
 
 ## FluidModels
 
@@ -273,13 +274,15 @@ Example code:
 ]
 ```
 
-* geometryFile (string): Path to a OBJ file which contains the geometry of the body.
+* geometryFile (string): Path to a OBJ/PLY file which contains the geometry of the body.
 * particleFile (string): Path to a partio file which contains a surface sampling of the body. Note that the surface sampling is done automatically if this parameter is missing.
+* mapFile (string): Path to a volume/density map file which contains a volume/density map of the body. Note that the map is generated automatically if this parameter is missing.
 * translation (vec3): Translation vector of the rigid body.
 * scale (vec3): Scaling vector of the rigid body.
 * rotationAxis (vec3): Axis used to rotate the rigid body after loading.
 * rotationAngle (float): Rotation angle for the initial rotation of the rigid body. 
 * isDynamic (bool): Defines if the body is static or dynamic.
+* isAnimated (bool): Defines if the body is animated (e.g. by a script).
 * isWall (bool): Defines if this is a wall. Walls are typically not rendered. This is the only difference.
 * color (vec4): RGBA color of the body.
 * mapInvert (bool): Invert the map when using density or volume maps, flips inside/outside (default: false) 
@@ -334,8 +337,8 @@ Example code:
   - 3: CoolWarm
   - 4: BlueWhiteRed
   - 5: Seismic
-* renderMinValue (float): Minimal value used for color-coding the color field in the rendering process.
-* renderMaxValue (float): Maximal value used for color-coding the color field in the rendering process.
+* renderMinValue (float): Minimum value used for color-coding the color field in the rendering process.
+* renderMaxValue (float): Maximum value used for color-coding the color field in the rendering process.
 
 ##### Viscosity
 
@@ -454,3 +457,5 @@ Example code:
 * expression_x (string): Math expression for the x-component of the field quantity (default="").
 * expression_y (string): Math expression for the y-component of the field quantity (default="").
 * expression_z (string): Math expression for the z-component of the field quantity (default="").
+* startTime (float): Start time of the animation field (default: 0).
+* endTime (float): End time of the animation field (default: REAL_MAX).

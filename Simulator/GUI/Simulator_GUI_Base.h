@@ -17,7 +17,7 @@ namespace SPH
 			virtual ~Simulator_GUI_Base() {};
 
 		public:
-			virtual void init(int argc, char **argv, const char *name) {}
+			virtual void init(const char *name) {}
 			virtual void initSimulationParameterGUI() {}
 			virtual void initParameterGUI() {}
 			virtual void render() {}

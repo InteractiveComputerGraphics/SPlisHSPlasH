@@ -149,11 +149,13 @@ set(UTILS_HEADER_FILES
 	Utilities/MathFunctions.h
 	Utilities/GaussQuadrature.h
 	Utilities/MatrixFreeSolver.h
+	Utilities/MeshImport.h
 	Utilities/SurfaceSampling.h
 	Utilities/PoissonDiskSampling.h
 	Utilities/RegularTriangleSampling.h
 	Utilities/RegularSampling2D.h
 	Utilities/SceneLoader.h
+	Utilities/SceneParameterObjects.h
 	Utilities/SceneWriter.h
 	Utilities/VolumeSampling.h
 	Utilities/SDFFunctions.h
@@ -166,10 +168,12 @@ set(UTILS_SOURCE_FILES
 	Utilities/DebugTools.cpp
 	Utilities/MathFunctions.cpp
 	Utilities/GaussQuadrature.cpp
+	Utilities/MeshImport.cpp
 	Utilities/PoissonDiskSampling.cpp
 	Utilities/RegularTriangleSampling.cpp
 	Utilities/RegularSampling2D.cpp
 	Utilities/SceneLoader.cpp
+	Utilities/SceneParameterObjects.cpp
 	Utilities/SceneWriter.cpp
 	Utilities/VolumeSampling.cpp
 	Utilities/SDFFunctions.cpp

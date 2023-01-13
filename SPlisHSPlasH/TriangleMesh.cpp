@@ -1,7 +1,12 @@
 #include "TriangleMesh.h"
+#include "Utilities/FileSystem.h"
+#include "Utilities/Logger.h"
+#include "Utilities/OBJLoader.h"
+#include "Utilities/PLYLoader.h"
 
 using namespace SPH;
-
+using namespace std;
+using namespace Utilities;
 
 TriangleMesh::TriangleMesh()
 {
@@ -101,4 +106,3 @@ void TriangleMesh::updateMeshTransformation(const Vector3r& x, const Matrix3r& R
 	for (unsigned int j = 0; j < numVertices(); j++)
 		m_x[j] = R * m_x0[j] + x;
 }
-

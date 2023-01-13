@@ -242,6 +242,9 @@ void SimulationModule(py::module m_sub){
             .def_readwrite_static("ENUM_WALLS_GEOMETRY_ALL", &SPH::SimulatorBase::ENUM_WALLS_GEOMETRY_ALL)
             .def_readwrite_static("ENUM_WALLS_GEOMETRY_NO_WALLS", &SPH::SimulatorBase::ENUM_WALLS_GEOMETRY_NO_WALLS)
 
+            .def_readwrite_static("CAMERA_POSITION", &SPH::SimulatorBase::CAMERA_POSITION)
+            .def_readwrite_static("CAMERA_LOOKAT", &SPH::SimulatorBase::CAMERA_LOOKAT)
+
             .def(py::init<>())
             .def("run", &SPH::SimulatorBase::run)
             // .def("init", [](SPH::SimulatorBase& obj, std::vector<std::string> argv, std::string windowName){
@@ -297,8 +300,6 @@ void SimulationModule(py::module m_sub){
             .def("getScalarField", &SPH::SimulatorBase::getScalarField)
             .def("updateScalarField", &SPH::SimulatorBase::updateScalarField)
             .def("determineMinMaxOfScalarField", &SPH::SimulatorBase::determineMinMaxOfScalarField)
-
-            .def_static("loadObj", &SPH::SimulatorBase::loadObj)
 
             .def("getSceneLoader", &SPH::SimulatorBase::getSceneLoader, py::return_value_policy::reference_internal)
 

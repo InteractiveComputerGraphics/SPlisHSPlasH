@@ -3,13 +3,14 @@
 
 #include "Common.h"
 #include "Utilities/BinaryFileReaderWriter.h"
+#include "ParameterObject.h"
 
 namespace SPH
 {
 	/** \brief Class to manage the current simulation time and the time step size. 
 	* This class is a singleton.
 	*/
-	class TimeManager
+	class TimeManager : public GenParam::ParameterObject
 	{
 	private:
 		Real time;
@@ -17,8 +18,14 @@ namespace SPH
 		Real h;
 
 	public:
+		static int TIME_STEP_SIZE;
+
 		TimeManager ();
+		TimeManager(const TimeManager&) = delete;
+		TimeManager& operator=(const TimeManager&) = delete;
 		~TimeManager ();
+
+		virtual void initParameters();
 
 		// Singleton
 		static TimeManager* getCurrent ();

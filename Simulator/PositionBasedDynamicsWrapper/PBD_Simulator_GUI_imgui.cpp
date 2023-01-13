@@ -27,9 +27,9 @@ PBD_Simulator_GUI_imgui::~PBD_Simulator_GUI_imgui(void)
 	delete m_shader;
 }
 
-void PBD_Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
+void PBD_Simulator_GUI_imgui::init(const char *name)
 {
-	Simulator_GUI_imgui::init(argc, argv, name);
+	Simulator_GUI_imgui::init(name);
 	initShader();
 }
 

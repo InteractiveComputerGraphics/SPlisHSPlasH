@@ -3,7 +3,6 @@
 #include "extern/cxxopts/cxxopts.hpp"
 #include "Utilities/Timing.h"
 #include "Utilities/Counting.h"
-#include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "Utilities/PartioReaderWriter.h"
 #include "Utilities/SystemInfo.h"
@@ -12,6 +11,7 @@
 #include "Utilities/FileSystem.h"
 #include "SPHVolumeSampling.h"
 #include "SPHVolumeSampling_Jiang2015.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
 
 using namespace SPH;
 using namespace Eigen;
@@ -85,11 +85,11 @@ int main(int argc, char **argv)
 
 	try
 	{
-		cxxopts::Options options(argv[0], "VolumeSampling - Sample a volumetric geometry given by an OBJ file.");
+		cxxopts::Options options(argv[0], "VolumeSampling - Sample a volumetric geometry given by an surface mesh file.");
 
 		options.add_options()
 			("h,help", "Print help")
-			("i,input", "Input file (obj)", cxxopts::value<std::string>())
+			("i,input", "Input file (obj or ply)", cxxopts::value<std::string>())
 			("o,output", "Output file (bgeo or vtk)", cxxopts::value<std::string>())
 			("r,radius", "Particle radius", cxxopts::value<Real>()->default_value("0.025"))
 			("s,scale", "Scaling of input geometry (e.g. --scale 2,1,2)", cxxopts::value<std::vector<Real>>()->default_value("1,1,1"))
@@ -135,10 +135,10 @@ int main(int argc, char **argv)
 
 		outputPath = FileSystem::normalizePath(exePath + "/output/" + FileSystem::getFileName(inputFile));
 
-		Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+		Utilities::logger.addSink(shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 		std::string logPath = FileSystem::normalizePath(outputPath + "/log");
 		FileSystem::makeDirs(logPath);
-		Utilities::logger.addSink(unique_ptr<Utilities::FileSink>(new Utilities::FileSink(Utilities::LogLevel::DEBUG, logPath + "/SPH_log.txt")));
+		Utilities::logger.addSink(shared_ptr<Utilities::FileSink>(new Utilities::FileSink(Utilities::LogLevel::DEBUG, logPath + "/SPH_log.txt")));
 
 		LOG_INFO << "SPlisHSPlasH version: " << SPLISHSPLASH_VERSION;
 		LOG_DEBUG << "Git refspec:          " << GIT_REFSPEC;
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 
 	diameter = static_cast<Real>(2.0) * radius;
 	TriangleMesh mesh;
-	SamplingBase::loadObj(inputFile, mesh, scale);
+	MeshImport::importMesh(inputFile, mesh, Vector3r::Zero(), Matrix3r::Identity(), scale);
 	computeBoundingBox(mesh);
 	START_TIMING("generateSDF");
 	generateSDF(mesh);

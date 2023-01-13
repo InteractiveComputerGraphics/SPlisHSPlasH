@@ -4,7 +4,8 @@
 #include "SPlisHSPlasH/Common.h"
 #include "extern/json/json.hpp"
 #include <vector>
-#include "ParameterObject.h"
+#include "SceneParameterObjects.h"
+#include "Utilities/Logger.h"
 
 namespace Utilities
 {
@@ -18,118 +19,17 @@ namespace Utilities
 		void readParameterObject(nlohmann::json& config, GenParam::ParameterObject* paramObj);
 
 	public:
-		/** \brief Struct for an AABB */
-		struct Box
-		{
-			Vector3r m_minX;
-			Vector3r m_maxX;
-		};
-
-		/** \brief Struct to store a boundary object */
-		struct BoundaryData
-		{
-			std::string samplesFile;
-			std::string meshFile;
-			Vector3r translation;
-			Matrix3r rotation;
-			Vector3r scale;
-			Real density;
-			bool dynamic;
-			bool isWall;
-			Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color;
-			void *rigidBody;
-
-			std::string mapFile;
-			bool mapInvert;
-			Real mapThickness;	
-			Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution;
-			unsigned int samplingMode;
-			bool isAnimated;
-		};
-
-		/** \brief Struct to store a fluid object */
-		struct FluidData
-		{
-			std::string id;
-			std::string samplesFile;
-			std::string visMeshFile;
-			Vector3r translation;
-			Matrix3r rotation;
-			Vector3r scale;
-			Vector3r initialVelocity;
-			Vector3r initialAngularVelocity;
-			unsigned char mode;
-			bool invert;
-			std::array<unsigned int, 3> resolutionSDF;
-		};
-
-		/** \brief Struct to store a fluid block */
-		struct FluidBlock
-		{
-			std::string id;
-			std::string visMeshFile;
-			Box box;
-			unsigned char mode;
-			Vector3r initialVelocity;
-			Vector3r initialAngularVelocity;
-		};
-
-		/** \brief Struct to store an emitter object */
-		struct EmitterData
-		{
-			std::string id;
-			unsigned int width;
-			unsigned int height;
-			Vector3r x;
-			Real velocity; // emission velocity
-			Matrix3r rotation;
-			Real emitStartTime;
-			Real emitEndTime;
-			unsigned int type;
-		};
-
-		/** \brief Struct to store an animation field object
-		 */
-		struct AnimationFieldData
-		{
-			std::string particleFieldName;
-			std::string expression[3];
-			unsigned int shapeType;
-			Vector3r x;
-			Matrix3r rotation;
-			Vector3r scale; 
-			Real startTime;
-			Real endTime;
-		};
-
-		/** \brief Struct to store particle coloring information */
-		struct MaterialData
-		{
-			std::string id;
-			std::string colorField;
-			unsigned int colorMapType;
-			Real minVal;
-			Real maxVal;
-			unsigned int maxEmitterParticles;
-			bool emitterReuseParticles;
-			Vector3r emitterBoxMin;
-			Vector3r emitterBoxMax;
-		};
-
 		/** \brief Struct to store scene information */
 		struct Scene
 		{
-			std::vector<BoundaryData*> boundaryModels;
-			std::vector<FluidData*> fluidModels;
-			std::vector<FluidBlock*> fluidBlocks;
-			std::vector<EmitterData*> emitters;
-			std::vector<AnimationFieldData*> animatedFields;
-			std::vector<MaterialData*> materials;
+			std::vector<BoundaryParameterObject*> boundaryModels;
+			std::vector<FluidModelParameterObject*> fluidModels;
+			std::vector<FluidBlockParameterObject*> fluidBlocks;
+			std::vector<EmitterParameterObject*> emitters;
+			std::vector<AnimationFieldParameterObject*> animatedFields;
+			std::vector<MaterialParameterObject*> materials;
 			Real particleRadius;
 			bool sim2D;
-			Real timeStepSize;
-			Vector3r camPosition;
-			Vector3r camLookat;
 		};
 
 		nlohmann::json& getJSONData() { return m_jsonData; };
@@ -141,7 +41,15 @@ namespace Utilities
 			if (j.is_null())
 				return false;
 
-			v = j.get<T>();
+			try
+			{
+				v = j.get<T>();
+			}
+			catch (const std::exception& e)
+			{
+				LOG_ERR << e.what();
+				exit(1);
+			}
 			return true;
 		}
 
@@ -151,9 +59,17 @@ namespace Utilities
 			if (j.is_null())
 				return false;
 
-			std::vector<T> values = j.get<std::vector<T>>();
-			for (unsigned int i = 0; i < values.size(); i++)
-				vec[i] = values[i];
+			try
+			{
+				std::vector<T> values = j.get<std::vector<T>>();
+				for (unsigned int i = 0; i < values.size(); i++)
+					vec[i] = values[i];
+			}
+			catch (const std::exception& e)
+			{
+				LOG_ERR << e.what();
+				exit(1);
+			}
 			return true;
 		}
 
@@ -170,7 +86,15 @@ namespace Utilities
 				if (j2.is_null())
 					return false;
 
-				v = j2.get<T>();
+				try
+				{
+					v = j2.get<T>();
+				}
+				catch (const std::exception& e)
+				{
+					LOG_ERR << e.what();
+					exit(1);
+				}
 				return true;
 			}
 			return false;

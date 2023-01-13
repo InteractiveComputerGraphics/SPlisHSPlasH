@@ -70,6 +70,8 @@ std::vector<MiniGL::MousePressFct> MiniGL::m_mousePressFct;
 std::vector<MiniGL::MouseMoveFct> MiniGL::m_mouseMoveFct;
 std::vector<MiniGL::MouseWheelFct> MiniGL::m_mouseWheelFct;
 GLFWwindow* MiniGL::m_glfw_window = nullptr;
+bool MiniGL::m_vsync = false;
+double MiniGL::m_lastTime;
 
 void MiniGL::bindTexture()
 {
@@ -468,7 +470,7 @@ void MiniGL::setClientSceneFunc (SceneFct func)
 	scenefunc = func;
 }
 
-void MiniGL::init(int argc, char **argv, const int width, const int height, const char *name)
+void MiniGL::init(const int width, const int height, const char *name, const bool vsync, const bool maximized)
 {
 	fovy = 60;
 	znear = 0.5f;
@@ -476,6 +478,7 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 
 	m_width = width;
 	m_height = height;
+	m_vsync = vsync;
 
 	scenefunc = nullptr;
 
@@ -488,7 +491,13 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	//glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
+	if (maximized)
+		glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+
+	if (m_vsync)
+		glfwWindowHint(GLFW_DOUBLEBUFFER, GL_TRUE);
+	else 
+		glfwWindowHint(GLFW_DOUBLEBUFFER, GL_FALSE);
 	m_glfw_window = glfwCreateWindow(width, height, name, NULL, NULL);
 	if (!m_glfw_window)
 	{
@@ -525,6 +534,8 @@ void MiniGL::init(int argc, char **argv, const int width, const int height, cons
 	glfwSetScrollCallback(m_glfw_window, mouseWheel);
 
 	glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+
+	m_lastTime = glfwGetTime();
 }
 
 void MiniGL::initTexture()
@@ -604,12 +615,12 @@ void MiniGL::setClientDestroyFunc(DestroyFct func)
 	destroyfunc = func;
 }
 
-void MiniGL::addKeyFunc (unsigned char k, std::function<void()> const& func)
+void MiniGL::addKeyFunc(int key, int modifiers, std::function<void()> const& func)
 {
 	if (func == nullptr)
 		return;
 	else
-		keyfunc.push_back({ func, k });
+		keyfunc.push_back({ func, key, modifiers });
 }
 
 void MiniGL::keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -619,6 +630,13 @@ void MiniGL::keyboard(GLFWwindow* window, int key, int scancode, int action, int
 	{
 		if (m_keyboardFct[i](key, scancode, action, mods)) 
 			return;
+	}
+
+	// execute user key functions
+	for (int i = 0; i < keyfunc.size(); i++)
+	{
+		if ((key == keyfunc[i].key) && (mods == keyfunc[i].modifiers) && (action == GLFW_PRESS))
+			keyfunc[i].fct();
 	}
 
 	if (key == GLFW_KEY_ESCAPE)
@@ -657,19 +675,14 @@ void MiniGL::char_callback(GLFWwindow* window, unsigned int codepoint)
 			return;
 	}
 
-	for (int i = 0; i < keyfunc.size(); i++)
-	{
-		if (codepoint == keyfunc[i].key)
-			keyfunc[i].fct();
-		else if (codepoint == GLFW_KEY_1)
-			rotateX(-turnspeed);
-		else if (codepoint == GLFW_KEY_2)
-			rotateX(turnspeed);
-		else if (codepoint == GLFW_KEY_3)
-			rotateY(-turnspeed);
-		else if (codepoint == GLFW_KEY_4)
-			rotateY(turnspeed);
-	}
+	if (codepoint == GLFW_KEY_1)
+		rotateX(-turnspeed);
+	else if (codepoint == GLFW_KEY_2)
+		rotateX(turnspeed);
+	else if (codepoint == GLFW_KEY_3)
+		rotateY(-turnspeed);
+	else if (codepoint == GLFW_KEY_4)
+		rotateY(turnspeed);
 }
 
 void MiniGL::setProjectionMatrix (int width, int height) 
@@ -964,8 +977,8 @@ void MiniGL::drawSelectionRect()
 	glOrtho(0.0f, m_width, m_height, 0.0f, -1.0f, 1.0f);
 	glBegin(GL_LINE_LOOP);
 	glColor3f(1, 0, 0); //Set the colour to red 
-	glVertex2f(m_selectionStart[0], m_selectionStart[1]);
-	glVertex2f(m_selectionStart[0], mouse_pos_y_old);
+	glVertex2f(static_cast<GLfloat>(m_selectionStart[0]), static_cast<GLfloat>(m_selectionStart[1]));
+	glVertex2f(static_cast<GLfloat>(m_selectionStart[0]), static_cast<GLfloat>(mouse_pos_y_old));
 	glVertex2f(mouse_pos_x_old, mouse_pos_y_old);
 	glVertex2f(mouse_pos_x_old, m_selectionStart[1]);
 	glEnd();
@@ -980,22 +993,30 @@ void MiniGL::mainLoop()
 {
 	while (!glfwWindowShouldClose(m_glfw_window))
 	{
-		glfwPollEvents();
-
 		if (idlefunc != nullptr)
 			idlefunc();
 
-		glPolygonMode(GL_FRONT_AND_BACK, drawMode);
-		viewport();
+		double currentTime = glfwGetTime();
+		if (currentTime - m_lastTime >= 1.0 / 60.0)  // render at maximum at 60 fps
+		{
+			glfwPollEvents();
 
-		if (scenefunc != nullptr)
-			scenefunc();
+			glPolygonMode(GL_FRONT_AND_BACK, drawMode);
+			viewport();
 
-		if (selectionMode)
-			drawSelectionRect();
+			if (scenefunc != nullptr)
+				scenefunc();
 
-		glfwSwapBuffers(m_glfw_window);
-		//glFlush();
+			if (selectionMode)
+				drawSelectionRect();
+
+			if (m_vsync)
+				glfwSwapBuffers(m_glfw_window);
+			else
+				glFlush();
+
+			m_lastTime = currentTime;
+		}
 	}
 
 	if (destroyfunc != nullptr)
@@ -1015,8 +1036,10 @@ void MiniGL::leaveMainLoop()
 
 void MiniGL::swapBuffers()
 {
-	glfwSwapBuffers(m_glfw_window);
-	//glFlush();
+	if (m_vsync)
+		glfwSwapBuffers(m_glfw_window);
+	else
+		glFlush();
 }
 
 void MiniGL::getWindowPos(int &x, int &y)
@@ -1039,6 +1062,19 @@ void MiniGL::setWindowSize(int w, int h)
 	glfwSetWindowSize(m_glfw_window, w, h);
 }
 
+bool MiniGL::getWindowMaximized()
+{
+	return glfwGetWindowAttrib(m_glfw_window, GLFW_MAXIMIZED);
+}
+
+void MiniGL::setWindowMaximized(const bool b)
+{
+	if (b)
+		glfwRestoreWindow(m_glfw_window);
+	else 
+		glfwRestoreWindow(m_glfw_window);
+}
+
 void MiniGL::breakPointMainLoop()
 {
 	if (m_breakPointActive)
@@ -1052,8 +1088,10 @@ void MiniGL::breakPointMainLoop()
 			if (scenefunc != nullptr)
 				scenefunc();
 
-			glfwSwapBuffers(m_glfw_window);
-			//glFlush();
+			if (m_vsync)
+				glfwSwapBuffers(m_glfw_window);
+			else
+				glFlush();
 			glfwPollEvents();
 		}
 	}

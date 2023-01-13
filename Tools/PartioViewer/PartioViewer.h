@@ -69,7 +69,6 @@ namespace SPH
 		unsigned int m_defaultColorMapType;
 		std::vector<std::vector<float>> m_scalarField;
 
-		void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 		bool readPartioFile(const std::string &fileName, Partio::ParticlesDataMutable* &partioData, unsigned int &posIndex, const bool printInfo = false);
 		bool readRigidBodyData(std::string fileName, const bool first = false);
 		unsigned int getFrameIndexFromFile(const std::string &inputFileName);

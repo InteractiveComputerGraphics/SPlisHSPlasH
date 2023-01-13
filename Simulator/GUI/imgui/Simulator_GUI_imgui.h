@@ -17,9 +17,15 @@ namespace SPH
 		int scaleIndex;
 		int win_x, win_y;
 		int win_width, win_height;
+		bool vsync;
+		bool show_log_window;
+		bool maximized;
+		int log_filter;
 
-		UserSettings() { win_x = 0; win_y = 0; win_width = 1280; win_height = 960; scaleIndex = 0; }
+		UserSettings() { win_x = 0; win_y = 0; win_width = 1280; win_height = 960; scaleIndex = 0; vsync = false; maximized = false; log_filter = 1; }
 	};
+
+	class LogWindow;
 
 	class Simulator_GUI_imgui : public Simulator_GUI_Base
 	{
@@ -33,10 +39,17 @@ namespace SPH
 			std::vector<std::string> m_colorFieldNames;
 			std::vector<std::vector<unsigned int>> m_selectedParticles;			
 			std::vector<ImFont*> m_fonts;
+			std::vector<ImFont*> m_fonts2;
 			std::vector<float> m_scales;
 			unsigned int m_currentScaleIndex;
+			bool m_vsync;
+			bool m_showLogWindow;
 			ImGuiContext* m_context;
 			UserSettings m_userSettings;
+			unsigned int m_dockSpaceId;
+			bool m_iniFound;
+			LogWindow* m_logWindow;
+			const float m_baseSize = 15.0f;
 
 			std::vector<std::vector<unsigned int>>& getSelectedParticles() { return m_selectedParticles; }
 			void initImgui();
@@ -57,9 +70,12 @@ namespace SPH
 			static void readIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line);
 			static void* readOpenIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, const char* name);
 			static void applySettings(ImGuiContext* ctx, ImGuiSettingsHandler* handler);
+			bool alignedButton(const char* label, float alignment = 0.5f);
+			void createMenuBar();
+
 
 		public:
-			virtual void init(int argc, char **argv, const char *name);
+			virtual void init(const char *name);
 			virtual void initParameterGUI();
 			virtual void initSimulationParameterGUI();
 			virtual void render();
@@ -68,7 +84,7 @@ namespace SPH
 			virtual void cleanup();
 			virtual void run();
 			virtual void stop();
-			virtual void addKeyFunc(char k, std::function<void()> const& func);
+			virtual void addKeyFunc(int key, int modifiers, std::function<void()> const& func);
 
 			void createSimulationParameterGUI();
 	};

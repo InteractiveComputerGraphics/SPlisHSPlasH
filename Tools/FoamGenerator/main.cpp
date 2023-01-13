@@ -157,7 +157,7 @@ int main( int argc, char **argv )
 {
 	REPORT_MEMORY_LEAKS;
 
-	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+	Utilities::logger.addSink(shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 	exePath = FileSystem::getProgramPath();
 
 	try

@@ -1,6 +1,7 @@
 import pysplishsplash as sph
 import pysplishsplash.Utilities.SceneLoaderStructs as Scenes
 import numpy as np
+import math
 from scipy.spatial.transform import Rotation as R
 
 
@@ -18,7 +19,7 @@ def main():
 	# SimulationBase
 	base.setValueBool(base.PAUSE, False)
 	base.setValueFloat(base.PAUSE_AT, -1.0)
-	base.setValueFloat(base.STOP_AT, 5.0)
+	base.setValueFloat(base.STOP_AT, 10.0)
 	base.setValueUInt(base.NUM_STEPS_PER_RENDER, 4)
 	base.setValueInt(base.RENDER_WALLS, 4)
 	base.setValueFloat(base.DATA_EXPORT_FPS, 25.0)
@@ -34,10 +35,15 @@ def main():
 	# Get the scene and add objects
 	scene = sph.Exec.SceneConfiguration.getCurrent().getScene()
 	
+	# change camera position
+	base.setVec3ValueReal(base.CAMERA_POSITION, [2,3,6])
+	base.setVec3ValueReal(base.CAMERA_LOOKAT, [0,0,0])
+	
+	# change time step size
+	tm = sph.TimeManager.getCurrent()
+	tm.setValueFloat(tm.TIME_STEP_SIZE, 0.002)
+
 	# change parameters of scene
-	scene.camPosition = [0,3,6]
-	scene.camLookat = [0,0,0]
-	scene.timeStepSize = 0.002
 	scene.particleRadius = 0.025
 	scene.sim2D = False
 	
@@ -45,20 +51,20 @@ def main():
 	scene.boundaryModels.append(Scenes.BoundaryData(meshFile="../models/UnitBox.obj", translation=[0., 3.0, 0.], scale=[4., 6., 4.], color=[0.1, 0.4, 0.5, 1.0], isWall=True, mapInvert=True, mapResolution=[25, 25, 25], isDynamic=False))
 
 	# first fluid
-	scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([-1.5, 0.0, -1.5], [-0.5, 1.0, -0.5]), mode=0, initialVelocity=[0.0, 0.0, 0.0]	))
+	scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', boxMin=[-1.5, 0.0, -1.5], boxMax = [-0.5, 1.0, -0.5], mode=0, initialVelocity=[0.0, 0.0, 0.0]	))
 	scene.fluidModels.append(Scenes.FluidData(id='Fluid', samplesFile="../models/sphere.obj", mode=0, scale=[0.3, 0.3, 0.3], translation=[0., 0.5, 0.], initialVelocity=[0.0, 0.0, 0.0]))
 	
 	scene.materials.append(Scenes.MaterialData(id='Fluid', colorMapType=2))
 	
 	# second fluid (emitter)	
-	r = R.from_euler('y', 180, degrees=True).as_matrix()
-	scene.emitters.append(Scenes.EmitterData(id='Fluid2', x=[1,1,0], width=5, height=5, rotation=r, emitStartTime=0.0, emitEndTime=1.0, velocity=3))
+	scene.emitters.append(Scenes.EmitterData(id='Fluid2', x=[1,1,0], width=5, height=5, axis=[0,1,0], angle=math.pi, emitStartTime=0.0, emitEndTime=1.0, velocity=3))
 	
 	scene.materials.append(Scenes.MaterialData(id='Fluid2', colorMapType=1, minVal=0.0, maxVal=10.0, maxEmitterParticles=5000))
 	
 	# add animation field
-	#scene.animatedFields.append(Scenes.AnimationFieldData(particleFieldName='velocity', startTime=0, endTime=0.5, expressionX='cos(2*t)*0.1'))
-	#scene.animatedFields[0].scale=[2,2,2]
+	scene.animatedFields.append(Scenes.AnimationFieldData(particleFieldName='velocity', startTime=0, endTime=5, expressionX='cos(2*t)'))
+	scene.animatedFields[0].scale=[2,2,2]
+	scene.animatedFields[0].translation=[-1,0,0]
 	
 	# init the simulation
 	base.initSimulation()

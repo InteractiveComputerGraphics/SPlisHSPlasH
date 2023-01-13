@@ -5,7 +5,7 @@ if (${GIT_LOCAL_CHANGES} STREQUAL "DIRTY")
 	set(COMPILER_MESSAGE "#pragma WARNING(Local changes not committed.)")
 endif()
 
-file (STRINGS "../version" SPLISHSPLASH_VERSION)
+file (STRINGS "../version.txt" SPLISHSPLASH_VERSION)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/Version.h @ONLY)
 
@@ -21,6 +21,7 @@ add_library(Utilities
 	OBJLoader.h
 	PartioReaderWriter.cpp
 	PartioReaderWriter.h
+	PLYLoader.h
 	StringTools.h	
 	SystemInfo.h
 	Timing.h

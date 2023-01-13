@@ -2,7 +2,6 @@
 #include <Eigen/Dense>
 #include "extern/cxxopts/cxxopts.hpp"
 #include "Utilities/Timing.h"
-#include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "Utilities/PartioReaderWriter.h"
 #include "Utilities/Version.h"
@@ -12,6 +11,7 @@
 #include "SPlisHSPlasH/Utilities/SceneLoader.h"
 #include "extern/happly/happly.h"
 #include "extern/partio/src/lib/Partio.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
 
 // Enable memory leak detection
 #ifdef _DEBUG
@@ -33,7 +33,6 @@ void computeMatrixL();
 void computeF();
 void deformMesh();
 void performMeshSkinning();
-void loadObj(const std::string& filename, TriangleMesh& mesh, const Vector3r& translation, const Matrix3r& rotation, const Vector3r& scale);
 bool readFrame(std::vector<Vector3r>& x, const unsigned int frame);
 void writeCurrentFrame();
 void init();
@@ -124,7 +123,7 @@ int main( int argc, char **argv )
 {
 	REPORT_MEMORY_LEAKS;
 
-	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+	Utilities::logger.addSink(shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 	exePath = FileSystem::getProgramPath();
 
 	try
@@ -467,7 +466,7 @@ void performMeshSkinning(const std::string &id, const int objId)
 		LOG_INFO << "Scale: " << scale;
 		LOG_INFO << "Translation: " << translation;
 
-		loadObj(meshFile, mesh, translation, rotation, scale);
+		MeshImport::importMesh(meshFile, mesh, translation, rotation, scale);
 
 		// read reference configuration
 		readFrame(x0, 1);
@@ -499,9 +498,9 @@ void performMeshSkinning()
 		int objId = 0;
 		for (size_t i = 0; i < scene.fluidBlocks.size(); i++)
 		{
-			translation = 0.5 * (scene.fluidBlocks[i]->box.m_maxX + scene.fluidBlocks[i]->box.m_minX);
+			translation = 0.5 * (scene.fluidBlocks[i]->boxMax + scene.fluidBlocks[i]->boxMin);
 			rotation = Matrix3r::Identity();
-			scale = scene.fluidBlocks[i]->box.m_maxX - scene.fluidBlocks[i]->box.m_minX;
+			scale = scene.fluidBlocks[i]->boxMax - scene.fluidBlocks[i]->boxMin;
 			radius = scene.particleRadius;
 			std::string id = scene.fluidBlocks[i]->id;
 			meshFile = FileSystem::normalizePath(FileSystem::getFilePath(sceneFile) + "/" + scene.fluidBlocks[i]->visMeshFile);
@@ -514,7 +513,7 @@ void performMeshSkinning()
 		for (size_t i = 0; i < scene.fluidModels.size(); i++)
 		{
 			translation = scene.fluidModels[i]->translation;
-			rotation = scene.fluidModels[i]->rotation;
+			rotation = AngleAxisr(scene.fluidModels[i]->angle, scene.fluidModels[i]->axis).toRotationMatrix();
 			scale = scene.fluidModels[i]->scale;
 			radius = scene.particleRadius;
 			std::string id = scene.fluidModels[i]->id;
@@ -530,7 +529,7 @@ void performMeshSkinning()
 	}
 	else
 	{
-		loadObj(meshFile, mesh, translation, rotation, scale);
+		MeshImport::importMesh(meshFile, mesh, translation, rotation, scale);
 
 		// read reference configuration
 		readFrame(x0, 1);
@@ -540,38 +539,6 @@ void performMeshSkinning()
 
 		meshSkinning();
 	}
-}
-
-void loadObj(const std::string& filename, TriangleMesh& mesh, const Vector3r& translation, const Matrix3r &rotation, const Vector3r& scale)
-{
-	std::vector<OBJLoader::Vec3f> x;
-	std::vector<OBJLoader::Vec3f> normals;
-	std::vector<MeshFaceIndices> faces;
-	OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
-	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
-
-	mesh.release();
-	const unsigned int nPoints = (unsigned int)x.size();
-	const unsigned int nFaces = (unsigned int)faces.size();
-	mesh.initMesh(nPoints, nFaces);
-	for (unsigned int i = 0; i < nPoints; i++)
-	{
-		mesh.addVertex(rotation * Vector3r(x[i][0], x[i][1], x[i][2]) + translation);
-	}
-	for (unsigned int i = 0; i < nFaces; i++)
-	{
-		// Reduce the indices by one
-		int posIndices[3];
-		for (int j = 0; j < 3; j++)
-		{
-			posIndices[j] = faces[i].posIndices[j] - 1;
-		}
-
-		mesh.addFace(&posIndices[0]);
-	}
-
-	LOG_INFO << "Number of triangles: " << nFaces;
-	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
 std::string zeroPadding(const unsigned int number, const unsigned int length) 

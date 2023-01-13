@@ -53,7 +53,7 @@ namespace SPH
 			virtual ~PBD_Simulator_GUI_imgui();
 
 		public:
-			virtual void init(int argc, char **argv, const char *name);
+			virtual void init(const char *name);
 			virtual void render();
 			virtual void initSimulationParameterGUI();
 

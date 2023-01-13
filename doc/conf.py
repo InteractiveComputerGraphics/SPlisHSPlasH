@@ -22,7 +22,7 @@ copyright = '2020, Interactive Computer Graphics'
 author = 'Interactive Computer Graphics'
 
 # The full version, including alpha/beta/rc tags
-f = open("../version", "r")
+f = open("../version.txt", "r")
 release = f.readline()
 f.close() 
 os.environ["SPH_VERSION"] = release

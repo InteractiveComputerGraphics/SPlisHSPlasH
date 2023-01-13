@@ -66,10 +66,10 @@ void PBDBoundarySimulator::initBoundaryData()
 	// the last boundary models are the ones that were added for the emitters
 	for (auto i = 0; i < scene.emitters.size(); i++)
 	{
-		SceneLoader::EmitterData *ed = scene.emitters[i];
+		EmitterParameterObject *ed = scene.emitters[i];
 		PBDWrapper::RBData rb;
 		rb.x = ed->x;
-		rb.R = ed->rotation;
+		rb.R = AngleAxisr(ed->angle, ed->axis).toRotationMatrix();
 		rb.scale = Emitter::getSize(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
 		rb.restitution = 0.6;
 		rb.friction = 0.1;

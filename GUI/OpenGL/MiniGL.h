@@ -63,7 +63,8 @@ namespace SPH
 		struct KeyFunction
 		{
 			std::function<void()> fct;
-			unsigned char key;
+			int key;
+			int modifiers;
 		};
 
 		typedef std::function<void()> SceneFct;
@@ -119,6 +120,8 @@ namespace SPH
 		static bool m_breakPointLoop;
 		static GLUquadricObj* m_sphereQuadric;
 		static GLFWwindow* m_glfw_window;
+		static bool m_vsync;
+		static double m_lastTime;
 
 		static void reshape (GLFWwindow* glfw_window, int w, int h);
 		static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods);		
@@ -153,9 +156,9 @@ namespace SPH
 		static void setClientSceneFunc (SceneFct func);
 		static void setClientIdleFunc (IdleFct func);
 		static void setClientDestroyFunc(DestroyFct func);
-		static void addKeyFunc(unsigned char k, std::function<void()> const& func);
+		static void addKeyFunc(int key, int modifiers, std::function<void()> const& func);
 		static std::vector<KeyFunction> &getKeyFunc() { return keyfunc; }
-		static void init(int argc, char **argv, const int width, const int height, const char *name);
+		static void init(const int width, const int height, const char* name, const bool vsync, const bool maximized = false);
 		static void destroy ();
 		static void viewport ();
 		static void initLights ();
@@ -176,6 +179,7 @@ namespace SPH
 		static void hsvToRgb(float h, float s, float v, float *rgb);
 		static void rgbToHsv(float r, float g, float b, float *hsv);
 		static int getModifierKey() { return modifier_key; }
+		static bool getVSync() { return m_vsync; }
 
 		static void addReshapeFunc(ReshapeFct func) { m_reshapeFct.push_back(func); }
 		static std::vector<ReshapeFct> &getReshapeFunc() { return m_reshapeFct; }
@@ -211,6 +215,8 @@ namespace SPH
 		static void getWindowSize(int& w, int& h);
 		static void setWindowPos(int x, int y);
 		static void setWindowSize(int w, int h);
+		static bool getWindowMaximized();
+		static void setWindowMaximized(const bool b);
 	};
 }
 

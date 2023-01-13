@@ -13,8 +13,6 @@ namespace SPH
 	protected:
 		SimulatorBase *m_base;
 
-		void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
-
 	public:
 		StaticBoundarySimulator(SimulatorBase *base);
 		virtual ~StaticBoundarySimulator();

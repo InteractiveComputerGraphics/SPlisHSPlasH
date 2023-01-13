@@ -29,12 +29,7 @@ void GUIModule(py::module m) {
     // ---------------------------------------
     py::class_<SPH::Simulator_GUI_Base>(m_sub, "Simulator_GUI_Base")
             .def(py::init<SPH::SimulatorBase*>())
-            .def("init", [](SPH::Simulator_GUI_Base& obj, std::vector<std::string> argv, std::string windowName){
-                std::vector<const char *> cargv;
-                cargv.reserve(argv.size());
-                for (auto & elem : argv) cargv.push_back(elem.c_str());
-                obj.init(static_cast<int>(argv.size()), const_cast<char**>(cargv.data()), windowName.c_str());
-            })
+            .def("init", &SPH::Simulator_GUI_Base::init)
             .def("initSimulationParameterGUI", &SPH::Simulator_GUI_Base::initSimulationParameterGUI)
             .def("initParameterGUI", &SPH::Simulator_GUI_Base::initParameterGUI)
             .def("render", &SPH::Simulator_GUI_Base::render)

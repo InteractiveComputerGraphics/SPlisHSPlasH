@@ -1,6 +1,5 @@
 #include "PartioViewer.h"
 
-#include "Utilities/OBJLoader.h"
 #include "Utilities/FileSystem.h"
 #include "Utilities/BinaryFileReaderWriter.h"
 #include "Utilities/Version.h"
@@ -9,6 +8,7 @@
 #include "extern/toojpeg/toojpeg.h"
 #include "GUI/OpenGL/PartioViewer_OpenGL.h"
 #include "GUI/imgui/PartioViewer_GUI_imgui.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
 
 using namespace std;
 using namespace SPH;
@@ -52,7 +52,7 @@ int PartioViewer::run(int argc, char **argv)
 	m_argc = argc;
 	m_argv = argv;
 
-	Utilities::logger.addSink(unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+	Utilities::logger.addSink(shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 
 	LOG_INFO << "Git refspec: " << GIT_REFSPEC;
 	LOG_INFO << "Git SHA1: " << GIT_SHA1;
@@ -407,39 +407,6 @@ void PartioViewer::updateScalarField()
 	}
 }
 
-void PartioViewer::loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
-{
-	std::vector<OBJLoader::Vec3f> x;
-	std::vector<OBJLoader::Vec3f> normals;
-	std::vector<MeshFaceIndices> faces;
-	OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
-	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
-
-	mesh.release();
-	const unsigned int nPoints = (unsigned int)x.size();
-	const unsigned int nFaces = (unsigned int)faces.size();
-	mesh.initMesh(nPoints, nFaces);
-	for (unsigned int i = 0; i < nPoints; i++)
-	{
-		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
-	}
-	for (unsigned int i = 0; i < nFaces; i++)
-	{
-		// Reduce the indices by one
-		int posIndices[3];
-		for (int j = 0; j < 3; j++)
-		{
-			posIndices[j] = faces[i].posIndices[j] - 1;
-		}
-
-		mesh.addFace(&posIndices[0]);
-	}
-
-	LOG_INFO << "Number of triangles: " << nFaces;
-	LOG_INFO << "Number of vertices: " << nPoints;
-}
-
-
 bool PartioViewer::readPartioFile(const std::string &fileName, Partio::ParticlesDataMutable* &partioData, unsigned int &posIndex, const bool printInfo)
 {
 	if (!FileSystem::fileExists(fileName))
@@ -493,7 +460,7 @@ bool PartioViewer::readRigidBodyData(std::string fileName, const bool first)
 
 			meshFileName = FileSystem::normalizePath(FileSystem::getFilePath(fileName) + "/" + meshFileName);
 
-			loadObj(meshFileName, m_boundaries[i].mesh, scale.cast<Real>());
+			MeshImport::importMesh(meshFileName, m_boundaries[i].mesh, Vector3r::Zero(), Matrix3r::Identity(), scale.cast<Real>());
 			m_boundaries[i].x0.resize(m_boundaries[i].mesh.numVertices());
 			for (unsigned int j = 0; j < m_boundaries[i].x0.size(); j++)
 				m_boundaries[i].x0[j] = m_boundaries[i].mesh.getVertices()[j];

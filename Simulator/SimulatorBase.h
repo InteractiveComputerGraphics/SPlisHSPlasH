@@ -59,6 +59,8 @@ namespace SPH
 		bool m_enableObjectSplitting;
 		Real m_framesPerSecond;
 		Real m_framesPerSecondState;
+		Vector3r m_cameraPosition;
+		Vector3r m_cameraLookAt;
 		std::string m_particleAttributes;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
@@ -93,8 +95,6 @@ namespace SPH
 		ScriptObject* m_scriptObject;
 #endif
 
-		virtual void initParameters();
-
 		void initFluidData();
 		void setInitialVelocity(const Vector3r &vel, const Vector3r & angVel, const unsigned int numParticles, Vector3r *fluidParticles, Vector3r *fluidVelocities);
 		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities, std::vector<std::vector<unsigned int>> &fluidObjectIds);
@@ -122,6 +122,8 @@ namespace SPH
 		static int ASYNC_EXPORT;
 		static int RENDER_WALLS;
 		static int EXPORT_OBJECT_SPLITTING;
+		static int CAMERA_POSITION;
+		static int CAMERA_LOOKAT;
 		
 		static int ENUM_WALLS_NONE;
 		static int ENUM_WALLS_PARTICLES_ALL;
@@ -133,6 +135,8 @@ namespace SPH
 		SimulatorBase(const SimulatorBase&) = delete;
         SimulatorBase& operator=(const SimulatorBase&) = delete;
 		virtual ~SimulatorBase();
+
+		virtual void initParameters();
 
 		void run();
 		void init(std::vector<std::string> argv, const std::string &windowName);
@@ -156,8 +160,8 @@ namespace SPH
 
 		static void particleInfo(std::vector<std::vector<unsigned int>> &particles);
 
-		void initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel);
-		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::SceneLoader::BoundaryData *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
+		void initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel);
+		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
 
 		void readParameters();
 
@@ -186,8 +190,6 @@ namespace SPH
 		std::vector<float>& getScalarField(const unsigned int i) { return m_scalarField[i]; }
 		void updateScalarField();
 		void determineMinMaxOfScalarField();
-
-		static void loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale);
 
 		Utilities::SceneLoader *getSceneLoader() { return m_sceneLoader.get(); }
 
@@ -229,6 +231,9 @@ namespace SPH
 		void activateExporter(const std::string& exporterName, const bool active);
 
 		void updateGUI() { m_updateGUI = true; }
+
+		Vector3r getCameraPosition() const { return m_cameraPosition; }
+		Vector3r getCameraLookAt() const { return m_cameraLookAt; }
 
 #ifdef USE_EMBEDDED_PYTHON
 		ScriptObject* getScriptObject() { return m_scriptObject; }

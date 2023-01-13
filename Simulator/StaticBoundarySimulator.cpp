@@ -7,9 +7,9 @@
 #include "Utilities/Logger.h"
 #include "Utilities/Timing.h"
 #include "SPlisHSPlasH/Utilities/SurfaceSampling.h"
-#include "Utilities/OBJLoader.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "Simulator/SceneConfiguration.h"
+#include "SPlisHSPlasH/Utilities/MeshImport.h"
 
 using namespace std;
 using namespace SPH;
@@ -24,39 +24,6 @@ StaticBoundarySimulator::StaticBoundarySimulator(SimulatorBase *base)
 StaticBoundarySimulator::~StaticBoundarySimulator()
 {
 
-}
-
-
-void StaticBoundarySimulator::loadObj(const std::string &filename, TriangleMesh &mesh, const Vector3r &scale)
-{
-	std::vector<OBJLoader::Vec3f> x;
-	std::vector<OBJLoader::Vec3f> normals;
-	std::vector<MeshFaceIndices> faces;
-	OBJLoader::Vec3f s = { (float)scale[0], (float)scale[1], (float)scale[2] };
-	OBJLoader::loadObj(filename, &x, &faces, &normals, nullptr, s);
-
-	mesh.release();
-	const unsigned int nPoints = (unsigned int)x.size();
-	const unsigned int nFaces = (unsigned int)faces.size();
-	mesh.initMesh(nPoints, nFaces);
-	for (unsigned int i = 0; i < nPoints; i++)
-	{
-		mesh.addVertex(Vector3r(x[i][0], x[i][1], x[i][2]));
-	}
-	for (unsigned int i = 0; i < nFaces; i++)
-	{
-		// Reduce the indices by one
-		int posIndices[3];
-		for (int j = 0; j < 3; j++)
-		{
-			posIndices[j] = faces[i].posIndices[j] - 1;
-		}
-
-		mesh.addFace(&posIndices[0]);
-	}
-
-	LOG_INFO << "Number of triangles: " << nFaces;
-	LOG_INFO << "Number of vertices: " << nPoints;
 }
 
 void StaticBoundarySimulator::initBoundaryData()
@@ -91,7 +58,7 @@ void StaticBoundarySimulator::initBoundaryData()
 		StaticRigidBody *rb = new StaticRigidBody();
 		rb->setIsAnimated(scene.boundaryModels[i]->isAnimated);
 		TriangleMesh &geo = rb->getGeometry();
-		loadObj(meshFileName, geo, scene.boundaryModels[i]->scale);
+		MeshImport::importMesh(meshFileName, geo, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale);
 
 		std::vector<Vector3r> boundaryParticles;
 		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
@@ -176,7 +143,8 @@ void StaticBoundarySimulator::initBoundaryData()
 			}
 		}
 
-		Quaternionr q(scene.boundaryModels[i]->rotation);
+		Matrix3r rot = AngleAxisr(scene.boundaryModels[i]->angle, scene.boundaryModels[i]->axis).toRotationMatrix();
+		Quaternionr q(rot);
 		rb->setPosition0(scene.boundaryModels[i]->translation);
 		rb->setPosition(scene.boundaryModels[i]->translation);
 		rb->setRotation0(q);

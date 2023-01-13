@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 {
 	REPORT_MEMORY_LEAKS;
 
-	Utilities::logger.addSink(std::unique_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
+	Utilities::logger.addSink(std::shared_ptr<Utilities::ConsoleSink>(new Utilities::ConsoleSink(Utilities::LogLevel::INFO)));
 
 	LOG_INFO << "Git refspec: " << GIT_REFSPEC;
 	LOG_INFO << "Git SHA1: " << GIT_SHA1;

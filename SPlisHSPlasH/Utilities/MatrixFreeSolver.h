@@ -276,17 +276,15 @@ namespace Eigen
 {
 	namespace internal
 	{
-		using namespace SPH;
-
 		/** Implementation of the matrix-free matrix vector product  */
 		template<typename Rhs>
-		struct generic_product_impl<MatrixReplacement, Rhs, SparseShape, DenseShape, GemvProduct> // GEMV stands for generic matrix-vector
-			: generic_product_impl_base<MatrixReplacement, Rhs, generic_product_impl<MatrixReplacement, Rhs> >
+		struct generic_product_impl<SPH::MatrixReplacement, Rhs, SparseShape, DenseShape, GemvProduct> // GEMV stands for generic matrix-vector
+			: generic_product_impl_base<SPH::MatrixReplacement, Rhs, generic_product_impl<SPH::MatrixReplacement, Rhs> >
 		{
-			typedef typename Product<MatrixReplacement, Rhs>::Scalar Scalar;
+			typedef typename Product<SPH::MatrixReplacement, Rhs>::Scalar Scalar;
 
 			template<typename Dest>
-			static void scaleAndAddTo(Dest& dst, const MatrixReplacement& lhs, const Rhs& rhs, const Scalar& alpha)
+			static void scaleAndAddTo(Dest& dst, const SPH::MatrixReplacement& lhs, const Rhs& rhs, const Scalar& alpha)
 			{
 				// This method should implement "dst += alpha * lhs * rhs" inplace,
 				// however, for iterative solvers, alpha is always equal to 1, so let's not bother about it.
@@ -294,7 +292,7 @@ namespace Eigen
 
 				const Real *vec = &rhs(0);
 				Real *res = &dst(0);
-				MatrixReplacement& lhs_ = const_cast<MatrixReplacement&>(lhs);
+				SPH::MatrixReplacement& lhs_ = const_cast<SPH::MatrixReplacement&>(lhs);
 				lhs_.getMatrixVecProdFct()(vec, res, lhs_.getUserData());
 			}
 		};

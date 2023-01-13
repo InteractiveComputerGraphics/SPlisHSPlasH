@@ -8,11 +8,15 @@
 #include "GUI/OpenGL/Selection.h"
 #include "Utilities/FileSystem.h"
 #include "Simulator/SceneConfiguration.h"
+#include "LogWindow.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 
 using namespace SPH;
@@ -22,32 +26,59 @@ Simulator_GUI_imgui::Simulator_GUI_imgui(SimulatorBase *base) :
 	Simulator_GUI_Base(base)
 {	
 	m_currentFluidModel = 0;
+	m_currentScaleIndex = 0;
+	m_vsync = false;
+	m_iniFound = false;
+	m_showLogWindow = true;
 }
 
 Simulator_GUI_imgui::~Simulator_GUI_imgui(void)
 {	
 	imguiParameters::cleanup();
+	delete m_logWindow;
 }
 
-void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
+void Simulator_GUI_imgui::init(const char *name)
 {
-	MiniGL::init(argc, argv, 1280, 960, name);
+	m_logWindow = new LogWindow();
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	m_context = ImGui::CreateContext();
+
+	// Add .ini handle for UserData type
+	ImGuiSettingsHandler ini_handler;
+	ini_handler.TypeName = "SPHSimulator";
+	ini_handler.TypeHash = ImHashStr("SPHSimulator");
+	ini_handler.ReadOpenFn = readOpenIni;
+	ini_handler.ReadLineFn = readIni;
+	ini_handler.WriteAllFn = writeIni;
+	ini_handler.ApplyAllFn = applySettings;
+	ini_handler.UserData = this;
+	m_context->SettingsHandlers.push_back(ini_handler);
+
+	// load ini file before window is created
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	ImGui::LoadIniSettingsFromDisk(io.IniFilename);
+
+	MiniGL::init(1280, 960, name, m_userSettings.vsync, m_userSettings.maximized);
 	MiniGL::initLights();
 
 	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
 	const bool sim2D = scene.sim2D;
 	if (sim2D)
-		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
+		MiniGL::setViewport(40.0, 0.1f, 500.0, m_simulatorBase->getCameraPosition(), m_simulatorBase->getCameraLookAt());
 	else
-		MiniGL::setViewport(40.0, 0.1f, 500.0, scene.camPosition, scene.camLookat);
+		MiniGL::setViewport(40.0, 0.1f, 500.0, m_simulatorBase->getCameraPosition(), m_simulatorBase->getCameraLookAt());
 	MiniGL::setSelectionFunc(selection, this);
-	MiniGL::addKeyFunc('i', std::bind(&Simulator_GUI_imgui::particleInfo, this));
-	MiniGL::addKeyFunc('s', std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
+	MiniGL::addKeyFunc(GLFW_KEY_I, 0, std::bind(&Simulator_GUI_imgui::particleInfo, this));
+	MiniGL::addKeyFunc(GLFW_KEY_S, GLFW_MOD_CONTROL, std::bind(&SimulatorBase::saveState, m_simulatorBase, ""));
 #ifdef USE_NFD_FILE_DIALOG
-	MiniGL::addKeyFunc('l', std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
+	MiniGL::addKeyFunc(GLFW_KEY_L, GLFW_MOD_CONTROL, std::bind(&SimulatorBase::loadStateDialog, m_simulatorBase));
 #endif
-	MiniGL::addKeyFunc('w', std::bind(&SimulatorBase::writeScene, m_simulatorBase));
-	MiniGL::addKeyFunc('+', std::bind(&SimulatorBase::singleTimeStep, m_simulatorBase));
+	MiniGL::addKeyFunc(GLFW_KEY_W, GLFW_MOD_CONTROL, std::bind(&SimulatorBase::writeScene, m_simulatorBase));
+	MiniGL::addKeyFunc(GLFW_KEY_KP_ADD, 0, std::bind(&SimulatorBase::singleTimeStep, m_simulatorBase));
 
 	if (MiniGL::checkOpenGLVersion(3, 3))
 		Simulator_OpenGL::initShaders(m_simulatorBase->getExePath() + "/resources/shaders");
@@ -65,11 +96,18 @@ void Simulator_GUI_imgui::init(int argc, char **argv, const char *name)
 
 	MiniGL::setClientIdleFunc(std::bind(&SimulatorBase::timeStep, m_simulatorBase));
 	MiniGL::setClientDestroyFunc(std::bind(&Simulator_GUI_imgui::destroy, this));
-	MiniGL::addKeyFunc('r', std::bind(&SimulatorBase::reset, m_simulatorBase));
-	MiniGL::addKeyFunc('w', Simulator_GUI_imgui::switchDrawMode);
-	MiniGL::addKeyFunc(' ', std::bind(&Simulator_GUI_imgui::switchPause, this));
-	MiniGL::addKeyFunc('m', std::bind(&SimulatorBase::determineMinMaxOfScalarField, m_simulatorBase));
+	MiniGL::addKeyFunc(GLFW_KEY_R, 0, std::bind(&SimulatorBase::reset, m_simulatorBase));
+	MiniGL::addKeyFunc(GLFW_KEY_W, 0, Simulator_GUI_imgui::switchDrawMode);
+	MiniGL::addKeyFunc(GLFW_KEY_SPACE, 0, std::bind(&Simulator_GUI_imgui::switchPause, this));
+	MiniGL::addKeyFunc(GLFW_KEY_M, 0, std::bind(&SimulatorBase::determineMinMaxOfScalarField, m_simulatorBase));
 	MiniGL::setClientSceneFunc(std::bind(&Simulator_GUI_imgui::render, this));
+
+	// apply user settings from ini file 
+	if (m_iniFound)
+	{
+		MiniGL::setWindowPos(m_userSettings.win_x, m_userSettings.win_y);
+		MiniGL::setWindowSize(m_userSettings.win_width, m_userSettings.win_height);
+	}
 }
 
 void Simulator_GUI_imgui::initStyle()
@@ -82,10 +120,11 @@ void Simulator_GUI_imgui::initStyle()
 	ImGuiStyle* style = &ImGui::GetStyle();
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-	colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.8f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 	style->FrameBorderSize = 0.5f;
 	style->FrameRounding = 3.0f;
 	style->TabBorderSize = 1.0f;
+	style->WindowRounding = 6.0f;
 	style->ScaleAllSizes(1);
 }
 
@@ -104,6 +143,10 @@ void Simulator_GUI_imgui::readIni(ImGuiContext* ctx, ImGuiSettingsHandler* handl
 	if (sscanf(line, "pos=%d,%d", &x, &y) == 2) { settings->win_x = x; settings->win_y = y; }
 	else if (sscanf(line, "size=%d,%d", &w, &h) == 2) { settings->win_width = w; settings->win_height = h; }
 	else if (sscanf(line, "scale=%d", &i) == 1) { settings->scaleIndex = i; }
+	else if (sscanf(line, "maximized=%d", &i) == 1) { settings->maximized = (i != 0); }
+	else if (sscanf(line, "vsync=%d", &i) == 1) { settings->vsync = (i != 0); }
+	else if (sscanf(line, "show_log_window=%d", &i) == 1) { settings->show_log_window = (i != 0); }
+	else if (sscanf(line, "log_filter=%d", &i) == 1) { settings->log_filter = i; }
 }
 
 void Simulator_GUI_imgui::writeIni(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* out_buf)
@@ -120,6 +163,11 @@ void Simulator_GUI_imgui::writeIni(ImGuiContext* ctx, ImGuiSettingsHandler* hand
 	int w, h;
 	MiniGL::getWindowSize(w, h);
 	out_buf->appendf("size=%d,%d\n", w, h);
+	out_buf->appendf("maximized=%d\n", MiniGL::getWindowMaximized());
+
+	out_buf->appendf("vsync=%d\n", gui->m_vsync);
+	out_buf->appendf("show_log_window=%d\n", gui->m_showLogWindow);
+	out_buf->appendf("log_filter=%d\n", gui->m_logWindow->getSelectedFilter());
 }
 
 void Simulator_GUI_imgui::applySettings(ImGuiContext* ctx, ImGuiSettingsHandler* handler)
@@ -127,31 +175,18 @@ void Simulator_GUI_imgui::applySettings(ImGuiContext* ctx, ImGuiSettingsHandler*
 	Simulator_GUI_imgui* gui = (Simulator_GUI_imgui*)handler->UserData;
 	UserSettings* settings = (UserSettings*) &gui->m_userSettings;
 	gui->m_currentScaleIndex = settings->scaleIndex;
-	MiniGL::setWindowPos(settings->win_x, settings->win_y);
-	MiniGL::setWindowSize(settings->win_width, settings->win_height);
+	gui->m_vsync = settings->vsync;
+	gui->m_showLogWindow = settings->show_log_window;
+	gui->m_iniFound = true;
+	gui->m_logWindow->setSelectedFilter(settings->log_filter);
 }
 
 void Simulator_GUI_imgui::initImgui()
 {
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	m_context = ImGui::CreateContext();
-
-	// Add .ini handle for UserData type
-	ImGuiSettingsHandler ini_handler;
-	ini_handler.TypeName = "SPHSimulator";
-	ini_handler.TypeHash = ImHashStr("SPHSimulator");
-	ini_handler.ReadOpenFn = readOpenIni;
-	ini_handler.ReadLineFn = readIni;
-	ini_handler.WriteAllFn = writeIni;
-	ini_handler.ApplyAllFn = applySettings;
-	ini_handler.UserData = this;
-	m_context->SettingsHandlers.push_back(ini_handler);
-
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	
 	std::string font = Utilities::FileSystem::normalizePath(m_simulatorBase->getExePath() + "/resources/fonts/Roboto-Medium.ttf");
-	//std::string font = Utilities::FileSystem::normalizePath(m_simulatorBase->getExePath() + "/resources/fonts/DroidSans.ttf");
+	std::string font2 = Utilities::FileSystem::normalizePath(m_simulatorBase->getExePath() + "/resources/fonts/Cousine-Regular.ttf");
 
 	m_scales.push_back(1.0f);
 	m_scales.push_back(1.25f);
@@ -159,10 +194,10 @@ void Simulator_GUI_imgui::initImgui()
 	m_scales.push_back(1.75f);
 	m_scales.push_back(2.0f);
 
-	float baseSize = 15.0f;
 	for(int i=0; i < 5; i++)
-		m_fonts.push_back(io.Fonts->AddFontFromFileTTF(font.c_str(), baseSize * m_scales[i]));
-	m_currentScaleIndex = 0;
+		m_fonts.push_back(io.Fonts->AddFontFromFileTTF(font.c_str(), m_baseSize * m_scales[i]));
+	for (int i = 0; i < 5; i++)
+		m_fonts2.push_back(io.Fonts->AddFontFromFileTTF(font2.c_str(), m_baseSize * m_scales[i]));
 
 	initStyle();
 
@@ -204,22 +239,36 @@ void Simulator_GUI_imgui::initImguiParameters()
 	imguiParameters::addParam("Visualization", "", wireframeParam);
 }
 
-void Simulator_GUI_imgui::createSimulationParameterGUI()
+bool Simulator_GUI_imgui::alignedButton(const char* label, float alignment)
 {
-	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(390, 900), ImGuiCond_FirstUseEver);
+	ImGuiStyle& style = ImGui::GetStyle();
 
+	const float size = ImGui::CalcTextSize(label).x + style.FramePadding.x * 2.0f;
+	const float avail = ImGui::GetContentRegionAvail().x;
+
+	const float offset = (avail - size) * alignment;
+	if (offset > 0.0f)
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+
+	return ImGui::Button(label);
+}
+
+void Simulator_GUI_imgui::createMenuBar()
+{
+	bool openpopup = false;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 10.0f));
 
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem("Write scene file", "w"))
+			if (ImGui::MenuItem("Write scene file", "Ctrl+w"))
 				getSimulatorBase()->writeScene();
 			ImGui::Separator();
-			if (ImGui::MenuItem("Save state", "s"))
+			if (ImGui::MenuItem("Save state", "Ctrl+s"))
 				getSimulatorBase()->saveState();
-			if (ImGui::MenuItem("Load state", "l"))
+			if (ImGui::MenuItem("Load state", "Ctrl+l"))
 				getSimulatorBase()->loadStateDialog();
 			ImGui::EndMenu();
 		}
@@ -240,6 +289,11 @@ void Simulator_GUI_imgui::createSimulationParameterGUI()
 		}
 		if (ImGui::BeginMenu("GUI"))
 		{
+			if (ImGui::MenuItem("V-Sync", "", m_vsync))
+			{
+				m_vsync = !m_vsync;
+				openpopup = true;
+			}
 			if (ImGui::MenuItem("Scale - 100%", "", m_currentScaleIndex == 0))
 			{
 				m_currentScaleIndex = 0;
@@ -265,20 +319,63 @@ void Simulator_GUI_imgui::createSimulationParameterGUI()
 				m_currentScaleIndex = 4;
 				initStyle();
 			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Show log window", "", m_showLogWindow))
+			{
+				m_showLogWindow = !m_showLogWindow;
+			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
 
+	ImGui::PopStyleVar(1);
 
+	if (openpopup)
+	{
+		ImGui::OpenPopup("Info");
+		openpopup = false;
+	}
+	bool open = true;
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, ImVec2(0.5f, 0.5f));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 15.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+	if (ImGui::BeginPopupModal("Info", &open, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("To turn on/off the vertical sync, \nyou have to restart the simulator.");
+		if (alignedButton("Close"))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
+	ImGui::PopStyleVar(4);
+}
 
-	ImGui::Begin("Settings");  
+void Simulator_GUI_imgui::createSimulationParameterGUI()
+{
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(390, 900), ImGuiCond_FirstUseEver);
+
+	float alpha = 0.8f;
+	if (ImGui::IsWindowDocked())
+		alpha = 1.0f;
+
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.15f, 0.15f, 0.15f, alpha));
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 10.0f));
+	ImGui::Begin("Settings");
+
 	ImGui::PushItemWidth(175 * m_scales[m_currentScaleIndex]);
 
 	imguiParameters::createParameterGUI();
 
 	ImGui::PopItemWidth();
 	ImGui::End();
+	ImGui::PopStyleVar(1);
+	ImGui::PopStyleColor(1);
+
+	if (m_showLogWindow)
+		m_logWindow->drawWindow(m_fonts2[m_currentScaleIndex]);
 }
 
 void Simulator_GUI_imgui::initSimulationParameterGUI()
@@ -428,8 +525,57 @@ void Simulator_GUI_imgui::update()
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-	
+
+	// init dock space
+	static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_AutoHideTabBar;
+	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+	// add enough space for the menubar
+	ImVec2 pos = viewport->Pos;
+	ImVec2 size = viewport->Size;
+	size.y -= m_baseSize * m_scales[m_currentScaleIndex];
+	pos.y += m_baseSize * m_scales[m_currentScaleIndex];
+
+	ImGui::SetNextWindowPos(pos);
+	ImGui::SetNextWindowSize(size);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode) 
+		windowFlags |= ImGuiWindowFlags_NoBackground;
+
 	ImGui::PushFont(m_fonts[m_currentScaleIndex]);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("DockSpace", nullptr, windowFlags);
+
+	ImGuiID dockspaceID = ImGui::GetID("DockSpace");
+	ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), dockspaceFlags);
+	static int first = true;
+	if (!m_iniFound && first)
+	{
+		first = false;
+		ImGui::DockBuilderRemoveNode(dockspaceID);
+		ImGui::DockBuilderAddNode(dockspaceID, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
+
+		ImGuiID dock_id_top = -1;
+		auto dock_id_bottom = ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Down, 0.3f, nullptr, &dock_id_top);
+		ImGuiID dock_id_right = -1;
+		auto dock_id_left = ImGui::DockBuilderSplitNode(dock_id_top, ImGuiDir_Left, 0.3f, nullptr, &dock_id_right);
+		ImGui::DockBuilderDockWindow("Settings", dock_id_left);
+		ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
+
+		ImGui::DockBuilderFinish(dockspaceID);
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar(3);
+
+	createMenuBar();
+	
 	createSimulationParameterGUI();
 	ImGui::PopFont();
 
@@ -594,9 +740,9 @@ void Simulator_GUI_imgui::stop()
 	MiniGL::leaveMainLoop();
 }
 
-void Simulator_GUI_imgui::addKeyFunc(char k, std::function<void()> const& func)
+void Simulator_GUI_imgui::addKeyFunc(int key, int modifiers, std::function<void()> const& func)
 {
-	MiniGL::addKeyFunc(k, func);
+	MiniGL::addKeyFunc(key, modifiers, func);
 }
 
 void Simulator_GUI_imgui::switchPause()

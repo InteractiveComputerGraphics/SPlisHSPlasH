@@ -254,6 +254,7 @@ https://ge.in.tum.de/publications/2020-ummenhofer-iclr/
 https://dl.acm.org/doi/10.1145/3355089.3356503
 * Zhongyao Yang, Maolin Wu, Shiguang Liu. Helmholtz decomposition-based SPH. Virtual Reality & Intelligent Hardware 3, 2, 2021
 https://www.sciencedirect.com/science/article/pii/S2096579621000176
-
+* Min Li, Hongshu Li, Weiliang Meng, Jian Zhu, Gary Zhang. An efficient non-iterative smoothed particle hydrodynamics fluid simulation method with variable smoothing length. Visual Computing for Industry, Biomedicine, and Art 6, 1, 2023
+* Yalmar Ponce Atencio, Manuel J. Ibarra, Juan José Oré Cerrón, Roberto Quispe Quispe, Richard Flores Condori, Julio Huanca Marín, Mary Huaman Carrión. Particle-Based Physics for Interactive Applications. Lecture Notes in Networks and Systems book series (LNNS,volume 216), 2021
 
 

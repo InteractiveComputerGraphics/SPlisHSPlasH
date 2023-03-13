@@ -111,10 +111,12 @@ unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int in
 	return neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
 }
 
+namespace std {
 std::ostream& operator << (std::ostream& out, const Vector3r& r)
 {
 	out << r[0] << ", " << r[1] << ", " << r[2];
 	return out;
+}
 }
 
 
@@ -216,18 +218,18 @@ int main( int argc, char **argv )
 			}
 
 			if (result.count("scale"))
-				scale = Vector3r(result["scale"].as<std::vector<Real>>().data()); 
+				scale = Vector3r(result["scale"].as<std::vector<Real>>().data());
 			LOG_INFO << "Scale: " << scale;
 
 			if (result.count("translation"))
-				translation = Vector3r(result["translation"].as<std::vector<Real>>().data()); 
+				translation = Vector3r(result["translation"].as<std::vector<Real>>().data());
 			LOG_INFO << "Translation: " << translation;
 
 			Vector3r axis = Vector3r::Zero();
 			Real angle = 0.0;
 			rotation = Matrix3r::Identity();
 			if (result.count("axis"))
-				axis = Vector3r(result["axis"].as<std::vector<Real>>().data()); 
+				axis = Vector3r(result["axis"].as<std::vector<Real>>().data());
 			if (result.count("angle"))
 			{
 				angle = result["angle"].as<Real>();

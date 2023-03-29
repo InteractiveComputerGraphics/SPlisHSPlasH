@@ -1,3 +1,6 @@
+2.12.2
+	- added a CMake option for each tool so that the build can be disabled/enabled
+
 2.12.1
 	- all scene file parameters are now GenericParameters
 	- updated Python examples

@@ -26,6 +26,7 @@
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
 #include "SPlisHSPlasH/Utilities/MeshImport.h"
+#include "DynamicBoundarySimulator.h"
 #if USE_NFD_FILE_DIALOG
 #include "extern/nfd/include/nfd.h"
 #endif 
@@ -430,7 +431,8 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 	else
 	{
 		LOG_INFO << "Initialize dynamic boundary simulation";
-		m_boundarySimulator = new PBDBoundarySimulator(this);
+		//m_boundarySimulator = new PBDBoundarySimulator(this);
+		m_boundarySimulator = new DynamicBoundarySimulator(this);
 	}
 
 	initExporters();
@@ -584,7 +586,6 @@ void SimulatorBase::deferredInit()
 void SimulatorBase::runSimulation()
 {
 	deferredInit();
-
 	if (getStateFile() != "")
 	{
 		// avoid that command line parameter is overwritten
@@ -596,7 +597,6 @@ void SimulatorBase::runSimulation()
 			m_doPause = false;
 	}
 	setCommandLineParameter();
-
 	if (!m_useGUI)
 	{
 		const Real stopAt = getValue<Real>(SimulatorBase::STOP_AT);
@@ -612,8 +612,9 @@ void SimulatorBase::runSimulation()
 				break;
 		}
 	}
-	else
+	else {
 		m_gui->run();
+	}
 }
 
 void SimulatorBase::cleanup()
@@ -834,7 +835,6 @@ void SimulatorBase::reset()
 #ifdef USE_DEBUG_TOOLS
 	Simulation::getCurrent()->getDebugTools()->reset();
 #endif
-
 	m_boundarySimulator->reset();
 	if (m_gui)
 		m_gui->reset();
@@ -905,11 +905,12 @@ void SimulatorBase::timeStep()
 	for (unsigned int i = 0; i < numSteps; i++)
 	{
 		START_TIMING("SimStep");
+
 		Simulation::getCurrent()->getTimeStep()->step();
 		STOP_TIMING_AVG;
-
+		START_TIMING("SimStepBoundary");
 		m_boundarySimulator->timeStep();
-
+		STOP_TIMING_AVG;
 		step();
 
 		INCREASE_COUNTER("Time step size", TimeManager::getCurrent()->getTimeStepSize());

@@ -30,7 +30,8 @@ int main( int argc, char **argv )
 		if (base->isStaticScene())
 			gui = new Simulator_GUI_imgui(base);
 		else
-			gui = new PBD_Simulator_GUI_imgui(base, ((PBDBoundarySimulator*)base->getBoundarySimulator())->getPBDWrapper());
+			//gui = new PBD_Simulator_GUI_imgui(base, ((PBDBoundarySimulator*)base->getBoundarySimulator())->getPBDWrapper());
+			gui = new Simulator_GUI_imgui(base);
 		base->setGui(gui);
 	}
 	base->run();

@@ -1,0 +1,718 @@
+#ifndef __StaticRigidBody_h__
+#define __StaticRigidBody_h__
+
+#include "Common.h"
+#include "RigidBodyObject.h"
+#include "TriangleMesh.h"
+#include "TimeManager.h"
+
+namespace SPH {
+	/** \brief This class stores the information of a dynamic rigid body which
+	* is used for the strong coupling method introduced in 
+	* Interlinked SPH Pressure Solvers for Strong Fluid-Rigid Coupling. Gissler et al. https://doi.org/10.1145/3284980
+	*/
+	class DynamicRigidBody : public RigidBodyObject {
+		// Some fields are from PBD::RigidBody
+	private:
+		/** mass */
+		Real m_mass;
+		/** inverse mass */
+		Real m_invMass;
+		/** center of mass */
+		Vector3r m_x;
+		Vector3r m_lastX;
+		Vector3r m_oldX;
+		Vector3r m_x0;
+		/** center of mass velocity */
+		Vector3r m_v;
+		Vector3r m_v0;
+		/** acceleration (by external forces) */
+		Vector3r m_a;
+
+		/** Inertia tensor in the principal axis system: \n
+		* After the main axis transformation the inertia tensor is a diagonal matrix.
+		* So only three values are required to store the inertia tensor. These values
+		* are constant over time.
+		*/
+		Vector3r m_inertiaTensor;
+		/** 3x3 matrix, inertia tensor in world space */
+		Matrix3r m_inertiaTensorW;
+		/** Inverse inertia tensor in body space */
+		Vector3r m_inertiaTensorInverse;
+		/** 3x3 matrix, inverse of the inertia tensor in world space */
+		Matrix3r m_inertiaTensorInverseW;
+		/** Quaternion that describes the rotation of the body in world space */
+		Quaternionr m_q;
+		Quaternionr m_lastQ;
+		Quaternionr m_oldQ;
+		Quaternionr m_q0;
+		/** Quaternion representing the rotation of the main axis transformation
+		that is performed to get a diagonal inertia tensor */
+		Quaternionr m_q_mat;
+		/** Quaternion representing the initial rotation of the geometry */
+		Quaternionr m_q_initial;
+		/** difference of the initial translation and the translation of the main axis transformation */
+		Vector3r m_x0_mat;
+		/** rotationMatrix = 3x3 matrix.
+		* Important for the transformation from world in body space and vice versa.
+		* When using quaternions the rotation matrix is computed out of the quaternion.
+		*/
+		Matrix3r m_rot;
+		/** Angular velocity, defines rotation axis and velocity (magnitude of the vector) */
+		Vector3r m_omega;
+		Vector3r m_omega0;
+		/** external torque */
+		Vector3r m_torque;
+
+		Real m_restitutionCoeff;
+		Real m_frictionCoeff;
+
+		// transformation required to transform a point to local space or vice vera
+		Matrix3r m_transformation_R;
+		Vector3r m_transformation_v1;
+		Vector3r m_transformation_v2;
+		Vector3r m_transformation_R_X_v1;
+	protected:
+
+		TriangleMesh m_geometry;
+
+	public:  
+		DynamicRigidBody() {
+			m_isAnimated = true;
+		}
+
+
+		~DynamicRigidBody(void)
+		{
+		}
+
+		void initBody(const Real mass, const Vector3r &x, 
+			const Vector3r &inertiaTensor, const Quaternionr &rotation, 
+			const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
+		{
+			setMass(mass);
+			m_x = x; 
+			m_x0 = x;
+			m_lastX = x;
+			m_oldX = x;
+			m_v.setZero();
+			m_v0.setZero();
+			m_a.setZero();
+
+			setInertiaTensor(inertiaTensor);
+			m_q = rotation;
+			m_q0 = rotation;
+			m_lastQ = rotation;
+			m_oldQ = rotation;
+			m_rot = m_q.matrix();
+			m_q_mat = Quaternionr(1.0, 0.0, 0.0, 0.0);
+			m_q_initial = Quaternionr(1.0, 0.0, 0.0, 0.0);
+			m_x0_mat.setZero();
+			rotationUpdated();
+			m_omega.setZero();
+			m_omega0.setZero();
+			m_torque.setZero();
+
+			m_restitutionCoeff = static_cast<Real>(0.6);
+			m_frictionCoeff = static_cast<Real>(0.2);
+			updateMeshTransformation();
+		}
+
+		//void initBody(const Real density, const Vector3r &x, const Quaternionr &rotation,
+		//	 const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
+		//{
+		//	m_mass = 1.0;
+		//	m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
+		//	m_x = x;
+		//	m_x0 = x;
+		//	m_lastX = x;
+		//	m_oldX = x;
+		//	m_v.setZero();
+		//	m_v0.setZero();
+		//	m_a.setZero();
+
+		//	m_q = rotation;
+		//	m_q0 = rotation;
+		//	m_lastQ = rotation;
+		//	m_oldQ = rotation;
+		//	m_rot = m_q.matrix();
+		//	rotationUpdated();
+		//	m_omega.setZero();
+		//	m_omega0.setZero();
+		//	m_torque.setZero();
+
+		//	m_restitutionCoeff = static_cast<Real>(0.6);
+		//	m_frictionCoeff = static_cast<Real>(0.2);
+
+		//	determineMassProperties(density);
+		//	getGeometry().updateMeshTransformation(getPosition(), getRotationMatrix());
+		//}
+
+		void reset()
+		{
+			m_x = m_x0;
+			getOldPosition() = getPosition0();
+			getLastPosition() = getPosition0();
+
+			m_q = m_q0;
+			getOldRotation() = getRotation0();
+			getLastRotation() = getRotation0();
+
+			m_v = m_v0;
+			m_omega = m_omega0;
+
+			getAcceleration().setZero();
+			getTorque().setZero();
+
+			rotationUpdated();
+
+			updateMeshTransformation();
+		}
+
+		void updateInverseTransformation()
+		{
+			// remove the rotation of the main axis transformation that is performed
+			// to get a diagonal inertia tensor since the distance function is 
+			// evaluated in local coordinates
+			//
+			// transformation world to local:
+			// p_local = R_initial^T ( R_MAT R^T (p_world - x) - x_initial + x_MAT)
+			// 
+			// transformation local to world:
+			// p_world = R R_MAT^T (R_initial p_local + x_initial - x_MAT) + x
+			//
+			m_transformation_R = (getRotationInitial().inverse() * getRotationMAT() * getRotation().inverse()).matrix();
+			m_transformation_v1 = -getRotationInitial().inverse().matrix() * getPositionInitial_MAT();
+			m_transformation_v2 = (getRotation()*getRotationMAT().inverse()).matrix() * getPositionInitial_MAT() + getPosition();
+			m_transformation_R_X_v1 = -m_transformation_R * getPosition() + m_transformation_v1;
+		}
+
+		void rotationUpdated()
+		{
+			if (m_mass != 0.0)
+			{
+				m_rot = m_q.matrix();
+				updateInertiaW();
+				updateInverseTransformation();
+			}
+		}
+
+		void updateInertiaW()
+		{
+			if (m_mass != 0.0)
+			{
+				m_inertiaTensorW = m_rot * m_inertiaTensor.asDiagonal() * m_rot.transpose();
+				m_inertiaTensorInverseW = m_rot * m_inertiaTensorInverse.asDiagonal() * m_rot.transpose();
+			}
+		}
+
+		/** Determine mass and inertia tensor of the given geometry.
+			*/
+		//void determineMassProperties(const Real density)
+		//{
+		//	// apply initial rotation
+		//	VertexData &vd = m_geometry.getVertexDataLocal();
+		//		
+		//	Utilities::VolumeIntegration vi(m_geometry.getVertexDataLocal().size(), m_geometry.getMesh().numFaces(), &m_geometry.getVertexDataLocal().getPosition(0), m_geometry.getMesh().getFaces().data());
+		//	vi.compute_inertia_tensor(density);
+		//
+		//	// Diagonalize Inertia Tensor
+		//	Eigen::SelfAdjointEigenSolver<Matrix3r> es(vi.getInertia());
+		//	Vector3r inertiaTensor = es.eigenvalues();
+		//	Matrix3r R = es.eigenvectors();
+		//
+		//	setMass(1.0);
+		//	setInertiaTensor(inertiaTensor);
+		//
+		//	if (R.determinant() < 0.0)
+		//		R = -R;
+		//
+		//	for (unsigned int i = 0; i < vd.size(); i++)
+		//		vd.getPosition(i) = m_rot * vd.getPosition(i) + m_x0;
+		//
+		//	Vector3r x_MAT = vi.getCenterOfMass();
+		//	R = m_rot * R;
+		//	x_MAT = m_rot * x_MAT + m_x0;
+		//
+		//	// rotate vertices back				
+		//	for (unsigned int i = 0; i < vd.size(); i++)
+		//		vd.getPosition(i) = R.transpose() * (vd.getPosition(i) - x_MAT);
+		//
+		//	// set rotation
+		//	Quaternionr qR = Quaternionr(R);
+		//	qR.normalize();
+		//	m_q_mat = qR;
+		//	m_q_initial = m_q0;
+		//	m_x0_mat = m_x0 - x_MAT;
+		//
+		//	m_q0 = qR;
+		//	m_q = m_q0;
+		//	m_lastQ = m_q0;
+		//	m_oldQ = m_q0;
+		//	rotationUpdated();
+		//
+		//	// set translation
+		//	m_x0 = x_MAT;
+		//	m_x = m_x0;
+		//	m_lastX = m_x0;
+		//	m_oldX = m_x0;
+		//	updateInverseTransformation();
+		//}
+
+		const Matrix3r &getTransformationR() { return m_transformation_R;  }
+		const Vector3r &getTransformationV1() { return m_transformation_v1; }
+		const Vector3r &getTransformationV2() { return m_transformation_v2; }
+		const Vector3r &getTransformationRXV1() { return m_transformation_R_X_v1; }
+
+		//FORCE_INLINE Real &getMass()
+		//{
+		//	return m_mass;
+		//}
+		FORCE_INLINE void setMass(const Real &value)
+		{
+			m_mass = value;
+			if (m_mass != 0.0)
+				m_invMass = static_cast<Real>(1.0) / m_mass;
+			else
+				m_invMass = 0.0;
+		}
+
+		FORCE_INLINE const Real &getInvMass() const
+		{
+			return m_invMass;
+		}
+
+		//FORCE_INLINE Vector3r &getPosition()
+		//{
+		//	return m_x;
+		//}
+
+		//FORCE_INLINE const Vector3r &getPosition() const 
+		//{
+		//	return m_x;
+		//}
+
+		//FORCE_INLINE void setPosition(const Vector3r &pos)
+		//{
+		//	m_x = pos;
+		//}
+
+		FORCE_INLINE Vector3r &getLastPosition()
+		{
+			return m_lastX;
+		}
+
+		FORCE_INLINE const Vector3r &getLastPosition() const
+		{
+			return m_lastX;
+		}
+
+		FORCE_INLINE void setLastPosition(const Vector3r &pos)
+		{
+			m_lastX = pos;
+		}
+
+		FORCE_INLINE Vector3r &getOldPosition()
+		{
+			return m_oldX;
+		}
+
+		FORCE_INLINE const Vector3r &getOldPosition() const
+		{
+			return m_oldX;
+		}
+
+		FORCE_INLINE void setOldPosition(const Vector3r &pos)
+		{
+			m_oldX = pos;
+		}
+
+		//FORCE_INLINE Vector3r &getPosition0()
+		//{
+		//	return m_x0;
+		//}
+
+		//FORCE_INLINE const Vector3r &getPosition0() const
+		//{
+		//	return m_x0;
+		//}
+
+		//FORCE_INLINE void setPosition0(const Vector3r &pos)
+		//{
+		//	m_x0 = pos;
+		//}
+
+		FORCE_INLINE Vector3r &getPositionInitial_MAT()
+		{
+			return m_x0_mat;
+		}
+
+		FORCE_INLINE const Vector3r &getPositionInitial_MAT() const
+		{
+			return m_x0_mat;
+		}
+
+		FORCE_INLINE void setPositionInitial_MAT(const Vector3r &pos)
+		{
+			m_x0_mat = pos;
+		}
+
+		//FORCE_INLINE Vector3r &getVelocity()
+		//{
+		//	return m_v;
+		//}
+
+		//FORCE_INLINE const Vector3r &getVelocity() const
+		//{
+		//	return m_v;
+		//}
+
+/*		FORCE_INLINE void setVelocity(const Vector3r &value)
+		{
+			m_v = value;
+		}		*/	
+
+		//FORCE_INLINE Vector3r &getVelocity0()
+		//{
+		//	return m_v0;
+		//}
+
+		//FORCE_INLINE const Vector3r &getVelocity0() const
+		//{
+		//	return m_v0;
+		//}
+
+		//FORCE_INLINE void setVelocity0(const Vector3r &value)
+		//{
+		//	m_v0 = value;
+		//}
+
+		FORCE_INLINE Vector3r &getAcceleration()
+		{
+			return m_a;
+		}
+
+		FORCE_INLINE const Vector3r &getAcceleration() const 
+		{
+			return m_a;
+		}
+
+		FORCE_INLINE void setAcceleration(const Vector3r &accel)
+		{
+			m_a = accel;
+		}
+
+		FORCE_INLINE const Vector3r &getInertiaTensor() const
+		{
+			return m_inertiaTensor;
+		}
+
+		FORCE_INLINE void setInertiaTensor(const Vector3r &value)
+		{
+			m_inertiaTensor = value;
+			m_inertiaTensorInverse = Vector3r(static_cast<Real>(1.0) / value[0], static_cast<Real>(1.0) / value[1], static_cast<Real>(1.0) / value[2]);
+		}
+
+		FORCE_INLINE Matrix3r& getInertiaTensorW()
+		{
+			return m_inertiaTensorW;
+		}
+
+		FORCE_INLINE const Matrix3r& getInertiaTensorW() const
+		{
+			return m_inertiaTensorW;
+		}
+
+		FORCE_INLINE const Vector3r &getInertiaTensorInverse() const
+		{
+			return m_inertiaTensorInverse;
+		}
+
+		FORCE_INLINE Matrix3r &getInertiaTensorInverseW()
+		{
+			return m_inertiaTensorInverseW;
+		}
+
+		FORCE_INLINE const Matrix3r &getInertiaTensorInverseW() const
+		{
+			return m_inertiaTensorInverseW;
+		}
+
+		FORCE_INLINE void setInertiaTensorInverseW(const Matrix3r &value)
+		{
+			m_inertiaTensorInverseW = value;
+		}
+
+		//FORCE_INLINE Quaternionr &getRotation()
+		//{
+		//	return m_q;
+		//}
+
+		//FORCE_INLINE const Quaternionr &getRotation() const
+		//{
+		//	return m_q;
+		//}
+
+		//FORCE_INLINE void setRotation(const Quaternionr &value)
+		//{
+		//	m_q = value;
+		//}
+
+		FORCE_INLINE Quaternionr &getLastRotation()
+		{
+			return m_lastQ;
+		}
+
+		FORCE_INLINE const Quaternionr &getLastRotation() const
+		{
+			return m_lastQ;
+		}
+
+		FORCE_INLINE void setLastRotation(const Quaternionr &value)
+		{
+			m_lastQ = value;
+		}
+
+		FORCE_INLINE Quaternionr &getOldRotation()
+		{
+			return m_oldQ;
+		}
+
+		FORCE_INLINE const Quaternionr &getOldRotation() const
+		{
+			return m_oldQ;
+		}
+
+		FORCE_INLINE void setOldRotation(const Quaternionr &value)
+		{
+			m_oldQ = value;
+		}
+
+		//FORCE_INLINE Quaternionr &getRotation0()
+		//{
+		//	return m_q0;
+		//}
+
+		//FORCE_INLINE const Quaternionr &getRotation0() const
+		//{
+		//	return m_q0;
+		//}
+
+		//FORCE_INLINE void setRotation0(const Quaternionr &value)
+		//{
+		//	m_q0 = value;
+		//}
+
+		FORCE_INLINE Quaternionr &getRotationMAT()
+		{
+			return m_q_mat;
+		}
+
+		FORCE_INLINE const Quaternionr &getRotationMAT() const
+		{
+			return m_q_mat;
+		}
+
+		FORCE_INLINE void setRotationMAT(const Quaternionr &value)
+		{
+			m_q_mat = value;
+		}
+
+		FORCE_INLINE Quaternionr &getRotationInitial()
+		{
+			return m_q_initial;
+		}
+
+		FORCE_INLINE const Quaternionr &getRotationInitial() const
+		{
+			return m_q_initial;
+		}
+
+		FORCE_INLINE void setRotationInitial(const Quaternionr &value)
+		{
+			m_q_initial = value;
+		}
+
+		FORCE_INLINE Matrix3r &getRotationMatrix()
+		{
+			return m_rot;
+		}
+
+		FORCE_INLINE const Matrix3r &getRotationMatrix() const
+		{
+			return m_rot;
+		}
+
+		FORCE_INLINE void setRotationMatrix(const Matrix3r &value)
+		{
+			m_rot = value;
+		}
+
+		//FORCE_INLINE Vector3r &getAngularVelocity()
+		//{
+		//	return m_omega;
+		//}
+
+		//FORCE_INLINE const Vector3r &getAngularVelocity() const
+		//{
+		//	return m_omega;
+		//}
+
+		//FORCE_INLINE void setAngularVelocity(const Vector3r &value)
+		//{
+		//	m_omega = value;
+		//}
+
+		FORCE_INLINE Vector3r &getAngularVelocity0()
+		{
+			return m_omega0;
+		}
+
+		FORCE_INLINE const Vector3r &getAngularVelocity0() const
+		{
+			return m_omega0;
+		}
+
+		FORCE_INLINE void setAngularVelocity0(const Vector3r &value)
+		{
+			m_omega0 = value;
+		}
+
+		FORCE_INLINE Vector3r &getTorque()
+		{
+			return m_torque;
+		}
+
+		FORCE_INLINE const Vector3r &getTorque() const
+		{
+			return m_torque;
+		}
+
+		FORCE_INLINE void setTorque(const Vector3r &value)
+		{
+			m_torque = value;
+		}
+
+		FORCE_INLINE Real getRestitutionCoeff() const 
+		{ 
+			return m_restitutionCoeff; 
+		}
+
+		FORCE_INLINE void setRestitutionCoeff(Real val) 
+		{ 
+			m_restitutionCoeff = val; 
+		}
+
+		FORCE_INLINE Real getFrictionCoeff() const 
+		{ 
+			return m_frictionCoeff; 
+		}
+
+		FORCE_INLINE void setFrictionCoeff(Real val) 
+		{ 
+			m_frictionCoeff = val; 
+		}
+
+
+		virtual bool isDynamic() const {
+			return m_mass != 0.0;
+		}
+
+		virtual Real const getMass() const {
+			return m_mass;
+		}
+		virtual Vector3r const& getPosition() const {
+			return m_x;
+		}
+		virtual void setPosition(const Vector3r& x) {
+			m_x = x;
+		}
+		Vector3r const& getPosition0() const {
+			return m_x0;
+		}
+		void setPosition0(const Vector3r& x) {
+			m_x0 = x;
+		}
+		virtual Vector3r getWorldSpacePosition() const {
+			return m_x;
+		}
+		virtual Vector3r const& getVelocity() const {
+			return m_v;
+		}
+		virtual void setVelocity(const Vector3r& v) {
+			if (m_isAnimated) m_v = v;
+		}
+		virtual Quaternionr const& getRotation() const {
+			return m_q;
+		}
+		virtual void setRotation(const Quaternionr& q) {
+			m_q = q;
+		}
+		Quaternionr const& getRotation0() const {
+			return m_q0;
+		}
+		void setRotation0(const Quaternionr& q) {
+			m_q0 = q;
+		}
+		virtual Matrix3r getWorldSpaceRotation() const {
+			return m_q.toRotationMatrix();
+		}
+		virtual Vector3r const& getAngularVelocity() const {
+			return m_omega;
+		}
+		virtual void setAngularVelocity(const Vector3r& v) {
+			if (m_isAnimated) m_omega = v;
+		}
+		virtual void addForce(const Vector3r& f) {
+			const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
+			m_v += (1.0 / m_mass) * f * dt;
+		}
+
+		virtual void addTorque(const Vector3r& t) {
+			const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
+			m_omega += m_inertiaTensorInverseW * t * dt;
+		}
+		void animate() {
+			const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+			m_x += m_v * dt;
+			Quaternionr angVelQ(0.0, m_omega[0], m_omega[1], m_omega[2]);
+			m_q.coeffs() += dt * 0.5 * (angVelQ * m_q).coeffs();
+			m_q.normalize();
+			updateMeshTransformation();
+		}
+
+		virtual const std::vector<Vector3r>& getVertices() const {
+			return m_geometry.getVertices();
+		};
+		virtual const std::vector<Vector3r>& getVertexNormals() const {
+			return m_geometry.getVertexNormals();
+		};
+		virtual const std::vector<unsigned int>& getFaces() const {
+			return m_geometry.getFaces();
+		};
+
+		void setWorldSpacePosition(const Vector3r& x) {
+			m_x = x;
+		}
+		void setWorldSpaceRotation(const Matrix3r& r) {
+			m_q = Quaternionr(r);
+		}
+		TriangleMesh& getGeometry() {
+			return m_geometry;
+		}
+
+		virtual void updateMeshTransformation() {
+			m_geometry.updateMeshTransformation(m_x, m_q.toRotationMatrix());
+			m_geometry.updateNormals();
+			m_geometry.updateVertexNormals();
+		}
+
+		//void reset() {
+		//	m_x = m_x0;
+		//	m_q = m_q0;
+		//	updateMeshTransformation();
+		//}
+	};
+}
+
+#endif 

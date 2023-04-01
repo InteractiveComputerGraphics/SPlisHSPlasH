@@ -28,6 +28,8 @@ namespace SPH {
 		Vector3r m_v0;
 		/** acceleration (by external forces) */
 		Vector3r m_a;
+		/* external forces*/
+		Vector3r m_force;
 
 		/** Inertia tensor in the principal axis system: \n
 		* After the main axis transformation the inertia tensor is a diagonal matrix.
@@ -61,10 +63,12 @@ namespace SPH {
 		/** Angular velocity, defines rotation axis and velocity (magnitude of the vector) */
 		Vector3r m_omega;
 		Vector3r m_omega0;
+		/* Angular accelaration*/
+		Vector3r m_a_omega;
 		/** external torque */
 		Vector3r m_torque;
 
-		Real m_restitutionCoeff;
+		// Real m_restitutionCoeff;
 		Real m_frictionCoeff;
 
 		// transformation required to transform a point to local space or vice vera
@@ -98,6 +102,7 @@ namespace SPH {
 			m_v.setZero();
 			m_v0.setZero();
 			m_a.setZero();
+			m_force.setZero();
 
 			setInertiaTensor(inertiaTensor);
 			m_q = rotation;
@@ -113,40 +118,40 @@ namespace SPH {
 			m_omega0.setZero();
 			m_torque.setZero();
 
-			m_restitutionCoeff = static_cast<Real>(0.6);
+			// m_restitutionCoeff = static_cast<Real>(0.6);
 			m_frictionCoeff = static_cast<Real>(0.2);
 			updateMeshTransformation();
 		}
 
-		//void initBody(const Real density, const Vector3r &x, const Quaternionr &rotation,
-		//	 const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
-		//{
-		//	m_mass = 1.0;
-		//	m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
-		//	m_x = x;
-		//	m_x0 = x;
-		//	m_lastX = x;
-		//	m_oldX = x;
-		//	m_v.setZero();
-		//	m_v0.setZero();
-		//	m_a.setZero();
+		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
+			 const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
+		{
+			determineMassProperties(density, isDynamic, scale);
+			//m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
+			m_x = position;
+			m_x0 = position;
+			m_lastX = position;
+			m_oldX = position;
+			m_v.setZero();
+			m_v0.setZero();
+			m_a.setZero();
+			m_force.setZero();
 
-		//	m_q = rotation;
-		//	m_q0 = rotation;
-		//	m_lastQ = rotation;
-		//	m_oldQ = rotation;
-		//	m_rot = m_q.matrix();
-		//	rotationUpdated();
-		//	m_omega.setZero();
-		//	m_omega0.setZero();
-		//	m_torque.setZero();
+			m_q = rotation;
+			m_q0 = rotation;
+			m_lastQ = rotation;
+			m_oldQ = rotation;
+			m_rot = m_q.matrix();
+			rotationUpdated();
+			m_omega.setZero();
+			m_omega0.setZero();
+			m_torque.setZero();
 
-		//	m_restitutionCoeff = static_cast<Real>(0.6);
-		//	m_frictionCoeff = static_cast<Real>(0.2);
+			//m_restitutionCoeff = static_cast<Real>(0.6);
+			m_frictionCoeff = static_cast<Real>(0.2);
 
-		//	determineMassProperties(density);
-		//	getGeometry().updateMeshTransformation(getPosition(), getRotationMatrix());
-		//}
+			updateMeshTransformation();
+		}
 
 		void reset()
 		{
@@ -167,6 +172,8 @@ namespace SPH {
 			rotationUpdated();
 
 			updateMeshTransformation();
+
+			clearForceAndTorque();
 		}
 
 		void updateInverseTransformation()
@@ -185,6 +192,19 @@ namespace SPH {
 			m_transformation_v1 = -getRotationInitial().inverse().matrix() * getPositionInitial_MAT();
 			m_transformation_v2 = (getRotation()*getRotationMAT().inverse()).matrix() * getPositionInitial_MAT() + getPosition();
 			m_transformation_R_X_v1 = -m_transformation_R * getPosition() + m_transformation_v1;
+		}
+
+		// Determine mass and inertia tensor
+		void determineMassProperties(const Real density, bool isDynamic, const Vector3r scale) {
+			// for now only consider cubiod which is scaled from a unit cube
+			if (isDynamic) {
+				setMass(density * scale.x() * scale.y() * scale.z());
+			} else {
+				setMass(0.0);
+			}
+			Vector3r value = m_mass * Vector3r((scale.y() * scale.y() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12);
+			m_inertiaTensor = value;
+			m_inertiaTensorInverse = Vector3r(static_cast<Real>(1.0) / value[0], static_cast<Real>(1.0) / value[1], static_cast<Real>(1.0) / value[2]);
 		}
 
 		void rotationUpdated()
@@ -327,20 +347,20 @@ namespace SPH {
 			m_oldX = pos;
 		}
 
-		//FORCE_INLINE Vector3r &getPosition0()
-		//{
-		//	return m_x0;
-		//}
+		FORCE_INLINE Vector3r &getForce()
+		{
+			return m_force;
+		}
 
-		//FORCE_INLINE const Vector3r &getPosition0() const
-		//{
-		//	return m_x0;
-		//}
+		FORCE_INLINE const Vector3r &getForce() const
+		{
+			return m_force;
+		}
 
-		//FORCE_INLINE void setPosition0(const Vector3r &pos)
-		//{
-		//	m_x0 = pos;
-		//}
+		FORCE_INLINE void setForce(const Vector3r &force)
+		{
+			m_force = force;
+		}
 
 		FORCE_INLINE Vector3r &getPositionInitial_MAT()
 		{
@@ -548,20 +568,20 @@ namespace SPH {
 			m_rot = value;
 		}
 
-		//FORCE_INLINE Vector3r &getAngularVelocity()
-		//{
-		//	return m_omega;
-		//}
+		FORCE_INLINE Vector3r &getAngularAccelaration()
+		{
+			return m_a_omega;
+		}
 
-		//FORCE_INLINE const Vector3r &getAngularVelocity() const
-		//{
-		//	return m_omega;
-		//}
+		FORCE_INLINE const Vector3r &getAngularAccelaration() const
+		{
+			return m_a_omega;
+		}
 
-		//FORCE_INLINE void setAngularVelocity(const Vector3r &value)
-		//{
-		//	m_omega = value;
-		//}
+		FORCE_INLINE void setAngularAccelaration(const Vector3r &value)
+		{
+			m_a_omega = value;
+		}
 
 		FORCE_INLINE Vector3r &getAngularVelocity0()
 		{
@@ -593,15 +613,15 @@ namespace SPH {
 			m_torque = value;
 		}
 
-		FORCE_INLINE Real getRestitutionCoeff() const 
-		{ 
-			return m_restitutionCoeff; 
-		}
+		//FORCE_INLINE Real getRestitutionCoeff() const 
+		//{ 
+		//	return m_restitutionCoeff; 
+		//}
 
-		FORCE_INLINE void setRestitutionCoeff(Real val) 
-		{ 
-			m_restitutionCoeff = val; 
-		}
+		//FORCE_INLINE void setRestitutionCoeff(Real val) 
+		//{ 
+		//	m_restitutionCoeff = val; 
+		//}
 
 		FORCE_INLINE Real getFrictionCoeff() const 
 		{ 
@@ -664,21 +684,45 @@ namespace SPH {
 			if (m_isAnimated) m_omega = v;
 		}
 		virtual void addForce(const Vector3r& f) {
-			const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
-			m_v += (1.0 / m_mass) * f * dt;
+			m_force += f;
+			//const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
+			//m_v += (1.0 / m_mass) * f * dt;
 		}
 
 		virtual void addTorque(const Vector3r& t) {
-			const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
-			m_omega += m_inertiaTensorInverseW * t * dt;
+			m_torque += t;
+			//const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
+			//m_omega += m_inertiaTensorInverseW * t * dt;
 		}
-		void animate() {
+
+		void clearForceAndTorque() {
+			m_force.setZero();
+			m_torque.setZero();
+		}
+
+		void timeStep(DynamicBoundarySimulator* simulator) {
+			Simulation* sim = Simulation::getCurrent();
+			const Vector3r gravAccel(sim->getVecValue<Real>(Simulation::GRAVITATION));
 			const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+			// Save old values
+			m_lastX = m_oldX;
+			m_oldX = m_x;
+			m_lastQ = m_oldQ;
+			m_oldQ = m_q;
+			// Semi implicit Euler
+			m_a = m_invMass * m_force + gravAccel;
+			m_v += m_a * dt;
+			m_v *= (static_cast<Real>(1.0) - simulator->m_dampingCoeff);
 			m_x += m_v * dt;
-			Quaternionr angVelQ(0.0, m_omega[0], m_omega[1], m_omega[2]);
-			m_q.coeffs() += dt * 0.5 * (angVelQ * m_q).coeffs();
+			m_a_omega = m_inertiaTensorInverseW * m_torque;
+			m_omega += m_a_omega * dt;
+			m_omega *= (static_cast<Real>(1.0) - simulator->m_dampingCoeff);
+			Quaternionr omegaTilde(0.0, m_omega[0], m_omega[1], m_omega[2]);
+			m_q.coeffs() += 0.5 * (omegaTilde * m_q).coeffs() * dt;
 			m_q.normalize();
+			rotationUpdated();
 			updateMeshTransformation();
+			clearForceAndTorque();
 		}
 
 		virtual const std::vector<Vector3r>& getVertices() const {
@@ -706,12 +750,6 @@ namespace SPH {
 			m_geometry.updateNormals();
 			m_geometry.updateVertexNormals();
 		}
-
-		//void reset() {
-		//	m_x = m_x0;
-		//	m_q = m_q0;
-		//	updateMeshTransformation();
-		//}
 	};
 }
 

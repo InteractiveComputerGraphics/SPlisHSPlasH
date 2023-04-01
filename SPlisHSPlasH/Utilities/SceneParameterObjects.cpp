@@ -318,6 +318,7 @@ int BoundaryParameterObject::BOUNDARY_MAP_THICKNESS = -1;
 int BoundaryParameterObject::BOUNDARY_MAP_RESOLUTION = -1;
 int BoundaryParameterObject::BOUNDARY_SAMPLING_MODE = -1;
 int BoundaryParameterObject::BOUNDARY_IS_ANIMATED = -1;
+int BoundaryParameterObject::BOUNDARY_DENSITY = -1;
 
 void BoundaryParameterObject::initParameters()
 {
@@ -380,4 +381,8 @@ void BoundaryParameterObject::initParameters()
 	BOUNDARY_IS_ANIMATED = createBoolParameter("isAnimated", "Animated", &isAnimated);
 	setGroup(BOUNDARY_IS_ANIMATED, "Boundary");
 	setDescription(BOUNDARY_IS_ANIMATED, "Defines if the body is animated (e.g. by a script).");	
+
+	BOUNDARY_DENSITY = createNumericParameter("density", "Density", &density);
+	setGroup(BOUNDARY_DENSITY, "Boundary");
+	setDescription(BOUNDARY_DENSITY, "Density of the rigid body.");
 }

@@ -24,6 +24,8 @@ namespace SPH {
 
 		virtual void timeStep();
 		virtual void reset();
+
+		Real m_dampingCoeff = 0.0;
 	};
 
 }

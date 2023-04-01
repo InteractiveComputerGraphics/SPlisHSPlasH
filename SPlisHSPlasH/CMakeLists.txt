@@ -209,6 +209,7 @@ add_library(SPlisHSPlasH
 	BoundaryModel_Bender2019.h
 	BoundaryModel_Koschier2017.cpp
 	BoundaryModel_Koschier2017.h
+	DynamicRigidBody.h
 	Emitter.cpp
 	Emitter.h
 	EmitterSystem.cpp

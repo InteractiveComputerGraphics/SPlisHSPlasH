@@ -87,6 +87,8 @@ add_library(SimulatorBase
 	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.h
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.h
+	${PROJECT_SOURCE_DIR}/Simulator/DynamicBoundarySimulator.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/DynamicBoundarySimulator.h
 	
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h

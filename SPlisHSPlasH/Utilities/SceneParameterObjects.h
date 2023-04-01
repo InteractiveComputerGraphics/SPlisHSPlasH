@@ -324,6 +324,7 @@ namespace Utilities
 		Vector3r axis;
 		Real angle;
 		Vector3r scale;
+		Real density;
 		bool dynamic;
 		bool isWall;
 		Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color;
@@ -342,6 +343,7 @@ namespace Utilities
 			translation = Vector3r::Zero();
 			axis = Vector3r(1, 0, 0);
 			angle = 0.0;
+			density = 1000.0;
 			scale = Vector3r::Ones();
 			dynamic = false;
 			isWall = false;
@@ -357,7 +359,7 @@ namespace Utilities
 
 		BoundaryParameterObject(std::string samplesFile_, std::string meshFile_, Vector3r translation_, Vector3r axis_, Real angle_, Vector3r scale_,
 								bool dynamic_, bool isWall_, Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color_, std::string mapFile_, bool mapInvert_,
-								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_)
+								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_, Real density_ = 1000.0)
 		{
 			samplesFile = samplesFile_;
 			meshFile = meshFile_;
@@ -365,6 +367,7 @@ namespace Utilities
 			axis = axis_;
 			angle = angle_;
 			scale = scale_;
+			density = density_;
 			dynamic = dynamic_;
 			isWall = isWall_;
 			color = color_;
@@ -392,6 +395,7 @@ namespace Utilities
 		static int BOUNDARY_MAP_RESOLUTION;
 		static int BOUNDARY_SAMPLING_MODE;
 		static int BOUNDARY_IS_ANIMATED;
+		static int BOUNDARY_DENSITY;
 
 		virtual void initParameters();
 	};

@@ -128,15 +128,8 @@ void DynamicBoundarySimulator::initBoundaryData() {
 
 		Matrix3r rot = AngleAxisr(scene.boundaryModels[i]->angle, scene.boundaryModels[i]->axis).toRotationMatrix();
 		Quaternionr q(rot);
-		rb->setPosition0(scene.boundaryModels[i]->translation);
-		rb->setPosition(scene.boundaryModels[i]->translation);
-		rb->setRotation0(q);
-		rb->setRotation(q);
-		if (scene.boundaryModels[i]->dynamic) {
-			rb->initBody(1.0, scene.boundaryModels[i]->translation, Vector3r(1, 1, 1), q);
-		} else {
-			rb->initBody(0.0, scene.boundaryModels[i]->translation, Vector3r(1, 1, 1), q);
-		}
+
+		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, scene.boundaryModels[i]->scale);
 
 		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 			BoundaryModel_Akinci2012* bm = new BoundaryModel_Akinci2012();
@@ -180,27 +173,18 @@ void DynamicBoundarySimulator::deferredInit() {
 }
 
 void DynamicBoundarySimulator::timeStep() {
-
-	// Do Update Here
 	updateBoundaryForces();
 	Simulation* sim = Simulation::getCurrent();
-
-	START_TIMING("SimStep - Dynamic Boundary");
-	Real h = TimeManager::getCurrent()->getTimeStepSize();	
 	const unsigned int nObjects = sim->numberOfBoundaryModels();
-	for (unsigned int i = 0; i < nObjects; i++) {
+    #pragma omp parallel for
+	for (int i = 0; i < nObjects; i++) {
 		BoundaryModel* bm = sim->getBoundaryModel(i);
 		RigidBodyObject* rbo = bm->getRigidBodyObject();
 		if (rbo->isDynamic()) {
 			DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
-			const Vector3r grav(sim->getVecValue<Real>(Simulation::GRAVITATION));
-			drb->setVelocity(drb->getVelocity() + grav * h);
-			drb->setPosition(drb->getPosition() + drb->getVelocity() * h);
-			drb->updateMeshTransformation();
+			drb->timeStep(this);
 		}
 	}
-	STOP_TIMING_AVG;	
-
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(false);
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)

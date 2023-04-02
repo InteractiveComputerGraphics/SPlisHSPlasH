@@ -30,6 +30,7 @@ Simulator_GUI_imgui::Simulator_GUI_imgui(SimulatorBase *base) :
 	m_vsync = false;
 	m_iniFound = false;
 	m_showLogWindow = true;
+	m_currentBoundaryModel = 0;
 }
 
 Simulator_GUI_imgui::~Simulator_GUI_imgui(void)
@@ -497,6 +498,24 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getViscosityBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getVorticityBase());
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getElasticityBase());
+	}
+
+	// Enum for all boundary models
+	if (sim->numberOfBoundaryModels() > 0) {
+		BoundaryModel* model = sim->getBoundaryModel(m_currentBoundaryModel);
+		// Select boundary model
+		{
+			imguiParameters::imguiEnumParameter* param = new imguiParameters::imguiEnumParameter();
+			param->description = "Select a boundary model to set its parameters below.";
+			param->label = "Current boundary model";
+			param->readOnly = false;
+			for (unsigned int j = 0; j < sim->numberOfBoundaryModels(); j++) {
+				param->items.push_back(std::to_string(j));
+			}
+			param->getFct = [this]() -> int { return m_currentBoundaryModel; };
+			param->setFct = [this](int v) { m_currentBoundaryModel = v; initSimulationParameterGUI(); };
+			imguiParameters::addParam("Boundary Model", "", param);
+		}
 	}
 	
 	initImguiParameters();

@@ -50,6 +50,8 @@ namespace SPH
 			bool m_iniFound;
 			LogWindow* m_logWindow;
 			const float m_baseSize = 15.0f;
+			// gui for boundary
+			unsigned int m_currentBoundaryModel;
 
 			std::vector<std::vector<unsigned int>>& getSelectedParticles() { return m_selectedParticles; }
 			void initImgui();

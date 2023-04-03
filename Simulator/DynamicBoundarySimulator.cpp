@@ -182,8 +182,11 @@ void DynamicBoundarySimulator::timeStep() {
 		RigidBodyObject* rbo = bm->getRigidBodyObject();
 		if (rbo->isDynamic()) {
 			DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
-			drb->timeStep(this);
-		}
+			drb->timeStep();
+			// Apply damping
+			drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+			drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+		}		
 	}
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(false);

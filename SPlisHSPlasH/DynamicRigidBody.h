@@ -1,10 +1,11 @@
-#ifndef __StaticRigidBody_h__
-#define __StaticRigidBody_h__
+#ifndef __DynamicRigidBody_h__
+#define __DynamicRigidBody_h__
 
 #include "Common.h"
 #include "RigidBodyObject.h"
 #include "TriangleMesh.h"
 #include "TimeManager.h"
+#include "Simulation.h"
 
 namespace SPH {
 	/** \brief This class stores the information of a dynamic rigid body which
@@ -14,6 +15,8 @@ namespace SPH {
 	class DynamicRigidBody : public RigidBodyObject {
 		// Some fields are from PBD::RigidBody
 	private:
+		Real m_density;
+
 		/** mass */
 		Real m_mass;
 		/** inverse mass */
@@ -67,6 +70,9 @@ namespace SPH {
 		Vector3r m_a_omega;
 		/** external torque */
 		Vector3r m_torque;
+
+		// used to recompute mass properties, may dont need after implement the volume integrateion
+		Vector3r m_scale;
 
 		// Real m_restitutionCoeff;
 		Real m_frictionCoeff;
@@ -126,6 +132,8 @@ namespace SPH {
 		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
 			 const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
 		{
+			m_density = density;
+			m_scale = scale;
 			determineMassProperties(density, isDynamic, scale);
 			//m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
 			m_x = position;
@@ -300,6 +308,19 @@ namespace SPH {
 		FORCE_INLINE const Real &getInvMass() const
 		{
 			return m_invMass;
+		}
+
+		FORCE_INLINE const Real& getDensity() const {
+			return m_density;
+		}
+
+		FORCE_INLINE Real& getDensity() {
+			return m_density;
+		}
+
+		FORCE_INLINE void setDensity(const Real& density) {
+			m_density = density;
+			determineMassProperties(density, isDynamic(), m_scale);
 		}
 
 		//FORCE_INLINE Vector3r &getPosition()
@@ -700,7 +721,7 @@ namespace SPH {
 			m_torque.setZero();
 		}
 
-		void timeStep(DynamicBoundarySimulator* simulator) {
+		void timeStep() {
 			Simulation* sim = Simulation::getCurrent();
 			const Vector3r gravAccel(sim->getVecValue<Real>(Simulation::GRAVITATION));
 			const Real dt = TimeManager::getCurrent()->getTimeStepSize();
@@ -712,11 +733,9 @@ namespace SPH {
 			// Semi implicit Euler
 			m_a = m_invMass * m_force + gravAccel;
 			m_v += m_a * dt;
-			m_v *= (static_cast<Real>(1.0) - simulator->m_dampingCoeff);
 			m_x += m_v * dt;
 			m_a_omega = m_inertiaTensorInverseW * m_torque;
 			m_omega += m_a_omega * dt;
-			m_omega *= (static_cast<Real>(1.0) - simulator->m_dampingCoeff);
 			Quaternionr omegaTilde(0.0, m_omega[0], m_omega[1], m_omega[2]);
 			m_q.coeffs() += 0.5 * (omegaTilde * m_q).coeffs() * dt;
 			m_q.normalize();

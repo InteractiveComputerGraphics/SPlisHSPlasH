@@ -9,7 +9,7 @@
 #include "Utilities/FileSystem.h"
 #include "Simulator/SceneConfiguration.h"
 #include "LogWindow.h"
-
+#include "SPlisHSPlasH/DynamicRigidBody.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
@@ -17,6 +17,7 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
 
 
 using namespace SPH;
@@ -515,6 +516,25 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			param->getFct = [this]() -> int { return m_currentBoundaryModel; };
 			param->setFct = [this](int v) { m_currentBoundaryModel = v; initSimulationParameterGUI(); };
 			imguiParameters::addParam("Boundary Model", "", param);
+		}
+
+		// Show basic properties
+		{
+			imguiParameters::imguiBoolParameter* isDynamic = new imguiParameters::imguiBoolParameter();
+			isDynamic->description = "Density of the rigid body";
+			isDynamic->label = "Dynamic";
+			isDynamic->readOnly = true;
+			isDynamic->getFct = [model]()->Real {return model->getRigidBodyObject()->isDynamic(); };
+			imguiParameters::addParam("Boundary Model", "Property", isDynamic);
+			if (!this->getSimulatorBase()->isStaticScene()) {
+				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(model->getRigidBodyObject());
+				imguiParameters::imguiNumericParameter<Real>* density = new imguiParameters::imguiNumericParameter<Real>();
+				density->description = "Density of the rigid body";
+				density->label = "Density";
+				density->getFct = [drb]() -> Real {return drb->getDensity(); };
+				density->setFct = [drb](Real v) {drb->setDensity(v); };
+				imguiParameters::addParam("Boundary Model", "Property", density);
+			}
 		}
 	}
 	

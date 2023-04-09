@@ -501,43 +501,67 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getElasticityBase());
 	}
 
-	// Enum for all boundary models
-	if (sim->numberOfBoundaryModels() > 0) {
-		BoundaryModel* model = sim->getBoundaryModel(m_currentBoundaryModel);
-		// Select boundary model
-		{
-			imguiParameters::imguiEnumParameter* param = new imguiParameters::imguiEnumParameter();
-			param->description = "Select a boundary model to set its parameters below.";
-			param->label = "Current boundary model";
-			param->readOnly = false;
-			for (unsigned int j = 0; j < sim->numberOfBoundaryModels(); j++) {
-				param->items.push_back(std::to_string(j));
+	if (!m_simulatorBase->isStaticScene()) {
+		// Enum for all boundary models
+		if (sim->numberOfBoundaryModels() > 0) {
+			BoundaryModel* model = sim->getBoundaryModel(m_currentBoundaryModel);
+			// Select boundary model
+			{
+				imguiParameters::imguiEnumParameter* param = new imguiParameters::imguiEnumParameter();
+				param->description = "Select a boundary model to set its parameters below.";
+				param->label = "Current boundary model";
+				param->readOnly = false;
+				for (unsigned int j = 0; j < sim->numberOfBoundaryModels(); j++) {
+					param->items.push_back(std::to_string(j));
+				}
+				param->getFct = [this]() -> int { return m_currentBoundaryModel; };
+				param->setFct = [this](int v) { m_currentBoundaryModel = v; initSimulationParameterGUI(); };
+				imguiParameters::addParam("Boundary Model", "", param);
 			}
-			param->getFct = [this]() -> int { return m_currentBoundaryModel; };
-			param->setFct = [this](int v) { m_currentBoundaryModel = v; initSimulationParameterGUI(); };
-			imguiParameters::addParam("Boundary Model", "", param);
-		}
+			
+			// Show basic properties
+			{
+				imguiParameters::imguiBoolParameter* isDynamic = new imguiParameters::imguiBoolParameter();
+				isDynamic->description = "Density of the rigid body";
+				isDynamic->label = "Dynamic";
+				isDynamic->readOnly = true;
+				isDynamic->getFct = [model]()->Real {return model->getRigidBodyObject()->isDynamic(); };
+				imguiParameters::addParam("Boundary Model", "Property", isDynamic);
 
-		// Show basic properties
-		{
-			imguiParameters::imguiBoolParameter* isDynamic = new imguiParameters::imguiBoolParameter();
-			isDynamic->description = "Density of the rigid body";
-			isDynamic->label = "Dynamic";
-			isDynamic->readOnly = true;
-			isDynamic->getFct = [model]()->Real {return model->getRigidBodyObject()->isDynamic(); };
-			imguiParameters::addParam("Boundary Model", "Property", isDynamic);
-			if (!this->getSimulatorBase()->isStaticScene()) {
-				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(model->getRigidBodyObject());
-				imguiParameters::imguiNumericParameter<Real>* density = new imguiParameters::imguiNumericParameter<Real>();
-				density->description = "Density of the rigid body";
-				density->label = "Density";
-				density->getFct = [drb]() -> Real {return drb->getDensity(); };
-				density->setFct = [drb](Real v) {drb->setDensity(v); };
-				imguiParameters::addParam("Boundary Model", "Property", density);
+				if (model->getRigidBodyObject()->isDynamic()) {
+					DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(model->getRigidBodyObject());
+					imguiParameters::imguiNumericParameter<Real>* density = new imguiParameters::imguiNumericParameter<Real>();
+					density->description = "Density of the rigid body";
+					density->label = "Density";
+					density->getFct = [drb]() -> Real {return drb->getDensity(); };
+					density->setFct = [drb](Real v) {drb->setDensity(v); };
+					imguiParameters::addParam("Boundary Model", "Property", density);
+
+					imguiParameters::imguiVec3rParameter* scale = new imguiParameters::imguiVec3rParameter();
+					scale->description = "Scale of the rigid body";
+					scale->label = "Scale";
+					scale->getFct = [drb]()-> Vector3r {return drb->getScale(); };
+					scale->readOnly = true;
+					imguiParameters::addParam("Boundary Model", "Property", scale);
+
+					imguiParameters::imguiVec3rParameter* velocity = new imguiParameters::imguiVec3rParameter();
+					velocity->description = "Velocity of the rigid body";
+					velocity->label = "Velocity";
+					velocity->getFct = [drb]()-> Vector3r {return drb->getVelocity(); };
+					velocity->readOnly = true;
+					imguiParameters::addParam("Boundary Model", "Property", velocity);
+
+					imguiParameters::imguiVec3rParameter* angularVelocity = new imguiParameters::imguiVec3rParameter();
+					angularVelocity->description = "Angular Velocity of the rigid body";
+					angularVelocity->label = "Angular velocity";
+					angularVelocity->getFct = [drb]()-> Vector3r {return drb->getAngularVelocity(); };
+					angularVelocity->readOnly = true;
+					imguiParameters::addParam("Boundary Model", "Property", angularVelocity);
+				}
 			}
 		}
 	}
-	
+
 	initImguiParameters();
 
 	if (m_simulatorBase)

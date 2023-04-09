@@ -135,7 +135,6 @@ namespace SPH {
 			m_density = density;
 			m_scale = scale;
 			determineMassProperties(density, isDynamic, scale);
-			//m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
 			m_x = position;
 			m_x0 = position;
 			m_lastX = position;
@@ -292,10 +291,10 @@ namespace SPH {
 		const Vector3r &getTransformationV2() { return m_transformation_v2; }
 		const Vector3r &getTransformationRXV1() { return m_transformation_R_X_v1; }
 
-		//FORCE_INLINE Real &getMass()
-		//{
-		//	return m_mass;
-		//}
+		FORCE_INLINE const Vector3r& getScale() {
+			return m_scale;
+		}
+
 		FORCE_INLINE void setMass(const Real &value)
 		{
 			m_mass = value;
@@ -322,21 +321,6 @@ namespace SPH {
 			m_density = density;
 			determineMassProperties(density, isDynamic(), m_scale);
 		}
-
-		//FORCE_INLINE Vector3r &getPosition()
-		//{
-		//	return m_x;
-		//}
-
-		//FORCE_INLINE const Vector3r &getPosition() const 
-		//{
-		//	return m_x;
-		//}
-
-		//FORCE_INLINE void setPosition(const Vector3r &pos)
-		//{
-		//	m_x = pos;
-		//}
 
 		FORCE_INLINE Vector3r &getLastPosition()
 		{
@@ -398,36 +382,6 @@ namespace SPH {
 			m_x0_mat = pos;
 		}
 
-		//FORCE_INLINE Vector3r &getVelocity()
-		//{
-		//	return m_v;
-		//}
-
-		//FORCE_INLINE const Vector3r &getVelocity() const
-		//{
-		//	return m_v;
-		//}
-
-/*		FORCE_INLINE void setVelocity(const Vector3r &value)
-		{
-			m_v = value;
-		}		*/	
-
-		//FORCE_INLINE Vector3r &getVelocity0()
-		//{
-		//	return m_v0;
-		//}
-
-		//FORCE_INLINE const Vector3r &getVelocity0() const
-		//{
-		//	return m_v0;
-		//}
-
-		//FORCE_INLINE void setVelocity0(const Vector3r &value)
-		//{
-		//	m_v0 = value;
-		//}
-
 		FORCE_INLINE Vector3r &getAcceleration()
 		{
 			return m_a;
@@ -484,21 +438,6 @@ namespace SPH {
 			m_inertiaTensorInverseW = value;
 		}
 
-		//FORCE_INLINE Quaternionr &getRotation()
-		//{
-		//	return m_q;
-		//}
-
-		//FORCE_INLINE const Quaternionr &getRotation() const
-		//{
-		//	return m_q;
-		//}
-
-		//FORCE_INLINE void setRotation(const Quaternionr &value)
-		//{
-		//	m_q = value;
-		//}
-
 		FORCE_INLINE Quaternionr &getLastRotation()
 		{
 			return m_lastQ;
@@ -528,21 +467,6 @@ namespace SPH {
 		{
 			m_oldQ = value;
 		}
-
-		//FORCE_INLINE Quaternionr &getRotation0()
-		//{
-		//	return m_q0;
-		//}
-
-		//FORCE_INLINE const Quaternionr &getRotation0() const
-		//{
-		//	return m_q0;
-		//}
-
-		//FORCE_INLINE void setRotation0(const Quaternionr &value)
-		//{
-		//	m_q0 = value;
-		//}
 
 		FORCE_INLINE Quaternionr &getRotationMAT()
 		{
@@ -706,14 +630,10 @@ namespace SPH {
 		}
 		virtual void addForce(const Vector3r& f) {
 			m_force += f;
-			//const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
-			//m_v += (1.0 / m_mass) * f * dt;
 		}
 
 		virtual void addTorque(const Vector3r& t) {
 			m_torque += t;
-			//const Real dt = SPH::TimeManager::getCurrent()->getTimeStepSize();
-			//m_omega += m_inertiaTensorInverseW * t * dt;
 		}
 
 		void clearForceAndTorque() {

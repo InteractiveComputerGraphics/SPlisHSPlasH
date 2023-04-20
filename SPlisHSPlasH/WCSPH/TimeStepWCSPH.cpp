@@ -9,7 +9,6 @@
 #include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
-
 using namespace SPH;
 using namespace std;
 using namespace GenParam;
@@ -171,7 +170,7 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 
 			const Real dpi = m_simulationData.getPressure(fluidModelIndex, i) / (density_i*density_i);
 			//////////////////////////////////////////////////////////////////////////
-			// Fluid
+			// Fluid 
 			//////////////////////////////////////////////////////////////////////////
 			forall_fluid_neighbors(
 				// Pressure 

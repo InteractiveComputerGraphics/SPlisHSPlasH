@@ -558,16 +558,6 @@ namespace SPH {
 			m_torque = value;
 		}
 
-		//FORCE_INLINE Real getRestitutionCoeff() const 
-		//{ 
-		//	return m_restitutionCoeff; 
-		//}
-
-		//FORCE_INLINE void setRestitutionCoeff(Real val) 
-		//{ 
-		//	m_restitutionCoeff = val; 
-		//}
-
 		FORCE_INLINE Real getFrictionCoeff() const 
 		{ 
 			return m_frictionCoeff; 
@@ -650,11 +640,11 @@ namespace SPH {
 			m_oldX = m_x;
 			m_lastQ = m_oldQ;
 			m_oldQ = m_q;
-			// Semi implicit Euler
+			// Semi-implicit Euler
 			m_a = m_invMass * m_force + gravAccel;
 			m_v += m_a * dt;
 			m_x += m_v * dt;
-			m_a_omega = m_inertiaTensorInverseW * m_torque;
+			m_a_omega = m_inertiaTensorInverseW * (m_torque - (m_omega.cross(m_inertiaTensorW * m_omega)));
 			m_omega += m_a_omega * dt;
 			Quaternionr omegaTilde(0.0, m_omega[0], m_omega[1], m_omega[2]);
 			m_q.coeffs() += 0.5 * (omegaTilde * m_q).coeffs() * dt;

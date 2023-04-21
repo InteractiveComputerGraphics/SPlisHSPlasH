@@ -6,6 +6,7 @@
 
 #include "BoundaryModel.h"
 #include "SPHKernels.h"
+#include "FluidModel.h"
 
 
 namespace SPH 
@@ -33,8 +34,15 @@ namespace SPH
 			std::vector<Vector3r> m_x;
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
+			std::vector<FieldDescription> m_fields;
 
 		public:
+			void addField(const FieldDescription& field);
+			const std::vector<FieldDescription>& getFields() {return m_fields;}
+			const FieldDescription& getField(const unsigned int i) {return m_fields[i];}
+			const FieldDescription& getField(const std::string& name);
+			const unsigned int numberOfFields() {return static_cast<unsigned int>(m_fields.size());}
+			void removeFieldByName(const std::string& fieldName);
 			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
 			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
 			bool isSorted() const { return m_sorted; }

@@ -18,6 +18,12 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
+
+	addField({ "position", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition(i)[0]; }, true });
+	addField({ "position0", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition0(i)[0]; } });
+	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; }, true });
+	addField({ "volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getVolume(i); }, true });
+	//addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, false });
 }
 
 BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
@@ -41,6 +47,31 @@ void BoundaryModel_Akinci2012::reset()
 		{
 			m_x[j] = m_x0[j];
 			m_v[j].setZero();
+		}
+	}
+}
+
+void SPH::BoundaryModel_Akinci2012::addField(const FieldDescription& field) {
+	m_fields.push_back(field);
+	std::sort(m_fields.begin(), m_fields.end(), [](FieldDescription& i, FieldDescription& j) -> bool { return (i.name < j.name); });
+}
+
+const FieldDescription& SPH::BoundaryModel_Akinci2012::getField(const std::string& name) {
+	unsigned int index = 0;
+	for (auto i = 0; i < m_fields.size(); i++) {
+		if (m_fields[i].name == name) {
+			index = i;
+			break;
+		}
+	}
+	return m_fields[index];
+}
+
+void SPH::BoundaryModel_Akinci2012::removeFieldByName(const std::string& fieldName) {
+	for (auto it = m_fields.begin(); it != m_fields.end(); it++) {
+		if (it->name == fieldName) {
+			m_fields.erase(it);
+			break;
 		}
 	}
 }

@@ -8,6 +8,7 @@
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
+#include "Simulator/DynamicBoundarySimulator.h"
 
 using namespace SPH;
 using namespace std;
@@ -130,6 +131,11 @@ void TimeStepWCSPH::step()
 				}
 			}
 		}
+	}
+
+	// Only for strong coupling method with BoundaryModel_Akinci2012
+	if (sim->getDynamicBoundarySimulator() != nullptr) {
+		sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
 	}
 
 	sim->emitParticles();

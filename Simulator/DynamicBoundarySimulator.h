@@ -23,6 +23,7 @@ namespace SPH {
 		virtual void deferredInit();
 
 		virtual void timeStep();
+		void timeStepStrongCoupling();
 		virtual void reset();
 
 		Real m_dampingCoeff = 0.0;

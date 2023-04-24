@@ -9,6 +9,7 @@
 #include "BoundaryModel.h"
 #include "AnimationFieldSystem.h"
 #include "Utilities/FileSystem.h"
+
 #ifdef USE_DEBUG_TOOLS
 #include "SPlisHSPlasH/Utilities/DebugTools.h"
 #endif
@@ -167,6 +168,7 @@ for (unsigned int pid = 0; pid < nBoundaries; pid++) \
 
 namespace SPH
 {
+	class DynamicBoundarySimulator;
 	enum class SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, ICSPH, NumSimulationMethods };
 	enum class BoundaryHandlingMethods { Akinci2012 = 0, Koschier2017, Bender2019, NumSimulationMethods };
 
@@ -306,6 +308,7 @@ namespace SPH
 		bool m_enableZSort;
 		std::function<void()> m_simulationMethodChanged;		
 		int m_boundaryHandlingMethod;
+		DynamicBoundarySimulator* m_dynamicBoundarySimulator;
 		std::string m_cachePath;
 		bool m_useCache;
 		std::vector<NonPressureForceMethod> m_dragMethods;
@@ -365,6 +368,9 @@ namespace SPH
 		
 		BoundaryHandlingMethods getBoundaryHandlingMethod() const { return (BoundaryHandlingMethods) m_boundaryHandlingMethod; }
 		void setBoundaryHandlingMethod(BoundaryHandlingMethods val) { m_boundaryHandlingMethod = (int) val; }
+
+		DynamicBoundarySimulator* getDynamicBoundarySimulator() const { return m_dynamicBoundarySimulator; }
+		void setDynamicBoundarySimulator(DynamicBoundarySimulator* simulator) { m_dynamicBoundarySimulator = simulator; }
 
 		int getKernel() const { return m_kernelMethod; }
 		void setKernel(int val);

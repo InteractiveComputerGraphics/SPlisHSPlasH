@@ -18,6 +18,7 @@ using namespace Utilities;
 
 DynamicBoundarySimulator::DynamicBoundarySimulator(SimulatorBase* base) {
 	m_base = base;
+	Simulation::getCurrent()->setDynamicBoundarySimulator(this);
 }
 
 DynamicBoundarySimulator::~DynamicBoundarySimulator() {
@@ -173,27 +174,48 @@ void DynamicBoundarySimulator::deferredInit() {
 }
 
 void DynamicBoundarySimulator::timeStep() {
-	updateBoundaryForces();
 	Simulation* sim = Simulation::getCurrent();
-	const unsigned int nObjects = sim->numberOfBoundaryModels();
-    #pragma omp parallel for
-	for (int i = 0; i < nObjects; i++) {
-		BoundaryModel* bm = sim->getBoundaryModel(i);
-		RigidBodyObject* rbo = bm->getRigidBodyObject();
-		if (rbo->isDynamic()) {
-			DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
-			drb->timeStep();
-			// Apply damping
-			drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-			drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-		}		
+	if (sim->getBoundaryHandlingMethod() != BoundaryHandlingMethods::Akinci2012) {
+		updateBoundaryForces();
+		const unsigned int nObjects = sim->numberOfBoundaryModels();
+        #pragma omp parallel for
+		for (int i = 0; i < nObjects; i++) {
+			BoundaryModel* bm = sim->getBoundaryModel(i);
+			RigidBodyObject* rbo = bm->getRigidBodyObject();
+			if (rbo->isDynamic()) {
+				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
+				drb->timeStep();
+				// Apply damping
+				drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+				drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+			}
+		}
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			m_base->updateDMVelocity();
+		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+			m_base->updateVMVelocity();
 	}
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+}
+
+void DynamicBoundarySimulator::timeStepStrongCoupling() {
+	Simulation* sim = Simulation::getCurrent();
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+		updateBoundaryForces();
+		const unsigned int nObjects = sim->numberOfBoundaryModels();
+        #pragma omp parallel for
+		for (int i = 0; i < nObjects; i++) {
+			BoundaryModel* bm = sim->getBoundaryModel(i);
+			RigidBodyObject* rbo = bm->getRigidBodyObject();
+			if (rbo->isDynamic()) {
+				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
+				drb->timeStep();
+				// Apply damping
+				drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+				drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+			}
+		}
 		m_base->updateBoundaryParticles(false);
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
-		m_base->updateDMVelocity();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
-		m_base->updateVMVelocity();
+	}
 }
 
 void DynamicBoundarySimulator::reset() {

@@ -130,7 +130,7 @@ void DynamicBoundarySimulator::initBoundaryData() {
 		Matrix3r rot = AngleAxisr(scene.boundaryModels[i]->angle, scene.boundaryModels[i]->axis).toRotationMatrix();
 		Quaternionr q(rot);
 
-		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, scene.boundaryModels[i]->scale);
+		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, scene.boundaryModels[i]->scale, boundaryParticles);
 
 		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 			BoundaryModel_Akinci2012* bm = new BoundaryModel_Akinci2012();
@@ -200,7 +200,7 @@ void DynamicBoundarySimulator::timeStep() {
 void DynamicBoundarySimulator::timeStepStrongCoupling() {
 	Simulation* sim = Simulation::getCurrent();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
-		updateBoundaryForces();
+		// updateBoundaryForces(); this is already used to compute the source term
 		const unsigned int nObjects = sim->numberOfBoundaryModels();
         #pragma omp parallel for
 		for (int i = 0; i < nObjects; i++) {

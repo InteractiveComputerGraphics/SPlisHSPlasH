@@ -9,6 +9,7 @@
 #include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 #include "Simulator/DynamicBoundarySimulator.h"
+#include "../DynamicRigidBody.h"
 
 using namespace SPH;
 using namespace std;
@@ -110,6 +111,11 @@ void TimeStepWCSPH::step()
 		computePressureAccels(fluidModelIndex);
 	}
 
+	// TODO: rigid-rigid contact forces
+	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+		computeRigidRigidAccels();
+	}
+
 	sim->updateTimeStepSize();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -133,13 +139,13 @@ void TimeStepWCSPH::step()
 		}
 	}
 
+	sim->emitParticles();
+	sim->animateParticles();
+
 	// Only for strong coupling method with BoundaryModel_Akinci2012
 	if (sim->getDynamicBoundarySimulator() != nullptr) {
 		sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
 	}
-
-	sim->emitParticles();
-	sim->animateParticles();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);
@@ -213,6 +219,24 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 					bm_neighbor->addForce(xj, model->getMass(i) * a);
 				);
 			}
+		}
+	}
+}
+
+void TimeStepWCSPH::computeRigidRigidAccels() {
+	// Use dynamic boundary simulator and Akinci2012
+	Simulation* sim = Simulation::getCurrent();
+	DynamicBoundarySimulator* boundarySimulator = sim->getDynamicBoundarySimulator();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
+	// For all boundary objects
+	for (unsigned int i = 0; i < nBoundaries; i++) {
+		// it must be a dynamic rb since we have a dynamic boundary simulator
+		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(sim->getBoundaryModel(i)->getRigidBodyObject());
+		int boundaryPointSetIndex = nFluids + i;
+		// For all particles of the object i
+		for (unsigned int j = 0; j < rb->numberOfBoundaryParticles(); j++) {
+
 		}
 	}
 }

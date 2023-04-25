@@ -15,6 +15,9 @@ namespace SPH {
 	class DynamicRigidBody : public RigidBodyObject {
 		// Some fields are from PBD::RigidBody
 	private:
+		// Boundary Particles
+		std::vector<Vector3r> m_boundaryParticleLocalPositions;
+
 		Real m_density;
 
 		/** mass */
@@ -130,8 +133,9 @@ namespace SPH {
 		}
 
 		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
-			 const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
+			 const Vector3r &scale, const std::vector<Vector3r>& boundaryParticleLocalPositions)
 		{
+			m_boundaryParticleLocalPositions = boundaryParticleLocalPositions;
 			m_density = density;
 			m_scale = scale;
 			determineMassProperties(density, isDynamic, scale);
@@ -290,6 +294,14 @@ namespace SPH {
 		const Vector3r &getTransformationV1() { return m_transformation_v1; }
 		const Vector3r &getTransformationV2() { return m_transformation_v2; }
 		const Vector3r &getTransformationRXV1() { return m_transformation_R_X_v1; }
+
+		FORCE_INLINE const Real& numberOfBoundaryParticles() const {
+			return m_boundaryParticleLocalPositions.size();
+		}
+
+		FORCE_INLINE const Vector3r& getBoundaryParticleLocalPosition(const Real& index) const {
+			return m_boundaryParticleLocalPositions[index];
+		}
 
 		FORCE_INLINE const Vector3r& getScale() {
 			return m_scale;

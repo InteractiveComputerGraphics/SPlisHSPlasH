@@ -65,7 +65,11 @@ void RegularSampling2D::sampleMesh(const Matrix3r& rotation, const Vector3r & tr
 			#pragma omp critical
 			{
 				for (unsigned sample = 0; sample < numSamples; sample++)
-					samples.emplace_back(v0 + static_cast<Real>(sample) / (numSamples - 1) * dir);
+				{
+					if(numSamples > 1)
+						samples.emplace_back(v0 + static_cast<Real>(sample) / (numSamples - 1) * dir);
+			
+				}
 			}
 		}
 	}

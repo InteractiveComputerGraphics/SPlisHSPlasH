@@ -16,7 +16,7 @@ namespace SPH {
 		// Some fields are from PBD::RigidBody
 	private:
 		// Boundary Particles
-		std::vector<Vector3r> m_boundaryParticleLocalPositions;
+
 
 		Real m_density;
 
@@ -99,43 +99,9 @@ namespace SPH {
 		{
 		}
 
-		void initBody(const Real mass, const Vector3r &x, 
-			const Vector3r &inertiaTensor, const Quaternionr &rotation, 
-			const Vector3r &scale = Vector3r(1.0, 1.0, 1.0))
-		{
-			setMass(mass);
-			m_x = x; 
-			m_x0 = x;
-			m_lastX = x;
-			m_oldX = x;
-			m_v.setZero();
-			m_v0.setZero();
-			m_a.setZero();
-			m_force.setZero();
-
-			setInertiaTensor(inertiaTensor);
-			m_q = rotation;
-			m_q0 = rotation;
-			m_lastQ = rotation;
-			m_oldQ = rotation;
-			m_rot = m_q.matrix();
-			m_q_mat = Quaternionr(1.0, 0.0, 0.0, 0.0);
-			m_q_initial = Quaternionr(1.0, 0.0, 0.0, 0.0);
-			m_x0_mat.setZero();
-			rotationUpdated();
-			m_omega.setZero();
-			m_omega0.setZero();
-			m_torque.setZero();
-
-			// m_restitutionCoeff = static_cast<Real>(0.6);
-			m_frictionCoeff = static_cast<Real>(0.2);
-			updateMeshTransformation();
-		}
-
 		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
-			 const Vector3r &scale, const std::vector<Vector3r>& boundaryParticleLocalPositions)
+			 const Vector3r &scale)
 		{
-			m_boundaryParticleLocalPositions = boundaryParticleLocalPositions;
 			m_density = density;
 			m_scale = scale;
 			determineMassProperties(density, isDynamic, scale);
@@ -294,14 +260,6 @@ namespace SPH {
 		const Vector3r &getTransformationV1() { return m_transformation_v1; }
 		const Vector3r &getTransformationV2() { return m_transformation_v2; }
 		const Vector3r &getTransformationRXV1() { return m_transformation_R_X_v1; }
-
-		FORCE_INLINE const Real& numberOfBoundaryParticles() const {
-			return m_boundaryParticleLocalPositions.size();
-		}
-
-		FORCE_INLINE const Vector3r& getBoundaryParticleLocalPosition(const Real& index) const {
-			return m_boundaryParticleLocalPositions[index];
-		}
 
 		FORCE_INLINE const Vector3r& getScale() {
 			return m_scale;

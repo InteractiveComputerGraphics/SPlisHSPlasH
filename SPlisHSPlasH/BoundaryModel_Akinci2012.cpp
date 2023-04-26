@@ -14,7 +14,8 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	m_x0(),
 	m_x(),
 	m_v(),
-	m_V()
+	m_V(),
+	m_density()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -23,7 +24,7 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	addField({ "position0", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition0(i)[0]; } });
 	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; }, true });
 	addField({ "volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getVolume(i); }, true });
-	//addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, false });
+	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, true });
 }
 
 BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
@@ -32,6 +33,7 @@ BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
 	m_x.clear();
 	m_v.clear();
 	m_V.clear();
+	m_density.clear();
 }
 
 void BoundaryModel_Akinci2012::reset()
@@ -99,7 +101,8 @@ void BoundaryModel_Akinci2012::computeBoundaryVolume()
 					delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
 				}
 			}
-			const Real volume = static_cast<Real>(1.0) / delta;
+			const Real gamma = static_cast<Real>(1.0);
+			const Real volume = gamma / delta;
 			m_V[i] = volume;
 		}
 	}
@@ -111,6 +114,9 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
+	m_density.resize(numBoundaryParticles);
+
+	m_density0 = 1;
 
 	if (rbo->isDynamic())
 	{
@@ -132,6 +138,7 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 			m_x[i] = boundaryParticles[i];
 			m_v[i].setZero();
 			m_V[i] = 0.0;
+			m_density[i] = m_density0;
 		}
 	}
 	m_rigidBody = rbo;
@@ -155,6 +162,7 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	d.sort_field(&m_x[0]);
 	d.sort_field(&m_v[0]);
 	d.sort_field(&m_V[0]);
+	d.sort_field(&m_density[0]);
 	m_sorted = true;
 }
 
@@ -176,4 +184,5 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
+	m_density.resize(numBoundaryParticles);
 }

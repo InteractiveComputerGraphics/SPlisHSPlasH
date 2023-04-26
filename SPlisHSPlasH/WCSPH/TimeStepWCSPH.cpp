@@ -235,9 +235,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(sim->getBoundaryModel(i)->getRigidBodyObject());
 		int boundaryPointSetIndex = nFluids + i;
 		// For all particles of the object i
-		for (unsigned int j = 0; j < rb->numberOfBoundaryParticles(); j++) {
 
-		}
 	}
 }
 

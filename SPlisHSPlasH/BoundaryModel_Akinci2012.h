@@ -34,6 +34,8 @@ namespace SPH
 			std::vector<Vector3r> m_x;
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
+			std::vector<Real> m_density;
+			Real m_density0;
 			std::vector<FieldDescription> m_fields;
 
 		public:
@@ -43,6 +45,7 @@ namespace SPH
 			const FieldDescription& getField(const std::string& name);
 			const unsigned int numberOfFields() {return static_cast<unsigned int>(m_fields.size());}
 			void removeFieldByName(const std::string& fieldName);
+
 			unsigned int numberOfParticles() const { return static_cast<unsigned int>(m_x.size()); }
 			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
 			bool isSorted() const { return m_sorted; }
@@ -58,7 +61,31 @@ namespace SPH
 			virtual void loadState(BinaryFileReader &binReader);
 
 			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
-			
+
+			FORCE_INLINE const Real& getDensity(const Real& index) const {
+				return m_density[index];
+			}
+
+			FORCE_INLINE Real& getDensity(const Real& index) {
+				return m_density[index];
+			}
+
+			FORCE_INLINE void setDensity(const Real& index, const Real& value) {
+				m_density[index] = value;
+			}
+
+			FORCE_INLINE const Real& getDensity0(const Real& index) const {
+				return m_density0;
+			}
+
+			FORCE_INLINE Real& getDensity0(const Real& index) {
+				return m_density0;
+			}
+
+			FORCE_INLINE void setDensity0(const Real& index, const Real& value) {
+				m_density0 = value;
+			}
+		
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{
 				return m_x0[i];

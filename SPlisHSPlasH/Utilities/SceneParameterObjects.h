@@ -3,6 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include <vector>
+#include <array>
 #include "ParameterObject.h"
 
 namespace Utilities

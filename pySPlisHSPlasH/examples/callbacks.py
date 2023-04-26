@@ -12,7 +12,8 @@ def main():
 	gui = sph.GUI.Simulator_GUI_imgui(base)
 	base.setGui(gui)
 	
-	gui.addKeyFunc('k', key_callback)
+	# 75 -> 'k', 0 -> no modifier
+	gui.addKeyFunc(75, 0 , key_callback)
 	base.setTimeStepCB(time_step_callback)
 	
 	base.run()

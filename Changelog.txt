@@ -1,3 +1,7 @@
+2.12.3
+	- added missing include
+	- fixed addKeyFunc in Python interface
+
 2.12.2
 	- added a CMake option for each tool so that the build can be disabled/enabled
 

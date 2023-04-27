@@ -34,9 +34,12 @@ namespace SPH
 			std::vector<Vector3r> m_x;
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
+			std::vector<FieldDescription> m_fields;
+			// values required for Gissler 2019 strong coupling based on Akinci 2012
 			std::vector<Real> m_density;
 			Real m_density0;
-			std::vector<FieldDescription> m_fields;
+			std::vector<Vector3r> m_v_s;
+			std::vector<Real> m_s; // source term
 
 		public:
 			void addField(const FieldDescription& field);
@@ -74,15 +77,15 @@ namespace SPH
 				m_density[index] = value;
 			}
 
-			FORCE_INLINE const Real& getDensity0(const Real& index) const {
+			FORCE_INLINE const Real& getDensity0() const {
 				return m_density0;
 			}
 
-			FORCE_INLINE Real& getDensity0(const Real& index) {
+			FORCE_INLINE Real& getDensity0() {
 				return m_density0;
 			}
 
-			FORCE_INLINE void setDensity0(const Real& index, const Real& value) {
+			FORCE_INLINE void setDensity0(const Real& value) {
 				m_density0 = value;
 			}
 		
@@ -129,6 +132,30 @@ namespace SPH
 			FORCE_INLINE void setVelocity(const unsigned int i, const Vector3r &vel)
 			{
 				m_v[i] = vel;
+			}
+
+			FORCE_INLINE Vector3r& getV_s(const unsigned int i) {
+				return m_v_s[i];
+			}
+
+			FORCE_INLINE const Vector3r& getV_s(const unsigned int i) const {
+				return m_v_s[i];
+			}
+
+			FORCE_INLINE void setV_s(const unsigned int i, const Vector3r& value) {
+				m_v_s[i] = value;
+			}
+
+			FORCE_INLINE Real& getSourceTerm(const unsigned int i) {
+				return m_s[i];
+			}
+
+			FORCE_INLINE const Real& getSourceTerm(const unsigned int i) const {
+				return m_s[i];
+			}
+
+			FORCE_INLINE void setSourceTerm(const unsigned int i, const Real& value) {
+				m_s[i] = value;
 			}
 
 			FORCE_INLINE const Real& getVolume(const unsigned int i) const

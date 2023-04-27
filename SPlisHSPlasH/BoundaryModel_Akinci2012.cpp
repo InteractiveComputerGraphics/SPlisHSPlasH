@@ -15,7 +15,9 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	m_x(),
 	m_v(),
 	m_V(),
-	m_density()
+	m_density(),
+	m_v_s(),
+	m_s()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -34,6 +36,8 @@ BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
 	m_v.clear();
 	m_V.clear();
 	m_density.clear();
+	m_v_s.clear();
+	m_s.clear();
 }
 
 void BoundaryModel_Akinci2012::reset()
@@ -44,11 +48,14 @@ void BoundaryModel_Akinci2012::reset()
 	// positions and velocities are already updated by updateBoundaryParticles
 	if (!m_rigidBody->isDynamic() && !m_rigidBody->isAnimated())
 	{
-		// reset velocities and accelerations
+		// reset velocities, accelerations, densities and other fields
 		for (int j = 0; j < (int)numberOfParticles(); j++)
 		{
 			m_x[j] = m_x0[j];
 			m_v[j].setZero();
+			m_density[j] = m_density0;
+			m_v_s[j].setZero();
+			m_s[j] = 0;
 		}
 	}
 }
@@ -115,7 +122,8 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
 	m_density.resize(numBoundaryParticles);
-
+	m_v_s.resize(numBoundaryParticles);
+	m_s.resize(numBoundaryParticles);
 	m_density0 = 1;
 
 	if (rbo->isDynamic())
@@ -139,6 +147,7 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 			m_v[i].setZero();
 			m_V[i] = 0.0;
 			m_density[i] = m_density0;
+			m_v_s[i].setZero();
 		}
 	}
 	m_rigidBody = rbo;
@@ -163,6 +172,8 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	d.sort_field(&m_v[0]);
 	d.sort_field(&m_V[0]);
 	d.sort_field(&m_density[0]);
+	d.sort_field(&m_v_s[0]);
+	d.sort_field(&m_s[0]);
 	m_sorted = true;
 }
 
@@ -185,4 +196,6 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
 	m_density.resize(numBoundaryParticles);
+	m_v_s.resize(numBoundaryParticles);
+	m_s.resize(numBoundaryParticles);
 }

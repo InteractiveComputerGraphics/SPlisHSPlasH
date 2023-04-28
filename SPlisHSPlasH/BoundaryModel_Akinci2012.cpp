@@ -17,7 +17,10 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	m_V(),
 	m_density(),
 	m_v_s(),
-	m_s()
+	m_s(),
+	m_pressure(),
+	m_v_rr(),
+	m_minus_rho_div_v_rr()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -38,6 +41,9 @@ BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
 	m_density.clear();
 	m_v_s.clear();
 	m_s.clear();
+	m_pressure.clear();
+	m_v_rr.clear();
+	m_minus_rho_div_v_rr.clear();
 }
 
 void BoundaryModel_Akinci2012::reset()
@@ -56,6 +62,9 @@ void BoundaryModel_Akinci2012::reset()
 			m_density[j] = m_density0;
 			m_v_s[j].setZero();
 			m_s[j] = 0;
+			m_pressure[j] = 0;
+			m_v_rr[j].setZero();
+			m_minus_rho_div_v_rr[j].setZero();
 		}
 	}
 }
@@ -124,7 +133,13 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_density.resize(numBoundaryParticles);
 	m_v_s.resize(numBoundaryParticles);
 	m_s.resize(numBoundaryParticles);
+	m_pressure.resize(numBoundaryParticles);
+	m_v_rr.resize(numBoundaryParticles);
+	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
 	m_density0 = 1;
+	m_v_rr_body = Vector3r().setZero();
+	m_omega_rr_body = Vector3r().setZero();
+
 
 	if (rbo->isDynamic())
 	{
@@ -148,6 +163,8 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 			m_V[i] = 0.0;
 			m_density[i] = m_density0;
 			m_v_s[i].setZero();
+			m_pressure[i] = 0;
+			m_v_rr[i].setZero();
 		}
 	}
 	m_rigidBody = rbo;
@@ -174,6 +191,9 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	d.sort_field(&m_density[0]);
 	d.sort_field(&m_v_s[0]);
 	d.sort_field(&m_s[0]);
+	d.sort_field(&m_pressure[0]);
+	d.sort_field(&m_v_rr[0]);
+	d.sort_field(&m_minus_rho_div_v_rr[0]);
 	m_sorted = true;
 }
 
@@ -198,4 +218,7 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_density.resize(numBoundaryParticles);
 	m_v_s.resize(numBoundaryParticles);
 	m_s.resize(numBoundaryParticles);
+	m_pressure.resize(numBoundaryParticles);
+	m_v_rr.resize(numBoundaryParticles);
+	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
 }

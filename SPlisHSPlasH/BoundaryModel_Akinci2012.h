@@ -35,11 +35,17 @@ namespace SPH
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_V;
 			std::vector<FieldDescription> m_fields;
+
 			// values required for Gissler 2019 strong coupling based on Akinci 2012
 			std::vector<Real> m_density;
-			Real m_density0;
+			std::vector<Real> m_pressure;
 			std::vector<Vector3r> m_v_s;
 			std::vector<Real> m_s; // source term
+			std::vector<Vector3r> m_v_rr;
+			std::vector<Vector3r> m_minus_rho_div_v_rr; // RHS to the source term
+			Real m_density0;
+			Vector3r m_v_rr_body;
+			Vector3r m_omega_rr_body;
 
 		public:
 			void addField(const FieldDescription& field);
@@ -77,6 +83,19 @@ namespace SPH
 				m_density[index] = value;
 			}
 
+			FORCE_INLINE const Real& getPressure(const Real& index) const {
+				return m_pressure[index];
+			}
+
+			FORCE_INLINE Real& getPressure(const Real& index) {
+				return m_pressure[index];
+			}
+
+			FORCE_INLINE void setPressure(const Real& index, const Real& value) {
+				m_pressure[index] = value;
+			}
+
+
 			FORCE_INLINE const Real& getDensity0() const {
 				return m_density0;
 			}
@@ -87,6 +106,30 @@ namespace SPH
 
 			FORCE_INLINE void setDensity0(const Real& value) {
 				m_density0 = value;
+			}
+
+			FORCE_INLINE const Vector3r& getV_rr_body() const {
+				return m_v_rr_body;
+			}
+
+			FORCE_INLINE Vector3r& getV_rr_body() {
+				return m_v_rr_body;
+			}
+
+			FORCE_INLINE void setV_rr_body(const Vector3r& value) {
+				m_v_rr_body = value;
+			}
+
+			FORCE_INLINE const Vector3r& getOmega_rr_body() const {
+				return m_omega_rr_body;
+			}
+
+			FORCE_INLINE Vector3r& getOmega_rr_body() {
+				return m_omega_rr_body;
+			}
+
+			FORCE_INLINE void setOmega_rr_body(const Vector3r& value) {
+				m_omega_rr_body = value;
 			}
 		
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
@@ -144,6 +187,30 @@ namespace SPH
 
 			FORCE_INLINE void setV_s(const unsigned int i, const Vector3r& value) {
 				m_v_s[i] = value;
+			}
+
+			FORCE_INLINE Vector3r& getV_rr(const unsigned int i) {
+				return m_v_rr[i];
+			}
+
+			FORCE_INLINE const Vector3r& getV_rr(const unsigned int i) const {
+				return m_v_rr[i];
+			}
+
+			FORCE_INLINE void setV_rr(const unsigned int i, const Vector3r& value) {
+				m_v_rr[i] = value;
+			}
+
+			FORCE_INLINE Vector3r& getMinus_rho_div_v_rr(const unsigned int i) {
+				return m_minus_rho_div_v_rr[i];
+			}
+
+			FORCE_INLINE const Vector3r& getMinus_rho_div_v_rr(const unsigned int i) const {
+				return m_minus_rho_div_v_rr[i];
+			}
+
+			FORCE_INLINE void setMinus_rho_div_v_rr(const unsigned int i, const Vector3r& value) {
+				m_minus_rho_div_v_rr[i] = value;
 			}
 
 			FORCE_INLINE Real& getSourceTerm(const unsigned int i) {

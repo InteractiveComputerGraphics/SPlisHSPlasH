@@ -224,7 +224,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
-	// Compute density and v_s for all particles
+	// Compute density, pressure and v_s for all particles
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
@@ -250,6 +250,9 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 					}
 				}
 				bm->setDensity(r, particleDensity);
+
+				// compute density using the same method as the fluid solver (WCSPH)
+				bm->setPressure(r, m_stiffness * (pow(bm->getDensity(r) / bm->getDensity0(), m_exponent) - static_cast<Real>(1.0)));
 			}
 		}
 	}
@@ -278,6 +281,78 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			}
 		}
 	}
+
+	// Next three loops compute the RHS of the equation (RHS to the source term)
+	{
+		// compute v_rr and omega_rr for rigid body using the pressure gradient
+		for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
+			DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+			Vector3r v_rr_body = Vector3r().setZero();
+			Vector3r omega_rr_body = Vector3r().setZero();
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					Vector3r pressureGrad_r = Vector3r().setZero();
+					const Real density_r = bm->getDensity(r);
+					const Real volume_r = bm->getDensity0() / density_r * bm->getVolume(r);
+					const Real pressure_r = bm->getPressure(r);
+					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
+						BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
+						for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
+							const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
+							const Real density_k = bm_neighbor->getDensity(k);
+							const Real volume_k = bm_neighbor->getDensity0() / density_k * bm_neighbor->getVolume(k);
+							const Real pressure_k = bm_neighbor->getPressure(k);
+							pressureGrad_r += volume_k * density_k * (pressure_r / (density_r * density_r) + pressure_k / (density_k * density_k)) * sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
+						}
+					}
+					pressureGrad_r *= density_r;
+					v_rr_body += -dt * rb->getInvMass() * volume_r * pressureGrad_r;
+					omega_rr_body += -dt * rb->getInertiaTensorInverseW() * volume_r * bm->getPosition(r).cross(pressureGrad_r);
+				}
+			}
+			bm->setV_rr_body(v_rr_body);
+			bm->setOmega_rr_body(omega_rr_body);
+		}
+		// compute v_rr for all particles 
+		for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					bm->setV_rr(r, bm->getV_rr_body() + bm->getOmega_rr_body().cross(bm->getPosition(r)));
+				}
+			}
+		}
+		// compute the -rho * (div v_rr), which is the RHS to the source term
+		for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					Vector3r minus_rho_div_v_rr = Vector3r().setZero();
+					const Vector3r v_rr_r = bm->getV_rr(r);
+					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
+						BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
+						for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
+							const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
+							const Real density_k = bm_neighbor->getDensity(k);
+							const Real volume_k = bm_neighbor->getDensity0() / density_k * bm_neighbor->getVolume(k);
+							const Vector3r v_rr_k = bm_neighbor->getV_rr(k);
+							minus_rho_div_v_rr += volume_k * density_k * (v_rr_k - v_rr_r) * sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
+						}
+					}
+					minus_rho_div_v_rr = -minus_rho_div_v_rr;
+					bm->setMinus_rho_div_v_rr(r, minus_rho_div_v_rr);
+				}
+			}
+		}
+	}
+	
 }
 
 void TimeStepWCSPH::performNeighborhoodSearch()

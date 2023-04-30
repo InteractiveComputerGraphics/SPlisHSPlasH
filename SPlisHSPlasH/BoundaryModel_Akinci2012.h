@@ -42,7 +42,7 @@ namespace SPH
 			std::vector<Vector3r> m_v_s;
 			std::vector<Real> m_s; // source term
 			std::vector<Vector3r> m_v_rr;
-			std::vector<Vector3r> m_minus_rho_div_v_rr; // RHS to the source term
+			std::vector<Real> m_minus_rho_div_v_rr; // RHS to the source term
 			Real m_density0;
 			Vector3r m_v_rr_body;
 			Vector3r m_omega_rr_body;
@@ -201,15 +201,15 @@ namespace SPH
 				m_v_rr[i] = value;
 			}
 
-			FORCE_INLINE Vector3r& getMinus_rho_div_v_rr(const unsigned int i) {
+			FORCE_INLINE Real& getMinus_rho_div_v_rr(const unsigned int i) {
 				return m_minus_rho_div_v_rr[i];
 			}
 
-			FORCE_INLINE const Vector3r& getMinus_rho_div_v_rr(const unsigned int i) const {
+			FORCE_INLINE const Real& getMinus_rho_div_v_rr(const unsigned int i) const {
 				return m_minus_rho_div_v_rr[i];
 			}
 
-			FORCE_INLINE void setMinus_rho_div_v_rr(const unsigned int i, const Vector3r& value) {
+			FORCE_INLINE void setMinus_rho_div_v_rr(const unsigned int i, const Real& value) {
 				m_minus_rho_div_v_rr[i] = value;
 			}
 

@@ -64,7 +64,7 @@ void BoundaryModel_Akinci2012::reset()
 			m_s[j] = 0;
 			m_pressure[j] = 0;
 			m_v_rr[j].setZero();
-			m_minus_rho_div_v_rr[j].setZero();
+			m_minus_rho_div_v_rr[j] = 0;
 		}
 	}
 }

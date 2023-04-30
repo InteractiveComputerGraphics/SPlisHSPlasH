@@ -251,7 +251,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 				}
 				bm->setDensity(r, particleDensity);
 
-				// compute density using the same method as the fluid solver (WCSPH)
+				// compute initial value of pressure using the same method as the fluid solver (WCSPH)
 				bm->setPressure(r, m_stiffness * (pow(bm->getDensity(r) / bm->getDensity0(), m_exponent) - static_cast<Real>(1.0)));
 			}
 		}
@@ -334,7 +334,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			{
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					Vector3r minus_rho_div_v_rr = Vector3r().setZero();
+					Real minus_rho_div_v_rr = 0;
 					const Vector3r v_rr_r = bm->getV_rr(r);
 					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
 						BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
@@ -343,7 +343,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 							const Real density_k = bm_neighbor->getDensity(k);
 							const Real volume_k = bm_neighbor->getDensity0() / density_k * bm_neighbor->getVolume(k);
 							const Vector3r v_rr_k = bm_neighbor->getV_rr(k);
-							minus_rho_div_v_rr += volume_k * density_k * (v_rr_k - v_rr_r) * sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
+							minus_rho_div_v_rr += volume_k * density_k * (v_rr_k - v_rr_r).dot(sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
 						}
 					}
 					minus_rho_div_v_rr = -minus_rho_div_v_rr;
@@ -352,7 +352,8 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			}
 		}
 	}
-	
+	// solve the equation s = -rho * div¡¤v_rr w.r.t. pressure using relaxed jacobi
+
 }
 
 void TimeStepWCSPH::performNeighborhoodSearch()

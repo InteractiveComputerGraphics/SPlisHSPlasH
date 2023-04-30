@@ -14,6 +14,7 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#include "Simulator/DynamicBoundarySimulator.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -502,6 +503,24 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 	}
 
 	if (!m_simulatorBase->isStaticScene()) {
+		DynamicBoundarySimulator* simulator = sim->getDynamicBoundarySimulator();
+		// Fields for all boundary models
+		{
+			imguiParameters::imguiNumericParameter<Real>* damping = new imguiParameters::imguiNumericParameter<Real>();
+			damping->description = "Damping of the system";
+			damping->label = "Damping";
+			damping->getFct = [simulator]()->Real {return simulator->getDampingCoeff(); };
+			damping->setFct = [simulator](Real v) {simulator->setDampingCoeff(v); };
+			imguiParameters::addParam("Boundary Model", "General", damping);
+
+			imguiParameters::imguiNumericParameter<int>* maxIteration = new imguiParameters::imguiNumericParameter<int>;
+			maxIteration->description = "max iteration to solve the strong coupling method";
+			maxIteration->label = "Max Iterations";
+			maxIteration->getFct = [simulator]()->int {return simulator->getMaxIteration(); };
+			maxIteration->setFct = [simulator](int v) {simulator->setMaxIteration(v); };
+			imguiParameters::addParam("Boundary Model", "General", maxIteration);
+		}
+
 		// Enum for all boundary models
 		if (sim->numberOfBoundaryModels() > 0) {
 			BoundaryModel* model = sim->getBoundaryModel(m_currentBoundaryModel);
@@ -516,7 +535,7 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 				}
 				param->getFct = [this]() -> int { return m_currentBoundaryModel; };
 				param->setFct = [this](int v) { m_currentBoundaryModel = v; initSimulationParameterGUI(); };
-				imguiParameters::addParam("Boundary Model", "", param);
+				imguiParameters::addParam("Boundary Model", "Property", param);
 			}
 			
 			// Show basic properties
@@ -529,7 +548,7 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 				imguiParameters::addParam("Boundary Model", "Property", isDynamic);
 
 				if (model->getRigidBodyObject()->isDynamic()) {
-					DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(model->getRigidBodyObject());
+					DynamicRigidBody* drb = static_cast<DynamicRigidBody*>(model->getRigidBodyObject());
 					imguiParameters::imguiNumericParameter<Real>* density = new imguiParameters::imguiNumericParameter<Real>();
 					density->description = "Density of the rigid body";
 					density->label = "Density";

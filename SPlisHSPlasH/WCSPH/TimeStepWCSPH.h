@@ -27,13 +27,17 @@ namespace SPH
 
 		/** Determine the pressure accelerations when the pressure is already known. */
 		void computePressureAccels(const unsigned int fluidModelIndex);
-		void computeRigidRigidAccels();
+
 		/** Perform the neighborhood search for all fluid particles.
 		*/
 		void performNeighborhoodSearch();
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 		virtual void initParameters();
+
+		void computeRigidRigidAccels();
+		// for rigid-rigid forces
+		void computeSourceTermRHS();
 
 	public:
 		static int STIFFNESS;

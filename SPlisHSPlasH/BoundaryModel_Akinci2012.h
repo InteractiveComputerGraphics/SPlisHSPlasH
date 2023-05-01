@@ -41,9 +41,11 @@ namespace SPH
 			std::vector<Real> m_pressure;
 			std::vector<Vector3r> m_v_s;
 			std::vector<Real> m_s; // source term
+			std::vector<Vector3r> m_pressureGrad;
 			std::vector<Vector3r> m_v_rr;
 			std::vector<Real> m_minus_rho_div_v_rr; // RHS to the source term
-			Real m_density0;
+			std::vector<Real> m_diagonalElement; // diagonal element for jacobi iteration
+ 			Real m_density0;
 			Vector3r m_v_rr_body;
 			Vector3r m_omega_rr_body;
 
@@ -201,6 +203,18 @@ namespace SPH
 				m_v_rr[i] = value;
 			}
 
+			FORCE_INLINE Vector3r& getPressureGrad(const unsigned int i) {
+				return m_pressureGrad[i];
+			}
+
+			FORCE_INLINE const Vector3r& getPressureGrad(const unsigned int i) const {
+				return m_pressureGrad[i];
+			}
+
+			FORCE_INLINE void setPressureGrad(const unsigned int i, const Vector3r& value) {
+				m_pressureGrad[i] = value;
+			}
+
 			FORCE_INLINE Real& getMinus_rho_div_v_rr(const unsigned int i) {
 				return m_minus_rho_div_v_rr[i];
 			}
@@ -211,6 +225,18 @@ namespace SPH
 
 			FORCE_INLINE void setMinus_rho_div_v_rr(const unsigned int i, const Real& value) {
 				m_minus_rho_div_v_rr[i] = value;
+			}
+
+			FORCE_INLINE Real& getDiagonalElement(const unsigned int i) {
+				return m_diagonalElement[i];
+			}
+
+			FORCE_INLINE const Real& getDiagonalElement(const unsigned int i) const {
+				return m_diagonalElement[i];
+			}
+
+			FORCE_INLINE void setDiagonalElement(const unsigned int i, const Real& value) {
+				m_diagonalElement[i] = value;
 			}
 
 			FORCE_INLINE Real& getSourceTerm(const unsigned int i) {

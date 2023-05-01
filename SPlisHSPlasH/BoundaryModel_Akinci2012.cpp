@@ -16,11 +16,13 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	m_v(),
 	m_V(),
 	m_density(),
+	m_pressureGrad(),
 	m_v_s(),
 	m_s(),
 	m_pressure(),
 	m_v_rr(),
-	m_minus_rho_div_v_rr()
+	m_minus_rho_div_v_rr(),
+	m_diagonalElement()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -44,6 +46,8 @@ BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
 	m_pressure.clear();
 	m_v_rr.clear();
 	m_minus_rho_div_v_rr.clear();
+	m_diagonalElement.clear();
+	m_pressureGrad.clear();
 }
 
 void BoundaryModel_Akinci2012::reset()
@@ -65,6 +69,8 @@ void BoundaryModel_Akinci2012::reset()
 			m_pressure[j] = 0;
 			m_v_rr[j].setZero();
 			m_minus_rho_div_v_rr[j] = 0;
+			m_diagonalElement[j] = 0;
+			m_pressureGrad[j].setZero();
 		}
 	}
 }
@@ -136,6 +142,8 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_pressure.resize(numBoundaryParticles);
 	m_v_rr.resize(numBoundaryParticles);
 	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
+	m_diagonalElement.resize(numBoundaryParticles);
+	m_pressureGrad.resize(numBoundaryParticles);
 	m_density0 = 1;
 	m_v_rr_body = Vector3r().setZero();
 	m_omega_rr_body = Vector3r().setZero();
@@ -165,6 +173,7 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 			m_v_s[i].setZero();
 			m_pressure[i] = 0;
 			m_v_rr[i].setZero();
+			m_pressureGrad[i].setZero();
 		}
 	}
 	m_rigidBody = rbo;
@@ -194,6 +203,8 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	d.sort_field(&m_pressure[0]);
 	d.sort_field(&m_v_rr[0]);
 	d.sort_field(&m_minus_rho_div_v_rr[0]);
+	d.sort_field(&m_diagonalElement[0]);
+	d.sort_field(&m_pressureGrad[0]);
 	m_sorted = true;
 }
 
@@ -221,4 +232,6 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_pressure.resize(numBoundaryParticles);
 	m_v_rr.resize(numBoundaryParticles);
 	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
+	m_diagonalElement.resize(numBoundaryParticles);
+	m_pressureGrad.resize(numBoundaryParticles);
 }

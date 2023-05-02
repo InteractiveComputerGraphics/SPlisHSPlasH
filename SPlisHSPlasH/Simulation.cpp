@@ -733,6 +733,9 @@ void Simulation::updateBoundaryVolume()
 		for (unsigned int j = numberOfFluidModels(); j < m_neighborhoodSearch->point_sets().size(); j++)
 			m_neighborhoodSearch->set_active(i, j, true);
 	}
+
+	// Activate all point sets for strong fluid-rigid coupling
+	m_neighborhoodSearch->set_active(true);
 }
 
 void SPH::Simulation::saveState(BinaryFileWriter &binWriter)

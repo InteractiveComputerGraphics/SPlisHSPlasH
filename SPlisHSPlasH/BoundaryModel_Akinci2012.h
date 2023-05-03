@@ -39,13 +39,14 @@ namespace SPH
 			// values required for Gissler 2019 strong coupling based on Akinci 2012
 			std::vector<Real> m_density;
 			std::vector<Real> m_pressure;
+			std::vector<Real> m_artificialVolume;
 			std::vector<Vector3r> m_v_s;
 			std::vector<Real> m_s; // source term
 			std::vector<Vector3r> m_pressureGrad;
 			std::vector<Vector3r> m_v_rr;
 			std::vector<Real> m_minus_rho_div_v_rr; // RHS to the source term
 			std::vector<Real> m_diagonalElement; // diagonal element for jacobi iteration
- 			Real m_density0;
+ 			Real m_restDensity;
 			Vector3r m_v_rr_body;
 			Vector3r m_omega_rr_body;
 
@@ -98,16 +99,16 @@ namespace SPH
 			}
 
 
-			FORCE_INLINE const Real& getDensity0() const {
-				return m_density0;
+			FORCE_INLINE const Real& getRestDensity() const {
+				return m_restDensity;
 			}
 
-			FORCE_INLINE Real& getDensity0() {
-				return m_density0;
+			FORCE_INLINE Real& getRestDensity() {
+				return m_restDensity;
 			}
 
-			FORCE_INLINE void setDensity0(const Real& value) {
-				m_density0 = value;
+			FORCE_INLINE void setRestDensity(const Real& value) {
+				m_restDensity = value;
 			}
 
 			FORCE_INLINE const Vector3r& getV_rr_body() const {
@@ -264,6 +265,18 @@ namespace SPH
 			FORCE_INLINE void setVolume(const unsigned int i, const Real &val)
 			{
 				m_V[i] = val;
+			}
+
+			FORCE_INLINE const Real& getArtificialVolume(const unsigned int i) const {
+				return m_artificialVolume[i];
+			}
+
+			FORCE_INLINE Real& getArtificialVolume(const unsigned int i) {
+				return m_artificialVolume[i];
+			}
+
+			FORCE_INLINE void setArtificialVolume(const unsigned int i, const Real& val) {
+				m_artificialVolume[i] = val;
 			}
 	};
 }

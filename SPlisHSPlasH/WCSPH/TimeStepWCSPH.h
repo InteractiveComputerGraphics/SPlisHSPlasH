@@ -38,10 +38,11 @@ namespace SPH
 		void computeRigidRigidAccels();
 		// for rigid-rigid forces
 		void computeRigidParticleDensity();
+		void computeRigidParticlePressureGrad();
 		void computeV_s();
 		void computeSourceTermRHS();
 		void computeSourceTerm();
-		void solveRigidRigidPressure();
+		void computeDiagonalElement();
 
 	public:
 		static int STIFFNESS;

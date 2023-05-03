@@ -9,7 +9,7 @@ namespace SPH {
 	class DynamicBoundarySimulator : public BoundarySimulator {
 	private:
 		Real m_dampingCoeff = 0.0;
-		Real m_maxIteration = 20;
+		Real m_maxIteration = 10;
 	protected:
 		SimulatorBase* m_base;
 

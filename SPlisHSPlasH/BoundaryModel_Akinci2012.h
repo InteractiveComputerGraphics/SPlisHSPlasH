@@ -37,8 +37,10 @@ namespace SPH
 			std::vector<FieldDescription> m_fields;
 
 			// values required for Gissler 2019 strong coupling based on Akinci 2012
+			std::vector<unsigned int> m_particleID;
 			std::vector<Real> m_density;
 			std::vector<Real> m_pressure;
+			std::vector<Real> m_lastPressure;
 			std::vector<Real> m_artificialVolume;
 			std::vector<Vector3r> m_v_s;
 			std::vector<Real> m_s; // source term
@@ -74,6 +76,18 @@ namespace SPH
 
 			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
 
+			FORCE_INLINE const unsigned int& getParticleID(const Real& index) const {
+				return m_particleID[index];
+			}
+
+			FORCE_INLINE unsigned int& getParticleID(const Real& index) {
+				return m_particleID[index];
+			}
+
+			FORCE_INLINE void setParticleID(const Real& index, const Real& value) {
+				m_particleID[index] = value;
+			}
+
 			FORCE_INLINE const Real& getDensity(const Real& index) const {
 				return m_density[index];
 			}
@@ -98,6 +112,17 @@ namespace SPH
 				m_pressure[index] = value;
 			}
 
+			FORCE_INLINE const Real& getLastPressure(const Real& index) const {
+				return m_lastPressure[index];
+			}
+
+			FORCE_INLINE Real& getLastPressure(const Real& index) {
+				return m_lastPressure[index];
+			}
+
+			FORCE_INLINE void setLastPressure(const Real& index, const Real& value) {
+				m_lastPressure[index] = value;
+			}
 
 			FORCE_INLINE const Real& getRestDensity() const {
 				return m_restDensity;
@@ -216,15 +241,15 @@ namespace SPH
 				m_pressureGrad[i] = value;
 			}
 
-			FORCE_INLINE Real& getMinus_rho_div_v_rr(const unsigned int i) {
+			FORCE_INLINE Real& getSourceTermRHS(const unsigned int i) {
 				return m_minus_rho_div_v_rr[i];
 			}
 
-			FORCE_INLINE const Real& getMinus_rho_div_v_rr(const unsigned int i) const {
+			FORCE_INLINE const Real& getSourceTermRHS(const unsigned int i) const {
 				return m_minus_rho_div_v_rr[i];
 			}
 
-			FORCE_INLINE void setMinus_rho_div_v_rr(const unsigned int i, const Real& value) {
+			FORCE_INLINE void setSourceTermRHS(const unsigned int i, const Real& value) {
 				m_minus_rho_div_v_rr[i] = value;
 			}
 

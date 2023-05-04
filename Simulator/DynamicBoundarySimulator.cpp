@@ -204,7 +204,7 @@ void DynamicBoundarySimulator::timeStepStrongCoupling() {
 		const unsigned int nObjects = sim->numberOfBoundaryModels();
         #pragma omp parallel for
 		for (int i = 0; i < nObjects; i++) {
-			BoundaryModel* bm = sim->getBoundaryModel(i);
+			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
 			RigidBodyObject* rbo = bm->getRigidBodyObject();
 			if (rbo->isDynamic()) {
 				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);

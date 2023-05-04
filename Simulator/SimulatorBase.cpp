@@ -97,7 +97,7 @@ SimulatorBase::SimulatorBase()
 	m_colorMapType.resize(1, 0);
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
-	m_particleAttributes = "velocity";
+	m_particleAttributes = "velocity;density";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
 	m_updateGUI = false;

@@ -10,6 +10,7 @@
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "Simulator/SceneConfiguration.h"
 #include "SPlisHSPlasH/Utilities/MeshImport.h"
+#include "SPlisHSPlasH/StrongCouplingBoundarySolver.h"
 
 using namespace std;
 using namespace SPH;
@@ -22,7 +23,7 @@ DynamicBoundarySimulator::DynamicBoundarySimulator(SimulatorBase* base) {
 }
 
 DynamicBoundarySimulator::~DynamicBoundarySimulator() {
-
+	delete StrongCouplingBoundarySolver::getCurrent();
 }
 
 void DynamicBoundarySimulator::initBoundaryData() {

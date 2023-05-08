@@ -233,6 +233,8 @@ add_library(SPlisHSPlasH
 	NonPressureForceBase.h
 	XSPH.cpp
 	XSPH.h
+	StrongCouplingBoundarySolver.cpp
+	StrongCouplingBoundarySolver.h
 
 	
 	${WCSPH_HEADER_FILES}

@@ -222,11 +222,12 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 	TimeManager* tm = TimeManager::getCurrent();
 	const Real dt = tm->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
-	StrongCouplingBoundarySolver* boundarySolver = StrongCouplingBoundarySolver::getCurrent();
+	StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
 
 	// solve the equation s = -rho * div¡¤v_rr w.r.t. pressure using relaxed jacobi
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
+		int bmIndex = boundaryPointSetIndex - nFluids;
 		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
 		if (bm->getRigidBodyObject()->isDynamic()) {
 			std::vector<unsigned int> bodyInContact = std::vector<unsigned int>();
@@ -254,43 +255,52 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			Real relaxation = 0.5 / numContacts;
 
 			// source term don't change in WCSPH
-			boundarySolver->computeV_s();
-			boundarySolver->computeSourceTerm();
 
-			for (unsigned int i = 0; i < sim->getDynamicBoundarySimulator()->getMaxIteration(); i++) {
-				boundarySolver->computeDensityAndVolume();
-				boundarySolver->computePressureGrad();
+
+			for (unsigned int i = 0; i < 10; i++) {
+
+				bs->computeDensityAndVolume();
+				bs->computeV_s();
+				bs->computeSourceTerm();
 
                 #pragma omp parallel default(shared)
 				{
                     #pragma omp for schedule(static)  
 					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						Real artificialVolume = (bm->getRestDensity() * bm->getVolume(r)) / bm->getDensity(r);
-						const Vector3r a = - bm->getArtificialVolume(r) * bm->getPressureGrad(r);
+						const Vector3r a = - bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
 						bm->addForce(bm->getPosition(r), bm->getRigidBodyObject()->getMass() * a);
 					}
 				}
 				// update position and velocity using the current pressure
-				sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
+				//sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
+
+				bs->computePressureGrad();
+				bs->computeSourceTermRHS();
+				bs->computeDiagonalElement();
 
 				Real densityErrorAvg = 0;
-
-				boundarySolver->computeSourceTermRHS();
-				boundarySolver->computeDiagonalElement();
                 #pragma omp parallel default(shared)
 				{
 					// compute number of contacts
                     #pragma omp for schedule(static)  
 					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						densityErrorAvg += bm->getDensity(r);
-						Real pressureNextIter = bm->getPressure(r) + relaxation / bm->getDiagonalElement(r) * (bm->getSourceTerm(r) - bm->getSourceTermRHS(r));
-						bm->setPressure(r, pressureNextIter);
+						if (bs->getDiagonalElement(bmIndex, r) != 0) {
+							densityErrorAvg += bs->getDensity(bmIndex, r);
+							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
+							//if (i == 1) {
+							//	std::cout << bs->getDensity(bmIndex, r) << std::endl;;
+							//}
+							bs->setPressure(bmIndex, r, pressureNextIter);
+
+						} else {
+							bs->setPressure(bmIndex, r, 0);
+						}
 					}
 				}
 				densityErrorAvg /= bm->numberOfParticles();
 
 				// only particles int contact with other object ?
-				if ((bm->getRestDensity() - densityErrorAvg) / bm->getRestDensity() < 0.001) {
+				if ((bs->getRestDensity(bmIndex) - densityErrorAvg) / bs->getRestDensity(bmIndex) < 0.001) {
 					break;
 				}
 			}

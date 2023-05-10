@@ -14,18 +14,7 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	m_x0(),
 	m_x(),
 	m_v(),
-	m_V(),
-	m_density(),
-	m_pressureGrad(),
-	m_v_s(),
-	m_s(),
-	m_pressure(),
-	m_v_rr(),
-	m_minus_rho_div_v_rr(),
-	m_diagonalElement(),
-	m_artificialVolume(),
-	m_particleID(),
-	m_lastPressure()
+	m_V()
 {		
 	m_sorted = false;
 	m_pointSetIndex = 0;
@@ -34,7 +23,6 @@ BoundaryModel_Akinci2012::BoundaryModel_Akinci2012() :
 	addField({ "position0", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getPosition0(i)[0]; } });
 	addField({ "velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &getVelocity(i)[0]; }, true });
 	addField({ "volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getVolume(i); }, true });
-	addField({ "density", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &getDensity(i); }, true });
 }
 
 BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
@@ -43,17 +31,6 @@ BoundaryModel_Akinci2012::~BoundaryModel_Akinci2012(void)
 	m_x.clear();
 	m_v.clear();
 	m_V.clear();
-	m_density.clear();
-	m_v_s.clear();
-	m_s.clear();
-	m_pressure.clear();
-	m_v_rr.clear();
-	m_minus_rho_div_v_rr.clear();
-	m_diagonalElement.clear();
-	m_pressureGrad.clear();
-	m_artificialVolume.clear();
-	m_particleID.clear();
-	m_lastPressure.clear();
 }
 
 void BoundaryModel_Akinci2012::reset()
@@ -64,22 +41,10 @@ void BoundaryModel_Akinci2012::reset()
 	// positions and velocities are already updated by updateBoundaryParticles
 	if (!m_rigidBody->isDynamic() && !m_rigidBody->isAnimated())
 	{
-		// reset velocities, accelerations, densities and other fields
 		for (int j = 0; j < (int)numberOfParticles(); j++)
 		{
 			m_x[j] = m_x0[j];
 			m_v[j].setZero();
-			m_density[j] = m_restDensity;
-			m_v_s[j].setZero();
-			m_s[j] = 0;
-			m_pressure[j] = 0;
-			m_v_rr[j].setZero();
-			m_minus_rho_div_v_rr[j] = 0;
-			m_diagonalElement[j] = 0;
-			m_pressureGrad[j].setZero();
-			m_artificialVolume[j] = 0;
-			m_particleID[j] = j;
-			m_lastPressure[j] = 0;
 		}
 	}
 }
@@ -145,21 +110,6 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
-	m_density.resize(numBoundaryParticles);
-	m_v_s.resize(numBoundaryParticles);
-	m_s.resize(numBoundaryParticles);
-	m_pressure.resize(numBoundaryParticles);
-	m_v_rr.resize(numBoundaryParticles);
-	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
-	m_diagonalElement.resize(numBoundaryParticles);
-	m_pressureGrad.resize(numBoundaryParticles);
-	m_artificialVolume.resize(numBoundaryParticles);
-	m_particleID.resize(numBoundaryParticles);
-	m_lastPressure.resize(numBoundaryParticles);
-	m_restDensity = 1;
-	m_v_rr_body = Vector3r().setZero();
-	m_omega_rr_body = Vector3r().setZero();
-
 
 	if (rbo->isDynamic())
 	{
@@ -181,14 +131,6 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 			m_x[i] = boundaryParticles[i];
 			m_v[i].setZero();
 			m_V[i] = 0.0;
-			m_density[i] = m_restDensity;
-			m_v_s[i].setZero();
-			m_pressure[i] = 0;
-			m_v_rr[i].setZero();
-			m_pressureGrad[i].setZero();
-			m_artificialVolume[i] = 0.0;
-			m_particleID[i] = i;
-			m_lastPressure[i] = 0;
 		}
 	}
 	m_rigidBody = rbo;
@@ -212,17 +154,6 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	d.sort_field(&m_x[0]);
 	d.sort_field(&m_v[0]);
 	d.sort_field(&m_V[0]);
-	d.sort_field(&m_density[0]);
-	d.sort_field(&m_v_s[0]);
-	d.sort_field(&m_s[0]);
-	d.sort_field(&m_pressure[0]);
-	d.sort_field(&m_v_rr[0]);
-	d.sort_field(&m_minus_rho_div_v_rr[0]);
-	d.sort_field(&m_diagonalElement[0]);
-	d.sort_field(&m_pressureGrad[0]);
-	d.sort_field(&m_artificialVolume[0]);
-	d.sort_field(&m_particleID[0]);
-	d.sort_field(&m_lastPressure[0]);
 	m_sorted = true;
 }
 
@@ -244,15 +175,4 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
-	m_density.resize(numBoundaryParticles);
-	m_v_s.resize(numBoundaryParticles);
-	m_s.resize(numBoundaryParticles);
-	m_pressure.resize(numBoundaryParticles);
-	m_v_rr.resize(numBoundaryParticles);
-	m_minus_rho_div_v_rr.resize(numBoundaryParticles);
-	m_diagonalElement.resize(numBoundaryParticles);
-	m_pressureGrad.resize(numBoundaryParticles);
-	m_artificialVolume.resize(numBoundaryParticles);
-	m_particleID.resize(numBoundaryParticles);
-	m_lastPressure.resize(numBoundaryParticles);
 }

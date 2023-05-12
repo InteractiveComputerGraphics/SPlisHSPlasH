@@ -287,9 +287,11 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 						if (bs->getDiagonalElement(bmIndex, r) != 0) {
 							densityErrorAvg += bs->getDensity(bmIndex, r);
 							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
-							//if (i == 1) {
+							//std::cout << pressureNextIter << std::endl;
+							//if (i == 0) {
 							//	std::cout << bs->getDensity(bmIndex, r) << std::endl;;
 							//}
+							bs->setLastPressure(bmIndex, r, bs->getPressure(bmIndex, r));
 							bs->setPressure(bmIndex, r, pressureNextIter);
 
 						} else {
@@ -315,6 +317,7 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 		if (m_counter % 500 == 0)
 		{
 			Simulation::getCurrent()->performNeighborhoodSearchSort();
+			StrongCouplingBoundarySolver::getCurrent()->performNeighborhoodSearchSort();
 			m_simulationData.performNeighborhoodSearchSort();
 		}
 		m_counter++;

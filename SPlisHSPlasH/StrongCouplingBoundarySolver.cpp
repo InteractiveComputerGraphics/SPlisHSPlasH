@@ -17,8 +17,8 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_minus_rho_div_v_rr(),
 	m_diagonalElement(),
 	m_artificialVolume(),
-	m_particleID(),
-	m_lastPressure() 
+	m_lastPressure(),
+	m_predictVelocity()
 {
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
@@ -33,6 +33,7 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_pressureGrad.resize(nBoundaries);
 	m_artificialVolume.resize(nBoundaries);
 	m_lastPressure.resize(nBoundaries);
+	m_predictVelocity.resize(nBoundaries);
 	m_restDensity.resize(nBoundaries, 1);
 	m_v_rr_body.resize(nBoundaries, Vector3r::Zero());
 	m_omega_rr_body.resize(nBoundaries, Vector3r::Zero());
@@ -50,7 +51,11 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 		m_pressureGrad[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_artificialVolume[i].resize(bm->numberOfParticles(), 0);
 		m_lastPressure[i].resize(bm->numberOfParticles(), 0);
+		m_predictVelocity[i].resize(bm->numberOfParticles(), Vector3r::Zero());
+		
+		bm->addField({ "density", FieldType::Scalar, [this, i](const unsigned int j) -> Real* { return &getDensity(i, j); } });
 	}
+
 }
 
 StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
@@ -66,6 +71,7 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 		m_pressureGrad[i].clear();
 		m_artificialVolume[i].clear();
 		m_lastPressure[i].clear();
+		m_predictVelocity[i].clear();
 	}
 	m_density.clear();
 	m_v_s.clear();
@@ -77,6 +83,7 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 	m_pressureGrad.clear();
 	m_artificialVolume.clear();
 	m_lastPressure.clear();
+	m_predictVelocity.clear();
 }
 
 void StrongCouplingBoundarySolver::computeV_s() {
@@ -163,15 +170,15 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 					Matrix3r productMat_r = Matrix3r().setZero();
 					Vector3r pos_r = bm_r->getPosition(r);
 					productMat_r << 0, -pos_r.z(), pos_r.y(),
-						pos_r.z(), 0, -pos_r.x(),
-						-pos_r.y(), pos_r.x(), 0;
+						            pos_r.z(), 0, -pos_r.x(),
+						            -pos_r.y(), pos_r.x(), 0;
 					Real diagonal = 0;
 					for (unsigned int pointSetIndex_i = nFluids; pointSetIndex_i < sim->numberOfPointSets(); pointSetIndex_i++) {
 						BoundaryModel_Akinci2012* bm_i = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_i));
 						int indexI = pointSetIndex_i - nFluids;
 						DynamicRigidBody* rb_i = static_cast<DynamicRigidBody*>(bm_i->getRigidBodyObject());
 
-						// neighbors of r in other rigid bodies
+						// neighbors of r in other rigid bodies, denoted as i
 						if (pointSetIndex_i != pointSetIndex_r) {
 							for (unsigned int m = 0; m < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_i, r); m++) {
 								const unsigned int i = sim->getNeighbor(pointSetIndex_r, pointSetIndex_i, r, m);
@@ -181,8 +188,8 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 								Matrix3r productMat_i = Matrix3r().setZero();
 								Vector3r pos_i = bm_i->getPosition(i);
 								productMat_i << 0, -pos_i.z(), pos_i.y(),
-									pos_i.z(), 0, -pos_i.x(),
-									-pos_i.y(), pos_i.x(), 0;
+									            pos_i.z(), 0, -pos_i.x(),
+									            -pos_i.y(), pos_i.x(), 0;
 
 								// neighbors of i in the same rigid body, denoted as k (k cannot be r)
 								for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_i, pointSetIndex_i, i); n++) {
@@ -192,8 +199,8 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 									Vector3r pos_k = bm_i->getPosition(k);
 									Matrix3r productMat_k = Matrix3r().setZero();
 									productMat_k << 0, -pos_k.z(), pos_k.y(),
-										pos_k.z(), 0, -pos_k.x(),
-										-pos_k.y(), pos_k.x(), 0;
+										            pos_k.z(), 0, -pos_k.x(),
+										            -pos_k.y(), pos_k.x(), 0;
 									Real invMass = 0;
 									if (rb_i->isDynamic()) {
 										invMass = rb_i->getInvMass();
@@ -202,71 +209,94 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 									}
 									Matrix3r K_ik = invMass * Matrix3r::Identity() - productMat_i * rb_i->getInertiaTensorInverseW() * productMat_k;
 
-									// neighbors of k in all bodies, denoted as j
-									for (unsigned int pointSetIndex_j = nFluids; pointSetIndex_j < sim->numberOfPointSets(); pointSetIndex_j++) {
-										BoundaryModel_Akinci2012* bm_j = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_j));
-										for (unsigned int o = 0; o < sim->numberOfNeighbors(pointSetIndex_i, pointSetIndex_j, k); o++) {
-											const unsigned int j = sim->getNeighbor(pointSetIndex_i, pointSetIndex_j, k, o);
-											int indexJ = pointSetIndex_j - nFluids;
-											Vector3r gradWkj = sim->gradW(bm_i->getPosition(k) - bm_j->getPosition(j));
-											//if (pointSetIndex_i == pointSetIndex_r && bm_i->getParticleID(k) == bm->getParticleID(r)) {
-											//	coeffSum_kj += bm_j->getArtificialVolume(j) * bm_j->getDensity(j) / (bm_i->getDensity(k) * bm_i->getDensity(k)) * gradWkj;
-											//}
-											if (pointSetIndex_j == pointSetIndex_r && j == r) {
-												coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexJ, j) * getDensity(indexJ, j)) * gradWkj;
-											}
-										}
-									}
-									if (coeffSum_kj != Vector3r().setZero()) {
-										coeffSum_kj = getArtificialVolume(indexI, k) * K_ik * getDensity(indexI, k) * coeffSum_kj;
-										coeffSum_ik += coeffSum_kj;
+									// neighbors of k in all bodies, denoted as j (loop can be optimized?)
+									//for (unsigned int pointSetIndex_j = nFluids; pointSetIndex_j < sim->numberOfPointSets(); pointSetIndex_j++) {
+									//	BoundaryModel_Akinci2012* bm_j = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_j));
+									//	for (unsigned int o = 0; o < sim->numberOfNeighbors(pointSetIndex_i, pointSetIndex_j, k); o++) {
+									//		const unsigned int j = sim->getNeighbor(pointSetIndex_i, pointSetIndex_j, k, o);
+									//		int indexJ = pointSetIndex_j - nFluids;
+									//		Vector3r gradWkj = sim->gradW(bm_i->getPosition(k) - bm_j->getPosition(j));
+									//		//if (pointSetIndex_i == pointSetIndex_r && bm_i->getParticleID(k) == bm->getParticleID(r)) {
+									//		//	coeffSum_kj += bm_j->getArtificialVolume(j) * bm_j->getDensity(j) / (bm_i->getDensity(k) * bm_i->getDensity(k)) * gradWkj;
+									//		//}
+									//		if (pointSetIndex_j == pointSetIndex_r && j == r) {
+									//			coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexJ, j) * getDensity(indexJ, j)) * gradWkj;
+									//		}
+									//	}
+									//}
 
-									}
+									//if (coeffSum_kj != Vector3r().setZero()) {
+									//	coeffSum_kj = getArtificialVolume(indexI, k) * K_ik * getDensity(indexI, k) * coeffSum_kj;
+									//	coeffSum_ik += coeffSum_kj;
+									//}
+									Vector3r gradWkr = sim->gradW(bm_i->getPosition(k) - bm_r->getPosition(r));
+									coeffSum_ik += getArtificialVolume(indexI, k) * K_ik * getDensity(indexI, k) * getArtificialVolume(indexR, r) * getDensity(indexR, r) / (getDensity(indexR, r) * getDensity(indexR, r)) * gradWkr;
 								}
-
 								coeffSum_ik *= dt;
 
 								Vector3r coeffSum_rk = Vector3r().setZero();
-								// neighbors of r in the same rigid body, denoted as k
+								// neighbors of r in the same rigid body, denoted as k, k != r
 								for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_r, r); n++) {
 									const unsigned int k = sim->getNeighbor(pointSetIndex_r, pointSetIndex_r, r, n);
-									Vector3r coeffSum_kj = Vector3r().setZero();
 
 									Vector3r pos_k = bm_r->getPosition(k);
 									Matrix3r productMat_k = Matrix3r().setZero();
 									productMat_k << 0, -pos_k.z(), pos_k.y(),
-										pos_k.z(), 0, -pos_k.x(),
-										-pos_k.y(), pos_k.x(), 0;
+										            pos_k.z(), 0, -pos_k.x(),
+										            -pos_k.y(), pos_k.x(), 0;
 									Matrix3r K_rk = rb->getInvMass() * Matrix3r::Identity() - productMat_r * rb->getInertiaTensorInverseW() * productMat_k;
 
 									// neighbors of k in all bodies, denoted as j
-									for (unsigned int pointSetIndex_j = nFluids; pointSetIndex_j < sim->numberOfPointSets(); pointSetIndex_j++) {
-										BoundaryModel_Akinci2012* bm_j = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_j));
-										int indexJ = pointSetIndex_j - nFluids;
-										for (unsigned int o = 0; o < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_j, k); o++) {
-											const unsigned int j = sim->getNeighbor(pointSetIndex_r, pointSetIndex_j, k, o);
-											Vector3r gradWkj = sim->gradW(bm_r->getPosition(k) - bm_j->getPosition(j));
-											if (k == r) {
-												coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexR, k) * getDensity(indexR, k)) * gradWkj;
-											}
+									//for (unsigned int pointSetIndex_j = nFluids; pointSetIndex_j < sim->numberOfPointSets(); pointSetIndex_j++) {
+									//	BoundaryModel_Akinci2012* bm_j = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_j));
+									//	int indexJ = pointSetIndex_j - nFluids;
+									//	for (unsigned int o = 0; o < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_j, k); o++) {
+									//		const unsigned int j = sim->getNeighbor(pointSetIndex_r, pointSetIndex_j, k, o);
+									//		Vector3r gradWkj = sim->gradW(bm_r->getPosition(k) - bm_j->getPosition(j));
+									//		if (k == r) {
+									//			coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexR, k) * getDensity(indexR, k)) * gradWkj;
+									//		}
 
-											if (pointSetIndex_j == pointSetIndex_r && j == r) {
-												coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexJ, j) * getDensity(indexJ, j)) * gradWkj;
-											}
-										}
-									}
-									if (coeffSum_kj != Vector3r().setZero()) {
-										coeffSum_kj = getArtificialVolume(indexR, k) * K_rk * getDensity(indexR, k) * coeffSum_kj;
-										coeffSum_rk += coeffSum_kj;
+									//		if (pointSetIndex_j == pointSetIndex_r && j == r) {
+									//			coeffSum_kj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexJ, j) * getDensity(indexJ, j)) * gradWkj;
+									//		}
+									//	}
+									//}
+									Vector3r gradWkr = sim->gradW(bm_r->getPosition(k) - bm_r->getPosition(r));
+										
+									coeffSum_rk += getArtificialVolume(indexR, k) * K_rk * getDensity(indexR, k) * getArtificialVolume(indexR, r) * getDensity(indexR, r) / (getDensity(indexR, r) * getDensity(indexR, r)) * gradWkr;
+
+									//if (coeffSum_kj != Vector3r().setZero()) {
+									//	coeffSum_kj = getArtificialVolume(indexR, k) * K_rk * getDensity(indexR, k) * coeffSum_kj;
+									//	coeffSum_rk += coeffSum_kj;
+									//}
+								}
+
+								Vector3r coeffSum_rj = Vector3r().setZero();
+								// k = r, for all neighbors of r in all bodies, denoted as j
+								for (unsigned int pointSetIndex_j = nFluids; pointSetIndex_j < sim->numberOfPointSets(); pointSetIndex_j++) {
+									BoundaryModel_Akinci2012* bm_j = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_j));
+									int indexJ = pointSetIndex_j - nFluids;
+									for (unsigned int o = 0; o < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_j, r); o++) {
+										const unsigned int j = sim->getNeighbor(pointSetIndex_r, pointSetIndex_j, r, o);
+										Vector3r gradWrj = sim->gradW(bm_r->getPosition(r) - bm_j->getPosition(j));
+										coeffSum_rj += getArtificialVolume(indexJ, j) * getDensity(indexJ, j) / (getDensity(indexR, r) * getDensity(indexR, r)) * gradWrj;
 									}
 								}
 
+
+								Matrix3r K_rr = rb->getInvMass() * Matrix3r::Identity() - productMat_r * rb->getInertiaTensorInverseW() * productMat_r;
+
+								coeffSum_rj = getArtificialVolume(indexR, r) * K_rr * getDensity(indexR, r) * coeffSum_rj;
+								coeffSum_rk += coeffSum_rj;
 								coeffSum_rk *= dt;
 								diagonal += getArtificialVolume(indexI, i) * getDensity(indexI, i) * (coeffSum_ik - coeffSum_rk).dot(gradWri);
+
 							}
 						}					
 					}
 					setDiagonalElement(indexR, r, diagonal);
+					//std::cout << getDiagonalElement(indexR, r) << std::endl;
 				}
 			}
 		}
@@ -291,8 +321,8 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
             #pragma omp for schedule(static)  
 			for (int r = 0; r < bm->numberOfParticles(); r++) {
 				if (rb->isDynamic()) {
-					// compute density
-					Real particleDensity = 0;
+					// compute density for particle r
+					Real particleDensity = getRestDensity(bmIndex) * bm->getVolume(r) * sim->W_zero();
 					// iterate over all rigid bodies
 					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
 						BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
@@ -301,9 +331,12 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 							particleDensity += getRestDensity(bmIndex) * bm->getVolume(r) * sim->W(bm->getPosition(r) - bm_neighbor->getPosition(k));
 						}
 					}
-					// 0.8 for compensation
-					setDensity(bmIndex, r, particleDensity / 0.8);
-					setArtificialVolume(bmIndex, r, getRestDensity(bmIndex) * bm->getVolume(r) / getDensity(bmIndex, r));
+					setDensity(bmIndex, r, particleDensity);
+					if (getDensity(bmIndex, r) > getRestDensity(bmIndex)) {
+						setArtificialVolume(bmIndex, r, getRestDensity(bmIndex) * bm->getVolume(r) / getDensity(bmIndex, r));
+					}else{
+						setArtificialVolume(bmIndex, r, bm->getVolume(r));
+					}
 				} else {
 					setArtificialVolume(bmIndex, r, bm->getVolume(r));
 				}
@@ -329,6 +362,7 @@ void StrongCouplingBoundarySolver::computePressureGrad() {
 			{
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					// pressure gradient for particle r
 					Vector3r pressureGrad_r = Vector3r().setZero();
 					const Real density_r = getDensity(bmIndex, r);
 					const Real pressure_r = getPressure(bmIndex, r);
@@ -378,7 +412,7 @@ void StrongCouplingBoundarySolver::computeSourceTermRHS() {
 		setV_rr_body(bmIndex, v_rr_body);
 		setOmega_rr_body(bmIndex, omega_rr_body);
 	}
-	// compute v_rr for all particles (predicted velocity)
+	// compute v_rr and predicted velocity (v_rr+v_s) for all particles
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
@@ -389,6 +423,7 @@ void StrongCouplingBoundarySolver::computeSourceTermRHS() {
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
 					setV_rr(bmIndex, r, getV_rr_body(bmIndex) + getOmega_rr_body(bmIndex).cross(bm->getPosition(r)));
+					setPredictVelocity(bmIndex, r, getV_rr(bmIndex, r) + getV_s(bmIndex, r));
 				}
 			}
 		}
@@ -420,6 +455,31 @@ void StrongCouplingBoundarySolver::computeSourceTermRHS() {
 				minus_rho_div_v_rr = -minus_rho_div_v_rr;
 				setSourceTermRHS(bmIndex, r, minus_rho_div_v_rr);
 			}
+		}
+	}
+}
+
+void SPH::StrongCouplingBoundarySolver::performNeighborhoodSearchSort() {
+	Simulation* sim = Simulation::getCurrent();
+	const unsigned int nModels = sim->numberOfBoundaryModels();
+
+	for (unsigned int i = 0; i < nModels; i++) {
+		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
+
+		const unsigned int numPart = bm->numberOfParticles();
+		if (numPart != 0) {
+			auto const& d = sim->getNeighborhoodSearch()->point_set(bm->getPointSetIndex());
+			d.sort_field(&m_density[i][0]);
+			d.sort_field(&m_v_s[i][0]);
+			d.sort_field(&m_s[i][0]);
+			d.sort_field(&m_pressure[i][0]);
+			d.sort_field(&m_v_rr[i][0]);
+			d.sort_field(&m_minus_rho_div_v_rr[i][0]);
+			d.sort_field(&m_diagonalElement[i][0]);
+			d.sort_field(&m_pressureGrad[i][0]);
+			d.sort_field(&m_artificialVolume[i][0]);
+			d.sort_field(&m_lastPressure[i][0]);
+			d.sort_field(&m_predictVelocity[i][0]);
 		}
 	}
 }

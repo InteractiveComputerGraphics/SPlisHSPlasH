@@ -14,12 +14,17 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_s; // source term
 		std::vector<std::vector<Vector3r>> m_pressureGrad;
 		std::vector<std::vector<Vector3r>> m_v_rr;
+		std::vector<std::vector<Vector3r>> m_v_b;
+		std::vector<std::vector<Vector3r>> m_grad_p_b;
 		std::vector<std::vector<Vector3r>> m_predictVelocity;
+		std::vector<std::vector<Vector3r>> m_predictPosition;
 		std::vector<std::vector<Real>> m_minus_rho_div_v_rr; // RHS to the source term
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
 		std::vector<Real> m_restDensity;
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
+		std::vector<Vector3r> m_v_b_body;
+		std::vector<Vector3r> m_omega_b_body;
 
 		static StrongCouplingBoundarySolver* current;
 
@@ -32,12 +37,14 @@ namespace SPH {
 			}
 			return current;
 		}
+		void reset();
 		void computeDensityAndVolume();
 		void computePressureGrad();
 		void computeV_s();
 		void computeSourceTermRHS();
 		void computeSourceTerm();
 		void computeDiagonalElement();
+		void computeFriction();
 		void performNeighborhoodSearchSort();
 
 		FORCE_INLINE const Real& getDensity(const Real& rigidBodyIndex, const Real& index) const {
@@ -100,6 +107,18 @@ namespace SPH {
 			m_v_rr_body[rigidBodyIndex] = value;
 		}
 
+		FORCE_INLINE const Vector3r& getV_b_body(const Real& rigidBodyIndex) const {
+			return m_v_b_body[rigidBodyIndex];
+		}
+
+		FORCE_INLINE Vector3r& getV_b_body(const Real& rigidBodyIndex) {
+			return m_v_b_body[rigidBodyIndex];
+		}
+
+		FORCE_INLINE void setV_b_body(const Real& rigidBodyIndex, const Vector3r& value) {
+			m_v_b_body[rigidBodyIndex] = value;
+		}
+
 		FORCE_INLINE const Vector3r& getOmega_rr_body(const Real& rigidBodyIndex) const {
 			return m_omega_rr_body[rigidBodyIndex];
 		}
@@ -110,6 +129,18 @@ namespace SPH {
 
 		FORCE_INLINE void setOmega_rr_body(const Real& rigidBodyIndex, const Vector3r& value) {
 			m_omega_rr_body[rigidBodyIndex] = value;
+		}
+
+		FORCE_INLINE const Vector3r& getOmega_b_body(const Real& rigidBodyIndex) const {
+			return m_omega_b_body[rigidBodyIndex];
+		}
+
+		FORCE_INLINE Vector3r& getOmega_b_body(const Real& rigidBodyIndex) {
+			return m_omega_b_body[rigidBodyIndex];
+		}
+
+		FORCE_INLINE void setOmega_b_body(const Real& rigidBodyIndex, const Vector3r& value) {
+			m_omega_b_body[rigidBodyIndex] = value;
 		}
 		
 		FORCE_INLINE Vector3r& getV_s(const Real& rigidBodyIndex, const unsigned int i) {
@@ -136,6 +167,30 @@ namespace SPH {
 			m_v_rr[rigidBodyIndex][i] = value;
 		}
 
+		FORCE_INLINE Vector3r& getV_b(const Real& rigidBodyIndex, const unsigned int i) {
+			return m_v_b[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE const Vector3r& getV_b(const Real& rigidBodyIndex, const unsigned int i) const {
+			return m_v_b[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE void setV_b(const Real& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
+			m_v_b[rigidBodyIndex][i] = value;
+		}
+
+		FORCE_INLINE Vector3r& getGrad_p_b(const Real& rigidBodyIndex, const unsigned int i) {
+			return m_grad_p_b[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE const Vector3r& getGrad_p_b(const Real& rigidBodyIndex, const unsigned int i) const {
+			return m_grad_p_b[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE void setGrad_p_b(const Real& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
+			m_grad_p_b[rigidBodyIndex][i] = value;
+		}
+
 		FORCE_INLINE Vector3r& getPredictVelocity(const Real& rigidBodyIndex, const unsigned int i) {
 			return m_predictVelocity[rigidBodyIndex][i];
 		}
@@ -146,6 +201,18 @@ namespace SPH {
 
 		FORCE_INLINE void setPredictVelocity(const Real& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
 			m_predictVelocity[rigidBodyIndex][i] = value;
+		}
+
+		FORCE_INLINE Vector3r& getPredictPosition(const Real& rigidBodyIndex, const unsigned int i) {
+			return m_predictPosition[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE const Vector3r& getPredictPosition(const Real& rigidBodyIndex, const unsigned int i) const {
+			return m_predictPosition[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE void setPredictPosition(const Real& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
+			m_predictPosition[rigidBodyIndex][i] = value;
 		}
 
 		FORCE_INLINE Vector3r& getPressureGrad(const Real& rigidBodyIndex, const unsigned int i) {

@@ -13,6 +13,7 @@
 #include "BoundaryModel_Akinci2012.h"
 #include "BoundaryModel_Bender2019.h"
 #include "BoundaryModel_Koschier2017.h"
+#include "StrongCouplingBoundarySolver.h"
 
 
 using namespace SPH;
@@ -508,8 +509,11 @@ void Simulation::reset()
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		getBoundaryModel(i)->reset();
 
-	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 		updateBoundaryVolume();
+		StrongCouplingBoundarySolver::getCurrent()->reset();
+	}
+
 
 	if (m_timeStep)
 		m_timeStep->reset();

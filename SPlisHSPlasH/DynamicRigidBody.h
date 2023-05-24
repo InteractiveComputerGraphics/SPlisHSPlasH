@@ -15,8 +15,7 @@ namespace SPH {
 	class DynamicRigidBody : public RigidBodyObject {
 		// Some fields are from PBD::RigidBody
 	private:
-		// Boundary Particles
-
+		bool m_isDynamic;
 
 		Real m_density;
 
@@ -173,12 +172,9 @@ namespace SPH {
 
 		// Determine mass and inertia tensor
 		void determineMassProperties(const Real density, bool isDynamic, const Vector3r scale) {
+			m_isDynamic = isDynamic;
 			// for now only consider cubiod which is scaled from a unit cube
-			if (isDynamic) {
-				setMass(density * scale.x() * scale.y() * scale.z());
-			} else {
-				setMass(0.0);
-			}
+			setMass(density * scale.x() * scale.y() * scale.z());
 			Vector3r value = m_mass * Vector3r((scale.y() * scale.y() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12);
 			m_inertiaTensor = value;
 			m_inertiaTensorInverse = Vector3r(static_cast<Real>(1.0) / value[0], static_cast<Real>(1.0) / value[1], static_cast<Real>(1.0) / value[2]);
@@ -540,7 +536,7 @@ namespace SPH {
 
 
 		virtual bool isDynamic() const {
-			return m_mass != 0.0;
+			return m_isDynamic;
 		}
 
 		virtual Real const getMass() const {
@@ -564,6 +560,11 @@ namespace SPH {
 		virtual Vector3r const& getVelocity() const {
 			return m_v;
 		}
+
+		FORCE_INLINE Vector3r& getVelocity() {
+			return m_v;
+		}
+
 		virtual void setVelocity(const Vector3r& v) {
 			if (m_isAnimated) m_v = v;
 		}

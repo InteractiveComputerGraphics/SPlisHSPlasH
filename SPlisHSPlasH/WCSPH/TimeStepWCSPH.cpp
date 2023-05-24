@@ -254,46 +254,24 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			// beta_r_RJ
 			Real relaxation = 0.5 / numContacts;
 
-			// source term don't change in WCSPH
-
-
-			for (unsigned int i = 0; i < 10; i++) {
+			for (unsigned int i = 0; i < 1; i++) {
 
 				bs->computeDensityAndVolume();
-				bs->computeV_s();
 				bs->computeSourceTerm();
 
-                #pragma omp parallel default(shared)
-				{
-                    #pragma omp for schedule(static)  
-					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						const Vector3r a = - bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
-						bm->addForce(bm->getPosition(r), bm->getRigidBodyObject()->getMass() * a);
-					}
-				}
-				// update position and velocity using the current pressure
-				//sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
-
-				bs->computePressureGrad();
 				bs->computeSourceTermRHS();
 				bs->computeDiagonalElement();
 
 				Real densityErrorAvg = 0;
                 #pragma omp parallel default(shared)
 				{
-					// compute number of contacts
                     #pragma omp for schedule(static)  
 					for (int r = 0; r < bm->numberOfParticles(); r++) {
 						if (bs->getDiagonalElement(bmIndex, r) != 0) {
 							densityErrorAvg += bs->getDensity(bmIndex, r);
 							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
-							//std::cout << pressureNextIter << std::endl;
-							//if (i == 0) {
-							//	std::cout << bs->getDensity(bmIndex, r) << std::endl;;
-							//}
 							bs->setLastPressure(bmIndex, r, bs->getPressure(bmIndex, r));
 							bs->setPressure(bmIndex, r, pressureNextIter);
-
 						} else {
 							bs->setPressure(bmIndex, r, 0);
 						}
@@ -301,9 +279,17 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 				}
 				densityErrorAvg /= bm->numberOfParticles();
 
-				// only particles int contact with other object ?
+				// only particles in contact with other object ?
 				if ((bs->getRestDensity(bmIndex) - densityErrorAvg) / bs->getRestDensity(bmIndex) < 0.001) {
 					break;
+				}
+			}
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					const Vector3r a = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
+					bm->addForce(bm->getPosition(r), bs->getArtificialVolume(bmIndex, r) * bs->getDensity(bmIndex, r) * a);
 				}
 			}
 		}

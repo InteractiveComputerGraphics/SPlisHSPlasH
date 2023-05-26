@@ -253,43 +253,56 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			}
 			// beta_r_RJ
 			Real relaxation = 0.5 / numContacts;
-
-			for (unsigned int i = 0; i < 1; i++) {
-
-				bs->computeDensityAndVolume();
-				bs->computeSourceTerm();
+			bs->computeDensityAndVolume();
+			bs->computeSourceTerm();
+			bs->computeDiagonalElement();
+			for (unsigned int i = 0; i < 20; i++) {
 
 				bs->computeSourceTermRHS();
-				bs->computeDiagonalElement();
 
 				Real densityErrorAvg = 0;
+				int numParticles = 0;
                 #pragma omp parallel default(shared)
 				{
                     #pragma omp for schedule(static)  
 					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						if (bs->getDiagonalElement(bmIndex, r) != 0) {
+						if (std::abs(bs->getDiagonalElement(bmIndex, r)) != 0) {
+							numParticles++;
 							densityErrorAvg += bs->getDensity(bmIndex, r);
+
 							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
+							//pressureNextIter = std::max(pressureNextIter, 0.f);
+							//std::cout << (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r)) << std::endl;
+						
 							bs->setLastPressure(bmIndex, r, bs->getPressure(bmIndex, r));
-							bs->setPressure(bmIndex, r, pressureNextIter);
+							bs->setPressure(bmIndex, r, pressureNextIter > 0 ? pressureNextIter : 0);
+
 						} else {
 							bs->setPressure(bmIndex, r, 0);
 						}
 					}
 				}
-				densityErrorAvg /= bm->numberOfParticles();
+				//std::cout << std::endl;
+				densityErrorAvg /= numParticles;
 
 				// only particles in contact with other object ?
-				if ((bs->getRestDensity(bmIndex) - densityErrorAvg) / bs->getRestDensity(bmIndex) < 0.001) {
-					break;
-				}
+				//if (std::abs((bs->getRestDensity(bmIndex) - densityErrorAvg) / bs->getRestDensity(bmIndex)) < 0.001) {
+				//	std::cout << (bs->getRestDensity(bmIndex) - densityErrorAvg) << std::endl;
+				//	break;
+				//}
 			}
+			//std::cout << "-------------------" << std::endl;
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					const Vector3r a = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
-					bm->addForce(bm->getPosition(r), bs->getArtificialVolume(bmIndex, r) * bs->getDensity(bmIndex, r) * a);
+					const Vector3r f = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
+					if(bm->numberOfParticles() == 1) {
+						bm->addForce(rb->getPosition(), f);
+					} else {
+						bm->addForce(bm->getPosition(r), f);
+					}
+					bs->getPressure(bmIndex, r) = 0;
 				}
 			}
 		}

@@ -112,13 +112,6 @@ namespace SPH {
 			m_v0.setZero();
 			m_a.setZero();
 			m_force.setZero();
-			//if (position.x() > 0) {
-			//	m_v0 = Vector3r(-1, 0, 0);
-			//	m_v = m_v0;
-			//} else {
-			//	m_v0 = Vector3r(1, 0, 0);
-			//	m_v = m_v0;
-			//}
 
 			m_q = rotation;
 			m_q0 = rotation;

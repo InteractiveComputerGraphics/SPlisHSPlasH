@@ -6,21 +6,22 @@ namespace SPH {
 	class StrongCouplingBoundarySolver {
 	private:
 		// values required for Gissler 2019 strong coupling based on Akinci 2012
-		std::vector<std::vector<double>> m_density;
-		std::vector<std::vector<double>> m_pressure;
-		std::vector<std::vector<double>> m_lastPressure;
-		std::vector<std::vector<double>> m_artificialVolume;
+		std::vector<std::vector<Real>> m_density;
+		std::vector<std::vector<Real>> m_pressure;
+		std::vector<std::vector<Real>> m_lastPressure;
+		std::vector<std::vector<Real>> m_artificialVolume;
 		std::vector<std::vector<Vector3r>> m_v_s;
-		std::vector<std::vector<double>> m_s; // source term
+		std::vector<std::vector<Real>> m_s; // source term
 		std::vector<std::vector<Vector3r>> m_pressureGrad;
 		std::vector<std::vector<Vector3r>> m_v_rr;
 		std::vector<std::vector<Vector3r>> m_v_b;
 		std::vector<std::vector<Vector3r>> m_grad_p_b;
 		std::vector<std::vector<Vector3r>> m_predictVelocity;
 		std::vector<std::vector<Vector3r>> m_predictPosition;
-		std::vector<std::vector<double>> m_minus_rho_div_v_rr; // RHS to the source term
-		std::vector<std::vector<double>> m_diagonalElement; // diagonal element for jacobi iteration
-		std::vector<double> m_restDensity;
+		std::vector<std::vector<Real>> m_minus_rho_div_v_s;
+		std::vector<std::vector<Real>> m_minus_rho_div_v_rr; // RHS to the source term
+		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
+		std::vector<Real> m_restDensity;
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
 		std::vector<Vector3r> m_v_b_body;
@@ -47,51 +48,51 @@ namespace SPH {
 		void computeFriction();
 		void performNeighborhoodSearchSort();
 
-		FORCE_INLINE const double& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
+		FORCE_INLINE const Real& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
 			return m_density[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE double& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) {
+		FORCE_INLINE Real& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) {
 			return m_density[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE void setDensity(const unsigned int& rigidBodyIndex, const unsigned int& index, const double& value) {
+		FORCE_INLINE void setDensity(const unsigned int& rigidBodyIndex, const unsigned int& index, const Real& value) {
 			m_density[rigidBodyIndex][index] = value;
 		}
 
-		FORCE_INLINE const double& getPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
+		FORCE_INLINE const Real& getPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
 			return m_pressure[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE double& getPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) {
+		FORCE_INLINE Real& getPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) {
 			return m_pressure[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE void setPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const double& value) {
+		FORCE_INLINE void setPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const Real& value) {
 			m_pressure[rigidBodyIndex][index] = value;
 		}
 
-		FORCE_INLINE const double& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
+		FORCE_INLINE const Real& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
 			return m_lastPressure[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE double& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) {
+		FORCE_INLINE Real& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) {
 			return m_lastPressure[rigidBodyIndex][index];
 		}
 
-		FORCE_INLINE void setLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const double& value) {
+		FORCE_INLINE void setLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const Real& value) {
 			m_lastPressure[rigidBodyIndex][index] = value;
 		}
 
-		FORCE_INLINE const double& getRestDensity(const unsigned int& rigidBodyIndex) const {
+		FORCE_INLINE const Real& getRestDensity(const unsigned int& rigidBodyIndex) const {
 			return m_restDensity[rigidBodyIndex];
 		}
 
-		FORCE_INLINE double& getRestDensity(const unsigned int& rigidBodyIndex) {
+		FORCE_INLINE Real& getRestDensity(const unsigned int& rigidBodyIndex) {
 			return m_restDensity[rigidBodyIndex];
 		}
 
-		FORCE_INLINE void setRestDensity(const unsigned int& rigidBodyIndex, const double& value) {
+		FORCE_INLINE void setRestDensity(const unsigned int& rigidBodyIndex, const Real& value) {
 			m_restDensity[rigidBodyIndex] = value;
 		}
 
@@ -154,6 +155,7 @@ namespace SPH {
 		FORCE_INLINE void setV_s(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
 			m_v_s[rigidBodyIndex][i] = value;
 		}
+
 
 		FORCE_INLINE Vector3r& getV_rr(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_v_rr[rigidBodyIndex][i];
@@ -227,51 +229,63 @@ namespace SPH {
 			m_pressureGrad[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE double& getSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i) {
+		FORCE_INLINE Real& getMinus_rho_div_v_s(const unsigned int& rigidBodyIndex, const unsigned int i) {
+			return m_minus_rho_div_v_s[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE const Real& getMinus_rho_div_v_s(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+			return m_minus_rho_div_v_s[rigidBodyIndex][i];
+		}
+
+		FORCE_INLINE void setMinus_rho_div_v_s(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& value) {
+			m_minus_rho_div_v_s[rigidBodyIndex][i] = value;
+		}
+
+		FORCE_INLINE Real& getSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_minus_rho_div_v_rr[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE const double& getSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+		FORCE_INLINE const Real& getSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i) const {
 			return m_minus_rho_div_v_rr[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i, const double& value) {
+		FORCE_INLINE void setSourceTermRHS(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& value) {
 			m_minus_rho_div_v_rr[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE double& getDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i) {
+		FORCE_INLINE Real& getDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_diagonalElement[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE const double& getDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+		FORCE_INLINE const Real& getDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i) const {
 			return m_diagonalElement[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i, const double& value) {
+		FORCE_INLINE void setDiagonalElement(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& value) {
 			m_diagonalElement[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE double& getSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i) {
+		FORCE_INLINE Real& getSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_s[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE const double& getSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+		FORCE_INLINE const Real& getSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i) const {
 			return m_s[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i, const double& value) {
+		FORCE_INLINE void setSourceTerm(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& value) {
 			m_s[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE const double& getArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+		FORCE_INLINE const Real& getArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i) const {
 			return m_artificialVolume[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE double& getArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i) {
+		FORCE_INLINE Real& getArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_artificialVolume[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i, const double& val) {
+		FORCE_INLINE void setArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& val) {
 			m_artificialVolume[rigidBodyIndex][i] = val;
 		}
 	};

@@ -97,8 +97,7 @@ void BoundaryModel_Akinci2012::computeBoundaryVolume()
 					delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
 				}
 			}
-			const Real gamma = static_cast<Real>(1.0);
-			const Real volume = gamma / delta;
+			const Real volume = static_cast<Real>(1.0) / delta;
 			m_V[i] = volume;
 		}
 	}

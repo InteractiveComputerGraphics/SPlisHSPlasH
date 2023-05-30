@@ -16,6 +16,7 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_v_rr(),
 	m_v_b(),
 	m_grad_p_b(),
+	m_minus_rho_div_v_s(),
 	m_minus_rho_div_v_rr(),
 	m_diagonalElement(),
 	m_artificialVolume(),
@@ -36,6 +37,7 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_pressure.resize(nBoundaries);
 	m_v_rr.resize(nBoundaries);
 	m_v_b.resize(nBoundaries);
+	m_minus_rho_div_v_s.resize(nBoundaries);
 	m_minus_rho_div_v_rr.resize(nBoundaries);
 	m_diagonalElement.resize(nBoundaries);
 	m_pressureGrad.resize(nBoundaries);
@@ -44,7 +46,7 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_lastPressure.resize(nBoundaries);
 	m_predictVelocity.resize(nBoundaries);
 	m_predictPosition.resize(nBoundaries);
-	m_restDensity.resize(nBoundaries, 1000);
+	m_restDensity.resize(nBoundaries, 1000.0);
 	m_v_rr_body.resize(nBoundaries, Vector3r::Zero());
 	m_omega_rr_body.resize(nBoundaries, Vector3r::Zero());
 	m_v_b_body.resize(nBoundaries, Vector3r::Zero());
@@ -54,24 +56,25 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
 		m_density[i].resize(bm->numberOfParticles(), m_restDensity[i]);
 		m_v_s[i].resize(bm->numberOfParticles(), Vector3r::Zero());
-		m_s[i].resize(bm->numberOfParticles(), 0);
-		m_pressure[i].resize(bm->numberOfParticles(), 0);
+		m_s[i].resize(bm->numberOfParticles(), 0.0);
+		m_pressure[i].resize(bm->numberOfParticles(), 0.0);
 		m_v_rr[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_v_b[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_grad_p_b[i].resize(bm->numberOfParticles(), Vector3r::Zero());
-		m_minus_rho_div_v_rr[i].resize(bm->numberOfParticles(), 0);
-		m_diagonalElement[i].resize(bm->numberOfParticles(), 0);
+		m_minus_rho_div_v_s[i].resize(bm->numberOfParticles(), 0.0);
+		m_minus_rho_div_v_rr[i].resize(bm->numberOfParticles(), 0.0);
+		m_diagonalElement[i].resize(bm->numberOfParticles(), 0.0);
 		m_pressureGrad[i].resize(bm->numberOfParticles(), Vector3r::Zero());
-		m_artificialVolume[i].resize(bm->numberOfParticles(), 0);
-		m_lastPressure[i].resize(bm->numberOfParticles(), 0);
+		m_artificialVolume[i].resize(bm->numberOfParticles(), 0.0);
+		m_lastPressure[i].resize(bm->numberOfParticles(), 0.0);
 		m_predictVelocity[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_predictPosition[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		
-		bm->addField({ "density", FieldType::Scalar, [this, i](const unsigned int j) -> double* { return &getDensity(i, j); } });
-		bm->addField({ "sourceTerm", FieldType::Scalar, [this, i](const unsigned int j)->double* {return &getSourceTerm(i,j); } });
+		bm->addField({ "density", FieldType::Scalar, [this, i](const unsigned int j) -> Real* { return &getDensity(i, j); } });
+		bm->addField({ "sourceTerm", FieldType::Scalar, [this, i](const unsigned int j)->Real* {return &getSourceTerm(i,j); } });
 		bm->addField({ "v_s", FieldType::Vector3, [this,i](const unsigned int j)->Vector3r* {return &getV_s(i,j); } });
 		bm->addField({ "v_rr", FieldType::Vector3, [this,i](const unsigned int j)->Vector3r* {return &getV_rr(i,j); } });
-		bm->addField({ "pressure", FieldType::Scalar,[this,i](const unsigned int j)->double* {return &getPressure(i,j); } });
+		bm->addField({ "pressure", FieldType::Scalar,[this,i](const unsigned int j)->Real* {return &getPressure(i,j); } });
 		bm->addField({ "rigidbodyVelocity", FieldType::Vector3,[bm](const unsigned int j)->Vector3r* {return &(static_cast<DynamicRigidBody*>(bm->getRigidBodyObject())->getVelocity()); } });
 		bm->addField({ "v_rr_body", FieldType::Vector3,[this,i](const unsigned int j)->Vector3r* {return &getV_rr_body(i); } });
 	}
@@ -87,16 +90,17 @@ void SPH::StrongCouplingBoundarySolver::reset() {
 		for (int j = 0; j < bm->numberOfParticles(); j++) {
 			m_density[i][j] = m_restDensity[i];
 			m_v_s[i][j] = Vector3r::Zero();
-			m_s[i][j] = 0;
-			m_pressure[i][j] = 0;
+			m_s[i][j] = 0.0;
+			m_pressure[i][j] = 0.0;
 			m_v_rr[i][j] = Vector3r::Zero();
 			m_v_b[i][j] = Vector3r::Zero();
 			m_grad_p_b[i][j] = Vector3r::Zero();
-			m_minus_rho_div_v_rr[i][j] = 0;
-			m_diagonalElement[i][j] = 0;
+			m_minus_rho_div_v_s[i][j] = 0.0;
+			m_minus_rho_div_v_rr[i][j] = 0.0;
+			m_diagonalElement[i][j] = 0.0;
 			m_pressureGrad[i][j] = Vector3r::Zero();
-			m_artificialVolume[i][j] = 0;
-			m_lastPressure[i][j] = 0;
+			m_artificialVolume[i][j] = 0.0;
+			m_lastPressure[i][j] = 0.0;
 			m_predictVelocity[i][j] = Vector3r::Zero();
 			m_predictPosition[i][j] = Vector3r::Zero();
 		}
@@ -113,6 +117,7 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 		m_v_rr[i].clear();
 		m_v_b[i].clear();
 		m_grad_p_b[i].clear();
+		m_minus_rho_div_v_s[i].clear();
 		m_minus_rho_div_v_rr[i].clear();
 		m_diagonalElement[i].clear();
 		m_pressureGrad[i].clear();
@@ -128,6 +133,7 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 	m_v_rr.clear();
 	m_v_b.clear();
 	m_grad_p_b.clear();
+	m_minus_rho_div_v_s.clear();
 	m_minus_rho_div_v_rr.clear();
 	m_diagonalElement.clear();
 	m_pressureGrad.clear();
@@ -186,7 +192,7 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 		{
             #pragma omp for schedule(static)  
 			for (int r = 0; r < bm->numberOfParticles(); r++) {
-				if (rb->isDynamic()) {
+				//if (rb->isDynamic()) {
 					// compute density for particle r
 					Real particleDensity = getRestDensity(bmIndex) * bm->getVolume(r) * sim->W_zero();
 					// iterate over all rigid bodies
@@ -197,15 +203,18 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 							particleDensity += getRestDensity(bmIndex) * bm->getVolume(r) * sim->W(bm->getPosition(r) - bm_neighbor->getPosition(k));
 						}
 					}
-					setDensity(bmIndex, r, particleDensity);
+					setDensity(bmIndex, r, std::max(particleDensity, getRestDensity(bmIndex)));
+					//gamma = 0.7, see the paper
+					const Real gamma = static_cast<Real>(0.7); 
 					if (getDensity(bmIndex, r) > getRestDensity(bmIndex)) {
-						setArtificialVolume(bmIndex, r, getRestDensity(bmIndex) * bm->getVolume(r) / getDensity(bmIndex, r));
+						
+						setArtificialVolume(bmIndex, r, gamma * getRestDensity(bmIndex) * bm->getVolume(r) / getDensity(bmIndex, r));
 					} else {
-						setArtificialVolume(bmIndex, r, bm->getVolume(r));
+						setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
 					}
-				} else {
-					setArtificialVolume(bmIndex, r, bm->getVolume(r));
-				}
+				//} else {
+				//	setArtificialVolume(bmIndex, r, bm->getVolume(r));
+				//}
 			}
 		}
 	}
@@ -259,7 +268,7 @@ void StrongCouplingBoundarySolver::computeSourceTerm() {
 			{
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					Real s = 0;
+					Real rho_div_v_s = 0;
 					// iterate over all rigid bodies except bm, since the divergence of particles in the same rigid body should be 0.
 					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
 						if (boundaryPointSetIndex != pid) {
@@ -268,12 +277,13 @@ void StrongCouplingBoundarySolver::computeSourceTerm() {
 							for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
 								const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
 								// sum up divergence of v_s
-								s += getArtificialVolume(neighborIndex, k) * getDensity(neighborIndex, k) * (getV_s(neighborIndex, k) - getV_s(bmIndex, r)).dot(sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
+								rho_div_v_s += getArtificialVolume(neighborIndex, k) * getDensity(neighborIndex, k) * (getV_s(neighborIndex, k) - getV_s(bmIndex, r)).dot(sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
 							}
 						}
 					}
-					s += (getRestDensity(bmIndex) - getDensity(bmIndex, r)) / dt;
+					Real s = (getRestDensity(bmIndex) - getDensity(bmIndex, r)) / dt + rho_div_v_s;
 					setSourceTerm(bmIndex, r, s);
+					setMinus_rho_div_v_s(bmIndex, r, -rho_div_v_s);
 				}
 			}
 		}
@@ -296,6 +306,9 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
                 #pragma omp for schedule(static)      
 				for (int r = 0; r < bm_r->numberOfParticles(); r++) {
 					Vector3r pos_r = bm_r->getPosition(r) - rb->getPosition();
+					if (bm_r->numberOfParticles() == 1) {
+						pos_r.setZero();
+					}
 					Vector3r grad_p_b = Vector3r::Zero();
 					const Real density_r2 = getDensity(index_r, r) * getDensity(index_r, r);
 					// rk are neighboring rigid particles of r of other rigid bodies k
@@ -398,20 +411,23 @@ void StrongCouplingBoundarySolver::computeSourceTermRHS() {
 	TimeManager* tm = TimeManager::getCurrent();
 	const Real dt = tm->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
-
-	//computePressureGrad();
-	// 
+	Vector3r tvrr;
+	Vector3r tomega;
 	// compute pressure gradient, v_rr and omega_rr for rigid body
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
 		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		Vector3r v_rr_body = Vector3r().setZero();
-		Vector3r omega_rr_body = Vector3r().setZero();
+		Real vx = 0;
+		Real vy = 0;
+		Real vz = 0;
+		Real omegax = 0;
+		Real omegay = 0;
+		Real omegaz = 0;
 		if (rb->isDynamic()) {
             #pragma omp parallel default(shared)
 			{
-                #pragma omp for schedule(static)  
+                #pragma omp for schedule(static) reduction(+:vx) reduction(+:vy) reduction(+:vz) reduction(+:omegax) reduction(+:omegay) reduction(+:omegaz)                                                    
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
 					Vector3r pressureGrad_r = Vector3r::Zero();
 					const Real density_r = getDensity(bmIndex, r);
@@ -432,12 +448,20 @@ void StrongCouplingBoundarySolver::computeSourceTermRHS() {
 					pressureGrad_r *= density_r;
 					setPressureGrad(bmIndex, r, pressureGrad_r);
 
-					v_rr_body += -dt * rb->getInvMass() * getArtificialVolume(bmIndex, r) * getPressureGrad(bmIndex, r);
+					Vector3r v_rr_body_tmp = -dt * rb->getInvMass() * getArtificialVolume(bmIndex, r) * getPressureGrad(bmIndex, r);
+					vx += v_rr_body_tmp.x();
+					vy += v_rr_body_tmp.y();
+					vz += v_rr_body_tmp.z();
 					Vector3r pos = bm->getPosition(r) - rb->getPosition();
-					omega_rr_body += -dt * rb->getInertiaTensorInverseW() * getArtificialVolume(bmIndex, r) * pos.cross(getPressureGrad(bmIndex, r));
+					Vector3r omega_rr_body_tmp = -dt * rb->getInertiaTensorInverseW() * getArtificialVolume(bmIndex, r) * pos.cross(getPressureGrad(bmIndex, r));
+					omegax += omega_rr_body_tmp.x();
+					omegay += omega_rr_body_tmp.y();
+					omegaz += omega_rr_body_tmp.z();
 				}
 			}
 		}
+		Vector3r v_rr_body = Vector3r(vx, vy, vz);
+		Vector3r omega_rr_body = Vector3r(omegax, omegay, omegaz);
 		setV_rr_body(bmIndex, v_rr_body);
 		setOmega_rr_body(bmIndex, omega_rr_body);
 	}

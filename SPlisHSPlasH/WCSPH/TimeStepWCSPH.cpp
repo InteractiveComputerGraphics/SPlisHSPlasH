@@ -144,7 +144,7 @@ void TimeStepWCSPH::step()
 	sim->animateParticles();
 
 	// Only for strong coupling method with BoundaryModel_Akinci2012
-	if (sim->getDynamicBoundarySimulator() != nullptr) {
+	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 		sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
 	}
 
@@ -218,7 +218,6 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex) {
 
 void TimeStepWCSPH::computeRigidRigidAccels() {
 	Simulation* sim = Simulation::getCurrent();
-	DynamicBoundarySimulator* boundarySimulator = sim->getDynamicBoundarySimulator();
 	TimeManager* tm = TimeManager::getCurrent();
 	const Real dt = tm->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
@@ -257,8 +256,8 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 	bs->computeSourceTerm();
 	int iterations = 0;
 	// while density deviation too large
-	while ((avgDensityDeviation > 0.0025 && iterations < 100) || iterations < 20) {
-		bs->computeSourceTermRHS();
+	while ((avgDensityDeviation >bs->getMaxDensityDeviation() && iterations < bs->getMaxIterations()) || iterations < bs->getMinIterations()) {
+		//bs->computeSourceTermRHS();
 		avgDensityDeviation = 0;
 		// update pressure
 
@@ -266,6 +265,9 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 			int bmIndex = boundaryPointSetIndex - nFluids;
 			if (bm->getRigidBodyObject()->isDynamic()) {
+
+				bs->computeSourceTermRHSForBody(boundaryPointSetIndex);
+
 			    int numContactsBody = 0;
 				#pragma omp parallel default(shared)
 				{
@@ -291,12 +293,12 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 				{
                     #pragma omp for schedule(static) reduction(+:avgDensityDeviation)
 					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						if (bs->getDensity(bmIndex, r) - bs->getRestDensity(bmIndex) > 1e-9 && std::abs(bs->getDiagonalElement(bmIndex, r)) > 1e-9) {
+						if (bs->getDensity(bmIndex, r) - bs->getRestDensity() > 1e-9 && std::abs(bs->getDiagonalElement(bmIndex, r)) > 1e-9) {
 							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
-							bs->setPressure(bmIndex, r, pressureNextIter > 0 ? pressureNextIter : 0);
+							bs->setPressure(bmIndex, r, std::max(pressureNextIter, static_cast<Real>(0.0)));
 							avgDensityDeviation -= (bs->getSourceTerm(bmIndex, r) - bs->getMinus_rho_div_v_s(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r)) * dt;
 						} else {
-							bs->setPressure(bmIndex, r, 0);
+							bs->setPressure(bmIndex, r, static_cast<Real>(0.0));
 						}
 					}
 				}
@@ -306,7 +308,7 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 			return;
 		}
 		avgDensityDeviation /= particleInContact;
-		avgDensityDeviation /= bs->getRestDensity(0);
+		avgDensityDeviation /= bs->getRestDensity();
 		avgDensityDeviation = std::abs(avgDensityDeviation);
 		std::cout << avgDensityDeviation << std::endl;
 		iterations++;
@@ -323,20 +325,15 @@ void TimeStepWCSPH::computeRigidRigidAccels() {
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
 					const Vector3r f = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
 					if (f != Vector3r::Zero()) {
-						if (bm->numberOfParticles() == 1) {
-							bm->addForce(rb->getPosition(), f);
-						} else {
-							bm->addForce(bm->getPosition(r), f);
-						}
+						bm->addForce(bm->getPosition(r), f);					
 					}
-					bs->setPressure(bmIndex, r, 0);
+					bs->setPressure(bmIndex, r, static_cast<Real>(0.0));
 				}
 			}
 		}
 	}
 
 	// solve the equation s = -rho * div¡¤v_rr w.r.t. pressure using relaxed jacobi
-
 
 	//for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 	//	BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));

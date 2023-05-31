@@ -319,6 +319,8 @@ int BoundaryParameterObject::BOUNDARY_MAP_RESOLUTION = -1;
 int BoundaryParameterObject::BOUNDARY_SAMPLING_MODE = -1;
 int BoundaryParameterObject::BOUNDARY_IS_ANIMATED = -1;
 int BoundaryParameterObject::BOUNDARY_DENSITY = -1;
+int BoundaryParameterObject::BOUNDARY_VELOCITY = -1;
+int BoundaryParameterObject::BOUNDARY_FRICTION = -1;
 
 void BoundaryParameterObject::initParameters()
 {
@@ -385,4 +387,12 @@ void BoundaryParameterObject::initParameters()
 	BOUNDARY_DENSITY = createNumericParameter("density", "Density", &density);
 	setGroup(BOUNDARY_DENSITY, "Boundary");
 	setDescription(BOUNDARY_DENSITY, "Density of the rigid body.");
+
+	BOUNDARY_FRICTION = createNumericParameter("friction", "Friction", &friction);
+	setGroup(BOUNDARY_FRICTION, "Boundary");
+	setDescription(BOUNDARY_FRICTION, "Friction of the rigid body.");
+
+	BOUNDARY_VELOCITY = createVectorParameter("velocity", "Velocity", 3u, velocity.data());
+	setGroup(BOUNDARY_VELOCITY, "Boundary");
+	setDescription(BOUNDARY_VELOCITY, "Velocity of the rigid body after loading.");
 }

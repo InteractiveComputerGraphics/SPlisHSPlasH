@@ -5,11 +5,11 @@ namespace SPH {
 	class SimulatorBase;
 	class TriangleMesh;
 
-	// This class is used for the strong coupling method. See DynamicRigidBody.
 	class DynamicBoundarySimulator : public BoundarySimulator {
 	private:
 		Real m_dampingCoeff = 0.0;
-		Real m_maxIteration = 10;
+
+
 	protected:
 		SimulatorBase* m_base;
 
@@ -39,15 +39,6 @@ namespace SPH {
 			m_dampingCoeff = value;
 		}
 
-		FORCE_INLINE const Real& getMaxIteration() const {
-			return m_maxIteration;
-		}
-		FORCE_INLINE Real& getMaxIteration() {
-			return m_maxIteration;
-		}
-		FORCE_INLINE void setMaxIteration(const Real& value) {
-			m_maxIteration = value;
-		}
 	};
 
 }

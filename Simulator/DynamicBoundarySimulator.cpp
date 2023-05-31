@@ -131,7 +131,8 @@ void DynamicBoundarySimulator::initBoundaryData() {
 		Matrix3r rot = AngleAxisr(scene.boundaryModels[i]->angle, scene.boundaryModels[i]->axis).toRotationMatrix();
 		Quaternionr q(rot);
 
-		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, scene.boundaryModels[i]->scale);
+		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, 
+			         scene.boundaryModels[i]->scale, scene.boundaryModels[i]->velocity, scene.boundaryModels[i]->friction);
 
 		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 			BoundaryModel_Akinci2012* bm = new BoundaryModel_Akinci2012();

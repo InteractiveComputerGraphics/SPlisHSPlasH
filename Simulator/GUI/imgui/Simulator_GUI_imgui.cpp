@@ -15,6 +15,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "Simulator/DynamicBoundarySimulator.h"
+#include "SPlisHSPlasH/StrongCouplingBoundarySolver.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -503,7 +504,7 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 	}
 
 	if (!m_simulatorBase->isStaticScene()) {
-		DynamicBoundarySimulator* simulator = sim->getDynamicBoundarySimulator();
+		DynamicBoundarySimulator* simulator = sim->getDynamicBoundarySimulator();		
 		// Fields for all boundary models
 		{
 			imguiParameters::imguiNumericParameter<Real>* damping = new imguiParameters::imguiNumericParameter<Real>();
@@ -513,12 +514,30 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			damping->setFct = [simulator](Real v) {simulator->setDampingCoeff(v); };
 			imguiParameters::addParam("Boundary Model", "General", damping);
 
-			imguiParameters::imguiNumericParameter<int>* maxIteration = new imguiParameters::imguiNumericParameter<int>;
-			maxIteration->description = "max iteration to solve the strong coupling method";
-			maxIteration->label = "Max Iterations";
-			maxIteration->getFct = [simulator]()->int {return simulator->getMaxIteration(); };
-			maxIteration->setFct = [simulator](int v) {simulator->setMaxIteration(v); };
-			imguiParameters::addParam("Boundary Model", "General", maxIteration);
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+				StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+
+				imguiParameters::imguiNumericParameter<unsigned int>* maxIteration = new imguiParameters::imguiNumericParameter<unsigned int>;
+				maxIteration->description = "max iteration to solve the strong coupling method";
+				maxIteration->label = "Max Iterations";
+				maxIteration->getFct = [bs]()->unsigned int {return bs->getMaxIterations(); };
+				maxIteration->setFct = [bs](unsigned int v) {bs->setMaxIterations(v); };
+				imguiParameters::addParam("Boundary Model", "General", maxIteration);
+
+				imguiParameters::imguiNumericParameter<unsigned int>* minIteration = new imguiParameters::imguiNumericParameter<unsigned int>;
+				minIteration->description = "min iteration to solve the strong coupling method";
+				minIteration->label = "min Iterations";
+				minIteration->getFct = [bs]()->unsigned int {return bs->getMinIterations(); };
+				minIteration->setFct = [bs](unsigned int v) {bs->setMinIterations(v); };
+				imguiParameters::addParam("Boundary Model", "General", minIteration);
+
+				imguiParameters::imguiNumericParameter<Real>* maxDensityDeviation = new imguiParameters::imguiNumericParameter<Real>;
+				maxDensityDeviation->description = "max density deviation in % to solve the strong coupling method";
+				maxDensityDeviation->label = "max density deviation (%)";
+				maxDensityDeviation->getFct = [bs]()->Real {return bs->getMaxDensityDeviation() * 100; };
+				maxDensityDeviation->setFct = [bs](Real v) {bs->setMaxDensityDeviation(v / 100); };
+				imguiParameters::addParam("Boundary Model", "General", maxDensityDeviation);
+			}
 		}
 
 		// Enum for all boundary models

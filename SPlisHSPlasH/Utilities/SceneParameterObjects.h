@@ -322,9 +322,11 @@ namespace Utilities
 		std::string meshFile;
 		Vector3r translation;
 		Vector3r axis;
+		Vector3r velocity;
 		Real angle;
 		Vector3r scale;
 		Real density;
+		Real friction;
 		bool dynamic;
 		bool isWall;
 		Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color;
@@ -342,11 +344,13 @@ namespace Utilities
 			meshFile = "";
 			translation = Vector3r::Zero();
 			axis = Vector3r(1, 0, 0);
+			velocity = Vector3r::Zero();
 			angle = 0.0;
 			density = 1000.0;
 			scale = Vector3r::Ones();
 			dynamic = false;
 			isWall = false;
+			friction = 0.0;
 			color = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 0.0f);
 			samplingMode = 0;
 			isAnimated = false;
@@ -359,16 +363,19 @@ namespace Utilities
 
 		BoundaryParameterObject(std::string samplesFile_, std::string meshFile_, Vector3r translation_, Vector3r axis_, Real angle_, Vector3r scale_,
 								bool dynamic_, bool isWall_, Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color_, std::string mapFile_, bool mapInvert_,
-								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_, Real density_ = 1000.0)
+								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_, 
+			                    Vector3r velocity_, Real friction_, Real density_ = 1000.0)
 		{
 			samplesFile = samplesFile_;
 			meshFile = meshFile_;
 			translation = translation_;
 			axis = axis_;
 			angle = angle_;
+			velocity = velocity_;
 			scale = scale_;
 			density = density_;
 			dynamic = dynamic_;
+			friction = friction_;
 			isWall = isWall_;
 			color = color_;
 			samplingMode = samplingMode_;
@@ -396,6 +403,8 @@ namespace Utilities
 		static int BOUNDARY_SAMPLING_MODE;
 		static int BOUNDARY_IS_ANIMATED;
 		static int BOUNDARY_DENSITY;
+		static int BOUNDARY_VELOCITY;
+		static int BOUNDARY_FRICTION;
 
 		virtual void initParameters();
 	};

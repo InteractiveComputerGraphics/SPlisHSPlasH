@@ -2,10 +2,16 @@
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/SPHKernels.h"
 
+
 namespace SPH {
+	/** \brief This class stores the information of a dynamic rigid body which
+	* is used for the strong coupling method introduced in
+	* Interlinked SPH Pressure Solvers for Strong Fluid-Rigid Coupling. Gissler et al. https://doi.org/10.1145/3284980
+	*/
 	class StrongCouplingBoundarySolver {
 	private:
 		// values required for Gissler 2019 strong coupling based on Akinci 2012
+		Real m_restDensity;
 		std::vector<std::vector<Real>> m_density;
 		std::vector<std::vector<Real>> m_pressure;
 		std::vector<std::vector<Real>> m_lastPressure;
@@ -14,35 +20,30 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_s; // source term
 		std::vector<std::vector<Vector3r>> m_pressureGrad;
 		std::vector<std::vector<Vector3r>> m_v_rr;
-		std::vector<std::vector<Vector3r>> m_v_b;
-		std::vector<std::vector<Vector3r>> m_grad_p_b;
 		std::vector<std::vector<Vector3r>> m_predictVelocity;
 		std::vector<std::vector<Vector3r>> m_predictPosition;
 		std::vector<std::vector<Real>> m_minus_rho_div_v_s;
 		std::vector<std::vector<Real>> m_minus_rho_div_v_rr; // RHS to the source term
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
-		std::vector<Real> m_restDensity;
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
-		std::vector<Vector3r> m_v_b_body;
-		std::vector<Vector3r> m_omega_b_body;
 
 		static StrongCouplingBoundarySolver* current;
+
+		unsigned int m_maxIterations;
+		unsigned int m_minIterations;
+		Real m_maxDensityDeviation;
 
 	public:
 		StrongCouplingBoundarySolver();
 		~StrongCouplingBoundarySolver();
-		static StrongCouplingBoundarySolver* getCurrent() {
-			if (current == nullptr) {
-				current = new StrongCouplingBoundarySolver();
-			}
-			return current;
-		}
+		static StrongCouplingBoundarySolver* getCurrent();
 		void reset();
 		void computeDensityAndVolume();
 		void computePressureGrad();
 		void computeV_s();
 		void computeSourceTermRHS();
+		void computeSourceTermRHSForBody(const unsigned int& boundaryPointSetIndex);
 		void computeSourceTerm();
 		void computeDiagonalElement();
 		void computeFriction();
@@ -84,16 +85,16 @@ namespace SPH {
 			m_lastPressure[rigidBodyIndex][index] = value;
 		}
 
-		FORCE_INLINE const Real& getRestDensity(const unsigned int& rigidBodyIndex) const {
-			return m_restDensity[rigidBodyIndex];
+		FORCE_INLINE const Real& getRestDensity() const {
+			return m_restDensity;
 		}
 
-		FORCE_INLINE Real& getRestDensity(const unsigned int& rigidBodyIndex) {
-			return m_restDensity[rigidBodyIndex];
+		FORCE_INLINE Real& getRestDensity() {
+			return m_restDensity;
 		}
 
-		FORCE_INLINE void setRestDensity(const unsigned int& rigidBodyIndex, const Real& value) {
-			m_restDensity[rigidBodyIndex] = value;
+		FORCE_INLINE void setRestDensity(const Real& value) {
+			m_restDensity = value;
 		}
 
 		FORCE_INLINE const Vector3r& getV_rr_body(const unsigned int& rigidBodyIndex) const {
@@ -108,18 +109,6 @@ namespace SPH {
 			m_v_rr_body[rigidBodyIndex] = value;
 		}
 
-		FORCE_INLINE const Vector3r& getV_b_body(const unsigned int& rigidBodyIndex) const {
-			return m_v_b_body[rigidBodyIndex];
-		}
-
-		FORCE_INLINE Vector3r& getV_b_body(const unsigned int& rigidBodyIndex) {
-			return m_v_b_body[rigidBodyIndex];
-		}
-
-		FORCE_INLINE void setV_b_body(const unsigned int& rigidBodyIndex, const Vector3r& value) {
-			m_v_b_body[rigidBodyIndex] = value;
-		}
-
 		FORCE_INLINE const Vector3r& getOmega_rr_body(const unsigned int& rigidBodyIndex) const {
 			return m_omega_rr_body[rigidBodyIndex];
 		}
@@ -130,18 +119,6 @@ namespace SPH {
 
 		FORCE_INLINE void setOmega_rr_body(const unsigned int& rigidBodyIndex, const Vector3r& value) {
 			m_omega_rr_body[rigidBodyIndex] = value;
-		}
-
-		FORCE_INLINE const Vector3r& getOmega_b_body(const unsigned int& rigidBodyIndex) const {
-			return m_omega_b_body[rigidBodyIndex];
-		}
-
-		FORCE_INLINE Vector3r& getOmega_b_body(const unsigned int& rigidBodyIndex) {
-			return m_omega_b_body[rigidBodyIndex];
-		}
-
-		FORCE_INLINE void setOmega_b_body(const unsigned int& rigidBodyIndex, const Vector3r& value) {
-			m_omega_b_body[rigidBodyIndex] = value;
 		}
 		
 		FORCE_INLINE Vector3r& getV_s(const unsigned int& rigidBodyIndex, const unsigned int i) {
@@ -167,30 +144,6 @@ namespace SPH {
 
 		FORCE_INLINE void setV_rr(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
 			m_v_rr[rigidBodyIndex][i] = value;
-		}
-
-		FORCE_INLINE Vector3r& getV_b(const unsigned int& rigidBodyIndex, const unsigned int i) {
-			return m_v_b[rigidBodyIndex][i];
-		}
-
-		FORCE_INLINE const Vector3r& getV_b(const unsigned int& rigidBodyIndex, const unsigned int i) const {
-			return m_v_b[rigidBodyIndex][i];
-		}
-
-		FORCE_INLINE void setV_b(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
-			m_v_b[rigidBodyIndex][i] = value;
-		}
-
-		FORCE_INLINE Vector3r& getGrad_p_b(const unsigned int& rigidBodyIndex, const unsigned int i) {
-			return m_grad_p_b[rigidBodyIndex][i];
-		}
-
-		FORCE_INLINE const Vector3r& getGrad_p_b(const unsigned int& rigidBodyIndex, const unsigned int i) const {
-			return m_grad_p_b[rigidBodyIndex][i];
-		}
-
-		FORCE_INLINE void setGrad_p_b(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
-			m_grad_p_b[rigidBodyIndex][i] = value;
 		}
 
 		FORCE_INLINE Vector3r& getPredictVelocity(const unsigned int& rigidBodyIndex, const unsigned int i) {
@@ -287,6 +240,36 @@ namespace SPH {
 
 		FORCE_INLINE void setArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& val) {
 			m_artificialVolume[rigidBodyIndex][i] = val;
+		}
+
+		FORCE_INLINE const unsigned int& getMaxIterations() const {
+			return m_maxIterations;
+		}
+		FORCE_INLINE unsigned int& getMaxIterations() {
+			return m_maxIterations;
+		}
+		FORCE_INLINE void setMaxIterations(const unsigned int& value) {
+			m_maxIterations = value;
+		}
+
+		FORCE_INLINE const unsigned int& getMinIterations() const {
+			return m_minIterations;
+		}
+		FORCE_INLINE unsigned int& getMinIterations() {
+			return m_minIterations;
+		}
+		FORCE_INLINE void setMinIterations(const unsigned int& value) {
+			m_minIterations = value;
+		}
+
+		FORCE_INLINE const Real& getMaxDensityDeviation() const {
+			return m_maxDensityDeviation;
+		}
+		FORCE_INLINE Real& getMaxDensityDeviation() {
+			return m_maxDensityDeviation;
+		}
+		FORCE_INLINE void setMaxDensityDeviation(const Real& value) {
+			m_maxDensityDeviation = value;
 		}
 	};
 }

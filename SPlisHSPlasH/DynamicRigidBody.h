@@ -8,10 +8,7 @@
 #include "Simulation.h"
 
 namespace SPH {
-	/** \brief This class stores the information of a dynamic rigid body which
-	* is used for the strong coupling method introduced in 
-	* Interlinked SPH Pressure Solvers for Strong Fluid-Rigid Coupling. Gissler et al. https://doi.org/10.1145/3284980
-	*/
+
 	class DynamicRigidBody : public RigidBodyObject {
 		// Some fields are from PBD::RigidBody
 	private:
@@ -99,7 +96,7 @@ namespace SPH {
 		}
 
 		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
-			 const Vector3r &scale)
+			 const Vector3r &scale, const Vector3r &velocity, const Real &friction)
 		{
 			m_density = density;
 			m_scale = scale;
@@ -108,8 +105,9 @@ namespace SPH {
 			m_x0 = position;
 			m_lastX = position;
 			m_oldX = position;
-			m_v.setZero();
-			m_v0.setZero();
+
+			m_v0 = velocity;
+			m_v = m_v0;
 			m_a.setZero();
 			m_force.setZero();
 
@@ -124,7 +122,7 @@ namespace SPH {
 			m_torque.setZero();
 
 			//m_restitutionCoeff = static_cast<Real>(0.6);
-			m_frictionCoeff = static_cast<Real>(0.2);
+			m_frictionCoeff = friction;
 
 			updateMeshTransformation();
 		}

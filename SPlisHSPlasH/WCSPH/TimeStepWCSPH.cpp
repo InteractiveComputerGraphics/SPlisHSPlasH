@@ -114,7 +114,7 @@ void TimeStepWCSPH::step()
 
 	// TODO: rigid-rigid contact forces
 	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
-		computeRigidRigidAccels();
+		solveRigidRigidContacts();
 	}
 
 	sim->updateTimeStepSize();
@@ -216,215 +216,33 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex) {
 	}
 }
 
-void TimeStepWCSPH::computeRigidRigidAccels() {
+void TimeStepWCSPH::solveRigidRigidContacts() {
 	Simulation* sim = Simulation::getCurrent();
-	TimeManager* tm = TimeManager::getCurrent();
-	const Real dt = tm->getTimeStepSize();
+	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
 
 	bs->computeDensityAndVolume();
 
-	// compute density deviation
-	int particleInContact = 0;
-	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-		int bmIndex = boundaryPointSetIndex - nFluids;
-		if (bm->getRigidBodyObject()->isDynamic()) {
-            #pragma omp parallel default(shared)
-			{
-                #pragma omp for schedule(static) reduction(+:particleInContact)
-				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
-						if (pid != boundaryPointSetIndex) {
-							if (sim->numberOfNeighbors(boundaryPointSetIndex, pid, r) > 0) {
-								particleInContact++;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	if (particleInContact == 0) {
+	// check whehter there is any collisions
+	bs->computeContacts();
+	if (bs->getAllContacts() == 0) {
 		return;
 	}
-	//std::cout << particleInContact << std::endl;
-	Real avgDensityDeviation = 1.0;
 	bs->computeDiagonalElement();
 	bs->computeSourceTerm();
+	Real avgDensityDeviation = 1.0;
 	int iterations = 0;
 	// while density deviation too large
-	while ((avgDensityDeviation >bs->getMaxDensityDeviation() && iterations < bs->getMaxIterations()) || iterations < bs->getMinIterations()) {
-		//bs->computeSourceTermRHS();
-		avgDensityDeviation = 0;
-		// update pressure
-
-		for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-			int bmIndex = boundaryPointSetIndex - nFluids;
-			if (bm->getRigidBodyObject()->isDynamic()) {
-
-				bs->computeSourceTermRHSForBody(boundaryPointSetIndex);
-
-			    int numContactsBody = 0;
-				#pragma omp parallel default(shared)
-				{
-                    #pragma omp for schedule(static) reduction(+:numContactsBody)
-					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
-							if (pid != boundaryPointSetIndex) {
-								if (sim->numberOfNeighbors(boundaryPointSetIndex, pid, r) > 0) {
-									numContactsBody++;
-									break;
-								}
-							}
-						}
-					}
-				}
-				if (numContactsBody == 0) {
-					continue;
-				}
-				// beta_r_RJ
-				Real relaxation = 0.5 / numContactsBody;
-
-                #pragma omp parallel default(shared)
-				{
-                    #pragma omp for schedule(static) reduction(+:avgDensityDeviation)
-					for (int r = 0; r < bm->numberOfParticles(); r++) {
-						if (bs->getDensity(bmIndex, r) - bs->getRestDensity() > 1e-9 && std::abs(bs->getDiagonalElement(bmIndex, r)) > 1e-9) {
-							Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
-							bs->setPressure(bmIndex, r, std::max(pressureNextIter, static_cast<Real>(0.0)));
-							avgDensityDeviation -= (bs->getSourceTerm(bmIndex, r) - bs->getMinus_rho_div_v_s(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r)) * dt;
-						} else {
-							bs->setPressure(bmIndex, r, static_cast<Real>(0.0));
-						}
-					}
-				}
-			}		
-		}
-		if (particleInContact == 0) {
-			return;
-		}
-		avgDensityDeviation /= particleInContact;
-		avgDensityDeviation /= bs->getRestDensity();
-		avgDensityDeviation = std::abs(avgDensityDeviation);
+	while ((avgDensityDeviation > bs->getMaxDensityDeviation() && iterations < bs->getMaxIterations()) || iterations < bs->getMinIterations()) {
+		avgDensityDeviation = 0.0;
+		bs->pressureSolveIteration(avgDensityDeviation);
 		std::cout << avgDensityDeviation << std::endl;
 		iterations++;
 	}
 	std::cout << "------------------------------" << std::endl;
-	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-		int bmIndex = boundaryPointSetIndex - nFluids;
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		if (rb->isDynamic()) {
-            #pragma omp parallel default(shared)
-			{
-                #pragma omp for schedule(static)  
-				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					const Vector3r f = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
-					if (f != Vector3r::Zero()) {
-						bm->addForce(bm->getPosition(r), f);					
-					}
-					bs->setPressure(bmIndex, r, static_cast<Real>(0.0));
-				}
-			}
-		}
-	}
+	bs->applyForce();
 
-	// solve the equation s = -rho * div¡¤v_rr w.r.t. pressure using relaxed jacobi
-
-	//for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-	//	BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-	//	int bmIndex = boundaryPointSetIndex - nFluids;
-	//	DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-	//	unsigned int numContacts = 0;
-	//	if (bm->getRigidBodyObject()->isDynamic()) {
-	//		bs->computeDensityAndVolume();
-	//		// number of contacts
- //           #pragma omp parallel default(shared)
-	//		{
- //               #pragma omp for schedule(static) reduction(+:numContacts)
-	//			for (int r = 0; r < bm->numberOfParticles(); r++) {
-	//				for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
-	//					if (pid != boundaryPointSetIndex) {
-	//						if (sim->numberOfNeighbors(boundaryPointSetIndex, pid, r) > 0) {
-	//							numContacts++;
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//		if(numContacts == 0){
-	//			return;
-	//		}
-	//		// beta_r_RJ
-	//		Real relaxation = 0.5/numContacts;
-	//		//std::cout << numContacts << std::endl;
-	//		bs->computeSourceTerm();
-	//		bs->computeDiagonalElement();
-	//		Real densityDeviationAvg = 1;
-	//		unsigned int numParticles = 0;
-	//		unsigned int i = 0;
-
-	//		while (densityDeviationAvg > 0.002) {
-	//			densityDeviationAvg = 0.0;
-	//			numParticles = 0;
-	//			bs->computeSourceTermRHS();
- //               #pragma omp parallel default(shared)
-	//			{
- //                   #pragma omp for schedule(static) reduction(+:numParticles) reduction(+:densityDeviationAvg)
-	//				for (int r = 0; r < bm->numberOfParticles(); r++) {
-	//					if (bs->getDensity(bmIndex,r) - bs->getRestDensity(bmIndex) > 1e-9 && std::abs(bs->getDiagonalElement(bmIndex, r)) > 1e-9) {
-	//						numParticles++;
-	//						Real pressureNextIter = bs->getPressure(bmIndex, r) + relaxation / bs->getDiagonalElement(bmIndex, r) * (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r));
-	//						//if (r == 105) {
-	//						//	//if (bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r) > 0) {
-	//						//	//	std::cout << bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r) << std::endl;
-	//						//	//	std::cout << bs->getSourceTermRHS(bmIndex, r) << std::endl;
-	//						//	//	std::cout << pressureNextIter << std::endl << std::endl;
-	//						//	//}
-	//						//	std::cout << bs->getSourceTerm(bmIndex, r) - bs->getSourceTermRHS(bmIndex, r) << std::endl;
-	//						//	//std::cout << bs->getDiagonalElement(bmIndex, r) << std::endl;
-	//						//	//std::cout << bs->getPressure(bmIndex, r) << std::endl;
-	//						//	//pressureNextIter = 1.46289e+07;
-	//						//}
-	//						bs->setPressure(bmIndex, r, std::max(pressureNextIter, static_cast<Real>(0)));
-	//						densityDeviationAvg -= (bs->getMinus_rho_div_v_s(bmIndex, r) + bs->getSourceTermRHS(bmIndex, r)) * dt;
-	//					} else {
-	//						bs->setPressure(bmIndex, r, 0);
-	//					}
-	//				}
-	//			}
-	//			if (numParticles == 0 || densityDeviationAvg < 0) {
-	//				break;
-	//			}
-	//			densityDeviationAvg /= numParticles;
-	//			densityDeviationAvg /= bs->getRestDensity(bmIndex);
-	//			//std::cout << numParticles << std::endl;
-	//			////densityErrorAvg /= numParticles;
-	//			std::cout << densityDeviationAvg << std::endl;
-	//			i++;
-	//		}
-	//		std::cout << "-------------------" << std::endl;
- //           #pragma omp parallel default(shared)
-	//		{
- //               #pragma omp for schedule(static)  
-	//			for (int r = 0; r < bm->numberOfParticles(); r++) {
-	//				if (bs->getPressureGrad(bmIndex, r) != Vector3r::Zero()) {
-	//					const Vector3r f = -bs->getArtificialVolume(bmIndex, r) * bs->getPressureGrad(bmIndex, r);
-	//					if (bm->numberOfParticles() == 1) {
-	//						bm->addForce(rb->getPosition(), f);
-	//					} else {
-	//						bm->addForce(bm->getPosition(r), f);
-	//					}
-	//					bs->setPressure(bmIndex, r, 0);
-	//				} 
-	//			}
-	//		}
-	//	}
-	//}
 }
 
 void TimeStepWCSPH::performNeighborhoodSearch()

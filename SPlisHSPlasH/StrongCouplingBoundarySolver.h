@@ -27,6 +27,8 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
+		std::vector<unsigned int> m_bodyContacts;
+		unsigned int m_contactsAllBodies;
 
 		static StrongCouplingBoundarySolver* current;
 
@@ -39,6 +41,8 @@ namespace SPH {
 		~StrongCouplingBoundarySolver();
 		static StrongCouplingBoundarySolver* getCurrent();
 		void reset();
+		void resize(unsigned int size);
+		void computeContacts();
 		void computeDensityAndVolume();
 		void computePressureGrad();
 		void computeV_s();
@@ -47,6 +51,8 @@ namespace SPH {
 		void computeSourceTerm();
 		void computeDiagonalElement();
 		void computeFriction();
+		void pressureSolveIteration(Real& avgDensityDeviation);
+		void applyForce();
 		void performNeighborhoodSearchSort();
 
 		FORCE_INLINE const Real& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
@@ -132,7 +138,6 @@ namespace SPH {
 		FORCE_INLINE void setV_s(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
 			m_v_s[rigidBodyIndex][i] = value;
 		}
-
 
 		FORCE_INLINE Vector3r& getV_rr(const unsigned int& rigidBodyIndex, const unsigned int i) {
 			return m_v_rr[rigidBodyIndex][i];
@@ -240,6 +245,22 @@ namespace SPH {
 
 		FORCE_INLINE void setArtificialVolume(const unsigned int& rigidBodyIndex, const unsigned int i, const Real& val) {
 			m_artificialVolume[rigidBodyIndex][i] = val;
+		}
+
+		FORCE_INLINE const unsigned int& getBodyContacts(const unsigned int& rigidBodyIndex) const {
+			return m_bodyContacts[rigidBodyIndex];
+		}
+
+		FORCE_INLINE unsigned int& getBodyContacts(const unsigned int& rigidBodyIndex) {
+			return m_bodyContacts[rigidBodyIndex];
+		}
+
+		FORCE_INLINE void setBodyContacts(const unsigned int& rigidBodyIndex, const unsigned int& value) {
+			m_bodyContacts[rigidBodyIndex] = value;
+		}
+
+		FORCE_INLINE unsigned int getAllContacts() {
+			return m_contactsAllBodies;
 		}
 
 		FORCE_INLINE const unsigned int& getMaxIterations() const {

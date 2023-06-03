@@ -35,7 +35,7 @@ namespace SPH
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 		virtual void initParameters();
 
-		void computeRigidRigidAccels();
+		void solveRigidRigidContacts();
 
 	public:
 		static int STIFFNESS;

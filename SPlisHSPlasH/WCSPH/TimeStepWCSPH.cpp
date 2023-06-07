@@ -112,7 +112,6 @@ void TimeStepWCSPH::step()
 		computePressureAccels(fluidModelIndex);
 	}
 
-	// TODO: rigid-rigid contact forces
 	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 		solveRigidRigidContacts();
 	}

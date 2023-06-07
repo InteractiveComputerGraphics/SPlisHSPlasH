@@ -276,8 +276,7 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 					setDensity(bmIndex, r, std::max(particleDensity, getRestDensity()));
 					//gamma = 0.7, see the paper
 					const Real gamma = static_cast<Real>(0.7); 
-					if (getDensity(bmIndex, r) > getRestDensity()) {
-						
+					if (getDensity(bmIndex, r) > getRestDensity()) {						
 						setArtificialVolume(bmIndex, r, gamma * getRestDensity() * bm->getVolume(r) / getDensity(bmIndex, r));
 					} else {
 						setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
@@ -351,6 +350,7 @@ void StrongCouplingBoundarySolver::computeSourceTerm() {
 					}
 					Real s = (getRestDensity() - getDensity(bmIndex, r)) / dt + rho_div_v_s;
 					setSourceTerm(bmIndex, r, s);
+					// used to computed the density deviation
 					setMinus_rho_div_v_s(bmIndex, r, -rho_div_v_s);
 				}
 			}
@@ -373,9 +373,6 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
                 #pragma omp for schedule(static)      
 				for (int r = 0; r < bm_r->numberOfParticles(); r++) {
 					Vector3r pos_r = bm_r->getPosition(r) - rb->getPosition();
-					if (bm_r->numberOfParticles() == 1) {
-						pos_r.setZero();
-					}
 					Vector3r grad_p_b = Vector3r::Zero();
 					const Real density_r2 = getDensity(index_r, r) * getDensity(index_r, r);
 					// rk are neighboring rigid particles of r of other rigid bodies k
@@ -424,48 +421,6 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 					b_r = -b_r;
 					//setDiagonalElement(index_r, r, b_r > 0 ? b_r : 0);
 					setDiagonalElement(index_r, r, b_r);
-				}
-			}
-		}
-	}
-}
-
-void StrongCouplingBoundarySolver::computePressureGrad() {
-	Simulation* sim = Simulation::getCurrent();
-	DynamicBoundarySimulator* boundarySimulator = sim->getDynamicBoundarySimulator();
-	TimeManager* tm = TimeManager::getCurrent();
-	const Real dt = tm->getTimeStepSize();
-	const unsigned int nFluids = sim->numberOfFluidModels();
-
-	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-		int bmIndex = boundaryPointSetIndex - nFluids;
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		if (rb->isDynamic()) {
-            #pragma omp parallel default(shared)
-			{
-                #pragma omp for schedule(static)  
-				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					// pressure gradient for particle r
-					Vector3r pressureGrad_r = Vector3r().setZero();
-					const Real density_r = getDensity(bmIndex, r);
-					const Real pressure_r = getPressure(bmIndex, r);
-					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
-						if (pid != boundaryPointSetIndex) {
-							BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
-							int neighborIndex = pid - nFluids;
-							for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
-								const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
-								const Real density_k = getDensity(neighborIndex, k);
-								const Real volume_k = getArtificialVolume(neighborIndex, k);
-								//const Real pressure_k = bm_neighbor->getRigidBodyObject()->isDynamic() ? getPressure(neighborIndex, k) : pressure_r;
-								const Real pressure_k = getPressure(neighborIndex, k);
-								pressureGrad_r += volume_k * density_k * (pressure_r / (density_r * density_r) + pressure_k / (density_k * density_k)) * sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
-							}
-						}
-					}
-					pressureGrad_r *= density_r;
-					setPressureGrad(bmIndex, r, pressureGrad_r);
 				}
 			}
 		}

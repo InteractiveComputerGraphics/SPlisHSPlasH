@@ -109,7 +109,7 @@ void SurfaceTension_Akinci2013::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 			{
 				forall_boundary_neighbors(
 					// adhesion force					

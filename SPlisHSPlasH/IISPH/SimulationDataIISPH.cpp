@@ -25,6 +25,7 @@ void SimulationDataIISPH::init()
 	m_pressure.resize(nModels);
 	m_lastPressure.resize(nModels);
 	m_pressureAccel.resize(nModels);
+	m_density_adv_no_boundary.resize(nModels);
 	for (unsigned int i = 0; i < nModels; i++)
 	{
 		FluidModel *fm = sim->getFluidModel(i);
@@ -35,6 +36,7 @@ void SimulationDataIISPH::init()
 		m_pressure[i].resize(fm->numParticles(), 0.0);
 		m_lastPressure[i].resize(fm->numParticles(), 0.0);
 		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_density_adv_no_boundary[i].resize(fm->numParticles(), 0.0);
 	}
 }
 
@@ -52,6 +54,7 @@ void SimulationDataIISPH::cleanup()
 		m_pressure[i].clear();
 		m_lastPressure[i].clear();
 		m_pressureAccel[i].clear();
+		m_density_adv_no_boundary[i].clear();
 	}
 	m_aii.clear();
 	m_dii.clear();
@@ -60,6 +63,7 @@ void SimulationDataIISPH::cleanup()
 	m_pressure.clear();
 	m_lastPressure.clear();
 	m_pressureAccel.clear();
+	m_density_adv_no_boundary.clear();
 }
 
 void SimulationDataIISPH::reset()
@@ -96,6 +100,7 @@ void SimulationDataIISPH::performNeighborhoodSearchSort()
 			d.sort_field(&m_pressure[i][0]);
 			d.sort_field(&m_lastPressure[i][0]);
 			d.sort_field(&m_pressureAccel[i][0]);
+			d.sort_field(&m_density_adv_no_boundary[i][0]);
 		}
 	}
 }

@@ -24,6 +24,8 @@ namespace SPH
 			std::vector<std::vector<Vector3r>> m_dii;
 			std::vector<std::vector<Vector3r>> m_dij_pj;
 			std::vector<std::vector<Real>> m_density_adv;
+			// for Gissler2019 strong coupling
+			std::vector<std::vector<Real>> m_density_adv_no_boundary;
 			std::vector<std::vector<Real>> m_pressure;
 			std::vector<std::vector<Real>> m_lastPressure;
 			std::vector<std::vector<Vector3r>> m_pressureAccel;
@@ -106,6 +108,18 @@ namespace SPH
 			FORCE_INLINE void setDensityAdv(const unsigned int fluidIndex, const unsigned int i, const Real d)
 			{
 				m_density_adv[fluidIndex][i] = d;
+			}
+
+			FORCE_INLINE const Real getDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i) const {
+				return m_density_adv_no_boundary[fluidIndex][i];
+			}
+
+			FORCE_INLINE Real& getDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i) {
+				return m_density_adv_no_boundary[fluidIndex][i];
+			}
+
+			FORCE_INLINE void setDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i, const Real d) {
+				m_density_adv_no_boundary[fluidIndex][i] = d;
 			}
 
 			FORCE_INLINE const Real getPressure(const unsigned int fluidIndex, const unsigned int i) const

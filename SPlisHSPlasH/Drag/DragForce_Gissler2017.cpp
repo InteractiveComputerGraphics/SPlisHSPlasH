@@ -106,7 +106,7 @@ void DragForce_Gissler2017::step()
 			for (unsigned int pid = 0; pid < nFluids; pid++)
 				numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
 
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 				for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
 					numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);

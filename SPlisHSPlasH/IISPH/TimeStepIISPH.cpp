@@ -9,7 +9,9 @@
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
-
+#include "SPlisHSPlasH/StrongCouplingBoundarySolver.h"
+#include "Simulator/DynamicBoundarySimulator.h"
+#include "SPlisHSPlasH/DynamicRigidBody.h"
 
 using namespace SPH;
 using namespace std;
@@ -87,11 +89,19 @@ void TimeStepIISPH::step()
 	STOP_TIMING_AVG;
 
 	START_TIMING("pressureSolve");
-	pressureSolve();
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+		pressureSolveStrongCoupling();
+	} else {
+		pressureSolve();
+	}
 	STOP_TIMING_AVG;
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 		integration(fluidModelIndex);
+
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+		StrongCouplingBoundarySolver::getCurrent()->applyForce();
+	}
 
 	sim->emitParticles();
 	sim->animateParticles();
@@ -151,7 +161,7 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 				forall_boundary_neighbors(
 					dii -= bm_neighbor->getVolume(neighborIndex) / density2 * sim->gradW(xi - xj);
@@ -202,7 +212,7 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 					densityAdv += h*bm_neighbor->getVolume(neighborIndex) * (vi - vj).dot(sim->gradW(xi - xj));
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 			{
 				forall_density_maps(
 					Vector3r vj;
@@ -217,6 +227,11 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 					bm_neighbor->getPointVelocity(xj, vj);
 					densityAdv += h*Vj * (vi - vj).dot(sim->gradW(xi - xj));
 				);
+			} 
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) 
+			{
+				// for strong coupling, the density advection due to boundary particles are computed in pressure solve iterations.
+				m_simulationData.getDensityAdvNoBoundary(fluidModelIndex, i) = densityAdv;
 			}
 
 			const Real &pressure = m_simulationData.getPressure(fluidModelIndex, i);
@@ -245,7 +260,7 @@ void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 				forall_boundary_neighbors(
 					const Vector3r kernel = sim->gradW(xi - xj);
@@ -298,6 +313,127 @@ void TimeStepIISPH::pressureSolve()
 		}
 
 		m_iterations++;
+	}
+	INCREASE_COUNTER("IISPH - iterations", static_cast<Real>(m_iterations));
+}
+
+void TimeStepIISPH::pressureSolveStrongCoupling() {
+	Simulation* sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+	Real avg_density_err = 0;
+	Real avg_density_err_rigid = 0;
+	m_iterations = 0;
+	bool chk = false;
+
+	bs->computeContacts();
+	bool anyRigidContact = bs->getAllContacts() != 0;
+	if (anyRigidContact) {
+		bs->computeDensityAndVolume();
+	}
+	bool rigidSolverConverged = false;
+
+	while ((!chk || !rigidSolverConverged || (m_iterations < m_minIterations)) && (m_iterations < m_maxIterations)) {
+		chk = true;
+		rigidSolverConverged = true;
+
+		// fluid-rigid forces
+		for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++) {
+			FluidModel* model = sim->getFluidModel(fluidModelIndex);
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int i = 0; i < (int)model->numActiveParticles(); i++) {
+					const Real density0 = model->getDensity0();
+					const Real density_i = model->getDensity(i) / density0;
+					const Real density2 = density_i * density_i;
+					const Real dpi = m_simulationData.getPressure(fluidModelIndex, i) / density2;
+					const Vector3r& xi = model->getPosition(i);
+					const Vector3r& vi = model->getVelocity(i);
+
+					Vector3r& ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
+					ai.setZero();
+					
+					// fluid pressure
+					forall_fluid_neighbors(
+						const Real density_j = fm_neighbor->getDensity(neighborIndex) / fm_neighbor->getDensity0();
+					    const Real densityj2 = density_j * density_j;
+					    const Real dpj = m_simulationData.getPressure(pid, neighborIndex) / densityj2;
+					    ai -= fm_neighbor->getVolume(neighborIndex) * (dpi + fm_neighbor->getDensity0() / density0 * dpj) * sim->gradW(xi - xj);
+					);
+
+					// fluid-rigid
+					forall_boundary_neighbors(
+						const Vector3r a = bm_neighbor->getVolume(neighborIndex) * dpi * sim->gradW(xi - xj);
+					    ai -= a;
+						bm_neighbor->addForce(xj, model->getMass(i) * a);
+					);
+				}
+			}
+		}
+
+		// apply force and torque for computing predicted velocity
+		sim->getDynamicBoundarySimulator()->updateBoundaryForces();
+
+		if (anyRigidContact) {
+			bs->computeSourceTerm();
+			bs->computeDiagonalElement();
+			avg_density_err_rigid = 0.0;
+			bs->pressureSolveIteration(avg_density_err_rigid);
+			if (avg_density_err_rigid > bs->getMaxDensityDeviation()) {
+				rigidSolverConverged = false;
+			}
+		} else {
+			// compute the predicted velocity and position without rigid-rigid contacts
+			bs->computeV_s();
+		}
+
+		// clear force and torque used to computed predicted velocity
+		for (int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+			static_cast<DynamicRigidBody*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex)->getRigidBodyObject())->clearForceAndTorque();
+		}
+
+		// predict density advection using the predicted velocity of fluid and rigid velocities
+		for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++) {
+			FluidModel* model = sim->getFluidModel(fluidModelIndex);
+            #pragma omp parallel default(shared)
+			{
+                #pragma omp for schedule(static)  
+				for (int i = 0; i < (int)model->numActiveParticles(); i++) {
+					const Vector3r& xi = model->getPosition(i);
+					const Vector3r& vi = model->getVelocity(i);
+					const Vector3r& ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
+					const Vector3r predictedV = vi + ai * dt;
+
+					Real densityAdv = m_simulationData.getDensityAdvNoBoundary(fluidModelIndex, i);
+
+					// density advection considering rigid bodies
+					forall_boundary_neighbors(
+						densityAdv += dt * bm_neighbor->getVolume(neighborIndex) * (predictedV - bs->getPredictedVelocity(pid - nFluids, neighborIndex)).dot(sim->gradW(xi - xj));
+					);
+					m_simulationData.getDensityAdv(fluidModelIndex, i) = densityAdv;
+				}
+			}
+		}
+
+		for (unsigned int i = 0; i < nFluids; i++) {
+			FluidModel* model = sim->getFluidModel(i);
+			const Real density0 = model->getDensity0();
+
+			avg_density_err = 0.0;
+			pressureSolveIteration(i, avg_density_err);
+
+			// Maximal allowed density fluctuation
+			const Real eta = m_maxError * static_cast<Real>(0.01) * density0;  // maxError is given in percent
+			chk = chk && (avg_density_err <= eta);
+		}
+
+		m_iterations++;
+	}
+
+	if (anyRigidContact) {
+		bs->applyForce();
 	}
 	INCREASE_COUNTER("IISPH - iterations", static_cast<Real>(m_iterations));
 }
@@ -377,7 +513,7 @@ void TimeStepIISPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 				forall_boundary_neighbors(
 					sum += bm_neighbor->getVolume(neighborIndex) * m_simulationData.getDij_pj(fluidModelIndex, i).dot(sim->gradW(xi - xj));
@@ -492,7 +628,7 @@ void TimeStepIISPH::computePressureAccels(const unsigned int fluidModelIndex)
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 				forall_boundary_neighbors(
 					const Vector3r a = bm_neighbor->getVolume(neighborIndex) * dpi * sim->gradW(xi - xj);

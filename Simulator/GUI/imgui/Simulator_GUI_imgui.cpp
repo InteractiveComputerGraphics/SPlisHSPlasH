@@ -507,14 +507,14 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		DynamicBoundarySimulator* simulator = sim->getDynamicBoundarySimulator();		
 		// Fields for all boundary models
 		{
-			imguiParameters::imguiNumericParameter<Real>* damping = new imguiParameters::imguiNumericParameter<Real>();
-			damping->description = "Damping of the system";
-			damping->label = "Damping";
-			damping->getFct = [simulator]()->Real {return simulator->getDampingCoeff(); };
-			damping->setFct = [simulator](Real v) {simulator->setDampingCoeff(v); };
-			imguiParameters::addParam("Boundary Model", "General", damping);
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+				imguiParameters::imguiNumericParameter<Real>* damping = new imguiParameters::imguiNumericParameter<Real>();
+				damping->description = "Damping of the system";
+				damping->label = "Damping";
+				damping->getFct = [simulator]()->Real {return simulator->getDampingCoeff(); };
+				damping->setFct = [simulator](Real v) {simulator->setDampingCoeff(v); };
+				imguiParameters::addParam("Boundary Model", "General", damping);
 
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
 				StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
 
 				imguiParameters::imguiNumericParameter<unsigned int>* maxIteration = new imguiParameters::imguiNumericParameter<unsigned int>;
@@ -740,7 +740,7 @@ void Simulator_GUI_imgui::renderBoundary()
 	const int renderWalls = base->getValue<int>(SimulatorBase::RENDER_WALLS);
 
 	if (((renderWalls == 1) || (renderWalls == 2)) &&
-		(sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012))
+		(sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019))
 	{
 		for (int body = sim->numberOfBoundaryModels() - 1; body >= 0; body--)
 		{

@@ -17,7 +17,7 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"boundaryHandlingMethod": 0
+		"boundaryHandlingMethod": 3
 	},
 	"Simulation": 
 	{
@@ -63,7 +63,8 @@
 			"invertSDF": true,
 			"mapInvert": true, 
 			"mapThickness": 0.0,
-			"mapResolution": [30,40,15]
+			"mapResolution": [30,40,15],
+			"samplingMode": 1
 		},
 		{
 			"id": 2,
@@ -82,7 +83,8 @@
 			"collisionObjectScale": [0.4, 0.4, 0.4],
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [20,20,20]
+			"mapResolution": [20,20,20],
+			"samplingMode": 1
 		},
 		{
 			"id": 3,
@@ -101,7 +103,8 @@
 			"collisionObjectScale": [0.4, 0.4, 0.4],
 			"mapInvert": false, 
 			"mapThickness": 0.0,
-			"mapResolution": [20,20,20]
+			"mapResolution": [20,20,20],
+			"samplingMode": 1
 		}
 	]
 }

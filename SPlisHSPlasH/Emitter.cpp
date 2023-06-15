@@ -48,7 +48,7 @@ Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 	Vector3r size;
 	if (type == 0)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			size = {
 				2 * supportRadius,
@@ -67,7 +67,7 @@ Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 	}
 	else
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			// height and radius of cylinder
 			const Real h = 2 * supportRadius;

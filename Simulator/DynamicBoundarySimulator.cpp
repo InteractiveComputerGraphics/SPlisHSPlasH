@@ -58,7 +58,7 @@ void DynamicBoundarySimulator::initBoundaryData() {
 		MeshImport::importMesh(meshFileName, geo, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale);
 
 		std::vector<Vector3r> boundaryParticles;
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 			// if a samples file is given, use this one
 			if (scene.boundaryModels[i]->samplesFile != "") {
 				string particleFileName = scene_path + "/" + scene.boundaryModels[i]->samplesFile;
@@ -134,7 +134,7 @@ void DynamicBoundarySimulator::initBoundaryData() {
 		rb->initBody(scene.boundaryModels[i]->density, scene.boundaryModels[i]->dynamic, scene.boundaryModels[i]->translation, q, 
 			         scene.boundaryModels[i]->scale, scene.boundaryModels[i]->velocity, scene.boundaryModels[i]->friction);
 
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 			BoundaryModel_Akinci2012* bm = new BoundaryModel_Akinci2012();
 			bm->initModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 			sim->addBoundaryModel(bm);
@@ -161,7 +161,7 @@ void DynamicBoundarySimulator::initBoundaryData() {
 void DynamicBoundarySimulator::deferredInit() {
 	Simulation* sim = Simulation::getCurrent();
 	sim->performNeighborhoodSearchSort();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		m_base->updateBoundaryParticles(true);
 		Simulation::getCurrent()->updateBoundaryVolume();
 	} else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
@@ -177,47 +177,26 @@ void DynamicBoundarySimulator::deferredInit() {
 
 void DynamicBoundarySimulator::timeStep() {
 	Simulation* sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() != BoundaryHandlingMethods::Akinci2012) {
-		updateBoundaryForces();
-		const unsigned int nObjects = sim->numberOfBoundaryModels();
-        #pragma omp parallel for
-		for (int i = 0; i < nObjects; i++) {
-			BoundaryModel* bm = sim->getBoundaryModel(i);
-			RigidBodyObject* rbo = bm->getRigidBodyObject();
-			if (rbo->isDynamic()) {
-				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
-				drb->timeStep();
-				// Apply damping
-				drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-				drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-			}
+	updateBoundaryForces();
+	const unsigned int nObjects = sim->numberOfBoundaryModels();
+    #pragma omp parallel for
+	for (int i = 0; i < nObjects; i++) {
+		BoundaryModel* bm = sim->getBoundaryModel(i);
+		RigidBodyObject* rbo = bm->getRigidBodyObject();
+		if (rbo->isDynamic()) {
+			DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
+			drb->timeStep();
+			// Apply damping
+			drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
+			drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
 		}
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
-			m_base->updateDMVelocity();
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
-			m_base->updateVMVelocity();
 	}
-}
-
-void DynamicBoundarySimulator::timeStepStrongCoupling() {
-	Simulation* sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
-		updateBoundaryForces(); //this is already used to compute the source term
-		const unsigned int nObjects = sim->numberOfBoundaryModels();
-        #pragma omp parallel for
-		for (int i = 0; i < nObjects; i++) {
-			BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
-			RigidBodyObject* rbo = bm->getRigidBodyObject();
-			if (rbo->isDynamic()) {
-				DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
-				drb->timeStep();
-				// Apply damping
-				drb->setVelocity(drb->getVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-				drb->setAngularVelocity(drb->getAngularVelocity() * (static_cast<Real>(1.0) - m_dampingCoeff));
-			}
-		}
+	if(sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		m_base->updateBoundaryParticles(false);
-	}
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		m_base->updateDMVelocity();
+	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
+		m_base->updateVMVelocity();	
 }
 
 void DynamicBoundarySimulator::reset() {
@@ -229,7 +208,7 @@ void DynamicBoundarySimulator::reset() {
 		}
 	}
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		m_base->updateBoundaryParticles(true);
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 		m_base->updateDMVelocity();

@@ -170,7 +170,7 @@ namespace SPH
 {
 	class DynamicBoundarySimulator;
 	enum class SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, ICSPH, NumSimulationMethods };
-	enum class BoundaryHandlingMethods { Akinci2012 = 0, Koschier2017, Bender2019, NumSimulationMethods };
+	enum class BoundaryHandlingMethods { Akinci2012 = 0, Koschier2017, Bender2019, Gissler2019, NumSimulationMethods };
 
 	/** \brief Class to manage the current simulation time and the time step size. 
 	* This class is a singleton.
@@ -222,6 +222,7 @@ namespace SPH
 		static int ENUM_AKINCI2012;
 		static int ENUM_KOSCHIER2017;
 		static int ENUM_BENDER2019;
+		static int ENUM_GISSLER2019;
 
 		typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
 

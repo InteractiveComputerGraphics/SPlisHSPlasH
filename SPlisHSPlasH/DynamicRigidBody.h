@@ -174,7 +174,7 @@ namespace SPH {
 			m_isDynamic = isDynamic;
 			// for now only consider cubiod which is scaled from a unit cube
 			setMass(density * scale.x() * scale.y() * scale.z());
-			Vector3r value = m_mass * Vector3r((scale.y() * scale.y() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12);
+			Vector3r value = m_mass * Vector3r((scale.y() * scale.y() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.y() * scale.y()) / 12);
 			m_inertiaTensor = value;
 			m_inertiaTensorInverse = Vector3r(static_cast<Real>(1.0) / value[0], static_cast<Real>(1.0) / value[1], static_cast<Real>(1.0) / value[2]);
 		}

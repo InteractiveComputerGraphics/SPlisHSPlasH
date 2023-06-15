@@ -18,7 +18,7 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"particleAttributes": "density;velocity",
+		"particleAttributes": "density;velocity;pressure",
 		"boundaryHandlingMethod": 2
 	},
 	"Materials": [

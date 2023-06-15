@@ -20,8 +20,8 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_s; // source term
 		std::vector<std::vector<Vector3r>> m_pressureGrad;
 		std::vector<std::vector<Vector3r>> m_v_rr;
-		std::vector<std::vector<Vector3r>> m_predictVelocity;
-		std::vector<std::vector<Vector3r>> m_predictPosition;
+		std::vector<std::vector<Vector3r>> m_predictedVelocity;
+		std::vector<std::vector<Vector3r>> m_predictedPosition;
 		std::vector<std::vector<Real>> m_minus_rho_div_v_s;
 		std::vector<std::vector<Real>> m_minus_rho_div_v_rr; // RHS to the source term
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
@@ -32,8 +32,10 @@ namespace SPH {
 
 		static StrongCouplingBoundarySolver* current;
 
+		// only used in WCSPH
 		unsigned int m_maxIterations;
 		unsigned int m_minIterations;
+
 		Real m_maxDensityDeviation;
 
 	public:
@@ -44,13 +46,11 @@ namespace SPH {
 		void resize(unsigned int size);
 		void computeContacts();
 		void computeDensityAndVolume();
-		void computePressureGrad();
 		void computeV_s();
 		void computeSourceTermRHS();
 		void computeSourceTermRHSForBody(const unsigned int& boundaryPointSetIndex);
 		void computeSourceTerm();
 		void computeDiagonalElement();
-		void computeFriction();
 		void pressureSolveIteration(Real& avgDensityDeviation);
 		void applyForce();
 		void performNeighborhoodSearchSort();
@@ -151,28 +151,28 @@ namespace SPH {
 			m_v_rr[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE Vector3r& getPredictVelocity(const unsigned int& rigidBodyIndex, const unsigned int i) {
-			return m_predictVelocity[rigidBodyIndex][i];
+		FORCE_INLINE Vector3r& getPredictedVelocity(const unsigned int& rigidBodyIndex, const unsigned int i) {
+			return m_predictedVelocity[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE const Vector3r& getPredictVelocity(const unsigned int& rigidBodyIndex, const unsigned int i) const {
-			return m_predictVelocity[rigidBodyIndex][i];
+		FORCE_INLINE const Vector3r& getPredictedVelocity(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+			return m_predictedVelocity[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setPredictVelocity(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
-			m_predictVelocity[rigidBodyIndex][i] = value;
+		FORCE_INLINE void setPredictedVelocity(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
+			m_predictedVelocity[rigidBodyIndex][i] = value;
 		}
 
-		FORCE_INLINE Vector3r& getPredictPosition(const unsigned int& rigidBodyIndex, const unsigned int i) {
-			return m_predictPosition[rigidBodyIndex][i];
+		FORCE_INLINE Vector3r& getPredictedPosition(const unsigned int& rigidBodyIndex, const unsigned int i) {
+			return m_predictedPosition[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE const Vector3r& getPredictPosition(const unsigned int& rigidBodyIndex, const unsigned int i) const {
-			return m_predictPosition[rigidBodyIndex][i];
+		FORCE_INLINE const Vector3r& getPredictedPosition(const unsigned int& rigidBodyIndex, const unsigned int i) const {
+			return m_predictedPosition[rigidBodyIndex][i];
 		}
 
-		FORCE_INLINE void setPredictPosition(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
-			m_predictPosition[rigidBodyIndex][i] = value;
+		FORCE_INLINE void setPredictedPosition(const unsigned int& rigidBodyIndex, const unsigned int i, const Vector3r& value) {
+			m_predictedPosition[rigidBodyIndex][i] = value;
 		}
 
 		FORCE_INLINE Vector3r& getPressureGrad(const unsigned int& rigidBodyIndex, const unsigned int i) {

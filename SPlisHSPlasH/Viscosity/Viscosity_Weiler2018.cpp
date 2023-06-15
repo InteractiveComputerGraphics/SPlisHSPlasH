@@ -130,7 +130,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 			//////////////////////////////////////////////////////////////////////////
 			if (mub != 0.0)
 			{
-				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 				{
 					forall_boundary_neighbors_avx(
 						const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVelocity(0), count);
@@ -492,7 +492,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 	//////////////////////////////////////////////////////////////////////////
 	if (mub != 0.0)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			forall_boundary_neighbors_avx(
 				const Vector3f8 xixj = xi_avx - xj_avx;
@@ -636,7 +636,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 	//////////////////////////////////////////////////////////////////////////
 	if (mub != 0.0)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			forall_boundary_neighbors(
 				const Vector3r xixj = xi - xj;
@@ -779,7 +779,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 	//////////////////////////////////////////////////////////////////////////
 	if (mub != 0.0)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			forall_boundary_neighbors(
 				const Vector3r xixj = xi - xj;
@@ -954,7 +954,7 @@ void Viscosity_Weiler2018::applyForces(const VectorXr &x)
             //////////////////////////////////////////////////////////////////////////
             if (mub != 0.0)
             {
-                if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+                if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
                 {
                     forall_boundary_neighbors(
                             const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);
@@ -1118,7 +1118,7 @@ void Viscosity_Weiler2018::computeRHS(VectorXr &b, VectorXr &g)
             //////////////////////////////////////////////////////////////////////////
             if (mub != 0.0)
             {
-                if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+                if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
                 {
                     forall_boundary_neighbors(
                             const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);

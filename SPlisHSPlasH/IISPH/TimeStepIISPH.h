@@ -24,6 +24,7 @@ namespace SPH
 
 		void predictAdvection(const unsigned int fluidModelIndex);
 		void pressureSolve();
+		void pressureSolveStrongCoupling();
 		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 		void integration(const unsigned int fluidModelIndex);
 

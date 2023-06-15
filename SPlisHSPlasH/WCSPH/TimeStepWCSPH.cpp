@@ -93,6 +93,7 @@ void TimeStepWCSPH::step()
 	}
 	sim->computeNonPressureForces();
 
+	sim->updateTimeStepSize();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -112,11 +113,9 @@ void TimeStepWCSPH::step()
 		computePressureAccels(fluidModelIndex);
 	}
 
-	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		solveRigidRigidContacts();
 	}
-
-	sim->updateTimeStepSize();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
@@ -141,11 +140,6 @@ void TimeStepWCSPH::step()
 
 	sim->emitParticles();
 	sim->animateParticles();
-
-	// Only for strong coupling method with BoundaryModel_Akinci2012
-	if (sim->getDynamicBoundarySimulator() != nullptr && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
-		sim->getDynamicBoundarySimulator()->timeStepStrongCoupling();
-	}
 
 	// Compute new time	
 	tm->setTime(tm->getTime() + h);
@@ -192,7 +186,7 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex) {
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
 			const Real dpj = m_simulationData.getPressure(fluidModelIndex, i) / (density0 * density0);
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 				forall_boundary_neighbors(
 					const Vector3r a = density0 * bm_neighbor->getVolume(neighborIndex) * (dpi + dpj) * sim->gradW(xi - xj);
 				    ai -= a;
@@ -220,14 +214,14 @@ void TimeStepWCSPH::solveRigidRigidContacts() {
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
-
-	bs->computeDensityAndVolume();
-
+	sim->getDynamicBoundarySimulator()->updateBoundaryForces();
 	// check whehter there is any collisions
 	bs->computeContacts();
 	if (bs->getAllContacts() == 0) {
 		return;
 	}
+
+	bs->computeDensityAndVolume();
 	bs->computeDiagonalElement();
 	bs->computeSourceTerm();
 	Real avgDensityDeviation = 1.0;
@@ -236,12 +230,11 @@ void TimeStepWCSPH::solveRigidRigidContacts() {
 	while ((avgDensityDeviation > bs->getMaxDensityDeviation() && iterations < bs->getMaxIterations()) || iterations < bs->getMinIterations()) {
 		avgDensityDeviation = 0.0;
 		bs->pressureSolveIteration(avgDensityDeviation);
-		std::cout << avgDensityDeviation << std::endl;
+		//std::cout << avgDensityDeviation << std::endl;
 		iterations++;
 	}
-	std::cout << "------------------------------" << std::endl;
+	//std::cout << "------------------------------" << std::endl;
 	bs->applyForce();
-
 }
 
 void TimeStepWCSPH::performNeighborhoodSearch()

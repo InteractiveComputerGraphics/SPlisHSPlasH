@@ -414,6 +414,7 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 	//////////////////////////////////////////////////////////////////////////
 	// init boundary simulation
 	//////////////////////////////////////////////////////////////////////////
+	m_boundaryHandlingMethod = scene.boundaryHandlingMethod;
 	m_isStaticScene = true;
 	for (unsigned int i = 0; i < scene.boundaryModels.size(); i++)
 	{
@@ -431,8 +432,12 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 	else
 	{
 		LOG_INFO << "Initialize dynamic boundary simulation";
-		//m_boundarySimulator = new PBDBoundarySimulator(this);
-		m_boundarySimulator = new DynamicBoundarySimulator(this);
+		if (m_boundaryHandlingMethod == 3) {
+			// Gissler 2019
+			m_boundarySimulator = new DynamicBoundarySimulator(this);
+		} else {
+			m_boundarySimulator = new PBDBoundarySimulator(this);
+		}
 	}
 
 	initExporters();
@@ -532,6 +537,7 @@ void SimulatorBase::initSimulation()
 #endif
 			});
 	}
+
 	updateScalarField();
 }
 
@@ -540,7 +546,7 @@ void SimulatorBase::deferredInit()
 	m_boundarySimulator->initBoundaryData();
 
 	Simulation* sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 	{
 		unsigned int nBoundaryParticles = 0;
 		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
@@ -1845,7 +1851,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	}
 	if (dynamic)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			updateBoundaryParticles(true);
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 			updateDMVelocity();
@@ -2177,7 +2183,7 @@ void SimulatorBase::readFluidParticlesState(const std::string &fileName, FluidMo
 void SimulatorBase::writeBoundaryState(const std::string &fileName, BoundaryModel *bm)
 {
 	Simulation *sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 	{
 		BoundaryModel_Akinci2012 *model = static_cast<BoundaryModel_Akinci2012*>(bm);
 		Partio::ParticlesDataMutable& particleData = *Partio::create();
@@ -2223,7 +2229,7 @@ void SimulatorBase::writeBoundaryState(const std::string &fileName, BoundaryMode
 void SimulatorBase::readBoundaryState(const std::string &fileName, BoundaryModel *bm)
 {
 	Simulation *sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 	{
 		if (!FileSystem::fileExists(fileName))
 		{

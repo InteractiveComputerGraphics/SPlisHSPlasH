@@ -26,7 +26,6 @@ namespace SPH {
 		virtual void deferredInit();
 
 		virtual void timeStep();
-		void timeStepStrongCoupling();
 		virtual void reset();
 
 		FORCE_INLINE const Real& getDampingCoeff() const {

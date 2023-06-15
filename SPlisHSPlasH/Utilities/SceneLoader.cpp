@@ -44,6 +44,9 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 
 		scene.sim2D = false;
 		readValue(config["sim2D"], scene.sim2D);
+
+		scene.boundaryHandlingMethod = 0;
+		readValue(config["boundaryHandlingMethod"], scene.boundaryHandlingMethod);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

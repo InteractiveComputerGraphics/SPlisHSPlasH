@@ -98,7 +98,7 @@ void XSPH::step()
 			//////////////////////////////////////////////////////////////////////////
 			if (m_boundaryCoefficient != 0.0)
 			{
-				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 				{
 					forall_boundary_neighbors(
 						const Vector3r &vj = bm_neighbor->getVelocity(neighborIndex);

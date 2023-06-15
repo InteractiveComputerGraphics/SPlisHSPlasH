@@ -4,7 +4,7 @@
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 2,
 		"density0": 1000, 
-		"simulationMethod": 4,
+		"simulationMethod": 3,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 0.5,
@@ -17,7 +17,7 @@
 		"exponent": 7,
 		"velocityUpdateMethod": 0,
 		"enableDivergenceSolver": true,
-		"boundaryHandlingMethod": 0
+		"boundaryHandlingMethod": 3
 	},
 	"Simulation": 
 	{

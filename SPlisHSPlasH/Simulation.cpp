@@ -60,6 +60,7 @@ int Simulation::BOUNDARY_HANDLING_METHOD = -1;
 int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
 int Simulation::ENUM_BENDER2019 = -1;
+int Simulation::ENUM_GISSLER2019 = -1;
 
 
 Simulation::Simulation () 
@@ -266,6 +267,7 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("Akinci et al. 2012", ENUM_AKINCI2012);
 	enumParam->addEnumValue("Koschier and Bender 2017", ENUM_KOSCHIER2017);
 	enumParam->addEnumValue("Bender et al. 2019", ENUM_BENDER2019);
+	enumParam->addEnumValue("Gissler et al. 2019", ENUM_GISSLER2019);
 	enumParam->setReadOnly(true);
 }
 
@@ -381,7 +383,7 @@ void Simulation::setKernel(int val)
 			m_kernelFct = WendlandQuinticC2Kernel2D::W;
 		}
 	}
-	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		updateBoundaryVolume();
 }
 
@@ -430,7 +432,7 @@ void Simulation::updateTimeStepSizeCFL()
 	}
 
 	// boundary particles
-	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 	{
 		for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		{
@@ -509,7 +511,7 @@ void Simulation::reset()
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 		getBoundaryModel(i)->reset();
 
-	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		updateBoundaryVolume();
 		StrongCouplingBoundarySolver::getCurrent()->reset();
 	}

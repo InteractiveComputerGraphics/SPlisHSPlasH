@@ -30,6 +30,7 @@ namespace Utilities
 			std::vector<MaterialParameterObject*> materials;
 			Real particleRadius;
 			bool sim2D;
+			int boundaryHandlingMethod;
 		};
 
 		nlohmann::json& getJSONData() { return m_jsonData; };

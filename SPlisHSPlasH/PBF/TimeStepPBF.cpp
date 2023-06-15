@@ -251,7 +251,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 					density += rho;
 				);
 			}	
-			else // Bender2019
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 			{
 				forall_volume_maps(
 					density += Vj * sim->W(xi - xj);
@@ -297,7 +297,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 						gradC_i -= gradRho;
 					);
 				}
-				else   // Bender2019
+				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 				{
 					forall_volume_maps(
 						const Vector3r gradC_j = -Vj * sim->gradW(xi - xj);
@@ -360,7 +360,7 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 					bm_neighbor->addForce(xj, model->getMass(i) * dx * invH2);	
 				);
 			}
-			else   // Bender2019
+			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 			{
 				forall_volume_maps(
 					const Vector3r gradC_j = -Vj * sim->gradW(xi - xj);	

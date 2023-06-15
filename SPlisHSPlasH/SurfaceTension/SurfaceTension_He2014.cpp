@@ -63,7 +63,7 @@ void SurfaceTension_He2014::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 			forall_boundary_neighbors(
 					ci += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
@@ -132,7 +132,7 @@ void SurfaceTension_He2014::step()
 			//////////////////////////////////////////////////////////////////////////
 			// Boundary
 			//////////////////////////////////////////////////////////////////////////
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 			{
 			forall_boundary_neighbors(
 					const Vector3r a = factorb*bm_neighbor->getVolume(neighborIndex) * gradC2_i * sim->gradW(xi - xj);

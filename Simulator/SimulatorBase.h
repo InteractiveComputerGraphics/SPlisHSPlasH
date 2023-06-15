@@ -46,6 +46,7 @@ namespace SPH
 		bool m_useParticleCaching;
 		bool m_useGUI;
 		bool m_isStaticScene;
+		int m_boundaryHandlingMethod;
 		int m_renderWalls;
 		bool m_doPause;
 		Real m_pauseAt;
@@ -199,6 +200,7 @@ namespace SPH
 		void setUseParticleCaching(bool val) { m_useParticleCaching = val; }
 		bool getUseGUI() const { return m_useGUI; }
 		void setUseGUI(bool val) { m_useGUI = val; }
+		int getBoundaryHandlingMethod() const { return m_boundaryHandlingMethod; }
 
 		const std::string& getColorField(const unsigned int fluidModelIndex) {	return m_colorField[fluidModelIndex]; }
 		void setColorField(const unsigned int fluidModelIndex, const std::string& fieldName) { m_colorField[fluidModelIndex] = fieldName; }

@@ -624,6 +624,18 @@ namespace SPH {
 			clearForceAndTorque();
 		}
 
+		// used in DFSPH
+		void updateVelocity() {
+			Simulation* sim = Simulation::getCurrent();
+			const Vector3r gravAccel(sim->getVecValue<Real>(Simulation::GRAVITATION));
+			const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+			m_a = m_invMass * m_force;
+			m_v += m_a * dt;
+			m_a_omega = m_inertiaTensorInverseW * (m_torque - (m_omega.cross(m_inertiaTensorW * m_omega)));
+			m_omega += m_a_omega * dt;
+			clearForceAndTorque();
+		}
+
 		virtual const std::vector<Vector3r>& getVertices() const {
 			return m_geometry.getVertices();
 		};

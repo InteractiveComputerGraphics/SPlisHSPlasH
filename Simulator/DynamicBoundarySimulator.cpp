@@ -199,6 +199,21 @@ void DynamicBoundarySimulator::timeStep() {
 		m_base->updateVMVelocity();	
 }
 
+void DynamicBoundarySimulator::updateVelocities() {
+	Simulation* sim = Simulation::getCurrent();
+	updateBoundaryForces();
+	const unsigned int nObjects = sim->numberOfBoundaryModels();
+    #pragma omp parallel for
+	for (int i = 0; i < nObjects; i++) {
+		BoundaryModel* bm = sim->getBoundaryModel(i);
+		RigidBodyObject* rbo = bm->getRigidBodyObject();
+		if (rbo->isDynamic()) {
+			DynamicRigidBody* drb = dynamic_cast<DynamicRigidBody*>(rbo);
+			drb->updateVelocity();
+		}
+	}
+}
+
 void DynamicBoundarySimulator::reset() {
 	Simulation* sim = Simulation::getCurrent();
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++) {

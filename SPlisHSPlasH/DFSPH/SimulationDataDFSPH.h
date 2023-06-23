@@ -25,6 +25,8 @@ namespace SPH
 			std::vector<std::vector<Real>> m_factor;
 			/** \brief advected density */
 			std::vector<std::vector<Real>> m_density_adv;
+			/** \brief for strong coupling (Gissler2019) */
+			std::vector<std::vector<Real>> m_density_adv_no_boundary;
 
 			/** \brief stores \f$\frac{p}{\rho^2}\f$ value of the constant density solver */
 			std::vector<std::vector<Real>> m_pressure_rho2;
@@ -83,6 +85,18 @@ namespace SPH
 			FORCE_INLINE void setDensityAdv(const unsigned int fluidIndex, const unsigned int i, const Real d)
 			{
 				m_density_adv[fluidIndex][i] = d;
+			}
+
+			FORCE_INLINE const Real getDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i) const {
+				return m_density_adv_no_boundary[fluidIndex][i];
+			}
+
+			FORCE_INLINE Real& getDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i) {
+				return m_density_adv_no_boundary[fluidIndex][i];
+			}
+
+			FORCE_INLINE void setDensityAdvNoBoundary(const unsigned int fluidIndex, const unsigned int i, const Real d) {
+				m_density_adv_no_boundary[fluidIndex][i] = d;
 			}
 
 			FORCE_INLINE const Real getPressureRho2(const unsigned int fluidIndex, const unsigned int i) const

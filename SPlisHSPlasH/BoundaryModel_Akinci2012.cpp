@@ -6,6 +6,7 @@
 #include "Utilities/Logger.h"
 #include "NeighborhoodSearch.h"
 #include "Simulation.h"
+#include "StrongCouplingBoundarySolver.h"
 
 using namespace SPH;
 
@@ -79,7 +80,7 @@ void BoundaryModel_Akinci2012::computeBoundaryVolume()
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-
+	StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
 	const unsigned int numBoundaryParticles = numberOfParticles();
 
 	#pragma omp parallel default(shared)
@@ -87,14 +88,23 @@ void BoundaryModel_Akinci2012::computeBoundaryVolume()
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numBoundaryParticles; i++)
 		{
-			Real delta = sim->W_zero();
+			Real delta;
+			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+				delta = bs->W_zero();
+			} else {
+				delta = sim->W_zero();
+			}
 			for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
 			{
 				BoundaryModel_Akinci2012 *bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
 				for (unsigned int j = 0; j < neighborhoodSearch->point_set(m_pointSetIndex).n_neighbors(pid, i); j++)
 				{
 					const unsigned int neighborIndex = neighborhoodSearch->point_set(m_pointSetIndex).neighbor(pid, i, j);
-					delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
+					if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+						delta += bs->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
+					} else {
+						delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
+					}
 				}
 			}
 			const Real volume = static_cast<Real>(1.0) / delta;

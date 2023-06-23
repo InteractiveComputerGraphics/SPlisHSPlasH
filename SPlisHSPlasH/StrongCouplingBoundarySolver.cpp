@@ -3,6 +3,7 @@
 #include "TimeManager.h"
 #include "DynamicRigidBody.h"
 #include "Simulator/DynamicBoundarySimulator.h"
+#include "SPlisHSPlasH/SPHKernels.h"
 
 using namespace SPH;
 
@@ -29,6 +30,10 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_maxIterations = 100;
 	m_minIterations = 2;
 	m_maxDensityDeviation = 0.001;
+
+	m_kernelFct = CubicKernel::W;
+	m_gradKernelFct = CubicKernel::gradW;
+	m_W_zero = CubicKernel::W_zero();
 
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
@@ -266,13 +271,13 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 			for (int r = 0; r < bm->numberOfParticles(); r++) {
 				if (rb->isDynamic()) {
 					// compute density for particle r
-					Real particleDensity = getRestDensity() * bm->getVolume(r) * sim->W_zero();
+					Real particleDensity = getRestDensity() * bm->getVolume(r) * W_zero();
 					// iterate over all rigid bodies
 					for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
 						BoundaryModel_Akinci2012* bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
 						for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
 							const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
-							particleDensity += getRestDensity() * bm->getVolume(r) * sim->W(bm->getPosition(r) - bm_neighbor->getPosition(k));
+							particleDensity += getRestDensity() * bm->getVolume(r) * W(bm->getPosition(r) - bm_neighbor->getPosition(k));
 						}
 					}
 					setDensity(bmIndex, r, std::max(particleDensity, getRestDensity()));
@@ -349,7 +354,7 @@ void StrongCouplingBoundarySolver::computeSourceTerm() {
 							for (unsigned int j = 0; j < sim->numberOfNeighbors(boundaryPointSetIndex, pid, r); j++) {
 								const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, r, j);
 								// sum up divergence of v_s
-								rho_div_v_s += getArtificialVolume(neighborIndex, k) * getDensity(neighborIndex, k) * (getV_s(neighborIndex, k) - getV_s(bmIndex, r)).dot(sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
+								rho_div_v_s += getArtificialVolume(neighborIndex, k) * getDensity(neighborIndex, k) * (getV_s(neighborIndex, k) - getV_s(bmIndex, r)).dot(gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
 							}
 						}
 					}
@@ -388,7 +393,7 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 							DynamicRigidBody* rb_rk = static_cast<DynamicRigidBody*>(bm_rk->getRigidBodyObject());
 							for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
 								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
-								grad_p_b += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) / density_r2 * sim->gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk));
+								grad_p_b += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) / density_r2 * gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk));
 							}
 						}
 					}
@@ -408,7 +413,7 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 							for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
 								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
 								Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
-								Vector3r grad_p_b_rkr = getDensity(index_rk, rk) * getArtificialVolume(index_r, r) * getDensity(index_r, r) / density_r2 * sim->gradW(bm_rk->getPosition(rk) - bm_r->getPosition(r));
+								Vector3r grad_p_b_rkr = getDensity(index_rk, rk) * getArtificialVolume(index_r, r) * getDensity(index_r, r) / density_r2 * gradW(bm_rk->getPosition(rk) - bm_r->getPosition(r));
 								v_b_k_body += -dt * rb_rk->getInvMass() * getArtificialVolume(index_rk, rk) * grad_p_b_rkr;
 								omega_b_k_body += -dt * rb_rk->getInertiaTensorInverseW() * getArtificialVolume(index_rk, rk) * pos_rk.cross(grad_p_b_rkr);
 							}
@@ -418,7 +423,7 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
 								Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
 								Vector3r v_b_rk = v_b_k_body + omega_b_k_body.cross(pos_rk);
-								sum_rk += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) * (v_b_rk - v_b_r).dot(sim->gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk)));
+								sum_rk += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) * (v_b_rk - v_b_r).dot(gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk)));
 							}
 							b_r += sum_rk;
 						}
@@ -473,7 +478,7 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 							const Real density_k = getDensity(neighborIndex, k);
 							const Real volume_k = getArtificialVolume(neighborIndex, k);
 							const Real pressure_k = getPressure(neighborIndex, k);
-							pressureGrad_r += volume_k * density_k * (pressure_r / (density_r * density_r) + pressure_k / (density_k * density_k)) * sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
+							pressureGrad_r += volume_k * density_k * (pressure_r / (density_r * density_r) + pressure_k / (density_k * density_k)) * gradW(bm->getPosition(r) - bm_neighbor->getPosition(k));
 						}
 					}
 				}
@@ -520,7 +525,7 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 							const Real density_k = getDensity(neighborIndex, k);
 							const Real volume_k = getArtificialVolume(neighborIndex, k);
 							const Vector3r v_rr_k = getV_rr(pid - nFluids, k);
-							minus_rho_div_v_rr += volume_k * density_k * (v_rr_k - v_rr_r).dot(sim->gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
+							minus_rho_div_v_rr += volume_k * density_k * (v_rr_k - v_rr_r).dot(gradW(bm->getPosition(r) - bm_neighbor->getPosition(k)));
 						}
 					}
 				}
@@ -585,4 +590,16 @@ void StrongCouplingBoundarySolver::applyForce() {
 			}
 		}
 	}
+}
+
+Real StrongCouplingBoundarySolver::W(const Vector3r& r) {
+	return m_kernelFct(r);
+}
+
+Vector3r SPH::StrongCouplingBoundarySolver::gradW(const Vector3r& r) {
+	return m_gradKernelFct(r);
+}
+
+Real SPH::StrongCouplingBoundarySolver::W_zero() {
+	return m_W_zero;
 }

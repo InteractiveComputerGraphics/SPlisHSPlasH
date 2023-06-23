@@ -28,6 +28,11 @@ namespace SPH {
 		virtual void timeStep();
 		virtual void reset();
 
+		/** 
+		* This function is used in DFSPH to compute the intermediate velocities after divergence solver
+		*/
+		void updateVelocities();
+
 		FORCE_INLINE const Real& getDampingCoeff() const {
 			return m_dampingCoeff;
 		}

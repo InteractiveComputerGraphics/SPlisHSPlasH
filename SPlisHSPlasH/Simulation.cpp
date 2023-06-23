@@ -622,6 +622,9 @@ void Simulation::performNeighborhoodSearchSort()
 		BoundaryModel *bm = getBoundaryModel(i);
 		bm->performNeighborhoodSearchSort();
 	}
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+		StrongCouplingBoundarySolver::getCurrent()->performNeighborhoodSearchSort();
+	}
 #ifdef USE_DEBUG_TOOLS
 	m_debugTools->performNeighborhoodSearchSort();
 #endif

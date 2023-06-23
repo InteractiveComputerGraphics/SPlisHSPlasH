@@ -244,7 +244,6 @@ void TimeStepWCSPH::performNeighborhoodSearch()
 		if (m_counter % 500 == 0)
 		{
 			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			StrongCouplingBoundarySolver::getCurrent()->performNeighborhoodSearchSort();
 			m_simulationData.performNeighborhoodSearchSort();
 		}
 		m_counter++;

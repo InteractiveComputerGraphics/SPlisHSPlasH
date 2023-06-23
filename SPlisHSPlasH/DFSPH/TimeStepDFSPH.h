@@ -36,6 +36,7 @@ namespace SPH
 		void pressureSolve();
 		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 		void divergenceSolve();
+		void solveRigidRigidContacts();
 		void divergenceSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 		void computeDensityAdv(const unsigned int fluidModelIndex, const unsigned int index, const Real h, const Real density0);
 		void computeDensityChange(const unsigned int fluidModelIndex, const unsigned int index, const Real h);

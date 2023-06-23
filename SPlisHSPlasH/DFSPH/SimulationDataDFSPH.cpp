@@ -9,7 +9,8 @@ SimulationDataDFSPH::SimulationDataDFSPH() :
 	m_pressure_rho2(),
 	m_pressure_rho2_V(),
 	m_pressureAccel(),
-	m_density_adv()
+	m_density_adv(),
+	m_density_adv_no_boundary()
 {
 }
 
@@ -29,6 +30,7 @@ void SimulationDataDFSPH::init()
 	m_pressure_rho2.resize(nModels);
 	m_pressure_rho2_V.resize(nModels);
 	m_pressureAccel.resize(nModels);
+	m_density_adv_no_boundary.resize(nModels);
 
 	for (unsigned int i = 0; i < nModels; i++)
 	{
@@ -38,6 +40,7 @@ void SimulationDataDFSPH::init()
 		m_pressure_rho2[i].resize(fm->numParticles(), 0.0);
 		m_pressure_rho2_V[i].resize(fm->numParticles(), 0.0);
 		m_pressureAccel[i].resize(fm->numParticles(), Vector3r::Zero());
+		m_density_adv_no_boundary[i].resize(fm->numParticles(), 0.0);
 	}
 }
 
@@ -53,12 +56,14 @@ void SimulationDataDFSPH::cleanup()
 		m_pressure_rho2[i].clear();
 		m_pressure_rho2_V[i].clear();
 		m_pressureAccel[i].clear();
+		m_density_adv_no_boundary[i].clear();
 	}
 	m_factor.clear();
 	m_density_adv.clear();
 	m_pressure_rho2.clear();
 	m_pressure_rho2_V.clear();
 	m_pressureAccel.clear();
+	m_density_adv_no_boundary.clear();
 }
 
 void SimulationDataDFSPH::reset()
@@ -76,6 +81,7 @@ void SimulationDataDFSPH::reset()
 			m_pressure_rho2_V[i][j] = 0.0;
 			m_factor[i][j] = 0.0;
 			m_pressureAccel[i][j].setZero();
+			m_density_adv_no_boundary[i][j] = 0.0;
 		}
 	}
 }

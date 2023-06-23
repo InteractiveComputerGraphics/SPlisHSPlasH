@@ -38,6 +38,10 @@ namespace SPH {
 
 		Real m_maxDensityDeviation;
 
+		Real(*m_kernelFct)(const Vector3r&);
+		Vector3r(*m_gradKernelFct)(const Vector3r& r);
+		Real m_W_zero;
+
 	public:
 		StrongCouplingBoundarySolver();
 		~StrongCouplingBoundarySolver();
@@ -54,6 +58,9 @@ namespace SPH {
 		void pressureSolveIteration(Real& avgDensityDeviation);
 		void applyForce();
 		void performNeighborhoodSearchSort();
+		Real W(const Vector3r& r);
+		Vector3r gradW(const Vector3r& r);
+		Real W_zero();
 
 		FORCE_INLINE const Real& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
 			return m_density[rigidBodyIndex][index];

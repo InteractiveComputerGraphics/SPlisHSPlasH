@@ -61,7 +61,7 @@ void StaticBoundarySimulator::initBoundaryData()
 		MeshImport::importMesh(meshFileName, geo, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale);
 
 		std::vector<Vector3r> boundaryParticles;
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			// if a samples file is given, use this one
 			if (scene.boundaryModels[i]->samplesFile != "")
@@ -150,7 +150,7 @@ void StaticBoundarySimulator::initBoundaryData()
 		rb->setRotation0(q);
 		rb->setRotation(q);
 
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		{
 			BoundaryModel_Akinci2012 *bm = new BoundaryModel_Akinci2012();
 			bm->initModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
@@ -182,7 +182,7 @@ void StaticBoundarySimulator::deferredInit()
 {
 	Simulation* sim = Simulation::getCurrent();
 	sim->performNeighborhoodSearchSort();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 	{
 		m_base->updateBoundaryParticles(true);
 		Simulation::getCurrent()->updateBoundaryVolume();
@@ -201,7 +201,7 @@ void StaticBoundarySimulator::deferredInit()
 void StaticBoundarySimulator::timeStep()
 {
 	Simulation* sim = Simulation::getCurrent();
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		m_base->updateBoundaryParticles(false);
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 		m_base->updateDMVelocity();
@@ -221,7 +221,7 @@ void StaticBoundarySimulator::reset()
 		}
 	}
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
 		m_base->updateBoundaryParticles(true);
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
 		m_base->updateDMVelocity();

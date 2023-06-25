@@ -27,6 +27,7 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
+		std::vector<std::vector<unsigned int>> m_contacts;
 		std::vector<unsigned int> m_bodyContacts;
 		unsigned int m_contactsAllBodies;
 
@@ -56,6 +57,7 @@ namespace SPH {
 		void computeSourceTerm();
 		void computeDiagonalElement();
 		void pressureSolveIteration(Real& avgDensityDeviation);
+		Vector3r copmuteParticleFriction(const unsigned int& boundaryPointSetIndex, const unsigned int& index, const Vector3r& force);
 		void applyForce();
 		void performNeighborhoodSearchSort();
 		Real W(const Vector3r& r);

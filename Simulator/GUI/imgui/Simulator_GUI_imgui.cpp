@@ -568,6 +568,13 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 
 				if (model->getRigidBodyObject()->isDynamic()) {
 					DynamicRigidBody* drb = static_cast<DynamicRigidBody*>(model->getRigidBodyObject());
+					imguiParameters::imguiNumericParameter<Real>* frictionCoeff = new imguiParameters::imguiNumericParameter<Real>();
+					frictionCoeff->description = "friction coefficient of the rigid body";
+					frictionCoeff->label = "friction coefficient";
+					frictionCoeff->getFct = [drb]() -> Real {return drb->getFrictionCoeff(); };
+					frictionCoeff->setFct = [drb](Real v) {drb->setFrictionCoeff(v); };
+					imguiParameters::addParam("Boundary Model", "Property", frictionCoeff);
+
 					imguiParameters::imguiNumericParameter<Real>* density = new imguiParameters::imguiNumericParameter<Real>();
 					density->description = "Density of the rigid body";
 					density->label = "Density";

@@ -513,6 +513,9 @@ void Simulation::reset()
 
 	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		updateBoundaryVolume();
+	}
+
+	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		StrongCouplingBoundarySolver::getCurrent()->reset();
 	}
 

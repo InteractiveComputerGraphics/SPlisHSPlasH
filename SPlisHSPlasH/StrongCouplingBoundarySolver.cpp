@@ -264,7 +264,7 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+		RigidBodyObject* rb = bm->getRigidBodyObject();
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static)  
@@ -305,15 +305,15 @@ void StrongCouplingBoundarySolver::computeV_s() {
 	// Compute v_s for all particles
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		Vector3r gravForce = rb->getMass() * Vector3r(sim->getVecValue<Real>(Simulation::GRAVITATION));
-		// the rb->getForce() contains only fluid-rigid forces
-		Vector3r F_R = rb->getForce() + gravForce;
-		if (rb->isDynamic()) {
+		DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+		if (rb != nullptr && rb->isDynamic()) {
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)  
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
+					Vector3r gravForce = rb->getMass() * Vector3r(sim->getVecValue<Real>(Simulation::GRAVITATION));
+					// the rb->getForce() contains only fluid-rigid forces
+					Vector3r F_R = rb->getForce() + gravForce;
 					Vector3r pos = bm->getPosition(r) - rb->getPosition();
 					// compute v_s
 					setV_s(boundaryPointSetIndex - nFluids, r, rb->getVelocity() + dt * rb->getInvMass() * F_R +
@@ -376,8 +376,8 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 	for (unsigned int pointSetIndex_r = nFluids; pointSetIndex_r < sim->numberOfPointSets(); pointSetIndex_r++) {
 		BoundaryModel_Akinci2012* bm_r = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_r));
 		int index_r = pointSetIndex_r - nFluids;
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm_r->getRigidBodyObject());
-		if (rb->isDynamic()) {
+		DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm_r->getRigidBodyObject());
+		if (rb != nullptr && rb->isDynamic()) {
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)      
@@ -454,14 +454,14 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 
 	// compute pressure gradient, v_rr and omega_rr for rigid bodies
 	int bmIndex = boundaryPointSetIndex - nFluids;
-	DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+	DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
 	Real vx = 0;
 	Real vy = 0;
 	Real vz = 0;
 	Real omegax = 0;
 	Real omegay = 0;
 	Real omegaz = 0;
-	if (rb->isDynamic()) {
+	if (rb != nullptr && rb->isDynamic()) {
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static) reduction(+:vx) reduction(+:vy) reduction(+:vz) reduction(+:omegax) reduction(+:omegay) reduction(+:omegaz)                                                    
@@ -576,14 +576,18 @@ void StrongCouplingBoundarySolver::applyForce() {
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
-		DynamicRigidBody* rb = static_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		if (rb->isDynamic()) {
+		DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+		if (rb != nullptr && rb->isDynamic()) {
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)
 				for (int r = 0; r < bm->numberOfParticles(); r++) {
-					const Vector3r f = -getArtificialVolume(bmIndex, r) * getPressureGrad(bmIndex, r);
+					const Vector3r f = -getArtificialVolume(bmIndex, r) * getPressureGrad(bmIndex, r);				
 					bm->addForce(bm->getPosition(r), f);
+					if (f.norm() > 1e-10) {
+						const Vector3r fric = copmuteParticleFriction(boundaryPointSetIndex, r, f);
+						bm->addForce(bm->getPosition(r), fric);
+					}
 					setPressure(bmIndex, r, static_cast<Real>(0.0));
 					setPressureGrad(bmIndex, r, Vector3r::Zero());
 				}
@@ -592,14 +596,73 @@ void StrongCouplingBoundarySolver::applyForce() {
 	}
 }
 
+Vector3r StrongCouplingBoundarySolver::copmuteParticleFriction(const unsigned int& boundaryPointSetIndex, const unsigned int& index, const Vector3r& force) {
+	Simulation* sim = Simulation::getCurrent();
+	DynamicBoundarySimulator* boundarySimulator = sim->getDynamicBoundarySimulator();
+	TimeManager* tm = TimeManager::getCurrent();
+	const Real dt = tm->getTimeStepSize();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+	BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
+	DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
+	if (rb == nullptr) {
+		return Vector3r::Zero();
+	}
+	int bmIndex = boundaryPointSetIndex - nFluids;
+
+	// compute normal
+	Vector3r numerator = bm->getPosition(index) * W_zero();
+	Real denom = W_zero();
+	for (unsigned int n = 0; n < sim->numberOfNeighbors(boundaryPointSetIndex, boundaryPointSetIndex, index); n++) {
+		const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, boundaryPointSetIndex, index, n);
+		numerator += bm->getPosition(k) * W(bm->getPosition(index) - bm->getPosition(k));
+		denom += W(bm->getPosition(index) - bm->getPosition(k));
+	}
+	Vector3r normal = bm->getPosition(index) - numerator / denom;
+	normal.normalize();
+
+	// compute averaged relative predicted velocity
+	Vector3r numeratorV = Vector3r::Zero();
+	Real denomV = 0;
+	for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) {
+		BoundaryModel_Akinci2012* bm_k = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
+		if (pid != boundaryPointSetIndex) {
+			for (unsigned int n = 0; n < sim->numberOfNeighbors(boundaryPointSetIndex, pid, index); n++) {
+				const unsigned int k = sim->getNeighbor(boundaryPointSetIndex, pid, index, n);
+				numeratorV += getPredictedVelocity(pid - nFluids, k) * W(bm->getPosition(index) - bm_k->getPosition(k));
+				denomV += W(bm->getPosition(index) - bm_k->getPosition(k));
+			}
+		}
+	}
+	Vector3r neighborV = numeratorV / denomV;
+	Vector3r relativeV = getPredictedVelocity(bmIndex, index) - neighborV;
+	Vector3r normalVPred = relativeV.dot(normal) * normal;
+	Vector3r tangentialVPred = relativeV - normalVPred;
+
+	Vector3r tangent = tangentialVPred;
+	tangent.normalize();
+	Vector3r normalF = -force.dot(normal) * normal; 
+	Vector3r tangentF = -rb->getFrictionCoeff() * normalF.norm() * tangent;
+	Vector3r pos = bm->getPosition(index);
+	Matrix3r productMat;
+	productMat << 0, -pos.z(), pos.y(),
+		          pos.z(), 0, -pos.x(),
+		          -pos.y(), pos.x(), 0;
+	Matrix3r K = rb->getInvMass() * Matrix3r::Identity() - productMat * rb->getInertiaTensorInverseW() * productMat;
+	Vector3r max = -tangentialVPred / (dt * getBodyContacts(bmIndex) * tangent.transpose() * K * tangent);
+	if (max.norm() < tangentF.norm()) {
+		tangentF = max;
+	}
+	return tangentF;
+}
+
 Real StrongCouplingBoundarySolver::W(const Vector3r& r) {
 	return m_kernelFct(r);
 }
 
-Vector3r SPH::StrongCouplingBoundarySolver::gradW(const Vector3r& r) {
+Vector3r StrongCouplingBoundarySolver::gradW(const Vector3r& r) {
 	return m_gradKernelFct(r);
 }
 
-Real SPH::StrongCouplingBoundarySolver::W_zero() {
+Real StrongCouplingBoundarySolver::W_zero() {
 	return m_W_zero;
 }

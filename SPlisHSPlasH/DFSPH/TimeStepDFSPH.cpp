@@ -322,26 +322,29 @@ void TimeStepDFSPH::pressureSolve()
 				}
 			}
 
-			// apply force and torque for computing predicted velocity
-			sim->getDynamicBoundarySimulator()->updateBoundaryForces();
+			if (sim->getDynamicBoundarySimulator() != nullptr) {
+				// apply force and torque for computing predicted velocity
+				sim->getDynamicBoundarySimulator()->updateBoundaryForces();
 
-			if (anyRigidContact) {
-				bs->computeSourceTerm();
-				bs->computeDiagonalElement();
-				avg_density_err_rigid = 0.0;
-				bs->pressureSolveIteration(avg_density_err_rigid);
-				if (avg_density_err_rigid > bs->getMaxDensityDeviation()) {
-					rigidSolverConverged = false;
+				if (anyRigidContact) {
+					bs->computeSourceTerm();
+					bs->computeDiagonalElement();
+					avg_density_err_rigid = 0.0;
+					bs->pressureSolveIteration(avg_density_err_rigid);
+					if (avg_density_err_rigid > bs->getMaxDensityDeviation()) {
+						rigidSolverConverged = false;
+					}
+				} else {
+					// compute the predicted velocity and position without rigid-rigid contacts
+					bs->computeV_s();
 				}
-			} else {
-				// compute the predicted velocity and position without rigid-rigid contacts
-				bs->computeV_s();
+
+				// clear force and torque used to computed predicted velocity
+				for (int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+					static_cast<DynamicRigidBody*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex)->getRigidBodyObject())->clearForceAndTorque();
+				}
 			}
 
-			// clear force and torque used to computed predicted velocity
-			for (int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-				static_cast<DynamicRigidBody*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex)->getRigidBodyObject())->clearForceAndTorque();
-			}
 
 			// predict density advection using the predicted velocity of fluid an rigid velocities
 			for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++) {
@@ -582,26 +585,26 @@ void TimeStepDFSPH::divergenceSolve()
 					}
 				}
 			}
+			if (sim->getDynamicBoundarySimulator() != nullptr) {
+				// apply force and torque for computing predicted velocity
+				sim->getDynamicBoundarySimulator()->updateBoundaryForces();
 
-			// apply force and torque for computing predicted velocity
-			sim->getDynamicBoundarySimulator()->updateBoundaryForces();
-
-			if (anyRigidContact) {
-				bs->computeSourceTerm();
-				bs->computeDiagonalElement();
-				avg_density_err_rigid = 0.0;
-				bs->pressureSolveIteration(avg_density_err_rigid);
-				if (avg_density_err_rigid > bs->getMaxDensityDeviation()) {
-					rigidSolverConverged = false;
+				if (anyRigidContact) {
+					bs->computeSourceTerm();
+					bs->computeDiagonalElement();
+					avg_density_err_rigid = 0.0;
+					bs->pressureSolveIteration(avg_density_err_rigid);
+					if (avg_density_err_rigid > bs->getMaxDensityDeviation()) {
+						rigidSolverConverged = false;
+					}
+				} else {
+					// compute the predicted velocity and position without rigid-rigid contacts
+					bs->computeV_s();
 				}
-			} else {
-				// compute the predicted velocity and position without rigid-rigid contacts
-				bs->computeV_s();
-			}
-
-			// clear force and torque used to computed predicted velocity
-			for (int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
-				static_cast<DynamicRigidBody*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex)->getRigidBodyObject())->clearForceAndTorque();
+				// clear force and torque used to computed predicted velocity
+				for (int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
+					static_cast<DynamicRigidBody*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex)->getRigidBodyObject())->clearForceAndTorque();
+				}
 			}
 
 			// predict density advection using the predicted velocity of fluid an rigid velocities

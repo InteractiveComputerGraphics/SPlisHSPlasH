@@ -6,6 +6,7 @@
 #include "TriangleMesh.h"
 #include "TimeManager.h"
 #include "Simulation.h"
+#include "Utilities/VolumeIntegration.h"
 
 namespace SPH {
 
@@ -98,18 +99,18 @@ namespace SPH {
 		void initBody(const Real density, const bool isDynamic, const Vector3r &position, const Quaternionr &rotation,
 			 const Vector3r &scale, const Vector3r &velocity, const Real &friction)
 		{
-			m_density = density;
-			m_scale = scale;
-			determineMassProperties(density, isDynamic, scale);
+			m_isDynamic = isDynamic;
+			m_mass = 1.0;
+			m_inertiaTensor = Vector3r(1.0, 1.0, 1.0);
+			determineMassProperties(density);
 			m_x = position;
 			m_x0 = position;
 			m_lastX = position;
 			m_oldX = position;
 
 			m_v0 = velocity;
-			m_v = m_v0;
+			m_v = velocity;
 			m_a.setZero();
-			m_force.setZero();
 
 			m_q = rotation;
 			m_q0 = rotation;
@@ -123,7 +124,6 @@ namespace SPH {
 
 			//m_restitutionCoeff = static_cast<Real>(0.6);
 			m_frictionCoeff = friction;
-
 			updateMeshTransformation();
 		}
 
@@ -170,23 +170,28 @@ namespace SPH {
 		}
 
 		// Determine mass and inertia tensor
-		void determineMassProperties(const Real density, bool isDynamic, const Vector3r scale) {
-			m_isDynamic = isDynamic;
-			// for now only consider cubiod which is scaled from a unit cube
-			setMass(density * scale.x() * scale.y() * scale.z());
-			Vector3r value = m_mass * Vector3r((scale.y() * scale.y() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.z() * scale.z()) / 12, (scale.x() * scale.x() + scale.y() * scale.y()) / 12);
-			m_inertiaTensor = value;
-			m_inertiaTensorInverse = Vector3r(static_cast<Real>(1.0) / value[0], static_cast<Real>(1.0) / value[1], static_cast<Real>(1.0) / value[2]);
+		void determineMassProperties(const Real density) {
+			Utilities::VolumeIntegration vi(m_geometry.numVertices(), m_geometry.numFaces(), &m_geometry.getVertices()[0], m_geometry.getFaces().data());
+			vi.compute_inertia_tensor(density);
+
+			// Diagonalize Inertia Tensor
+			Eigen::SelfAdjointEigenSolver<Matrix3r> es(vi.getInertia());
+			Vector3r inertiaTensor = Vector3r::Zero();
+			inertiaTensor += es.eigenvalues().x() * es.eigenvectors().col(0);
+			inertiaTensor += es.eigenvalues().y() * es.eigenvectors().col(1);
+			inertiaTensor += es.eigenvalues().z() * es.eigenvectors().col(2);
+			inertiaTensor.x() = std::abs(inertiaTensor.x());
+			inertiaTensor.y() = std::abs(inertiaTensor.y());
+			inertiaTensor.z() = std::abs(inertiaTensor.z());
+			setMass(vi.getMass());
+			setInertiaTensor(inertiaTensor);
 		}
 
 		void rotationUpdated()
 		{
-			if (m_mass != 0.0)
-			{
-				m_rot = m_q.matrix();
-				updateInertiaW();
-				updateInverseTransformation();
-			}
+			m_rot = m_q.matrix();
+			updateInertiaW();
+			updateInverseTransformation();		
 		}
 
 		void updateInertiaW()
@@ -197,59 +202,6 @@ namespace SPH {
 				m_inertiaTensorInverseW = m_rot * m_inertiaTensorInverse.asDiagonal() * m_rot.transpose();
 			}
 		}
-
-		/** Determine mass and inertia tensor of the given geometry.
-			*/
-		//void determineMassProperties(const Real density)
-		//{
-		//	// apply initial rotation
-		//	VertexData &vd = m_geometry.getVertexDataLocal();
-		//		
-		//	Utilities::VolumeIntegration vi(m_geometry.getVertexDataLocal().size(), m_geometry.getMesh().numFaces(), &m_geometry.getVertexDataLocal().getPosition(0), m_geometry.getMesh().getFaces().data());
-		//	vi.compute_inertia_tensor(density);
-		//
-		//	// Diagonalize Inertia Tensor
-		//	Eigen::SelfAdjointEigenSolver<Matrix3r> es(vi.getInertia());
-		//	Vector3r inertiaTensor = es.eigenvalues();
-		//	Matrix3r R = es.eigenvectors();
-		//
-		//	setMass(1.0);
-		//	setInertiaTensor(inertiaTensor);
-		//
-		//	if (R.determinant() < 0.0)
-		//		R = -R;
-		//
-		//	for (unsigned int i = 0; i < vd.size(); i++)
-		//		vd.getPosition(i) = m_rot * vd.getPosition(i) + m_x0;
-		//
-		//	Vector3r x_MAT = vi.getCenterOfMass();
-		//	R = m_rot * R;
-		//	x_MAT = m_rot * x_MAT + m_x0;
-		//
-		//	// rotate vertices back				
-		//	for (unsigned int i = 0; i < vd.size(); i++)
-		//		vd.getPosition(i) = R.transpose() * (vd.getPosition(i) - x_MAT);
-		//
-		//	// set rotation
-		//	Quaternionr qR = Quaternionr(R);
-		//	qR.normalize();
-		//	m_q_mat = qR;
-		//	m_q_initial = m_q0;
-		//	m_x0_mat = m_x0 - x_MAT;
-		//
-		//	m_q0 = qR;
-		//	m_q = m_q0;
-		//	m_lastQ = m_q0;
-		//	m_oldQ = m_q0;
-		//	rotationUpdated();
-		//
-		//	// set translation
-		//	m_x0 = x_MAT;
-		//	m_x = m_x0;
-		//	m_lastX = m_x0;
-		//	m_oldX = m_x0;
-		//	updateInverseTransformation();
-		//}
 
 		const Matrix3r &getTransformationR() { return m_transformation_R;  }
 		const Vector3r &getTransformationV1() { return m_transformation_v1; }
@@ -284,7 +236,7 @@ namespace SPH {
 
 		FORCE_INLINE void setDensity(const Real& density) {
 			m_density = density;
-			determineMassProperties(density, isDynamic(), m_scale);
+			determineMassProperties(density);
 		}
 
 		FORCE_INLINE Vector3r &getLastPosition()

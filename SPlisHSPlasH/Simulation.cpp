@@ -85,6 +85,7 @@ Simulation::Simulation ()
 
 	m_animationFieldSystem = new AnimationFieldSystem();
 	m_boundaryHandlingMethod = static_cast<int>(BoundaryHandlingMethods::Bender2019);
+	m_dynamicBoundarySimulator = nullptr;
 }
 
 Simulation::~Simulation () 

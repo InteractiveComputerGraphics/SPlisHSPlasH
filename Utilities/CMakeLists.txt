@@ -26,6 +26,9 @@ add_library(Utilities
 	SystemInfo.h
 	Timing.h
 	Version.h
+        VolumeIntegration.cpp
+        VolumeIntegration.h
+
 )
 
 add_dependencies(Utilities partio zlib)

@@ -350,7 +350,7 @@ namespace Utilities
 			scale = Vector3r::Ones();
 			dynamic = false;
 			isWall = false;
-			friction = 0.0;
+			friction = 0.2;
 			color = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 0.0f);
 			samplingMode = 0;
 			isAnimated = false;

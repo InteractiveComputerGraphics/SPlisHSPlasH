@@ -262,3 +262,12 @@ https://link.springer.com/chapter/10.1007/978-981-16-1781-2_38
 https://openreview.net/forum?id=FEBFJ98FKx
 * Muzaffer Akbay, Nicholas Nobles, Victor Zordan, Tamar Shinar. An extended partitioned method for conservative solid-fluid coupling. ACM Transactions on Graphics 37, 4, 2018
 https://dl.acm.org/doi/10.1145/3197517.3201345
+* Samuel Carensac, Nicolas Pronost & Saïda Bouakaz. Optimizations for predictive–corrective particle-based fluid simulation on GPU. The Visual Computer volume 39, 2023
+* Iliya Starodubtsev, Pavel Vasev, Yuliya Starodubtseva, Igor Tsepelev. Numerical Simulation and Visualization of Lava Flows. Scientific Visualization, 2022, volume 14, number 5
+https://doi.org/10.26583/sv.14.5.05
+* Arjun Mani, Ishaan Preetam Chandratreya, Elliot Creager, Carl Vondrick, Richard Zemel. SurfsUp: Learning Fluid Simulation for Novel Surfaces. arXiv 2023
+https://doi.org/10.48550/arXiv.2304.06197
+* Jian Chen. Incompressible Projective Smooth Particle Hydrodynamic. Proc. CNCI 2019
+https://doi.org/10.2991/cnci-19.2019.80
+* Min Hyung Kee, Kiwon Um, HyunMo Kang, and JungHyun Han. An Optimization-based SPH Solver for Simulation of Hyperelastic Solids. Computer Graphics Forum, 42, 2, 2023
+https://doi.org/10.1111/cgf.14756

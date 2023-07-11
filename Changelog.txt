@@ -1,3 +1,8 @@
+2.12.4
+	- added citation file
+	- fixed rigid body colors in visualization
+	- fixed export of static rigid bodies
+	
 2.12.3
 	- added missing include
 	- fixed addKeyFunc in Python interface

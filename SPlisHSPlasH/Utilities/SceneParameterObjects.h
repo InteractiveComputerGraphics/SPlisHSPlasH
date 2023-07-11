@@ -327,7 +327,7 @@ namespace Utilities
 		Vector3r scale;
 		bool dynamic;
 		bool isWall;
-		Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color;
+		Vector4r color;
 		std::string mapFile;
 		bool mapInvert;
 		Real mapThickness;
@@ -346,7 +346,7 @@ namespace Utilities
 			scale = Vector3r::Ones();
 			dynamic = false;
 			isWall = false;
-			color = Eigen::Vector4f(1.0f, 0.0f, 0.0f, 0.0f);
+			color = Vector4r(1.0, 0.0, 0.0, 0.0);
 			samplingMode = 0;
 			isAnimated = false;
 			// Maps
@@ -357,7 +357,7 @@ namespace Utilities
 		}
 
 		BoundaryParameterObject(std::string samplesFile_, std::string meshFile_, Vector3r translation_, Vector3r axis_, Real angle_, Vector3r scale_,
-								bool dynamic_, bool isWall_, Eigen::Matrix<float, 4, 1, Eigen::DontAlign> color_, std::string mapFile_, bool mapInvert_,
+								bool dynamic_, bool isWall_, Vector4r color_, std::string mapFile_, bool mapInvert_,
 								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_)
 		{
 			samplesFile = samplesFile_;

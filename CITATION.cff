@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: SPlisHSPlasH Library
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Jan
+    family-names: Bender
+identifiers:
+  - type: url
+    value: >-
+      https://github.com/InteractiveComputerGraphics/SPlisHSPlasH
+repository-code: >-
+  https://github.com/InteractiveComputerGraphics/SPlisHSPlasH
+keywords:
+  - Smoothed Particle Hydrodynamics
+  - SPH
+  - fluids
+  - simulation
+license: MIT
+version: 2.12.0

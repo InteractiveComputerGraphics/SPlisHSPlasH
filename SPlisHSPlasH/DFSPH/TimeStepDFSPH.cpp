@@ -574,10 +574,9 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			//////////////////////////////////////////////////////////////////////////
 			Real& p_rho2_i = m_simulationData.getPressureRho2(fluidModelIndex, i);
 			const Real residuum = min(s_i - aij_pj, static_cast<Real>(0.0));     // r = b - A*p
-			p_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
+			//p_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
 
-			//p_rho2_i = max(p_rho2_i - 0.5*(s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
-
+			p_rho2_i = max(p_rho2_i - 0.5 * (s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
 
 			//////////////////////////////////////////////////////////////////////////
 			// Compute the sum of the density errors
@@ -662,9 +661,8 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 				if (numNeighbors < 7)
 					residuum = 0.0;
 			}
-			pv_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
-
-			//pv_rho2_i = max(pv_rho2_i - 0.5*(s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
+			//pv_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
+			pv_rho2_i = max(pv_rho2_i - 0.5*(s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
 
 
 			//////////////////////////////////////////////////////////////////////////

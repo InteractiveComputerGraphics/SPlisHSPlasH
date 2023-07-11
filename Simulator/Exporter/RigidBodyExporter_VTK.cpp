@@ -47,27 +47,19 @@ void RigidBodyExporter_VTK::writeRigidBodies(const unsigned int frame)
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nBoundaryModels = sim->numberOfBoundaryModels();
 
-	// check if we have a static model
-	bool isStatic = true;
-	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
-	{
-		BoundaryModel* bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
-		{
-			isStatic = false;
-			break;
-		}
-	}
-
 #ifdef USE_DOUBLE
 	const char* real_str = " double\n";
 #else 
 	const char* real_str = " float\n";
 #endif
 
-	if (m_isFirstFrame || !isStatic)
+	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
-		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+		BoundaryModel* bm = sim->getBoundaryModel(i);
+
+		// If we have a static body, write the data only for the first frame.
+		// Otherwise each frame is exported.
+		if (m_isFirstFrame || bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
 			std::string fileName = "rb_data_";
 			fileName = fileName + std::to_string(i) + "_" + std::to_string(frame) + ".vtk";
@@ -87,7 +79,6 @@ void RigidBodyExporter_VTK::writeRigidBodies(const unsigned int frame)
 			outfile << "BINARY\n";
 			outfile << "DATASET UNSTRUCTURED_GRID\n";
 
-			BoundaryModel* bm = sim->getBoundaryModel(i);
 			const std::vector<Vector3r>& vertices = bm->getRigidBodyObject()->getVertices();
 			const std::vector<unsigned int>& faces = bm->getRigidBodyObject()->getFaces();
 			int n_vertices = (int)vertices.size();

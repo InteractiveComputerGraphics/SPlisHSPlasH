@@ -398,6 +398,8 @@ Example code:
 * alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
 * elasticityMaxIter (int): (Peer et al. 2018) Maximum solver iterations (default: 100)
 * elasticityMaxError (float): (Peer et al. 2019) Maximum elasticity error allowed by the solver (default: 1.0e-4)
+* fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
+* fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
 
 ##### Emitters
 

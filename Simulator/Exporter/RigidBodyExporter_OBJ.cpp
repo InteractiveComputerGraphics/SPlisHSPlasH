@@ -51,23 +51,13 @@ void RigidBodyExporter_OBJ::writeRigidBodies(const unsigned int frame)
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nBoundaryModels = sim->numberOfBoundaryModels();
 
-	// check if we have a static model
-	bool isStatic = true;
 	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
 	{
 		BoundaryModel* bm = sim->getBoundaryModel(i);
-		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
-		{
-			isStatic = false;
-			break;
-		}
-	}
 
-	// If we have a static model, write the data only for the first frame.
-	// Otherwise each frame is exported.
-	if (m_isFirstFrame || !isStatic)
-	{
-		for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+		// If we have a static body, write the data only for the first frame.
+		// Otherwise each frame is exported.
+		if (m_isFirstFrame || bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
 			std::string fileName = "rb_data_";
 			fileName = fileName + std::to_string(i) + "_" + std::to_string(frame) + ".obj";
@@ -85,7 +75,6 @@ void RigidBodyExporter_OBJ::writeRigidBodies(const unsigned int frame)
 			outfile << "# Created by SPlisHSPlasH version " << SPLISHSPLASH_VERSION << "\n";
 			outfile << "g default\n";
 
-			BoundaryModel* bm = sim->getBoundaryModel(i);
 			const std::vector<Vector3r>& vertices = bm->getRigidBodyObject()->getVertices();
 			const std::vector<unsigned int>& faces = bm->getRigidBodyObject()->getFaces();
 			int n_vertices = (int)vertices.size();
@@ -104,7 +93,7 @@ void RigidBodyExporter_OBJ::writeRigidBodies(const unsigned int frame)
 			{
 				for (int j = 0; j < n_triangles; j++)
 				{
-					outfile << "f " << faces[3 * j + 0] + 1 << " " << faces[3* j + 1] + 1 << " " << faces[3 * j + 2] + 1 << "\n";
+					outfile << "f " << faces[3 * j + 0] + 1 << " " << faces[3 * j + 1] + 1 << " " << faces[3 * j + 2] + 1 << "\n";
 				}
 			}
 			outfile.close();

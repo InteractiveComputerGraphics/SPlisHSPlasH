@@ -646,7 +646,8 @@ void Simulator_GUI_imgui::renderBoundary()
 			if ((renderWalls == 1) || (!scene.boundaryModels[body]->isWall))
 			{
 				BoundaryModel_Akinci2012 *bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(body));
-				Simulator_OpenGL::renderBoundaryParticles(bm, scene.boundaryModels[body]->color.data(), base->getRenderMinValue(0), base->getRenderMaxValue(0));
+				Eigen::Matrix<float, 4, 1, Eigen::DontAlign> col = scene.boundaryModels[body]->color.cast<float>();
+				Simulator_OpenGL::renderBoundaryParticles(bm, col.data(), base->getRenderMinValue(0), base->getRenderMaxValue(0));
 			}
 		}
 	}
@@ -657,7 +658,8 @@ void Simulator_GUI_imgui::renderBoundary()
 			if ((renderWalls == 3) || (!scene.boundaryModels[body]->isWall))
 			{
 				BoundaryModel *bm = sim->getBoundaryModel(body);
-				Simulator_OpenGL::renderBoundary(bm, scene.boundaryModels[body]->color.data());
+				Eigen::Matrix<float, 4, 1, Eigen::DontAlign> col = scene.boundaryModels[body]->color.cast<float>();
+				Simulator_OpenGL::renderBoundary(bm, col.data());
 			}
 		}
 	}

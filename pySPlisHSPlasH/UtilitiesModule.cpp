@@ -277,20 +277,23 @@ void UtilitiesModule(py::module m) {
         .def(py::init<>())
         .def(py::init<std::string, std::string, Vector3r, Vector3r, Real, Vector3r, bool, bool,
                         Eigen::Matrix<float, 4, 1, Eigen::DontAlign>, std::string, bool, Real,
-                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
+                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool, Vector3r, Real, Real>(),
                 "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
-                "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(),
+                "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(), 
                 "isDynamic"_a = false, "isWall"_a = false,
                 "color"_a = Eigen::Vector4f(1.f, 0.f, 0.f, 0.f), 
                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                "samplingMode"_a = 0, "isAnimated"_a = false)
+                "samplingMode"_a = 0, "isAnimated"_a = false, "velocity"_a = Vector3r::Zero(), "density"_a = 1000, "friction"_a = 0.2)
         .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
         .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
         .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)
         .def_readwrite("axis", &Utilities::BoundaryParameterObject::axis)
+        .def_readwrite("velocity", &Utilities::BoundaryParameterObject::velocity)
         .def_readwrite("angle", &Utilities::BoundaryParameterObject::angle)
         .def_readwrite("scale", &Utilities::BoundaryParameterObject::scale)
+        .def_readwrite("density", &Utilities::BoundaryParameterObject::density)
+        .def_readwrite("friction", &Utilities::BoundaryParameterObject::friction)
         .def_readwrite("dynamic", &Utilities::BoundaryParameterObject::dynamic)
         .def_readwrite("isWall", &Utilities::BoundaryParameterObject::isWall)
         .def_readwrite("color", &Utilities::BoundaryParameterObject::color)

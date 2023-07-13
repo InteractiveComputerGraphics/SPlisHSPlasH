@@ -360,17 +360,17 @@ void TimeStepDFSPH::pressureSolve()
 						const Real& density = model->getDensity(i);
 						const Real density0 = model->getDensity0();
 						Real densityAdv = m_simulationData.getDensityAdvNoBoundary(fluidModelIndex, i);
-                    /*#ifdef USE_AVX
+                    #ifdef USE_AVX
 						Scalarf8 delta_avx(0.0f);
 						const Vector3f8 xi_avx(xi);
 						Vector3f8 vi_avx(predictedV);
 						forall_boundary_neighbors_avx(
 							const Scalarf8 Vj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
-							const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bs->getPredictedVelocity(pid - fluidModelIndex, 0), count);
+							const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bs->getPredictedVelocity(pid - nFluids, 0), count);
 							delta_avx += Vj_avx * (vi_avx - vj_avx).dot(CubicKernel_AVX::gradW(xi_avx - xj_avx));
 						);
 						densityAdv += h * delta_avx.reduce();
-                    #else*/
+                    #else
 						Real delta = 0;
 						// density advection considering rigid bodies
 						forall_boundary_neighbors(
@@ -378,7 +378,7 @@ void TimeStepDFSPH::pressureSolve()
 						    delta += bm_neighbor->getVolume(neighborIndex) * (predictedV - bs->getPredictedVelocity(pid - nFluids, neighborIndex)).dot(sim->gradW(xi - xj));
 						);
 						densityAdv += h * delta;
-                    //#endif 
+                    #endif 
 						m_simulationData.getDensityAdv(fluidModelIndex, i) = densityAdv;
 					}
 				}
@@ -621,22 +621,22 @@ void TimeStepDFSPH::divergenceSolve()
 
 						Real densityAdv = m_simulationData.getDensityAdvNoBoundary(fluidModelIndex, i);
 
-      //              #ifdef USE_AVX
-						//Scalarf8 densityAdv_avx(0.0f);
-						//const Vector3f8 xi_avx(xi);
-						//Vector3f8 vi_avx(predictedV);
-						//forall_boundary_neighbors_avx(
-						//	const Scalarf8 Vj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
-						//	const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bs->getPredictedVelocity(pid - fluidModelIndex, 0), count);
-						//	densityAdv_avx += Vj_avx * (vi_avx - vj_avx).dot(CubicKernel_AVX::gradW(xi_avx - xj_avx));
-						//);
-						//densityAdv += densityAdv_avx.reduce();
-      //              #else
+                    #ifdef USE_AVX
+						Scalarf8 densityAdv_avx(0.0f);
+						const Vector3f8 xi_avx(xi);
+						Vector3f8 vi_avx(predictedV);
+						forall_boundary_neighbors_avx(
+							const Scalarf8 Vj_avx = convert_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bm_neighbor->getVolume(0), count);
+							const Vector3f8 vj_avx = convertVec_zero(&sim->getNeighborList(fluidModelIndex, pid, i)[j], &bs->getPredictedVelocity(pid - nFluids, 0), count);
+							densityAdv_avx += Vj_avx * (vi_avx - vj_avx).dot(CubicKernel_AVX::gradW(xi_avx - xj_avx));
+						);
+						densityAdv += densityAdv_avx.reduce();
+                    #else
 						// density advection considering rigid bodies
 						forall_boundary_neighbors(
 							densityAdv += bm_neighbor->getVolume(neighborIndex) * (predictedV - bs->getPredictedVelocity(pid - nFluids, neighborIndex)).dot(sim->gradW(xi - xj));
 						);
-					//#endif 
+					#endif 
 
 						m_simulationData.getDensityAdv(fluidModelIndex, i) = densityAdv;
 					}

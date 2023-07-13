@@ -171,6 +171,7 @@ namespace SPH {
 
 		// Determine mass and inertia tensor
 		void determineMassProperties(const Real density) {
+			m_density = density;
 			Utilities::VolumeIntegration vi(m_geometry.numVertices(), m_geometry.numFaces(), &m_geometry.getVertices()[0], m_geometry.getFaces().data());
 			vi.compute_inertia_tensor(density);
 

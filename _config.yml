@@ -48,6 +48,8 @@ repository               : "https://github.com/InteractiveComputerGraphics/SPlis
 # Site Footer
 footer:
   links:
+    - label: "Contact"
+      url: /contact/
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/InteractiveComputerGraphics/SPlisHSPlasH"

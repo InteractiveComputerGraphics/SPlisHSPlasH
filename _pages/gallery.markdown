@@ -87,6 +87,14 @@ The following videos were generated using the SPlisHSPlasH library (if you click
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=8NkyiftmDN0"><img src="https://img.youtube.com/vi/8NkyiftmDN0/0.jpg" alt="Video" /></a></td>
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=k0kKR8mXmK4"><img src="https://img.youtube.com/vi/k0kKR8mXmK4/0.jpg" alt="Video" /></a></td>
     </tr>
+    <tr>
+      <td style="text-align: center"><em>Fast Octree Neighborhood Search for SPH Simulations</em></td>
+      <td style="text-align: center"></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://www.youtube.com/watch?v=3MYgOasyhnk"><img src="https://img.youtube.com/vi/3MYgOasyhnk/0.jpg" alt="Video" /></a></td>
+      <td style="text-align: center"></td>
+    </tr>
   </tbody>
 </table>
 

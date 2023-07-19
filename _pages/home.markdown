@@ -23,7 +23,7 @@ SPlisHSPlasH can export the particle data in the partio and vtk format. If you w
 - [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
 
 A surface reconstruction of the particle data can be performed by: 
-- [splashsurf](https://github.com/InteractiveComputerGraphics/splashsurf)
+- [splashsurf](http://splashsurf.physics-simulation.org/)
 
 SPlisHSPlasH uses the following external libraries: [Eigen](http://eigen.tuxfamily.org/), [json](https://github.com/nlohmann/json/), [partio](https://github.com/wdas/partio/), [zlib](https://github.com/madler/zlib), [cxxopts](https://github.com/jarro2783/cxxopts), [tinyexpr](https://github.com/codeplea/tinyexpr), [toojpeg](https://github.com/stbrumme/toojpeg), [pybind](https://github.com/pybind/pybind11), [glfw](https://www.glfw.org/), [hapPLY](https://github.com/nmwsharp/happly), [nfd](https://github.com/btzy/nativefiledialog-extended), and [imgui](https://github.com/ocornut/imgui). All external dependencies are included. 
 

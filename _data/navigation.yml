@@ -1,0 +1,16 @@
+# main links
+main:
+  - title: Home
+    url: /
+
+  - title: Features
+    url: /features/
+
+  - title: Getting started
+    url: /getting_started/
+
+  - title: Gallery
+    url: /gallery/
+
+  - title: References
+    url: /references/

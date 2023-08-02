@@ -288,12 +288,9 @@ void UtilitiesModule(py::module m) {
         .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
         .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
         .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)
-        .def_readwrite("axis", &Utilities::BoundaryParameterObject::axis)
-        .def_readwrite("velocity", &Utilities::BoundaryParameterObject::velocity)
+        .def_readwrite("axis", &Utilities::BoundaryParameterObject::axis)  
         .def_readwrite("angle", &Utilities::BoundaryParameterObject::angle)
-        .def_readwrite("scale", &Utilities::BoundaryParameterObject::scale)
-        .def_readwrite("density", &Utilities::BoundaryParameterObject::density)
-        .def_readwrite("friction", &Utilities::BoundaryParameterObject::friction)
+        .def_readwrite("scale", &Utilities::BoundaryParameterObject::scale)       
         .def_readwrite("dynamic", &Utilities::BoundaryParameterObject::dynamic)
         .def_readwrite("isWall", &Utilities::BoundaryParameterObject::isWall)
         .def_readwrite("color", &Utilities::BoundaryParameterObject::color)
@@ -302,7 +299,10 @@ void UtilitiesModule(py::module m) {
         .def_readwrite("mapThickness", &Utilities::BoundaryParameterObject::mapThickness)
         .def_readwrite("mapResolution", &Utilities::BoundaryParameterObject::mapResolution)
         .def_readwrite("samplingMode", &Utilities::BoundaryParameterObject::samplingMode)
-        .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated);
+        .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated)
+        .def_readwrite("velocity", &Utilities::BoundaryParameterObject::velocity)
+        .def_readwrite("density", &Utilities::BoundaryParameterObject::density)
+        .def_readwrite("friction", &Utilities::BoundaryParameterObject::friction);
 
     py::class_<Utilities::FluidModelParameterObject, GenParam::ParameterObject>(m_sub_sub, "FluidData")
         .def(py::init<>())

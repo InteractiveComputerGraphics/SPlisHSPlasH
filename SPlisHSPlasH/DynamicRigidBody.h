@@ -589,6 +589,15 @@ namespace SPH {
 			clearForceAndTorque();
 		}
 
+		void animate() {
+			const Real dt = TimeManager::getCurrent()->getTimeStepSize();
+			m_x += m_v * dt;
+			Quaternionr angVelQ(0.0, m_omega[0], m_omega[1], m_omega[2]);
+			m_q.coeffs() += dt * 0.5 * (angVelQ * m_q).coeffs();
+			m_q.normalize();
+			updateMeshTransformation();
+		}
+
 		virtual const std::vector<Vector3r>& getVertices() const {
 			return m_geometry.getVertices();
 		};

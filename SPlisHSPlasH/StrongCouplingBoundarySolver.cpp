@@ -269,6 +269,8 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 		{
             #pragma omp for schedule(static)  
 			for (int r = 0; r < bm->numberOfParticles(); r++) {
+				//gamma = 0.7, see the paper		
+				const Real gamma = static_cast<Real>(0.7);
 				if (rb->isDynamic()) {
 					// compute density for particle r
 					Real particleDensity = getRestDensity() * bm->getVolume(r) * W_zero();
@@ -280,16 +282,14 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 							particleDensity += getRestDensity() * bm->getVolume(r) * W(bm->getPosition(r) - bm_neighbor->getPosition(k));
 						}
 					}
-					setDensity(bmIndex, r, std::max(particleDensity, getRestDensity()));
-					//gamma = 0.7, see the paper
-					const Real gamma = static_cast<Real>(0.7); 
+					setDensity(bmIndex, r, std::max(particleDensity, getRestDensity()));	
 					if (getDensity(bmIndex, r) > getRestDensity()) {						
 						setArtificialVolume(bmIndex, r, gamma * getRestDensity() * bm->getVolume(r) / getDensity(bmIndex, r));
 					} else {
 						setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
 					}
 				} else {
-					setArtificialVolume(bmIndex, r, bm->getVolume(r));
+					setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
 				}
 			}
 		}

@@ -53,7 +53,7 @@ void DynamicBoundarySimulator::initBoundaryData() {
 		}
 
 		DynamicRigidBody* rb = new DynamicRigidBody();
-		rb->setIsAnimated(true);
+		rb->setIsAnimated(scene.boundaryModels[i]->isAnimated);
 		TriangleMesh& geo = rb->getGeometry();
 		MeshImport::importMesh(meshFileName, geo, Vector3r::Zero(), Matrix3r::Identity(), scene.boundaryModels[i]->scale);
 

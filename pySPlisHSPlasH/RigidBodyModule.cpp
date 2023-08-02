@@ -5,6 +5,7 @@
 
 #include <SPlisHSPlasH/StaticRigidBody.h>
 #include <SPlisHSPlasH/RigidBodyObject.h>
+#include <SPlisHSPlasH/DynamicRigidBody.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -62,6 +63,27 @@ void RigidBodyModule(py::module m_sub){
                     auto faces = obj.getFaces();
                     unsigned int* base_ptr = faces.data();
                     return py::memoryview::from_buffer(base_ptr, { faces.size() }, { sizeof(unsigned int) });
+             });
+
+    // ---------------------------------------
+    // Class Dynamic Rigid Body
+    // ---------------------------------------
+    py::class_<SPH::DynamicRigidBody, SPH::RigidBodyObject>(m_sub, "DynamicRigidBody")
+                 .def(py::init<>())
+                 .def("setWorldSpacePosition", &SPH::DynamicRigidBody::setWorldSpacePosition)
+                 .def("setWorldSpaceRotation", &SPH::DynamicRigidBody::setWorldSpaceRotation)
+                 .def("animate", &SPH::DynamicRigidBody::animate)
+                 .def("getGeometry", &SPH::DynamicRigidBody::getGeometry)
+                 .def("getVertexBuffer", [](SPH::DynamicRigidBody& obj) -> py::memoryview {
+                 auto vertices = obj.getVertices();
+                 void* base_ptr = &vertices[0][0];
+                 int num_vert = vertices.size();
+                 return py::memoryview::from_buffer((Real*)base_ptr, { num_vert, 3 }, { sizeof(Real) * 3, sizeof(Real) });
+             })
+                 .def("getFaceBuffer", [](SPH::DynamicRigidBody& obj) -> py::memoryview {
+                 auto faces = obj.getFaces();
+                 unsigned int* base_ptr = faces.data();
+                 return py::memoryview::from_buffer(base_ptr, { faces.size() }, { sizeof(unsigned int) });
              });
 
 }

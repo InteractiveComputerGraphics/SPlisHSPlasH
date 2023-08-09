@@ -120,6 +120,9 @@ f = open("version.txt", "r")
 splishsplash_version = f.readline().strip()
 f.close() 
 
+# create build directory
+os.mkdir('build')
+
 setup(
     name=name,
     version=splishsplash_version,

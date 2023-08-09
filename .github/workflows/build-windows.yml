@@ -53,8 +53,11 @@ jobs:
 
     # Install python dependencies
     - name: Install dependencies
-      run: python -m pip install --upgrade pip setuptools wheel twine
+      run: python -m pip install --upgrade pip wheel twine
 
+    - name: Install setuptools
+      run: python -m pip install setuptools==67.0.0
+      
     # Change directory and run setup py
     - name: Run setup py
       run: python setup.py bdist_wheel

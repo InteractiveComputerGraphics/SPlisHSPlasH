@@ -121,7 +121,8 @@ splishsplash_version = f.readline().strip()
 f.close() 
 
 # create build directory
-os.mkdir('build')
+if not os.path.isdir('build'):
+    os.mkdir('build')
 
 setup(
     name=name,

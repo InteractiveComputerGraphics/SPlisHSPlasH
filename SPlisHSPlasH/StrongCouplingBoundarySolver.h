@@ -1,14 +1,15 @@
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/TimeStep.h"
 #include "SPlisHSPlasH/SPHKernels.h"
-
+#include "ParameterObject.h"
+#include <algorithm>
 
 namespace SPH {
 	/** \brief This class stores the information of a dynamic rigid body which
 	* is used for the strong coupling method introduced in
 	* Interlinked SPH Pressure Solvers for Strong Fluid-Rigid Coupling. Gissler et al. https://doi.org/10.1145/3284980
 	*/
-	class StrongCouplingBoundarySolver {
+	class StrongCouplingBoundarySolver : public GenParam::ParameterObject {
 	private:
 		// values required for Gissler 2019 strong coupling based on Akinci 2012
 		Real m_restDensity;
@@ -39,14 +40,32 @@ namespace SPH {
 
 		Real m_maxDensityDeviation;
 
+		int m_kernelMethod;
+		int m_gradKernelMethod;
 		Real(*m_kernelFct)(const Vector3r&);
 		Vector3r(*m_gradKernelFct)(const Vector3r& r);
 		Real m_W_zero;
 
 	public:
+		static int KERNEL_METHOD;
+		static int GRAD_KERNEL_METHOD;
+		static int ENUM_KERNEL_CUBIC;
+		static int ENUM_KERNEL_WENDLANDQUINTICC2;
+		static int ENUM_KERNEL_POLY6;
+		static int ENUM_KERNEL_SPIKY;
+		static int ENUM_KERNEL_CUBIC_2D;
+		static int ENUM_KERNEL_WENDLANDQUINTICC2_2D;
+		static int ENUM_GRADKERNEL_CUBIC;
+		static int ENUM_GRADKERNEL_WENDLANDQUINTICC2;
+		static int ENUM_GRADKERNEL_POLY6;
+		static int ENUM_GRADKERNEL_SPIKY;
+		static int ENUM_GRADKERNEL_CUBIC_2D;
+		static int ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D;
+
 		StrongCouplingBoundarySolver();
 		~StrongCouplingBoundarySolver();
 		static StrongCouplingBoundarySolver* getCurrent();
+		virtual void initParameters();
 		void reset();
 		void resize(unsigned int size);
 		void computeContacts();
@@ -63,6 +82,8 @@ namespace SPH {
 		Real W(const Vector3r& r);
 		Vector3r gradW(const Vector3r& r);
 		Real W_zero();
+
+		
 
 		FORCE_INLINE const Real& getDensity(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
 			return m_density[rigidBodyIndex][index];
@@ -301,5 +322,14 @@ namespace SPH {
 		FORCE_INLINE void setMaxDensityDeviation(const Real& value) {
 			m_maxDensityDeviation = value;
 		}
+
+		int getKernel() const {
+			return m_kernelMethod;
+		}
+		void setKernel(int val);
+		int getGradKernel() const {
+			return m_gradKernelMethod;
+		}
+		void setGradKernel(int val);
 	};
 }

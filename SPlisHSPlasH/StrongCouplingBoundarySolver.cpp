@@ -6,7 +6,22 @@
 #include "SPlisHSPlasH/SPHKernels.h"
 
 using namespace SPH;
+using namespace GenParam;
 
+int StrongCouplingBoundarySolver::KERNEL_METHOD = -1;
+int StrongCouplingBoundarySolver::GRAD_KERNEL_METHOD = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_CUBIC = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_WENDLANDQUINTICC2 = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_POLY6 = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_SPIKY = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_CUBIC_2D = -1;
+int StrongCouplingBoundarySolver::ENUM_KERNEL_WENDLANDQUINTICC2_2D = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_CUBIC = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_WENDLANDQUINTICC2 = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_POLY6 = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_SPIKY = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_CUBIC_2D = -1;
+int StrongCouplingBoundarySolver::ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D = -1;
 StrongCouplingBoundarySolver* StrongCouplingBoundarySolver::current = nullptr;
 
 StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
@@ -31,9 +46,13 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_minIterations = 2;
 	m_maxDensityDeviation = 0.001;
 
+	m_kernelMethod = 0;
+	m_gradKernelMethod = 0;
 	m_kernelFct = CubicKernel::W;
 	m_gradKernelFct = CubicKernel::gradW;
 	m_W_zero = CubicKernel::W_zero();
+
+	initParameters();
 
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
@@ -196,6 +215,43 @@ StrongCouplingBoundarySolver* StrongCouplingBoundarySolver::getCurrent() {
 		}
 	}
 	return current;
+}
+
+void StrongCouplingBoundarySolver::initParameters() {
+	ParameterObject::initParameters();
+
+	Simulation* sim = Simulation::getCurrent();
+	ParameterBase::GetFunc<int> getKernelFct = std::bind(&StrongCouplingBoundarySolver::getKernel, this);
+	ParameterBase::SetFunc<int> setKernelFct = std::bind(&StrongCouplingBoundarySolver::setKernel, this, std::placeholders::_1);
+	KERNEL_METHOD = createEnumParameter("kernel", "Kernel", getKernelFct, setKernelFct);
+	setGroup(KERNEL_METHOD, "Boundary Model|Kernel");
+	setDescription(KERNEL_METHOD, "Kernel function used in the boundary solver.");
+	EnumParameter* enumParam = static_cast<EnumParameter*>(getParameter(KERNEL_METHOD));
+	if (!sim->is2DSimulation()) {
+		enumParam->addEnumValue("Cubic spline", ENUM_KERNEL_CUBIC);
+		enumParam->addEnumValue("Wendland quintic C2", ENUM_KERNEL_WENDLANDQUINTICC2);
+		enumParam->addEnumValue("Poly6", ENUM_KERNEL_POLY6);
+		enumParam->addEnumValue("Spiky", ENUM_KERNEL_SPIKY);
+	} else {
+		enumParam->addEnumValue("Cubic spline 2D", ENUM_KERNEL_CUBIC_2D);
+		enumParam->addEnumValue("Wendland quintic C2 2D", ENUM_KERNEL_WENDLANDQUINTICC2_2D);
+	}
+
+	ParameterBase::GetFunc<int> getGradKernelFct = std::bind(&StrongCouplingBoundarySolver::getGradKernel, this);
+	ParameterBase::SetFunc<int> setGradKernelFct = std::bind(&StrongCouplingBoundarySolver::setGradKernel, this, std::placeholders::_1);
+	GRAD_KERNEL_METHOD = createEnumParameter("gradKernel", "Gradient of kernel", getGradKernelFct, setGradKernelFct);
+	setGroup(GRAD_KERNEL_METHOD, "Boundary Model|Kernel");
+	setDescription(GRAD_KERNEL_METHOD, "Gradient of the kernel function used in the boundary solver.");
+	enumParam = static_cast<EnumParameter*>(getParameter(GRAD_KERNEL_METHOD));
+	if (!sim->is2DSimulation()) {
+		enumParam->addEnumValue("Cubic spline", ENUM_GRADKERNEL_CUBIC);
+		enumParam->addEnumValue("Wendland quintic C2", ENUM_GRADKERNEL_WENDLANDQUINTICC2);
+		enumParam->addEnumValue("Poly6", ENUM_GRADKERNEL_POLY6);
+		enumParam->addEnumValue("Spiky", ENUM_GRADKERNEL_SPIKY);
+	} else {
+		enumParam->addEnumValue("Cubic spline 2D", ENUM_GRADKERNEL_CUBIC_2D);
+		enumParam->addEnumValue("Wendland quintic C2 2D", ENUM_GRADKERNEL_WENDLANDQUINTICC2_2D);
+	}
 }
 
 void StrongCouplingBoundarySolver::performNeighborhoodSearchSort() {
@@ -503,7 +559,7 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 	setOmega_rr_body(bmIndex, omega_rr_body);
 	
 	// compute v_rr and predicted velocity (v_rr+v_s) for all particles
-	if (rb->isDynamic()) {
+	if (rb != nullptr && rb->isDynamic()) {
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static)  
@@ -665,4 +721,77 @@ Vector3r StrongCouplingBoundarySolver::gradW(const Vector3r& r) {
 
 Real StrongCouplingBoundarySolver::W_zero() {
 	return m_W_zero;
+}
+
+void StrongCouplingBoundarySolver::setKernel(int val) {
+	std::cout << " set kernel " << std::endl;
+	Simulation* sim = Simulation::getCurrent();
+	if (val == m_kernelMethod)
+		return;
+
+	m_kernelMethod = val;
+	if (!sim->is2DSimulation()) {
+		if ((m_kernelMethod < 0) || (m_kernelMethod > 4))
+			m_kernelMethod = 0;
+
+		if (m_kernelMethod == 0) {
+			m_W_zero = CubicKernel::W_zero();
+			m_kernelFct = CubicKernel::W;
+		} else if (m_kernelMethod == 1) {
+			m_W_zero = WendlandQuinticC2Kernel::W_zero();
+			m_kernelFct = WendlandQuinticC2Kernel::W;
+		} else if (m_kernelMethod == 2) {
+			m_W_zero = Poly6Kernel::W_zero();
+			m_kernelFct = Poly6Kernel::W;
+		} else if (m_kernelMethod == 3) {
+			m_W_zero = SpikyKernel::W_zero();
+			m_kernelFct = SpikyKernel::W;
+		} else if (m_kernelMethod == 4) {
+			m_W_zero = Simulation::PrecomputedCubicKernel::W_zero();
+			m_kernelFct = Simulation::PrecomputedCubicKernel::W;
+		}
+	} else {
+		if ((m_kernelMethod < 0) || (m_kernelMethod > 1))
+			m_kernelMethod = 0;
+
+		if (m_kernelMethod == 0) {
+			m_W_zero = CubicKernel2D::W_zero();
+			m_kernelFct = CubicKernel2D::W;
+		} else if (m_kernelMethod == 1) {
+			m_W_zero = WendlandQuinticC2Kernel2D::W_zero();
+			m_kernelFct = WendlandQuinticC2Kernel2D::W;
+		}
+	}
+
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012 || sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019)
+		sim->updateBoundaryVolume();
+}
+
+void StrongCouplingBoundarySolver::setGradKernel(int val) {
+	Simulation* sim = Simulation::getCurrent();
+	m_gradKernelMethod = val;
+
+	if (!sim->is2DSimulation()) {
+		if ((m_gradKernelMethod < 0) || (m_gradKernelMethod > 4))
+			m_gradKernelMethod = 0;
+
+		if (m_gradKernelMethod == 0)
+			m_gradKernelFct = CubicKernel::gradW;
+		else if (m_gradKernelMethod == 1)
+			m_gradKernelFct = WendlandQuinticC2Kernel::gradW;
+		else if (m_gradKernelMethod == 2)
+			m_gradKernelFct = Poly6Kernel::gradW;
+		else if (m_gradKernelMethod == 3)
+			m_gradKernelFct = SpikyKernel::gradW;
+		else if (m_gradKernelMethod == 4)
+			m_gradKernelFct = Simulation::PrecomputedCubicKernel::gradW;
+	} else {
+		if ((m_gradKernelMethod < 0) || (m_gradKernelMethod > 1))
+			m_gradKernelMethod = 0;
+
+		if (m_gradKernelMethod == 0)
+			m_gradKernelFct = CubicKernel2D::gradW;
+		else if (m_gradKernelMethod == 1)
+			m_gradKernelFct = WendlandQuinticC2Kernel2D::gradW;
+	}
 }

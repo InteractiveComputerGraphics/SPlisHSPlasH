@@ -503,7 +503,7 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 		imguiParameters::createParameterObjectGUI((GenParam::ParameterObject*) model->getElasticityBase());
 	}
 
-	if (!m_simulatorBase->isStaticScene()) {
+	if (!m_simulatorBase->isStaticScene() && sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
 		DynamicBoundarySimulator* simulator = sim->getDynamicBoundarySimulator();		
 		// Fields for all boundary models
 		{
@@ -516,6 +516,8 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 				imguiParameters::addParam("Boundary Model", "General", damping);
 
 				StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+
+				imguiParameters::createParameterObjectGUI(bs);
 
 				imguiParameters::imguiNumericParameter<unsigned int>* maxIteration = new imguiParameters::imguiNumericParameter<unsigned int>;
 				maxIteration->description = "max iteration to solve the strong coupling method";

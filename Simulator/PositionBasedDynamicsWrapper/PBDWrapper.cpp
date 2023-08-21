@@ -165,32 +165,6 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 
 	PBD::Simulation *sim = PBD::Simulation::getCurrent();
 	sim->setVecValue<Real>(PBD::Simulation::GRAVITATION, &data.m_gravity[0]);
-	m_timeStep->setValue(PBD::TimeStepController::VELOCITY_UPDATE_METHOD, data.m_velocityUpdateMethod);
-	if (data.m_triangleModelSimulationMethod != -1)
-		m_clothSimulationMethod = data.m_triangleModelSimulationMethod;
-	if (data.m_tetModelSimulationMethod != -1)
-		m_solidSimulationMethod = data.m_tetModelSimulationMethod;
-	if (data.m_triangleModelBendingMethod != -1)
-		m_bendingMethod = data.m_triangleModelBendingMethod;
-	m_cd.setTolerance(data.m_contactTolerance);
-	m_model.setContactStiffnessRigidBody(data.m_contactStiffnessRigidBody);
-	m_model.setContactStiffnessParticleRigidBody(data.m_contactStiffnessParticleRigidBody);
-
-	m_distanceStiffness = data.m_cloth_stiffness;
-	m_bendingStiffness = data.m_cloth_bendingStiffness;
-	m_xxStiffness = data.m_cloth_xxStiffness;
-	m_yyStiffness = data.m_cloth_yyStiffness;
-	m_xyStiffness = data.m_cloth_xyStiffness;
-	m_xyPoissonRatio = data.m_cloth_xyPoissonRatio;
-	m_yxPoissonRatio = data.m_cloth_yxPoissonRatio;
-	m_normalizeStretch = data.m_cloth_normalizeStretch;
-	m_normalizeShear = data.m_cloth_normalizeShear;
-
-	m_solidStiffness = data.m_solid_stiffness;
-	m_solidPoissonRatio = data.m_solid_poissonRatio;
-	m_solidNormalizeStretch = data.m_solid_normalizeStretch;
-	m_solidNormalizeShear = data.m_solid_normalizeShear;
-	m_volumeStiffness = data.m_volume_stiffness;
 
 	//////////////////////////////////////////////////////////////////////////
 	// rigid bodies

@@ -21,7 +21,7 @@ SPlisHSPlasH can export the particle data in the partio and vtk format. If you w
 - [Blender Sequence Loader](https://github.com/InteractiveComputerGraphics/blender-sequence-loader)
 - [MayaPartioTools](https://github.com/InteractiveComputerGraphics/MayaPartioTools)
 
-**Author**: [Jan Bender](http://www.interactive-graphics.de)
+**Author**: [Jan Bender](https://animation.rwth-aachen.de/person/1/)
 
 ## License
 
@@ -55,7 +55,7 @@ For Windows and Linux targets there exists prebuilt python wheel files which can
 ```
 pip install pysplishsplash
 ```
-These are available for Python Versions. See also here: [pySPlisHSPlasH](https://pypi.org/project/pySPlisHSPlasH/).
+These are available for Python versions 3.6-3.10. See also here: [pySPlisHSPlasH](https://pypi.org/project/pySPlisHSPlasH/).
 If you do not meet these conditions please refer to the build instructions and to the python binding 
 [Getting started guide](https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/blob/master/doc/py_getting_started.md).
 
@@ -193,9 +193,21 @@ The following videos were generated using the SPlisHSPlasH library:
 [![Video](https://img.youtube.com/vi/D_nEhix1G-w/0.jpg)](https://www.youtube.com/watch?v=D_nEhix1G-w) | [![Video](https://img.youtube.com/vi/elZieJNBYqk/0.jpg)](https://www.youtube.com/watch?v=elZieJNBYqk)
 *Volume Maps: An Implicit Boundary Representation for SPH* | *Implicit Frictional Boundary Handling for SPH*
 [![Video](https://img.youtube.com/vi/AV_pl1bMIb8/0.jpg)](https://www.youtube.com/watch?v=AV_pl1bMIb8) | [![Video](https://img.youtube.com/vi/1u5N0eedzic/0.jpg)](https://www.youtube.com/watch?v=1u5N0eedzic) 
-*Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control* | 
-[![Video](https://img.youtube.com/vi/8NkyiftmDN0/0.jpg)](https://www.youtube.com/watch?v=8NkyiftmDN0) | 
+*Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control* | *A comparison of linear consistent correction methods for first-order SPH derivatives*
+[![Video](https://img.youtube.com/vi/8NkyiftmDN0/0.jpg)](https://www.youtube.com/watch?v=8NkyiftmDN0) | [![Video](https://img.youtube.com/vi/k0kKR8mXmK4/0.jpg)](https://www.youtube.com/watch?v=k0kKR8mXmK4)
 
+## Citation 
+
+To cite SPlisHSPlasH you can use this BibTeX entry:
+
+```bibtex
+@software{SPlisHSPlasH_Library,
+  author = {Bender, Jan and others},
+  license = {MIT},
+  title = {{SPlisHSPlasH Library}},
+  url = {https://github.com/InteractiveComputerGraphics/SPlisHSPlasH},
+}
+```
 
 ## References
 

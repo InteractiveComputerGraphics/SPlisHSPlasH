@@ -1,3 +1,6 @@
+	- updated PositionBasedDynamics
+	- updated GenericParameters
+
 2.12.4
 	- added citation file
 	- fixed rigid body colors in visualization

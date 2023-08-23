@@ -91,3 +91,4 @@ https://doi.org/10.48550/arXiv.2304.06197
 https://doi.org/10.2991/cnci-19.2019.80
 * Min Hyung Kee, Kiwon Um, HyunMo Kang, and JungHyun Han. An Optimization-based SPH Solver for Simulation of Hyperelastic Solids. Computer Graphics Forum, 42, 2, 2023
 https://doi.org/10.1111/cgf.14756
+* Xiangyang Zhou, Sinuo Liu, Haokai Zeng, Xiaokun Wang, Xiaojuan Ban. Efficient and high precision target-driven fluid simulation based on spatial geometry features. Computer Animation & Virtual Worlds, 2023

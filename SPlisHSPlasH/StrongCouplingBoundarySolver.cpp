@@ -320,14 +320,13 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
-		RigidBodyObject* rb = bm->getRigidBodyObject();
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static)  
 			for (int r = 0; r < bm->numberOfParticles(); r++) {
 				//gamma = 0.7, see the paper		
 				const Real gamma = static_cast<Real>(0.7);
-				if (rb->isDynamic()) {
+				if (bm->getRigidBodyObject()->isDynamic() && m_bodyContacts[bmIndex] > 0) {
 					// compute density for particle r
 					Real particleDensity = getRestDensity() * bm->getVolume(r) * W_zero();
 					// iterate over all rigid bodies
@@ -345,6 +344,7 @@ void StrongCouplingBoundarySolver::computeDensityAndVolume() {
 						setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
 					}
 				} else {
+					setDensity(bmIndex, r, getRestDensity());
 					setArtificialVolume(bmIndex, r, gamma * bm->getVolume(r));
 				}
 			}
@@ -362,7 +362,7 @@ void StrongCouplingBoundarySolver::computeV_s() {
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		DynamicRigidBody* rb = dynamic_cast<DynamicRigidBody*>(bm->getRigidBodyObject());
-		if (rb != nullptr && rb->isDynamic()) {
+		if (rb != nullptr && rb->isDynamic() && m_bodyContacts[boundaryPointSetIndex - nFluids] > 0) {
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)  
@@ -396,7 +396,7 @@ void StrongCouplingBoundarySolver::computeSourceTerm() {
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
-		if (bm->getRigidBodyObject()->isDynamic()) {
+		if (bm->getRigidBodyObject()->isDynamic() && m_bodyContacts[bmIndex] > 0) {
             #pragma omp parallel default(shared)
 			{
                 #pragma omp for schedule(static)  
@@ -438,55 +438,59 @@ void StrongCouplingBoundarySolver::computeDiagonalElement() {
 			{
                 #pragma omp for schedule(static)      
 				for (int r = 0; r < bm_r->numberOfParticles(); r++) {
-					Vector3r pos_r = bm_r->getPosition(r) - rb->getPosition();
-					Vector3r grad_p_b = Vector3r::Zero();
-					const Real density_r2 = getDensity(index_r, r) * getDensity(index_r, r);
-					// rk are neighboring rigid particles of r of other rigid bodies k
-					for (unsigned int pointSetIndex_rk = nFluids; pointSetIndex_rk < sim->numberOfPointSets(); pointSetIndex_rk++) {
-						if (pointSetIndex_rk != pointSetIndex_r) {
-							BoundaryModel_Akinci2012* bm_rk = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_rk));
-							int index_rk = pointSetIndex_rk - nFluids;
-							DynamicRigidBody* rb_rk = static_cast<DynamicRigidBody*>(bm_rk->getRigidBodyObject());
-							for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
-								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
-								grad_p_b += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) / density_r2 * gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk));
+					if (m_bodyContacts[index_r] == 0) {
+						setDiagonalElement(index_r, r, 0);
+					} else {
+						Vector3r pos_r = bm_r->getPosition(r) - rb->getPosition();
+						Vector3r grad_p_b = Vector3r::Zero();
+						const Real density_r2 = getDensity(index_r, r) * getDensity(index_r, r);
+						// rk are neighboring rigid particles of r of other rigid bodies k
+						for (unsigned int pointSetIndex_rk = nFluids; pointSetIndex_rk < sim->numberOfPointSets(); pointSetIndex_rk++) {
+							if (pointSetIndex_rk != pointSetIndex_r) {
+								BoundaryModel_Akinci2012* bm_rk = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_rk));
+								int index_rk = pointSetIndex_rk - nFluids;
+								DynamicRigidBody* rb_rk = static_cast<DynamicRigidBody*>(bm_rk->getRigidBodyObject());
+								for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
+									const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
+									grad_p_b += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) / density_r2 * gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk));
+								}
 							}
 						}
-					}
-					grad_p_b *= getDensity(index_r, r);
-					Vector3r v_b = -dt * rb->getInvMass() * getArtificialVolume(index_r, r) * grad_p_b;
-					Vector3r omega_b = -dt * rb->getInertiaTensorInverseW() * getArtificialVolume(index_r, r) * pos_r.cross(grad_p_b);
-					Vector3r v_b_r = v_b + omega_b.cross(pos_r);
-					Real b_r = 0;
-					// for all neighboring rigid bodies
-					for (unsigned int pointSetIndex_rk = nFluids; pointSetIndex_rk < sim->numberOfPointSets(); pointSetIndex_rk++) {
-						if (pointSetIndex_rk != pointSetIndex_r) {
-							Vector3r v_b_k_body = Vector3r::Zero();
-							Vector3r omega_b_k_body = Vector3r::Zero();
-							BoundaryModel_Akinci2012* bm_rk = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_rk));
-							int index_rk = pointSetIndex_rk - nFluids;
-							DynamicRigidBody* rb_rk = static_cast<DynamicRigidBody*>(bm_rk->getRigidBodyObject());
-							for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
-								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
-								Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
-								Vector3r grad_p_b_rkr = getDensity(index_rk, rk) * getArtificialVolume(index_r, r) * getDensity(index_r, r) / density_r2 * gradW(bm_rk->getPosition(rk) - bm_r->getPosition(r));
-								v_b_k_body += -dt * rb_rk->getInvMass() * getArtificialVolume(index_rk, rk) * grad_p_b_rkr;
-								omega_b_k_body += -dt * rb_rk->getInertiaTensorInverseW() * getArtificialVolume(index_rk, rk) * pos_rk.cross(grad_p_b_rkr);
+						grad_p_b *= getDensity(index_r, r);
+						Vector3r v_b = -dt * rb->getInvMass() * getArtificialVolume(index_r, r) * grad_p_b;
+						Vector3r omega_b = -dt * rb->getInertiaTensorInverseW() * getArtificialVolume(index_r, r) * pos_r.cross(grad_p_b);
+						Vector3r v_b_r = v_b + omega_b.cross(pos_r);
+						Real b_r = 0;
+						// for all neighboring rigid bodies
+						for (unsigned int pointSetIndex_rk = nFluids; pointSetIndex_rk < sim->numberOfPointSets(); pointSetIndex_rk++) {
+							if (pointSetIndex_rk != pointSetIndex_r) {
+								Vector3r v_b_k_body = Vector3r::Zero();
+								Vector3r omega_b_k_body = Vector3r::Zero();
+								BoundaryModel_Akinci2012* bm_rk = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pointSetIndex_rk));
+								int index_rk = pointSetIndex_rk - nFluids;
+								DynamicRigidBody* rb_rk = static_cast<DynamicRigidBody*>(bm_rk->getRigidBodyObject());
+								for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
+									const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
+									Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
+									Vector3r grad_p_b_rkr = getDensity(index_rk, rk) * getArtificialVolume(index_r, r) * getDensity(index_r, r) / density_r2 * gradW(bm_rk->getPosition(rk) - bm_r->getPosition(r));
+									v_b_k_body += -dt * rb_rk->getInvMass() * getArtificialVolume(index_rk, rk) * grad_p_b_rkr;
+									omega_b_k_body += -dt * rb_rk->getInertiaTensorInverseW() * getArtificialVolume(index_rk, rk) * pos_rk.cross(grad_p_b_rkr);
+								}
+								// divergence
+								Real sum_rk = 0;
+								for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
+									const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
+									Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
+									Vector3r v_b_rk = v_b_k_body + omega_b_k_body.cross(pos_rk);
+									sum_rk += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) * (v_b_rk - v_b_r).dot(gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk)));
+								}
+								b_r += sum_rk;
 							}
-							// divergence
-							Real sum_rk = 0;
-							for (unsigned int n = 0; n < sim->numberOfNeighbors(pointSetIndex_r, pointSetIndex_rk, r); n++) {
-								const unsigned int rk = sim->getNeighbor(pointSetIndex_r, pointSetIndex_rk, r, n);
-								Vector3r pos_rk = bm_rk->getPosition(rk) - rb_rk->getPosition();
-								Vector3r v_b_rk = v_b_k_body + omega_b_k_body.cross(pos_rk);
-								sum_rk += getArtificialVolume(index_rk, rk) * getDensity(index_rk, rk) * (v_b_rk - v_b_r).dot(gradW(bm_r->getPosition(r) - bm_rk->getPosition(rk)));
-							}
-							b_r += sum_rk;
 						}
-					}
-					b_r = -b_r;
-					//setDiagonalElement(index_r, r, b_r < 0 ? b_r : 0);
-					setDiagonalElement(index_r, r, b_r);
+						b_r = -b_r;
+						//setDiagonalElement(index_r, r, b_r < 0 ? b_r : 0);
+						setDiagonalElement(index_r, r, b_r);
+					}				
 				}
 			}
 		}
@@ -517,7 +521,7 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 	Real omegax = 0;
 	Real omegay = 0;
 	Real omegaz = 0;
-	if (rb != nullptr && rb->isDynamic()) {
+	if (rb != nullptr && rb->isDynamic() && m_bodyContacts[bmIndex] > 0) {
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static) reduction(+:vx) reduction(+:vy) reduction(+:vz) reduction(+:omegax) reduction(+:omegay) reduction(+:omegaz)                                                    
@@ -559,7 +563,7 @@ void SPH::StrongCouplingBoundarySolver::computeSourceTermRHSForBody(const unsign
 	setOmega_rr_body(bmIndex, omega_rr_body);
 	
 	// compute v_rr and predicted velocity (v_rr+v_s) for all particles
-	if (rb != nullptr && rb->isDynamic()) {
+	if (rb != nullptr && rb->isDynamic() && m_bodyContacts[bmIndex] > 0) {
         #pragma omp parallel default(shared)
 		{
             #pragma omp for schedule(static)  
@@ -601,7 +605,7 @@ void StrongCouplingBoundarySolver::pressureSolveIteration(Real& avgDensityDeviat
 	for (unsigned int boundaryPointSetIndex = nFluids; boundaryPointSetIndex < sim->numberOfPointSets(); boundaryPointSetIndex++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(boundaryPointSetIndex));
 		int bmIndex = boundaryPointSetIndex - nFluids;
-		if (bm->getRigidBodyObject()->isDynamic()) {
+		if (bm->getRigidBodyObject()->isDynamic() && m_bodyContacts[bmIndex] > 0) {
 			int numContactsBody = getBodyContacts(bmIndex);
 			computeSourceTermRHSForBody(boundaryPointSetIndex);
 			// beta_r_RJ

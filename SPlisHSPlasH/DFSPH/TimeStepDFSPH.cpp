@@ -398,9 +398,6 @@ void TimeStepDFSPH::pressureSolve()
 			}
 			m_iterations++;
 		}
-		if (anyRigidContact) {
-			bs->applyForce();
-		}
 	} else {
 		//////////////////////////////////////////////////////////////////////////
 		// Perform solver iterations
@@ -444,6 +441,13 @@ void TimeStepDFSPH::pressureSolve()
 				computePressureAccel(fluidModelIndex, i, density0, m_simulationData.getPressureRho2Data(), true);
 				model->getVelocity(i) += h * m_simulationData.getPressureAccel(fluidModelIndex, i);
 			}
+		}
+	}
+
+	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+		StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+		if (bs->getAllContacts() != 0) {
+			bs->applyForce();
 		}
 	}
 #ifdef USE_WARMSTART
@@ -607,7 +611,7 @@ void TimeStepDFSPH::divergenceSolve()
 				}
 			}
 
-			// predict density advection using the predicted velocity of fluid an rigid velocities
+			// predict density advection using the predicted velocity of fluid and rigid velocities
 			for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++) {
 				FluidModel* model = sim->getFluidModel(fluidModelIndex);
                 #pragma omp parallel default(shared)
@@ -658,9 +662,6 @@ void TimeStepDFSPH::divergenceSolve()
 			}
 
 			m_iterationsV++;
-		}
-		if (anyRigidContact) {
-			bs->applyForce();
 		}
 	} else {
 		//////////////////////////////////////////////////////////////////////////
@@ -713,6 +714,10 @@ void TimeStepDFSPH::divergenceSolve()
 	}
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
+		StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+		if (bs->getAllContacts() != 0) {
+			bs->applyForce();
+		}
 		/////////////////////////////////////////////////////////////////////////
 		// Update intermediate boundary velocity for strong coupling solver
 		/////////////////////////////////////////////////////////////////////////

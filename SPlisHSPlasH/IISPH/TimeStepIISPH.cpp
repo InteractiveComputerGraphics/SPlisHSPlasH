@@ -434,9 +434,6 @@ void TimeStepIISPH::pressureSolveStrongCoupling() {
 		m_iterations++;
 	}
 
-	if (anyRigidContact) {
-		bs->applyForce();
-	}
 	INCREASE_COUNTER("IISPH - iterations", static_cast<Real>(m_iterations));
 }
 

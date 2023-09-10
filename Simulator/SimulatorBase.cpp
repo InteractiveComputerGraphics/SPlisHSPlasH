@@ -50,6 +50,7 @@ int SimulatorBase::STOP_AT = -1;
 int SimulatorBase::NUM_STEPS_PER_RENDER = -1;
 int SimulatorBase::DATA_EXPORT_FPS = -1;
 int SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES = -1;
+int SimulatorBase::RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES = -1;
 int SimulatorBase::STATE_EXPORT = -1;
 int SimulatorBase::STATE_EXPORT_FPS = -1;
 int SimulatorBase::ASYNC_EXPORT = -1;
@@ -97,7 +98,8 @@ SimulatorBase::SimulatorBase()
 	m_colorMapType.resize(1, 0);
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
-	m_particleAttributes = "velocity;density;sourceTerm;v_s;v_rr;pressure;rigidbodyVelocity";
+	m_particleAttributes = "velocity;density;";
+	m_rigidbodyParticleAttributes = "particle position;body position";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
 	m_updateGUI = false;
@@ -182,6 +184,11 @@ void SimulatorBase::initParameters()
 	getParameter(PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
 	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export|General");
 	setDescription(PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
+
+	RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("rigidbodyParticleAttributes", "Export attributes", &m_rigidbodyParticleAttributes);
+	getParameter(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
+	setGroup(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES, "Export|General");
+	setDescription(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
 
 	ASYNC_EXPORT = createBoolParameter("enableAsyncExport", "Asynchronous export", &m_enableAsyncExport);
 	setGroup(ASYNC_EXPORT, "Export|General");

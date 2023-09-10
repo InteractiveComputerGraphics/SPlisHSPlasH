@@ -75,7 +75,7 @@ void RigidBodyParticleExporter_VTK::writeRigidBodies(const unsigned int frame) {
 
 			// add attributes
 			m_attributes.clear();
-			StringTools::tokenize(m_base->getValue<std::string>(SimulatorBase::PARTICLE_EXPORT_ATTRIBUTES), m_attributes, ";");
+			StringTools::tokenize(m_base->getValue<std::string>(SimulatorBase::RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES), m_attributes, ";");
 
 			//////////////////////////////////////////////////////////////////////////
 			// positions and ids exported anyways

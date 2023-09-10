@@ -63,6 +63,7 @@ namespace SPH
 		Vector3r m_cameraPosition;
 		Vector3r m_cameraLookAt;
 		std::string m_particleAttributes;
+		std::string m_rigidbodyParticleAttributes;
 		std::unique_ptr<Utilities::SceneLoader> m_sceneLoader;
 		Real m_nextFrameTime;
 		Real m_nextFrameTimeState;
@@ -118,6 +119,7 @@ namespace SPH
 		static int NUM_STEPS_PER_RENDER;
 		static int DATA_EXPORT_FPS;
 		static int PARTICLE_EXPORT_ATTRIBUTES;
+		static int RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES;
 		static int STATE_EXPORT;
 		static int STATE_EXPORT_FPS;
 		static int ASYNC_EXPORT;

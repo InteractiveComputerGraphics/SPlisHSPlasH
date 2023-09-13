@@ -35,7 +35,6 @@ StrongCouplingBoundarySolver::StrongCouplingBoundarySolver() :
 	m_minus_rho_div_v_rr(),
 	m_diagonalElement(),
 	m_artificialVolume(),
-	m_lastPressure(),
 	m_predictedVelocity(),
 	m_predictedPosition(),
 	m_v_rr_body(),
@@ -77,7 +76,6 @@ void SPH::StrongCouplingBoundarySolver::resize(unsigned int size) {
 	m_diagonalElement.resize(nBoundaries);
 	m_pressureGrad.resize(nBoundaries);
 	m_artificialVolume.resize(nBoundaries);
-	m_lastPressure.resize(nBoundaries);
 	m_predictedVelocity.resize(nBoundaries);
 	m_predictedPosition.resize(nBoundaries);
 	m_v_rr_body.resize(nBoundaries, Vector3r::Zero());
@@ -96,7 +94,6 @@ void SPH::StrongCouplingBoundarySolver::resize(unsigned int size) {
 		m_diagonalElement[i].resize(bm->numberOfParticles(), 0.0);
 		m_pressureGrad[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_artificialVolume[i].resize(bm->numberOfParticles(), 0.0);
-		m_lastPressure[i].resize(bm->numberOfParticles(), 0.0);
 		m_predictedVelocity[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 		m_predictedPosition[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 
@@ -113,6 +110,7 @@ void SPH::StrongCouplingBoundarySolver::reset() {
 	for (unsigned int i = 0; i < nBoundaries; i++) {
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModel(i));
 		for (int j = 0; j < bm->numberOfParticles(); j++) {
+			m_density[i][j] = m_restDensity;
 			m_v_s[i][j] = Vector3r::Zero();
 			m_s[i][j] = 0.0;
 			m_pressure[i][j] = 0.0;
@@ -122,7 +120,6 @@ void SPH::StrongCouplingBoundarySolver::reset() {
 			m_diagonalElement[i][j] = 0.0;
 			m_pressureGrad[i][j] = Vector3r::Zero();
 			m_artificialVolume[i][j] = 0.0;
-			m_lastPressure[i][j] = 0.0;
 			m_predictedVelocity[i][j] = Vector3r::Zero();
 			m_predictedPosition[i][j] = Vector3r::Zero();
 		}
@@ -145,7 +142,6 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 		m_diagonalElement[i].clear();
 		m_pressureGrad[i].clear();
 		m_artificialVolume[i].clear();
-		m_lastPressure[i].clear();
 		m_predictedVelocity[i].clear();
 		m_predictedPosition[i].clear();
 	}
@@ -159,7 +155,6 @@ StrongCouplingBoundarySolver::~StrongCouplingBoundarySolver() {
 	m_diagonalElement.clear();
 	m_pressureGrad.clear();
 	m_artificialVolume.clear();
-	m_lastPressure.clear();
 	m_predictedVelocity.clear();
 	m_predictedPosition.clear();
 	m_v_rr_body.clear();
@@ -234,7 +229,6 @@ void StrongCouplingBoundarySolver::performNeighborhoodSearchSort() {
 			d.sort_field(&m_diagonalElement[i][0]);
 			d.sort_field(&m_pressureGrad[i][0]);
 			d.sort_field(&m_artificialVolume[i][0]);
-			d.sort_field(&m_lastPressure[i][0]);
 			d.sort_field(&m_predictedVelocity[i][0]);
 			d.sort_field(&m_predictedPosition[i][0]);
 		}

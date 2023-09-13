@@ -99,7 +99,7 @@ SimulatorBase::SimulatorBase()
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
 	m_particleAttributes = "velocity;density;";
-	m_rigidbodyParticleAttributes = "particle position;body position";
+	m_rigidbodyParticleAttributes = "";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
 	m_updateGUI = false;
@@ -185,7 +185,7 @@ void SimulatorBase::initParameters()
 	setGroup(PARTICLE_EXPORT_ATTRIBUTES, "Export|General");
 	setDescription(PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");
 
-	RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("rigidbodyParticleAttributes", "Export attributes", &m_rigidbodyParticleAttributes);
+	RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES = createStringParameter("rigidbodyParticleAttributes", "Rigidbody export attributes", &m_rigidbodyParticleAttributes);
 	getParameter(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES)->setReadOnly(true);
 	setGroup(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES, "Export|General");
 	setDescription(RIGIDBODY_PARTICLE_EXPORT_ATTRIBUTES, "Attributes that are exported in the partio files (except id and position).");

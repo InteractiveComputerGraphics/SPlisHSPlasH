@@ -15,7 +15,6 @@ namespace SPH {
 		Real m_restDensity;
 		std::vector<std::vector<Real>> m_density;
 		std::vector<std::vector<Real>> m_pressure;
-		std::vector<std::vector<Real>> m_lastPressure;
 		std::vector<std::vector<Real>> m_artificialVolume;
 		std::vector<std::vector<Vector3r>> m_v_s;
 		std::vector<std::vector<Real>> m_s; // source term
@@ -28,7 +27,6 @@ namespace SPH {
 		std::vector<std::vector<Real>> m_diagonalElement; // diagonal element for jacobi iteration
 		std::vector<Vector3r> m_v_rr_body;
 		std::vector<Vector3r> m_omega_rr_body;
-		std::vector<std::vector<unsigned int>> m_contacts;
 		std::vector<unsigned int> m_bodyContacts;
 		unsigned int m_contactsAllBodies;
 
@@ -107,18 +105,6 @@ namespace SPH {
 
 		FORCE_INLINE void setPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const Real& value) {
 			m_pressure[rigidBodyIndex][index] = value;
-		}
-
-		FORCE_INLINE const Real& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) const {
-			return m_lastPressure[rigidBodyIndex][index];
-		}
-
-		FORCE_INLINE Real& getLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index) {
-			return m_lastPressure[rigidBodyIndex][index];
-		}
-
-		FORCE_INLINE void setLastPressure(const unsigned int& rigidBodyIndex, const unsigned int& index, const Real& value) {
-			m_lastPressure[rigidBodyIndex][index] = value;
 		}
 
 		FORCE_INLINE const Real& getRestDensity() const {

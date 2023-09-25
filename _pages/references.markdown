@@ -56,41 +56,24 @@ SPlisHSPlasH implements the methods of the following publications:
 
 ## Other research projects using SPlisHSPlasH
 
-* Diogo Schaffer, Andre Antonitsch, Amyr Neto, Soraia Musse. Towards Animating Virtual Humans in Flooded Environments. Motion, Interaction and Games, 2020
-https://dl.acm.org/doi/10.1145/3424636.3426900
-* Byungsoo Kim, Vinicius C. Azevedo, Markus Gross, Barbara Solenthaler. Lagrangian neural style transfer for fluids. ACM Transactions on Graphics 39, 4, 2020
-https://dl.acm.org/doi/abs/10.1145/3386569.3392473
-* Fernando Zorilla, Marcel Ritter, Johannes Sappl, Wolfgang Rauch, Matthias Harders. Accelerating Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration. Computer Graphics and Visual Computing (CGVC), 2019
-https://diglib.eg.org/handle/10.2312/cgvc20191260
-*  H. R. Abbasia and R. Lubbad. A numerical model for the simulation of oil–ice interaction. Physics of Fluids 33, 2021
-https://aip.scitation.org/doi/10.1063/5.0065587
-* Uljad Berdica, Yuewei Fu, Yuchen Liu, Emmanouil Angelidis, Chen Feng. Mobile 3D Printing Robot Simulation with Viscoelastic Fluids. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2021
-https://ieeexplore.ieee.org/document/9636114
-* Arnaud Schoentgen, Pierre Poulin, Emmanuelle Darles, Philippe Meseure. Particle-based liquid control using animation templates. ACM SIGGRAPH/Eurographics Symposium on Computer Animation 2020
-https://dl.acm.org/doi/10.1111/cgf.14103
-* B. Ummenhofer, L. Prantl, N. Thuerey, V. Koltun. Lagrangian Fluid Simulation with Continuous Convolutions. ICLR 2020
-https://ge.in.tum.de/publications/2020-ummenhofer-iclr/
-*  Stefan Reinhardt, Tim Krake, Bernhard Eberhardt, Daniel Weiskopf. Consistent Shepard Interpolation for SPH-Based Fluid Animation. ACM Transactions on Graphics 38, 6, 2019
-https://dl.acm.org/doi/10.1145/3355089.3356503
-* Zhongyao Yang, Maolin Wu, Shiguang Liu. Helmholtz decomposition-based SPH. Virtual Reality & Intelligent Hardware 3, 2, 2021
-https://www.sciencedirect.com/science/article/pii/S2096579621000176
-* Min Li, Hongshu Li, Weiliang Meng, Jian Zhu, Gary Zhang. An efficient non-iterative smoothed particle hydrodynamics fluid simulation method with variable smoothing length. Visual Computing for Industry, Biomedicine, and Art 6, 1, 2023
-https://vciba.springeropen.com/articles/10.1186/s42492-022-00128-x
-* Yalmar Ponce Atencio, Manuel J. Ibarra, Juan José Oré Cerrón, Roberto Quispe Quispe, Richard Flores Condori, Julio Huanca Marín, Mary Huaman Carrión. Particle-Based Physics for Interactive Applications. Lecture Notes in Networks and Systems book series (LNNS,volume 216), 2021
-https://link.springer.com/chapter/10.1007/978-981-16-1781-2_38
-* Zijie Li, Tianqin Li, Amir Barati Farimani. TPU-GAN: Learning temporal coherence from dynamic point cloud sequences. ICLR 2022
-https://openreview.net/forum?id=FEBFJ98FKx
-* Muzaffer Akbay, Nicholas Nobles, Victor Zordan, Tamar Shinar. An extended partitioned method for conservative solid-fluid coupling. ACM Transactions on Graphics 37, 4, 2018
-https://dl.acm.org/doi/10.1145/3197517.3201345
-* Samuel Carensac, Nicolas Pronost & Saïda Bouakaz. Optimizations for predictive–corrective particle-based fluid simulation on GPU. The Visual Computer volume 39, 2023
-* Iliya Starodubtsev, Pavel Vasev, Yuliya Starodubtseva, Igor Tsepelev. Numerical Simulation and Visualization of Lava Flows. Scientific Visualization, 2022, volume 14, number 5
-https://doi.org/10.26583/sv.14.5.05
-* Arjun Mani, Ishaan Preetam Chandratreya, Elliot Creager, Carl Vondrick, Richard Zemel. SurfsUp: Learning Fluid Simulation for Novel Surfaces. arXiv 2023
-https://doi.org/10.48550/arXiv.2304.06197
-* Jian Chen. Incompressible Projective Smooth Particle Hydrodynamic. Proc. CNCI 2019
-https://doi.org/10.2991/cnci-19.2019.80
-* Min Hyung Kee, Kiwon Um, HyunMo Kang, and JungHyun Han. An Optimization-based SPH Solver for Simulation of Hyperelastic Solids. Computer Graphics Forum, 42, 2, 2023
-https://doi.org/10.1111/cgf.14756
+* Diogo Schaffer, Andre Antonitsch, Amyr Neto, Soraia Musse. Towards Animating Virtual Humans in Flooded Environments. Motion, Interaction and Games, 2020<br>[https://dl.acm.org/doi/10.1145/3424636.3426900](https://dl.acm.org/doi/10.1145/3424636.3426900)
+* Byungsoo Kim, Vinicius C. Azevedo, Markus Gross, Barbara Solenthaler. Lagrangian neural style transfer for fluids. ACM Transactions on Graphics 39, 4, 2020<br>[https://dl.acm.org/doi/abs/10.1145/3386569.3392473](https://dl.acm.org/doi/abs/10.1145/3386569.3392473)
+* Fernando Zorilla, Marcel Ritter, Johannes Sappl, Wolfgang Rauch, Matthias Harders. Accelerating Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration. Computer Graphics and Visual Computing (CGVC), 2019<br>[https://diglib.eg.org/handle/10.2312/cgvc20191260](https://diglib.eg.org/handle/10.2312/cgvc20191260)
+*  H. R. Abbasia and R. Lubbad. A numerical model for the simulation of oil–ice interaction. Physics of Fluids 33, 2021<br>[https://aip.scitation.org/doi/10.1063/5.0065587](https://aip.scitation.org/doi/10.1063/5.0065587)
+* Uljad Berdica, Yuewei Fu, Yuchen Liu, Emmanouil Angelidis, Chen Feng. Mobile 3D Printing Robot Simulation with Viscoelastic Fluids. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2021<br>[https://ieeexplore.ieee.org/document/9636114](https://ieeexplore.ieee.org/document/9636114)
+* Arnaud Schoentgen, Pierre Poulin, Emmanuelle Darles, Philippe Meseure. Particle-based liquid control using animation templates. ACM SIGGRAPH/Eurographics Symposium on Computer Animation 2020<br>[https://dl.acm.org/doi/10.1111/cgf.14103](https://dl.acm.org/doi/10.1111/cgf.14103)
+* B. Ummenhofer, L. Prantl, N. Thuerey, V. Koltun. Lagrangian Fluid Simulation with Continuous Convolutions. ICLR 2020<br>[https://ge.in.tum.de/publications/2020-ummenhofer-iclr/](https://ge.in.tum.de/publications/2020-ummenhofer-iclr/)
+*  Stefan Reinhardt, Tim Krake, Bernhard Eberhardt, Daniel Weiskopf. Consistent Shepard Interpolation for SPH-Based Fluid Animation. ACM Transactions on Graphics 38, 6, 2019<br>[https://dl.acm.org/doi/10.1145/3355089.3356503](https://dl.acm.org/doi/10.1145/3355089.3356503)
+* Zhongyao Yang, Maolin Wu, Shiguang Liu. Helmholtz decomposition-based SPH. Virtual Reality & Intelligent Hardware 3, 2, 2021<br>[https://www.sciencedirect.com/science/article/pii/S2096579621000176](https://www.sciencedirect.com/science/article/pii/S2096579621000176)
+* Min Li, Hongshu Li, Weiliang Meng, Jian Zhu, Gary Zhang. An efficient non-iterative smoothed particle hydrodynamics fluid simulation method with variable smoothing length. Visual Computing for Industry, Biomedicine, and Art 6, 1, 2023<br>[https://vciba.springeropen.com/articles/10.1186/s42492-022-00128-x](https://vciba.springeropen.com/articles/10.1186/s42492-022-00128-x)
+* Yalmar Ponce Atencio, Manuel J. Ibarra, Juan José Oré Cerrón, Roberto Quispe Quispe, Richard Flores Condori, Julio Huanca Marín, Mary Huaman Carrión. Particle-Based Physics for Interactive Applications. Lecture Notes in Networks and Systems book series (LNNS,volume 216), 2021<br>[https://link.springer.com/chapter/10.1007/978-981-16-1781-2_38](https://link.springer.com/chapter/10.1007/978-981-16-1781-2_38)
+* Zijie Li, Tianqin Li, Amir Barati Farimani. TPU-GAN: Learning temporal coherence from dynamic point cloud sequences. ICLR 2022<br>[https://openreview.net/forum?id=FEBFJ98FKx](https://openreview.net/forum?id=FEBFJ98FKx)
+* Muzaffer Akbay, Nicholas Nobles, Victor Zordan, Tamar Shinar. An extended partitioned method for conservative solid-fluid coupling. ACM Transactions on Graphics 37, 4, 2018<br>[https://dl.acm.org/doi/10.1145/3197517.3201345](https://dl.acm.org/doi/10.1145/3197517.3201345)
+* Samuel Carensac, Nicolas Pronost & Saïda Bouakaz. Optimizations for predictive–corrective particle-based fluid simulation on GPU. The Visual Computer volume 39, 2023<br>[https://link.springer.com/article/10.1007/s00371-021-02379-w](https://link.springer.com/article/10.1007/s00371-021-02379-w)
+* Iliya Starodubtsev, Pavel Vasev, Yuliya Starodubtseva, Igor Tsepelev. Numerical Simulation and Visualization of Lava Flows. Scientific Visualization, 2022, volume 14, number 5<br>[https://doi.org/10.26583/sv.14.5.05](https://doi.org/10.26583/sv.14.5.05)
+* Arjun Mani, Ishaan Preetam Chandratreya, Elliot Creager, Carl Vondrick, Richard Zemel. SurfsUp: Learning Fluid Simulation for Novel Surfaces. arXiv 2023<br>[https://doi.org/10.48550/arXiv.2304.06197](https://doi.org/10.48550/arXiv.2304.06197)
+* Jian Chen. Incompressible Projective Smooth Particle Hydrodynamic. Proc. CNCI 2019<br>[https://doi.org/10.2991/cnci-19.2019.80](https://doi.org/10.2991/cnci-19.2019.80)
+* Min Hyung Kee, Kiwon Um, HyunMo Kang, and JungHyun Han. An Optimization-based SPH Solver for Simulation of Hyperelastic Solids. Computer Graphics Forum, 42, 2, 2023<br>[https://doi.org/10.1111/cgf.14756](https://doi.org/10.1111/cgf.14756)
 * Xiangyang Zhou, Sinuo Liu, Haokai Zeng, Xiaokun Wang, Xiaojuan Ban. Efficient and high precision target-driven fluid simulation based on spatial geometry features. Computer Animation & Virtual Worlds, 2023
- https://doi.org/10.1002/cav.2202
+<br>[https://doi.org/10.1002/cav.2202](https://doi.org/10.1002/cav.2202)
 * Alvaro Sanchez-Gonzalez, Jonathan Godwin, Tobias Pfaff, Rex Ying, Jure Leskovec, PeterW. Battaglia. Learning to Simulate Complex Physics with Graph Networks. Proceedings of the 37th International Conference on Machine Learning, 2020 <br>[https://dl.acm.org/doi/10.5555/3524938.3525722](https://dl.acm.org/doi/10.5555/3524938.3525722)

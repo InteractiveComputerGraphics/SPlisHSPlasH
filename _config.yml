@@ -22,7 +22,7 @@ title: SPlisHSPlasH
 description: >- # this means to ignore newlines until "baseurl:"
   Web page of the SPlisHSPlasH simulation library
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://splishsplash.physics-simulation.org" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://splishsplash.physics-simulation.org/" # the base hostname & protocol for your site, e.g. http://example.com
 #canonical_url: "https://splishsplash.physics-simulation.org"
 #twitter_username: jekyllrb
 #github_username:  jekyll
@@ -36,6 +36,8 @@ minimal_mistakes_skin: "default" # "air", "aqua", "contrast", "dark", "dirt", "n
 plugins:
   - jekyll-feed
   - jekyll-include-cache
+  - jekyll-paginate
+  - jekyll-sitemap
 
 title                    : "SPlisHSPlasH"
 title_separator          : "-"
@@ -57,7 +59,7 @@ atom_feed:
   hide: true
 
 include:
-  - .htaccess
+#  - .htaccess
   - _pages
 exclude:
   - "*.sublime-project"
@@ -91,23 +93,6 @@ keep_files:
   - .svn
 encoding: "utf-8"
 markdown_ext: "markdown,mkdown,mkdn,mkd,md"
-
-# Plugins (previously gems:)
-plugins:
-  - jekyll-paginate
-  - jekyll-sitemap
-  - jekyll-gist
-  - jekyll-feed
-  - jekyll-include-cache
-
-# mimic GitHub Pages with --safe
-whitelist:
-  - jekyll-paginate
-  - jekyll-sitemap
-  - jekyll-gist
-  - jekyll-feed
-  - jekyll-include-cache
-
 
 
 # HTML Compression

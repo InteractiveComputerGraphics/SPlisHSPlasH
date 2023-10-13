@@ -77,3 +77,4 @@ SPlisHSPlasH implements the methods of the following publications:
 * Xiangyang Zhou, Sinuo Liu, Haokai Zeng, Xiaokun Wang, Xiaojuan Ban. Efficient and high precision target-driven fluid simulation based on spatial geometry features. Computer Animation & Virtual Worlds, 2023
 <br>[https://doi.org/10.1002/cav.2202](https://doi.org/10.1002/cav.2202)
 * Alvaro Sanchez-Gonzalez, Jonathan Godwin, Tobias Pfaff, Rex Ying, Jure Leskovec, PeterW. Battaglia. Learning to Simulate Complex Physics with Graph Networks. Proceedings of the 37th International Conference on Machine Learning, 2020 <br>[https://dl.acm.org/doi/10.5555/3524938.3525722](https://dl.acm.org/doi/10.5555/3524938.3525722)
+* Maolin Wu, Shiguang Liu, Qing Xu. Improved divergence-free smoothed particle hydrodynamics via priority of divergence-free solver and SOR. Computer Animation & Virtual Worlds 32, 2021 <br>[https://doi.org/10.1002/cav.2006](https://doi.org/10.1002/cav.2006)

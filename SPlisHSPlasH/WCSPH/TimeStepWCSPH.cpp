@@ -230,10 +230,8 @@ void TimeStepWCSPH::solveRigidRigidContacts() {
 	while ((avgDensityDeviation > bs->getMaxDensityDeviation() && iterations < bs->getMaxIterations()) || iterations < bs->getMinIterations()) {
 		avgDensityDeviation = 0.0;
 		bs->pressureSolveIteration(avgDensityDeviation);
-		//std::cout << avgDensityDeviation << std::endl;
 		iterations++;
 	}
-	//std::cout << "------------------------------" << std::endl;
 	bs->applyForce();
 }
 

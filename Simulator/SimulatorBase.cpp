@@ -99,7 +99,7 @@ SimulatorBase::SimulatorBase()
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
 	m_particleAttributes = "velocity;density;";
-	m_rigidbodyParticleAttributes = "";
+	m_rigidbodyParticleAttributes = "body position";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
 	m_updateGUI = false;

@@ -100,7 +100,10 @@ void TimeStepIISPH::step()
 		integration(fluidModelIndex);
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Gissler2019) {
-		StrongCouplingBoundarySolver::getCurrent()->applyForce();
+		StrongCouplingBoundarySolver* bs = StrongCouplingBoundarySolver::getCurrent();
+		if (bs->getAllContacts() != 0) {
+			bs->applyForce();
+		}
 	}
 
 	sim->emitParticles();

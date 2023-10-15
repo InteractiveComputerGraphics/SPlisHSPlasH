@@ -98,7 +98,7 @@ void SPH::StrongCouplingBoundarySolver::resize(unsigned int size) {
 		m_predictedPosition[i].resize(bm->numberOfParticles(), Vector3r::Zero());
 
 		//bm->addField({ "particle position", FieldType::Vector3, [sim, bm, i](const unsigned int j)->Vector3r* {return &bm->getPosition(j); } });
-		//bm->addField({ "body position", FieldType::Vector3, [bm](const unsigned int j)->Vector3r* {return &static_cast<DynamicRigidBody*>(bm->getRigidBodyObject())->getPosition(); } });
+		bm->addField({ "body position", FieldType::Vector3, [bm](const unsigned int j)->Vector3r* {return &static_cast<DynamicRigidBody*>(bm->getRigidBodyObject())->getPosition(); } });
 	}
 }
 
@@ -682,7 +682,6 @@ Real StrongCouplingBoundarySolver::W_zero() {
 }
 
 void StrongCouplingBoundarySolver::setKernel(int val) {
-	std::cout << " set kernel " << std::endl;
 	Simulation* sim = Simulation::getCurrent();
 	if (val == m_kernelMethod)
 		return;
@@ -728,7 +727,6 @@ void StrongCouplingBoundarySolver::setKernel(int val) {
 void StrongCouplingBoundarySolver::setGradKernel(int val) {
 	Simulation* sim = Simulation::getCurrent();
 	m_gradKernelMethod = val;
-
 	if (!sim->is2DSimulation()) {
 		if ((m_gradKernelMethod < 0) || (m_gradKernelMethod > 4))
 			m_gradKernelMethod = 0;

@@ -31,7 +31,8 @@ scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([-1.5, 0.0
 scene.fluidBlocks.append(Scenes.FluidBlock(id='Fluid', box=Scenes.Box([0.5, 0.0, 0.5], [1.5, 2.0, 1.5]), mode=0, initialVelocity=[0.0, 0.0, 0.0]))
 ```
 
-This will recreate a somewhat larger scene than the default double dam break
+This will recreate a somewhat larger scene than the default double dam break.
+
 
 ## Putting it all together
 
@@ -63,6 +64,36 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+## Changing parameters of the simulation
+
+The command ```base.run()``` at the end of the example above is a shortcut for the commands:
+```python
+   base.initSimulation()       # init simulation, fluid models, time step, ...
+   base.runSimulation()        # start the simulation
+   base.cleanup()              # cleanup everything after the simulation
+```
+
+If you want to change the parameters of the fluid model or the simulation, you first have to initialize the scene. Therefore, exchange ```base.run()``` by the three commands above. Then, you can change the parameters after the call of ```base.initSimulation()```.
+
+Here is an example:
+
+```python 
+    base.initSimulation()
+
+    # change rest density of first fluid model
+	fluid = sim.getFluidModel(0)
+	fluid.setValueFloat(fluid.DENSITY0, 800.0)
+
+    # change viscosity coefficient
+    visco = fluid.getViscosityBase()
+	visco.setValueFloat(visco.VISCOSITY_COEFFICIENT, 0.015)
+
+    base.runSimulation()
+    base.cleanup()
+```
+
+
 
 ## Loading a scene from  file
 

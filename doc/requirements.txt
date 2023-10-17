@@ -1,6 +1,6 @@
 exhale
 recommonmark
-Sphinx==5.2.3
+sphinx==4.2.0
 sphinx_rtd_theme==1.0.0
 sphinxcontrib.bibtex < 2.0.0
 docutils==0.16

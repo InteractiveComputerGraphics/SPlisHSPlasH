@@ -40,6 +40,7 @@ extensions = [
     'recommonmark',
 	'sphinxcontrib.bibtex'
 ]
+bibtex_bibfiles = ['bibliography.bib']
 
 # Setup the breathe extension
 breathe_projects = {

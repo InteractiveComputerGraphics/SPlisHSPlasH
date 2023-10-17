@@ -1,11 +1,8 @@
 
 .. image:: https://raw.githubusercontent.com/InteractiveComputerGraphics/SPlisHSPlasH/master/doc/images/logo_small.jpg
-
-<br>
-An open-source library for the simulation of fluids and solids
-<br>
-Web page: [https://splishsplash.physics-simulation.org](https://splishsplash.physics-simulation.org/)
-<br>
+|
+| An open-source library for the simulation of fluids and solids
+| Web page: https://splishsplash.physics-simulation.org/
 
 .. toctree::
    :maxdepth: 2

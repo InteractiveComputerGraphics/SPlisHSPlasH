@@ -78,5 +78,6 @@ SPlisHSPlasH implements the methods of the following publications:
 <br>[https://doi.org/10.1002/cav.2202](https://doi.org/10.1002/cav.2202)
 * Alvaro Sanchez-Gonzalez, Jonathan Godwin, Tobias Pfaff, Rex Ying, Jure Leskovec, PeterW. Battaglia. Learning to Simulate Complex Physics with Graph Networks. Proceedings of the 37th International Conference on Machine Learning, 2020 <br>[https://dl.acm.org/doi/10.5555/3524938.3525722](https://dl.acm.org/doi/10.5555/3524938.3525722)
 * Maolin Wu, Shiguang Liu, Qing Xu. Improved divergence-free smoothed particle hydrodynamics via priority of divergence-free solver and SOR. Computer Animation & Virtual Worlds 32, 2021 <br>[https://doi.org/10.1002/cav.2006](https://doi.org/10.1002/cav.2006)
-* Tianyi Xie, Minchen Li, Yin Yang, Chenfanfu Jiang. A Contact Proxy Splitting Method for Lagrangian Solid-Fluid Coupling. ACM Transactions on GraphicsVolume 42, 4, 2023<br>[https://doi.org/10.1145/3592115](https://doi.org/10.1145/3592115)
+* Tianyi Xie, Minchen Li, Yin Yang, Chenfanfu Jiang. A Contact Proxy Splitting Method for Lagrangian Solid-Fluid Coupling. ACM Transactions on Graphics, 42, 4, 2023<br>[https://doi.org/10.1145/3592115](https://doi.org/10.1145/3592115)
+* Zhehao Li, Qingyu Xu, Xiaohan Ye, Bo Ren, Ligang Liu. DiffFR: Differentiable SPH-based Fluid-Rigid Coupling for Rigid Body Control. ACM Transactions on Graphics, 42, 6, 2023<br>[https://doi.org/10.1145/3618318](https://doi.org/10.1145/3618318)
   

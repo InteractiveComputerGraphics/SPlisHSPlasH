@@ -75,6 +75,7 @@ set(SURFACETENSION_HEADER_FILES
 	SurfaceTension/SurfaceTension_Becker2007.h
 	SurfaceTension/SurfaceTension_Akinci2013.h
 	SurfaceTension/SurfaceTension_He2014.h
+	SurfaceTension/SurfaceTension_Jeske2023.h
 	)
 	
 set(SURFACETENSION_SOURCE_FILES
@@ -82,6 +83,7 @@ set(SURFACETENSION_SOURCE_FILES
 	SurfaceTension/SurfaceTension_Becker2007.cpp
 	SurfaceTension/SurfaceTension_Akinci2013.cpp
 	SurfaceTension/SurfaceTension_He2014.cpp
+	SurfaceTension/SurfaceTension_Jeske2023.cpp
 	)	
 
 set(VISCOSITY_HEADER_FILES

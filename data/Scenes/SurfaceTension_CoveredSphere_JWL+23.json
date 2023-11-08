@@ -1,0 +1,234 @@
+{
+  "Configuration": {
+    "pause": true,
+    "pauseAt": 20.0,
+    "stopAt": -1.0,
+    "sceneScale": 1,
+    "numberOfStepsPerRenderUpdate": 4,
+    "renderWalls": 4,
+    "enablePartioExport": false,
+    "enableVTKExport": false,
+    "enableRigidBodyExport": false,
+    "enableRigidBodyVTKExport": false,
+    "dataExportFPS": 25.0,
+    "particleAttributes": "velocity;density",
+    "enableStateExport": false,
+    "stateExportFPS": 1.0,
+    "enableObjectSplitting": true,
+    "timeStepSize": 0.0010000000474974513,
+    "particleRadius": 0.02500000037252903,
+    "sim2D": false,
+    "enableZSort": true,
+    "gravitation": [
+      0.0,
+      -9.8100004196167,
+      4.288087325221568e-07
+    ],
+    "maxIterations": 100,
+    "maxError": 0.009999999776482582,
+    "boundaryHandlingMethod": 2,
+    "simulationMethod": 4,
+    "stiffness": 50000.0,
+    "exponent": 7.0,
+    "velocityUpdateMethod": 0,
+    "enableDivergenceSolver": true,
+    "maxIterationsV": 100,
+    "maxErrorV": 0.10000000149011612,
+    "kernel": 0,
+    "gradKernel": 0,
+    "cflMethod": 0,
+    "cflFactor": 0.8999999761581421,
+    "cflMinTimeStepSize": 9.999999747378752e-06,
+    "cflMaxTimeStepSize": 0.009999999776482582,
+    "cameraPosition": [
+      10.11301040649414,
+      5.172463417053223,
+      2.1483840942382812
+    ],
+    "cameraLookat": [
+      -2.5401246602996252e-05,
+      -0.20855534076690674,
+      0.9780105352401733
+    ]
+  },
+  "RigidBodies": [
+    {
+      "tag": "",
+      "isDynamic": false,
+      "isWall": false,
+      "color": [
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "mapInvert": false,
+      "mapThickness": 0.0,
+      "mapResolution": [
+        20,
+        20,
+        20
+      ],
+      "samplingMode": 0,
+      "translation": [
+        0.0,
+        1.9080313444137573,
+        -0.0
+      ],
+      "scale": [
+        0.45456400513648987,
+        0.45456400513648987,
+        0.45456400513648987
+      ],
+      "rotationAxis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "rotationAngle": 0.0,
+      "geometryFile": "../models/sphere.obj",
+      "boundingBoxMin": [
+        -0.45456355810165405,
+        1.4534673690795898,
+        -0.4545634388923645
+      ],
+      "boundingBoxMax": [
+        0.45456385612487793,
+        2.362595319747925,
+        0.4545637369155884
+      ]
+    },
+    {
+      "tag": "",
+      "isDynamic": false,
+      "isWall": true,
+      "color": [
+        1.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "mapInvert": true,
+      "mapThickness": 0.0,
+      "mapResolution": [
+        20,
+        20,
+        20
+      ],
+      "samplingMode": 0,
+      "translation": [
+        0.0,
+        2.0,
+        -0.0
+      ],
+      "scale": [
+        5.389601707458496,
+        5.389601707458496,
+        5.389601707458496
+      ],
+      "rotationAxis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "rotationAngle": 0.0,
+      "geometryFile": "../models/UnitBox.obj",
+      "boundingBoxMin": [
+        -5.389601707458496,
+        -0.5592994689941406,
+        -5.389601707458496
+      ],
+      "boundingBoxMax": [
+        5.389601707458496,
+        10.219903945922852,
+        5.389601707458496
+      ]
+    }
+  ],
+  "FluidModels": [],
+  "FluidBlocks": [],
+  "Emitters": [
+    {
+      "id": "Fluid_0",
+      "type": 1,
+      "velocity": 1.0,
+      "emitStartTime": 0.0,
+      "emitEndTime": 100.0,
+      "tag": "",
+      "translation": [
+        0.0,
+        2.9187259674072266,
+        -0.0
+      ],
+      "rotationAxis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "rotationAngle": 1.570796012878418,
+      "width": 6.257507707811778,
+      "boundingBoxMin": [
+        -0.3128753900527954,
+        2.918724775314331,
+        -0.3128753900527954
+      ],
+      "boundingBoxMax": [
+        0.3128753900527954,
+        2.918727159500122,
+        0.3128753900527954
+      ]
+    }
+  ],
+  "AnimationFields": [],
+  "Materials": [
+    {
+      "id": "Fluid_0",
+      "density0": 1000.0,
+      "colorField": "velocity",
+      "colorMapType": 1,
+      "renderMinValue": 0.0,
+      "renderMaxValue": 1.0,
+      "viscosityMethod": 0,
+      "viscosity": 0.20000000298023224,
+      "viscoMaxIter": 100,
+      "viscoMaxError": 0.009999999776482582,
+      "viscoMaxIterOmega": 100,
+      "viscoMaxErrorOmega": 0.009999999776482582,
+      "viscosityBoundary": 0.0,
+      "vorticityMethod": 0,
+      "vorticity": 0.0,
+      "viscosityOmega": 0.009999999776482582,
+      "inertiaInverse": 0.0,
+      "dragMethod": 0,
+      "drag": 0.0,
+      "surfaceTensionMethod": 4,
+      "surfaceTension": 125.00000558793553,
+      "surfaceTensionBoundary": 1500.0000670552263,
+      "surfaceTensionViscosity": 0.20000000298023224,
+      "surfaceTensionViscosityBoundary": 0.0,
+      "surfaceTensionMaxIter": 100,
+      "surfaceTensionMaxError": 0.0010000000474974513,
+      "surfaceTensionMode": 1,
+      "elasticityMethod": 0,
+      "youngsModulus": 100000.0,
+      "poissonsRatio": 0.30000001192092896,
+      "alpha": 0.0,
+      "elasticityMaxIter": 100,
+      "elasticityMaxError": 0.00039999998989515007,
+      "maxEmitterParticles": 1000000,
+      "emitterReuseParticles": false,
+      "emitterBoxMin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emitterBoxMax": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "surfTZRr-ratio": 0.800000011920929,
+      "surfTZRnormal-mode": 2
+    }
+  ]
+}

@@ -778,8 +778,9 @@ void SurfaceTension_Jeske2023::matrixVecProd(const Real *vec, Real *result, void
                     ai -= (vi - vj) * mu_xsph * mass_j / density_j * CubicKernel::W(xixj) * density_i / dt;
 
                     // Cohesion
-                    const Real W_cohesion = std::min(sim->W(xixj), W_min);
-                    const Vector3r gradW_cohesion = (xi - xj).norm() > diameter ? gradW : Vector3r::Zero();
+                    const Real W_cohesion = (10./7.) * std::min(sim->W(xixj), W_min);
+                    Vector3r gradW_cohesion = (xi - xj).norm() > diameter ? gradW : Vector3r::Zero();
+                    gradW_cohesion *= (10./7.);
 
                     // First order
                     // ai -= (vi * dt - vj * dt) * 2/(density_i + density_j) * cohesion * density_i * (std::min(sim->W(xixj), W_min) + dt * gradW_cohesion.dot(vi_old) - dt*gradW_cohesion.dot(vj_old));
@@ -1100,8 +1101,9 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                     const Vector3r gradW = sim->gradW(xi - xj);
 
                     // Cohesion
-                    const Real W_cohesion = std::min(sim->W(xixj), W_min);
-                    const Vector3r gradW_cohesion = (xi - xj).norm() > diameter ? gradW : Vector3r::Zero();
+                    const Real W_cohesion = (10./7.) * std::min(sim->W(xixj), W_min);
+                    Vector3r gradW_cohesion = (xi - xj).norm() > diameter ? gradW : Vector3r::Zero();
+                    gradW_cohesion *= (10./7.);
 
                     const Real rhoij = density_i + density_j;
                     const Real W_firstOrder = 2.0 * ( W_cohesion / rhoij

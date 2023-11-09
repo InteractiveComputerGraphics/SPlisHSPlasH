@@ -28,7 +28,7 @@
 			"renderMinValue": 0.0,
 			"colorMapType": 1,
 			"surfaceTension": 0.1 ,
-			"surfaceTensionMethod": 4,
+			"surfaceTensionMethod": 5,
 			"viscosity": 0.01,
 			"viscosityMethod": 1,
 			"surfTZRversion": 0,

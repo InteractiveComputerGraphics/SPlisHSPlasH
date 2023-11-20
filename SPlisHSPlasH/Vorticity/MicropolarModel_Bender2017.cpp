@@ -236,7 +236,7 @@ void MicropolarModel_Bender2017::step()
 
 void MicropolarModel_Bender2017::reset()
 {
-	for (unsigned int i = 0; i < m_model->numActiveParticles(); i++)
+	for (unsigned int i = 0; i < m_model->numParticles(); i++)
 		m_omega[i].setZero();
 }
 

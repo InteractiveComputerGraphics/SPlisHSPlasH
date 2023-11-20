@@ -63,7 +63,7 @@ void SimulationDataPBF::reset()
 	for (unsigned int i = 0; i < nModels; i++)
 	{
 		FluidModel *fm = sim->getFluidModel(i);
-		for (unsigned int j = 0; j < fm->numActiveParticles(); j++)
+		for (unsigned int j = 0; j < fm->numParticles(); j++)
 		{
 			m_deltaX[i][j].setZero();
 			m_lambda[i][j] = 0.0;

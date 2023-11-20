@@ -202,17 +202,8 @@ void FluidModel::reset()
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
 
-	struct Comparator {
-		Comparator(FluidModel* _this) : m_this(_this) {};
-		bool operator()(unsigned int a, unsigned int b)
-		{
-			return m_this->getParticleId(a) < m_this->getParticleId(b);
-		}
-		FluidModel* m_this;
-	};
-
-	// Fluid
-	for (unsigned int i = 0; i < nPoints; i++)
+	// use numParticles since numActiveParticles is already reset
+	for (unsigned int i = 0; i < numParticles(); i++)		
 	{
 		const Vector3r& x0 = getPosition0(i);
 		getPosition(i) = x0;
@@ -222,11 +213,6 @@ void FluidModel::reset()
 		m_density[i] = 0.0;
 		m_particleId[i] = i;
 		m_particleState[i] = ParticleState::Active;
-	}
-	// emitted particles
-	for (unsigned int i = nPoints; i < (unsigned int)m_particleId.size(); i++)
-	{
-		m_particleId[i] = i;
 	}
 
 	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();

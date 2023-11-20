@@ -66,7 +66,7 @@ void SimulationDataPF::reset()
 	for (unsigned int i = 0; i < nModels; i++)
 	{
 		FluidModel *fm = sim->getFluidModel(i);
-		for (unsigned int j = 0; j < fm->numActiveParticles(); j++)
+		for (unsigned int j = 0; j < fm->numParticles(); j++)
 		{
 			m_num_fluid_neighbors[i][j] = 0;
 			m_old_position[i][j].setZero();

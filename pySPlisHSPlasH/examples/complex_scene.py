@@ -67,6 +67,8 @@ def main():
 	scene.animatedFields[0].translation=[-1,0,0]
 	
 	# init the simulation
+    # This creates the fluid models, timeStep, ... 
+    # Call base.initSimulation() before sim.getTimeStep() or sim.getFluidModel()
 	base.initSimulation()
 		
 	# Simulation

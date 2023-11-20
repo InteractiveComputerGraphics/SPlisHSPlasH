@@ -1,3 +1,5 @@
+2.12.5
+	- bugfix: in emitter scenes now all particles are reset correctly
 	- updated PositionBasedDynamics
 	- updated GenericParameters
 

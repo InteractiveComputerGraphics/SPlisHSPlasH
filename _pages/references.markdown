@@ -52,6 +52,7 @@ SPlisHSPlasH implements the methods of the following publications:
 * Marcel Weiler, Dan Koschier, Magnus Brand and Jan Bender. A Physically Consistent Implicit Viscosity Solver for SPH Fluids. Computer Graphics Forum (Eurographics), 37(2), 2018
 * Lukas Westhofen, Stefan Rhys Jeske, Jan Bender. A comparison of linear consistent correction methods for first-order SPH derivatives. Proceedings of the ACM on Computer Graphics and Interactive Techniques (SCA), 2023
 * F. Zorilla, M. Ritter, J. Sappl, W. Rauch, M. Harders. Accelerating  Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration. Computers 9, 23, 2020.
+* Jeske, Stefan Rhys, Lukas Westhofen, Fabian Löschner, José Antonio Fernández-Fernández, and Jan Bender. Implicit Surface Tension for SPH Fluid Simulation. ACM Transactions on Graphics, 2023. https://doi.org/10.1145/3631936.
 
 
 ## Other research projects using SPlisHSPlasH

@@ -89,11 +89,11 @@ The following videos were generated using the SPlisHSPlasH library (if you click
     </tr>
     <tr>
       <td style="text-align: center"><em>Fast Octree Neighborhood Search for SPH Simulations</em></td>
-      <td style="text-align: center"></td>
+      <td style="text-align: center"><em>Implicit Surface Tension for SPH Fluid Simulation</em></td>
     </tr>
     <tr>
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=3MYgOasyhnk"><img src="https://img.youtube.com/vi/3MYgOasyhnk/0.jpg" alt="Video" /></a></td>
-      <td style="text-align: center"></td>
+      <td style="text-align: center"><a href="https://www.youtube.com/watch?v=xWXTQJl4pZ0"><img src="https://img.youtube.com/vi/xWXTQJl4pZ0/0.jpg" alt="Video" /></a></td>
     </tr>
   </tbody>
 </table>

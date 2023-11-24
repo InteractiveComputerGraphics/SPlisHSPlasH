@@ -153,6 +153,10 @@ static inline Scalarf8 operator >= (Scalarf8 const & a, Scalarf8 const & b) {
 	return _mm256_cmp_ps(b.v, a.v, 2);
 }
 
+static inline Scalarf8 min(Scalarf8 const & a, Scalarf8 const & b) {
+	return _mm256_min_ps(a.v, b.v);
+}
+
 static inline Scalarf8 max(Scalarf8 const & a, Scalarf8 const & b) {
 	return _mm256_max_ps(a.v, b.v);
 }

@@ -24,7 +24,7 @@
 		{
 			"id": "Fluid",
 			"surfaceTension": 0.1,
-			"surfaceTensionMethod": 4,
+			"surfaceTensionMethod": 5,
 			"renderMaxValue": 15,
 			"renderMinValue": 0.0,
 			"colorMapType": 1,

@@ -1,0 +1,142 @@
+{
+  "AnimationFields": [],
+  "Configuration": {
+    "boundaryHandlingMethod": 2,
+    "cameraLookat": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cameraPosition": [
+      0.0,
+      3.0,
+      8.0
+    ],
+    "cflFactor": 0.5,
+    "cflMaxTimeStepSize": 0.004999999888241291,
+    "cflMethod": 0,
+    "cflMinTimeStepSize": 9.999999747378752e-05,
+    "dataExportFPS": 25.0,
+    "enableDivergenceSolver": true,
+    "enablePartioExport": true,
+    "enableRigidBodyExport": false,
+    "enableRigidBodyVTKExport": false,
+    "enableStateExport": false,
+    "enableVTKExport": false,
+    "enableZSort": true,
+    "exponent": 7.0,
+    "gradKernel": 4,
+    "gravitation": [
+      0.0,
+      -9.8100004196167,
+      0.0
+    ],
+    "kernel": 4,
+    "maxError": 0.009999999776482582,
+    "maxErrorV": 0.009999999776482582,
+    "maxIterations": 100,
+    "maxIterationsV": 100,
+    "numberOfStepsPerRenderUpdate": 4,
+    "particleAttributes": "velocity",
+    "particleRadius": 0.01,
+    "pause": true,
+    "pauseAt": -1.0,
+    "renderWalls": 4,
+    "sim2D": false,
+    "simulationMethod": 4,
+    "stateExportFPS": 1.0,
+    "stiffness": 10000.0,
+    "stiffnessPF": 50000.0,
+    "stopAt": -1.0,
+    "timeStepSize": 0.001,
+    "velocityUpdateMethod": 0,
+    "scriptFile_": "two_emitters.py"
+  },
+  "Emitters": [
+    {
+      "emitEndTime": 100000.0,
+      "emitStartTime": 0.0,
+      "id": "Fluid",
+      "rotationAngle": 0.7853981633974484,
+      "rotationAxis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "translation": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "type": 1,
+      "velocity": 5,
+      "width": 17
+    },
+    {
+      "emitEndTime": 100000.0,
+      "emitStartTime": 0.0,
+      "id": "Fluid",
+      "rotationAngle": -2.356194490192345,
+      "rotationAxis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "translation": [
+        0.5,
+        0.0,
+        0.0
+      ],
+      "type": 1,
+      "velocity": 5,
+      "width": 17
+    }
+  ],
+  "FluidModels": [],
+  "Materials": [
+    {
+      "alpha": 0.0,
+      "colorField": "velocity",
+      "colorMapType": 1,
+      "density0": 1000.0,
+      "viscosity": 0.0125,
+      "viscosityMethod": 0,
+      "drag": 0.009999999776482582,
+      "dragMethod": 0,
+      "elasticityMaxError": 9.999999747378752e-05,
+      "elasticityMaxIter": 100,
+      "elasticityMethod": 0,
+      "emitterBoxMax": [
+        10.0,
+        10.0,
+        10.0
+      ],
+      "emitterBoxMax0": 10.0,
+      "emitterBoxMax1": 10.0,
+      "emitterBoxMax2": 10.0,
+      "emitterBoxMin": [
+        -10.0,
+        -10.0,
+        -10.0
+      ],
+      "emitterBoxMin0": -10.0,
+      "emitterBoxMin1": -3.0,
+      "emitterBoxMin2": -10.0,
+      "emitterReuseParticles": true,
+      "id": "Fluid",
+      "inertiaInverse": 0.5,
+      "maxEmitterParticles": 10000000,
+      "poissonsRatio": 0.30000001192092896,
+      "renderMaxValue": 5.0,
+      "renderMinValue": 0.0,
+      "surfaceTensionMethod": 4,
+      "surfaceTension": 12000.000000000004,
+      "surfaceTensionBoundary": 0.0,
+      "surfaceTensionViscosity": 0.0075,
+      "surfaceTensionViscosityBoundary": 0.0,
+      "surfaceTensionMaxIter": 100,
+      "surfaceTensionMaxError": 0.0001
+    }
+  ],
+  "RigidBodies": []
+}

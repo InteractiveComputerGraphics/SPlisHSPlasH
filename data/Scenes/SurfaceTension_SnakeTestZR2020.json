@@ -29,7 +29,7 @@
 			"colorMapType": 1,
 			"colorField": "velocity",
 			"surfaceTension": 0.05 ,
-			"surfaceTensionMethod": 4,
+			"surfaceTensionMethod": 5,
 			"viscosity": 0.01,
 			"viscosityMethod": 1,
 			" ": 1,

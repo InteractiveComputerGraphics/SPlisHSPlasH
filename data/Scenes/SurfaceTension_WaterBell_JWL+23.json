@@ -124,7 +124,7 @@
       "colorField": "velocity",
       "colorMapType": 1,
       "renderMinValue": 0.0,
-      "renderMaxValue": 1.0,
+      "renderMaxValue": 10.0,
       "viscosityMethod": 0,
       "viscosity": 0.20000000298023224,
       "viscoMaxIter": 100,

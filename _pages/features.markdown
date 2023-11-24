@@ -86,6 +86,7 @@ The SPlisHSPlasH library implements the surface tension methods of the following
 * Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for SPH fluids. ACM Trans. Graph., 32(6):182:1–182:8, 2013. 
 * Xiaowei He, Huamin Wang, Fengjun Zhang, Hongan Wang, Guoping Wang, and Kun Zhou, "Robust simulation of sparsely sampled thin features in SPH-based free surface flows", ACM Transactions on Graphics, 34(1), 2014.
 * F. Zorilla, M. Ritter, J. Sappl, W. Rauch, M. Harders, "Accelerating  Surface Tension Calculation in SPH via Particle Classification and Monte Carlo Integration", Computers 9, 23, 2020.
+* Jeske, Stefan Rhys, Lukas Westhofen, Fabian Löschner, José Antonio Fernández-Fernández, and Jan Bender. “Implicit Surface Tension for SPH Fluid Simulation.” ACM Transactions on Graphics, November 7, 2023. https://doi.org/10.1145/3631936.
 
 ## Vorticity
 

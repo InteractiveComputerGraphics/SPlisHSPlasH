@@ -6,6 +6,7 @@ permalink: /references/
 header:
   overlay_color: "#5e616c"
   overlay_image: /assets/SPlisHSPlasH.jpg
+seo_desc: "References - SPlisHSPlasH - SPH simulation of fluids and solids"  
 excerpt: >
   <br />
   <br />

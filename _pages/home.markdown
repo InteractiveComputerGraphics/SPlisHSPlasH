@@ -8,9 +8,10 @@ header:
   actions:
     - label: "<i class='fab fa-fw fa-github'></i> GitHub"
       url: "https://github.com/InteractiveComputerGraphics/SPlisHSPlasH"
+seo_desc: "SPlisHSPlasH - An open-source library for the SPH simulation of fluids and solids"        
 excerpt: >
   An open-source library for the <br/>simulation of fluids and solids<br />
-  <small><a href="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/releases/tag/2.12.0">Latest release v2.12.0</a></small>
+  <small><a href="https://github.com/InteractiveComputerGraphics/SPlisHSPlasH/releases/tag/2.13.0">Latest release v2.13.0</a></small>
 ---
 SPlisHSPlasH is an open-source library for the physically-based simulation of fluids and solids. The simulation in this library is based on the Smoothed Particle Hydrodynamics (SPH) method which is a popular meshless Lagrangian approach to simulate complex fluid effects. The SPH formalism allows an efficient computation of a certain quantity of a fluid particle by considering only a finite set of neighboring particles. One of the most important research topics in the field of SPH methods is the simulation of incompressible fluids. SPlisHSPlasH implements current state-of-the-art pressure solvers (WCSPH, PCISPH, PBF, IISPH, DFSPH, PF) to simulate incompressibility. Moreover, the library provides different methods to simulate viscosity, surface tension, vorticity, elasticity, and drag forces. 
 

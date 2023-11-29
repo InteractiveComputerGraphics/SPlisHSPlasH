@@ -2,6 +2,7 @@
 layout: single
 title:  "Contact"
 permalink: /contact/
+seo_desc: "Contact - SPlisHSPlasH"
 ---
 Prof. Dr. Jan Bender<br>
 [Visual Computing Institute](http://www.vci.rwth-aachen.de/)<br>

@@ -6,10 +6,12 @@ permalink: /features/
 header:
   overlay_color: "#5e616c"
   overlay_image: /assets/SPlisHSPlasH.jpg
+seo_desc: "Features - SPlisHSPlasH - SPH simulation of fluids and solids"
 excerpt: >
   <br />
   <br />
   <br />
+seo_title: My Descriptive and Keyword-Rich SEO Title  
 #toc: true
 #toc_label: "Table of Contents"
 #toc_icon: "cog"

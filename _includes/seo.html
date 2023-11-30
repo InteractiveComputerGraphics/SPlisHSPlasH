@@ -128,8 +128,8 @@
     "@context": "https://schema.org",
      "@type": "WebSite",
      "name": "{{ seo_title }}",
-     "headline":"{{ site.title }}"
-     "description": "{{ seo_description }}"
+     "headline":"{{ site.title }}",
+     "description": "{{ seo_description }}",
      "url": {{ '/' | absolute_url |jsonify }}{% if site.social.links %},
      "sameAs": {{ site.social.links | jsonify }}{% endif %}
   }

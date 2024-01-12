@@ -23,7 +23,6 @@ namespace SPH
 		Real m_lambda;
 		bool m_clamping;
 		const Real m_psi = 1.5;
-		unsigned int m_counter;
 
 		void computeDensityAdv(const unsigned int fluidModelIndex);
 		void compute_aii(const unsigned int fluidModelIndex);
@@ -34,9 +33,7 @@ namespace SPH
 		/** Determine the pressure accelerations when the pressure is already known. */
 		void computePressureAccels(const unsigned int fluidModelIndex);
 
-		/** Perform the neighborhood search for all fluid particles.
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 
 		virtual void initParameters();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);

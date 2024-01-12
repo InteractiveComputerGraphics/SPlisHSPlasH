@@ -18,7 +18,6 @@ TimeStepIISPH::TimeStepIISPH() :
 	TimeStep()
 {
 	m_simulationData.init();
-	m_counter = 0;
 
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
@@ -62,7 +61,7 @@ void TimeStepIISPH::step()
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 		clearAccelerations(fluidModelIndex);
 
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
@@ -105,7 +104,6 @@ void TimeStepIISPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
 void TimeStepIISPH::predictAdvection(const unsigned int fluidModelIndex)
@@ -520,19 +518,9 @@ void TimeStepIISPH::computePressureAccels(const unsigned int fluidModelIndex)
 	}
 }
 
-void TimeStepIISPH::performNeighborhoodSearch()
+void TimeStepIISPH::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepIISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)

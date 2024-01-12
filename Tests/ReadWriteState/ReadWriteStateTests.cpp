@@ -333,6 +333,7 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 
 	const bool sim2D = sim->getValue<bool>(Simulation::SIM_2D);
 	const bool enableZSort = sim->getValue<bool>(Simulation::ENABLE_Z_SORT);
+	const bool stepsPerZSort = sim->getValue<bool>(Simulation::STEPS_PER_Z_SORT);
 	const Real particleRadius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
 	const Vector3r gravitation(sim->getVecValue<Real>(Simulation::GRAVITATION));
 	const int cflMethod = sim->getValue<int>(Simulation::CFL_METHOD);
@@ -365,6 +366,7 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 	sim = Simulation::getCurrent();
 	sim->setValue<int>(Simulation::CFL_METHOD, 0);
 	sim->setValue<bool>(Simulation::ENABLE_Z_SORT, false);
+	sim->setValue<unsigned int>(Simulation::STEPS_PER_Z_SORT, 123);
 
 	base->getBoundarySimulator()->initBoundaryData();
 	base->loadState(stateFile);
@@ -407,6 +409,7 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 
 		REQUIRE(sim2D == sim->getValue<bool>(Simulation::SIM_2D));
 		REQUIRE(enableZSort == sim->getValue<bool>(Simulation::ENABLE_Z_SORT));
+		REQUIRE(stepsPerZSort == sim->getValue<bool>(Simulation::STEPS_PER_Z_SORT));
 		REQUIRE(particleRadius == sim->getValue<Real>(Simulation::PARTICLE_RADIUS));
 		const Vector3r gravitation2(sim->getVecValue<Real>(Simulation::GRAVITATION));
 		REQUIRE(gravitation == gravitation2);

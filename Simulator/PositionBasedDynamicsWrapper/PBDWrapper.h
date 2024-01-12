@@ -17,7 +17,6 @@ class PBDWrapper
 protected:
 	PBD::SimulationModel m_model;
 	PBD::CubicSDFCollisionDetection m_cd;
-	PBD::TimeStepController *m_timeStep;
 
 	short m_clothSimulationMethod = 2;
 	short m_solidSimulationMethod = 2;

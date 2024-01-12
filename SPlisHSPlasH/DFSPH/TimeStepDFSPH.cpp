@@ -27,7 +27,6 @@ TimeStepDFSPH::TimeStepDFSPH() :
 	m_simulationData()
 {
 	m_simulationData.init();
-	m_counter = 0;
 	m_iterationsV = 0;
 	m_enableDivergenceSolver = true;
 	m_maxIterationsV = 100;
@@ -97,7 +96,7 @@ void TimeStepDFSPH::step()
 	//////////////////////////////////////////////////////////////////////////
 	// search the neighbors for all particles
 	//////////////////////////////////////////////////////////////////////////
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	//////////////////////////////////////////////////////////////////////////
@@ -684,24 +683,13 @@ void TimeStepDFSPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 	m_iterations = 0;
 	m_iterationsV = 0;
 }
 
-void TimeStepDFSPH::performNeighborhoodSearch()
+void TimeStepDFSPH::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepDFSPH::emittedParticles(FluidModel *model, const unsigned int startIndex)

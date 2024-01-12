@@ -20,7 +20,6 @@ namespace SPH
 	{
 	protected:
 		SimulationDataIISPH m_simulationData;
-		unsigned int m_counter;
 
 		void predictAdvection(const unsigned int fluidModelIndex);
 		void pressureSolve();
@@ -30,9 +29,7 @@ namespace SPH
 		/** Determine the pressure accelerations when the pressure is already known. */
 		void computePressureAccels(const unsigned int fluidModelIndex);
 
-		/** Perform the neighborhood search for all fluid particles.
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 

@@ -51,7 +51,6 @@ using AtomicRealVec = std::vector < atomic_wrapper<Real> >;
 TimeStepPF::TimeStepPF() :
 	TimeStep(),
 	m_stiffness(50000.0),
-	m_counter(0),
 	m_numActiveParticlesTotal(0)
 {
 	m_simulationData.init();
@@ -103,7 +102,7 @@ void TimeStepPF::step()
 		clearAccelerations(fluidModelIndex);
 		initialGuessForPositions(fluidModelIndex);
 	}
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
@@ -140,7 +139,6 @@ void TimeStepPF::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
 void TimeStepPF::initialGuessForPositions(const unsigned int fluidModelIndex)
@@ -598,19 +596,9 @@ void SPH::TimeStepPF::matrixVecProd(const Real* vec, Real *result, void *userDat
 	}
 }
 
-void TimeStepPF::performNeighborhoodSearch()
+void TimeStepPF::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepPF::emittedParticles(FluidModel *model, const unsigned int startIndex)

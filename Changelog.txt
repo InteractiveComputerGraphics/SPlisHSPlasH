@@ -1,3 +1,8 @@
+2.13.1
+	- fixed z-sort 
+	- added parameter stepsPerZSort
+	- bugfix in the PBDWrapper - the wrapper ignored some settings of the scene file
+
 2.13.0
 	- added implementation of surface tension method: Jeske et al. "Implicit Surface Tension for SPH Fluid Simulation", ACM Transactions on Graphics, 2023 (thanks to Stefan Rhys Jeske)
 	

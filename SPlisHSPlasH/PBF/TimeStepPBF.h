@@ -23,7 +23,6 @@ namespace SPH
 	{
 	protected:
 		SimulationDataPBF m_simulationData;
-		unsigned int m_counter;
 		int m_velocityUpdateMethod;
 
 		/** Perform a position-based correction step for the following density constraint:\n
@@ -32,9 +31,7 @@ namespace SPH
 		void pressureSolve();
 		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
 
-		/** Perform the neighborhood search for all fluid particles. 
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 

@@ -52,6 +52,11 @@ namespace SPH
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex) {};
 
+		/** Important: First call m_model->performNeighborhoodSearchSort()
+			 * to call the z_sort of the neighborhood search.
+			 */
+		virtual void performNeighborhoodSearchSort() {};
+
 		virtual void saveState(BinaryFileWriter &binWriter) {};
 		virtual void loadState(BinaryFileReader &binReader) {};
 

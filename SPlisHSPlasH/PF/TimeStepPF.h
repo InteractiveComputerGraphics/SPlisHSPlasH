@@ -35,7 +35,6 @@ namespace SPH
 		SimulationDataPF m_simulationData;
 		Solver m_solver;
 		Real m_stiffness;
-		unsigned int m_counter;
 		unsigned int m_numActiveParticlesTotal;
 
 		void initialGuessForPositions(const unsigned int fluidModelIndex);
@@ -45,9 +44,7 @@ namespace SPH
 
 		void matrixFreeRHS(const VectorXr & x, VectorXr & result);
 
-		/** Perform the neighborhood search for all fluid particles.
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex) override;
 
 		virtual void initParameters() override;

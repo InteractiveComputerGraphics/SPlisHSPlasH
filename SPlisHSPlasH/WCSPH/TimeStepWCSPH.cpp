@@ -22,7 +22,6 @@ TimeStepWCSPH::TimeStepWCSPH() :
 	TimeStep()
 {
 	m_simulationData.init();
-	m_counter = 0;
 
 	m_stiffness = 50.0;
 	m_exponent = 7.0;
@@ -72,7 +71,7 @@ void TimeStepWCSPH::step()
 	TimeManager *tm = TimeManager::getCurrent ();
 	const Real h = tm->getTimeStepSize();
 
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
@@ -145,7 +144,6 @@ void TimeStepWCSPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
 void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
@@ -212,19 +210,9 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 	}
 }
 
-void TimeStepWCSPH::performNeighborhoodSearch()
+void TimeStepWCSPH::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepWCSPH::emittedParticles(FluidModel *model, const unsigned int startIndex)

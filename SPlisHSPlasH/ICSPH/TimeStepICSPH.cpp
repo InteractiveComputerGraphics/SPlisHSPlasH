@@ -22,7 +22,6 @@ TimeStepICSPH::TimeStepICSPH() :
 	TimeStep()
 {
 	m_simulationData.init();
-	m_counter = 0;
 	m_lambda = 200000;
 	m_clamping = true;
 
@@ -78,7 +77,7 @@ void TimeStepICSPH::step()
 	//////////////////////////////////////////////////////////////////////////
 	// search the neighbors for all particles
 	//////////////////////////////////////////////////////////////////////////
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	//////////////////////////////////////////////////////////////////////////
@@ -159,7 +158,6 @@ void TimeStepICSPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
 
@@ -580,19 +578,9 @@ void TimeStepICSPH::computePressureAccels(const unsigned int fluidModelIndex)
 	}
 }
 
-void TimeStepICSPH::performNeighborhoodSearch()
+void TimeStepICSPH::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepICSPH::emittedParticles(FluidModel *model, const unsigned int startIndex)

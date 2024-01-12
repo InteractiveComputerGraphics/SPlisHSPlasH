@@ -17,7 +17,6 @@ TimeStepPCISPH::TimeStepPCISPH() :
 	TimeStep()
 {
 	m_simulationData.init();
-	m_counter = 0;
 	m_minIterations = 3;
 
 	Simulation *sim = Simulation::getCurrent();
@@ -54,7 +53,7 @@ void TimeStepPCISPH::step()
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 		clearAccelerations(fluidModelIndex);
 
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
@@ -301,22 +300,11 @@ void TimeStepPCISPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
-void TimeStepPCISPH::performNeighborhoodSearch()
+void TimeStepPCISPH::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepPCISPH::emittedParticles(FluidModel *model, const unsigned int startIndex)

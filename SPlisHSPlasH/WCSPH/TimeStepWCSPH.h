@@ -23,14 +23,11 @@ namespace SPH
 		Real m_exponent;
 
 		SimulationDataWCSPH m_simulationData;
-		unsigned int m_counter;
 
 		/** Determine the pressure accelerations when the pressure is already known. */
 		void computePressureAccels(const unsigned int fluidModelIndex);
 
-		/** Perform the neighborhood search for all fluid particles.
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 		virtual void initParameters();

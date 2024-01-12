@@ -25,7 +25,6 @@ namespace SPH
 	{
 	protected:
 		SimulationDataDFSPH m_simulationData;
-		unsigned int m_counter;
 		const Real m_eps = static_cast<Real>(1.0e-5);
 		bool m_enableDivergenceSolver;
 		unsigned int m_iterationsV;
@@ -43,9 +42,7 @@ namespace SPH
 		void computePressureAccel(const unsigned int fluidModelIndex, const unsigned int i, const Real density0, std::vector<std::vector<Real>>& pressure_rho2, const bool applyBoundaryForces = false);
 		Real compute_aij_pj(const unsigned int fluidModelIndex, const unsigned int i);
 
-		/** Perform the neighborhood search for all fluid particles.
-		*/
-		void performNeighborhoodSearch();
+		virtual void performNeighborhoodSearchSort();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
 		/** Init all generic parameters */

@@ -41,22 +41,18 @@ PBDWrapper::PBDWrapper()
 	m_sceneName = "";
 	m_sceneFileName = "";
 	m_dampingCoeff = 0.0;
-	m_timeStep = new PBD::TimeStepController();
-	m_timeStep->init();
 	m_model.init();
 	PBD::Simulation::getCurrent()->setModel(&m_model);
 }
 
 PBDWrapper::~PBDWrapper()
 {
-	delete PBD::TimeManager::getCurrent();
-	delete m_timeStep;
+	delete PBD::Simulation::getCurrent();
 }
 
  void PBDWrapper::reset()
  {
-	m_model.reset();
-	m_timeStep->reset();
+	 PBD::Simulation::getCurrent()->reset();
  }
  
 
@@ -68,7 +64,7 @@ PBDWrapper::~PBDWrapper()
 	PBD::TimeManager::getCurrent()->setTimeStepSize(SPH::TimeManager::getCurrent()->getTimeStepSize());
 	PBD::TimeManager::getCurrent()->setTime(SPH::TimeManager::getCurrent()->getTime());
 
-	m_timeStep->step(m_model);
+	PBD::Simulation::getCurrent()->getTimeStep()->step(m_model);
 
 	for (unsigned int i = 0; i < pd.size(); i++)
 	{
@@ -164,6 +160,13 @@ void PBDWrapper::readScene(const std::string &sceneFileName, const std::vector< 
 	m_sceneName = data.m_sceneName;
 
 	PBD::Simulation *sim = PBD::Simulation::getCurrent();
+	loader.readParameterObject(sim);
+	loader.readParameterObject(sim->getModel());
+	loader.readParameterObject(sim->getTimeStep());
+	if (sim->getTimeStep()->getCollisionDetection() != nullptr)
+		loader.readParameterObject(sim->getTimeStep()->getCollisionDetection());
+
+
 	sim->setVecValue<Real>(PBD::Simulation::GRAVITATION, &data.m_gravity[0]);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -658,12 +661,12 @@ void PBDWrapper::initModel (const Real timeStepSize)
 {
 	PBD::TimeManager::getCurrent ()->setTimeStepSize(timeStepSize);
  
-	m_timeStep->setCollisionDetection(m_model, &m_cd);
+	PBD::Simulation::getCurrent()->getTimeStep()->setCollisionDetection(m_model, &m_cd);
 }
 
-PBD::TimeStepController & PBDWrapper::getTimeStepController()
+PBD::TimeStepController& PBDWrapper::getTimeStepController()
 {
-	return *m_timeStep;
+	return *(PBD::TimeStepController*) PBD::Simulation::getCurrent()->getTimeStep();
 }
     
  void PBDWrapper::initTriangleModelConstraints()

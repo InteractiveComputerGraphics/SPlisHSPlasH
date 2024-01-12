@@ -24,7 +24,6 @@ TimeStepPBF::TimeStepPBF() :
 	TimeStep()
 {
 	m_simulationData.init();
-	m_counter = 0;
 	m_velocityUpdateMethod = 0;
 
 	Simulation *sim = Simulation::getCurrent();
@@ -88,7 +87,7 @@ void TimeStepPBF::step()
 	}
 
 	// Perform neighborhood search
-	performNeighborhoodSearch();
+	sim->performNeighborhoodSearch();
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 	precomputeValues();
@@ -163,7 +162,6 @@ void TimeStepPBF::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
-	m_counter = 0;
 }
 
 
@@ -383,19 +381,9 @@ void TimeStepPBF::pressureSolveIteration(const unsigned int fluidModelIndex, Rea
 	}
 }
 
-void TimeStepPBF::performNeighborhoodSearch()
+void TimeStepPBF::performNeighborhoodSearchSort()
 {
-	if (Simulation::getCurrent()->zSortEnabled())
-	{
-		if (m_counter % 500 == 0)
-		{
-			Simulation::getCurrent()->performNeighborhoodSearchSort();
-			m_simulationData.performNeighborhoodSearchSort();
-		}
-		m_counter++;
-	}
-
-	Simulation::getCurrent()->performNeighborhoodSearch();
+	m_simulationData.performNeighborhoodSearchSort();
 }
 
 void TimeStepPBF::emittedParticles(FluidModel *model, const unsigned int startIndex)

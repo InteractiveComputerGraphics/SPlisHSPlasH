@@ -96,6 +96,14 @@ The following videos were generated using the SPlisHSPlasH library (if you click
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=3MYgOasyhnk"><img src="https://img.youtube.com/vi/3MYgOasyhnk/0.jpg" alt="Video" /></a></td>
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=xWXTQJl4pZ0"><img src="https://img.youtube.com/vi/xWXTQJl4pZ0/0.jpg" alt="Video" /></a></td>
     </tr>
+    <tr>
+      <td style="text-align: center"><em>Consistent SPH Rigid-Fluid Coupling</em></td>
+      <td style="text-align: center"><em></em></td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://www.youtube.com/watch?v=u8JfE7zdViw"><img src="https://img.youtube.com/vi/u8JfE7zdViw/0.jpg" alt="Video" /></a></td>
+      <td style="text-align: center"></td>
+    </tr>
   </tbody>
 </table>
 

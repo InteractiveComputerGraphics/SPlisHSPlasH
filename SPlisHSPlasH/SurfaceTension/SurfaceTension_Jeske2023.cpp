@@ -582,7 +582,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                                                             // + getDensityGrad(neighborIndex)
                                                             ) / (rhoij * rhoij)
                         );
-                        const Vector3r a = adhesion * xixj * density_i * W_firstOrder;
+                        const Vector3r a = adhesion * (xixj - dt*vj)  * density_i * W_firstOrder;
                         bi += a;
                         bm_neighbor->addForce(xi, -m_model->getMass(i) / density_i * a);
                 );
@@ -1159,7 +1159,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                                                             // + getDensityGrad(neighborIndex)
                                                             ) / (rhoij * rhoij)
                         );
-                        bi += adhesion * xixj * density_i * W_firstOrder;
+                        bi += adhesion * (xixj - dt * vj) * density_i * W_firstOrder;
 
                 );
             }

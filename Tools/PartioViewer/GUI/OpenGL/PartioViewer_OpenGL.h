@@ -25,6 +25,7 @@ namespace SPH
 		static void flipImage(int width, int height, unsigned char *image);
 		static void getImage(int width, int height, unsigned char *image);
 		static void initShaders(const std::string &shaderPath);
+        static void destroyShaders();
 		static void pointShaderBegin(Shader *shader, const Real particleRadius, const float *col, const Real minVal, const Real maxVal, const bool useTexture = false, float const* color_map = nullptr);
 		static void pointShaderEnd(Shader *shader, const bool useTexture = false);
 		static void renderGrid();

@@ -72,40 +72,14 @@ namespace SPH
 		const unsigned int nFaces = mesh.numFaces();
 		const Vector3r *vertexNormals = mesh.getVertexNormals().data();
 
-		if (SPH::MiniGL::checkOpenGLVersion(3, 3))
-		{
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &pd.getPosition(offset)[0]);
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_REAL, GL_FALSE, 0, &vertexNormals[0][0]);
-		}
-		else
-		{
-			float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
-			glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
-			glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
-			glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, speccolor);
-			glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0f);
-			glColor3fv(color);
+		SPH::MiniGL::supplyVertices(0, mesh.getVertexNormals().size(), &pd.getPosition(offset)[0]);
+		SPH::MiniGL::supplyNormals(2, mesh.getVertexNormals().size(), &vertexNormals[0][0]);
+		SPH::MiniGL::supplyFaces(3 * nFaces, faces);
 
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_NORMAL_ARRAY);
-			glVertexPointer(3, GL_REAL, 0, &pd.getPosition(0)[0]);
-			glNormalPointer(GL_REAL, 0, &vertexNormals[0][0]);
-		}
+		glDrawElements(GL_TRIANGLES, (GLsizei)3 * nFaces, GL_UNSIGNED_INT, (void*)0);
 
-		glDrawElements(GL_TRIANGLES, (GLsizei)3 * mesh.numFaces(), GL_UNSIGNED_INT, mesh.getFaces().data());
-
-		if (SPH::MiniGL::checkOpenGLVersion(3, 3))
-		{
-			glDisableVertexAttribArray(0);
-			glDisableVertexAttribArray(2);
-		}
-		else
-		{
-			glDisableClientState(GL_VERTEX_ARRAY);
-			glDisableClientState(GL_NORMAL_ARRAY);
-		}
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(2);
 	}
 
 }

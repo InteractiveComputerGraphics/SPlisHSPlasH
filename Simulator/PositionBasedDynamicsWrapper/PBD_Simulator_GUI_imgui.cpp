@@ -47,20 +47,16 @@ void PBD_Simulator_GUI_imgui::render()
 
 SPH::Shader *PBD_Simulator_GUI_imgui::createShader(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader)
 {
-	if (SPH::MiniGL::checkOpenGLVersion(3, 3))
-	{
-		SPH::Shader *shader = new SPH::Shader();
+	SPH::Shader *shader = new SPH::Shader();
 
-		if (vertexShader != "")
-			shader->compileShaderFile(GL_VERTEX_SHADER, vertexShader);
-		if (geometryShader != "")
-			shader->compileShaderFile(GL_GEOMETRY_SHADER, geometryShader);
-		if (fragmentShader != "")
-			shader->compileShaderFile(GL_FRAGMENT_SHADER, fragmentShader);
-		shader->createAndLinkProgram();
-		return shader;
-	}
-	return NULL;
+	if (vertexShader != "")
+		shader->compileShaderFile(GL_VERTEX_SHADER, vertexShader);
+	if (geometryShader != "")
+		shader->compileShaderFile(GL_GEOMETRY_SHADER, geometryShader);
+	if (fragmentShader != "")
+		shader->compileShaderFile(GL_FRAGMENT_SHADER, fragmentShader);
+	shader->createAndLinkProgram();
+	return shader;
 }
 
 void PBD_Simulator_GUI_imgui::initShader()
@@ -91,11 +87,9 @@ void PBD_Simulator_GUI_imgui::shaderBegin(const float *col)
 		glUniform1f(m_shader->getUniform("shininess"), 5.0f);
 		glUniform1f(m_shader->getUniform("specular_factor"), 0.2f);
 
-		GLfloat matrix[16];
-		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
+		const GLfloat* matrix = &SPH::MiniGL::getModelviewMatrix()(0,0);
 		glUniformMatrix4fv(m_shader->getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-		GLfloat pmatrix[16];
-		glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
+		const GLfloat* pmatrix = &SPH::MiniGL::getProjectionMatrix()(0,0);
 		glUniformMatrix4fv(m_shader->getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
 		glUniform3fv(m_shader->getUniform("surface_color"), 1, col);
 	}
@@ -109,15 +103,14 @@ void PBD_Simulator_GUI_imgui::shaderEnd()
 
 void PBD_Simulator_GUI_imgui::renderAABB(PBD::AABB &aabb)
 {
+	float color[4] = { 0.5f, 0.5f, 0.5f, 0.3f };
+
 	Vector3r p1, p2;
-	glBegin(GL_LINES);
 	for (unsigned char i = 0; i < 12; i++)
 	{
 		PBD::AABB::getEdge(aabb, i, p1, p2);
-		glVertex3d(p1[0], p1[1], p1[2]);
-		glVertex3d(p2[0], p2[1], p2[2]);
+		SPH::MiniGL::drawVector(p1, p2, 1.0f, color);
 	}
-	glEnd();
 }
 
 void PBD_Simulator_GUI_imgui::renderBVH()

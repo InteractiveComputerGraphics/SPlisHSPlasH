@@ -334,7 +334,7 @@ void SamplingBase::generateSDF(SPH::TriangleMesh& mesh)
 	Discregrid::TriangleMesh sdfMesh(&doubleVec[0], mesh.getFaces().data(), mesh.numVertices(), mesh.numFaces());
 #endif
 
-	Discregrid::MeshDistance md(sdfMesh);
+	Discregrid::TriangleMeshDistance md(sdfMesh);
 	Eigen::AlignedBox3d domain;
 	domain.extend(m_bbmin.cast<double>());
 	domain.extend(m_bbmax.cast<double>());
@@ -347,9 +347,9 @@ void SamplingBase::generateSDF(SPH::TriangleMesh& mesh)
 
 	// invert the distance field since the particles should stay inside
 	if (!m_invert)
-		func = [&md](Eigen::Vector3d const& xi) {return -md.signedDistanceCached(xi); };
+		func = [&md](Eigen::Vector3d const& xi) {return -md.signed_distance(xi).distance; };
 	else
-		func = [&md](Eigen::Vector3d const& xi) {return md.signedDistanceCached(xi); };
+		func = [&md](Eigen::Vector3d const& xi) {return md.signed_distance(xi).distance; };
 
 	LOG_INFO << "Generate SDF";
 	m_distanceField->addFunction(func, false);

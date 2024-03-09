@@ -25,6 +25,7 @@ namespace SPH
 		virtual ~Simulator_OpenGL();
 		
 		static void initShaders(const std::string &shaderPath);
+        static void destroyShaders();
 		static Shader& getShaderVector() { return m_shader_vector; }
 		static Shader& getShaderScalar() { return m_shader_scalar; }
 		static Shader& getMeshShader() { return m_meshShader; }

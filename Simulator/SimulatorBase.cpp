@@ -96,6 +96,7 @@ SimulatorBase::SimulatorBase()
 	m_colorMapType.resize(1, 0);
 	m_renderMinValue.resize(1, 0.0);
 	m_renderMaxValue.resize(1, 5.0);
+	m_visible.resize(1, true);
 	m_particleAttributes = "velocity";
 	m_timeStepCB = nullptr;
 	m_resetCB = nullptr;
@@ -116,9 +117,6 @@ SimulatorBase::~SimulatorBase()
 
 	Utilities::Counting::printAverageCounts();
 	Utilities::Counting::printCounterSums();
-
-	delete m_boundarySimulator;
-	cleanupExporters();
 }
 
 void SimulatorBase::initParameters()
@@ -623,11 +621,19 @@ void SimulatorBase::cleanup()
 
 #ifdef USE_EMBEDDED_PYTHON
 	delete m_scriptObject;
-	delete Embedded::getCurrent();
+	if (Embedded::hasCurrent())
+		delete Embedded::getCurrent();
 #endif
 
 	delete SceneConfiguration::getCurrent();
 	delete Simulation::getCurrent();
+
+	delete m_boundarySimulator;
+	cleanupExporters();
+
+	auto& sinks = Utilities::logger.getSinks();
+	while (sinks.size() != 0)
+		Utilities::logger.removeSink(sinks[0]);
 }
 
 void SimulatorBase::readParameters()
@@ -662,6 +668,7 @@ void SimulatorBase::readParameters()
 				setColorMapType(i, material->colorMapType);
 				setRenderMinValue(i, material->minVal);
 				setRenderMaxValue(i, material->maxVal);
+				setVisible(i, material->visible);
 			}
 		}
 	}
@@ -1266,6 +1273,7 @@ void SimulatorBase::initFluidData()
 	m_colorMapType.resize(sim->numberOfFluidModels(), 0);
 	m_renderMinValue.resize(sim->numberOfFluidModels(), 0.0);
 	m_renderMaxValue.resize(sim->numberOfFluidModels(), 5.0);
+	m_visible.resize(sim->numberOfFluidModels(), true);
 
 	LOG_INFO << "Number of fluid particles: " << nParticles;
 }
@@ -1442,7 +1450,6 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 
 		Vector3r start = minX + static_cast<Real>(2.0)*scene.particleRadius*Vector3r::Ones();
 		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
-		const unsigned int numAddedParticles = stepsX * stepsY * stepsZ;
 
 		if ((stepsX <= 1) || (stepsY <= 1) || (stepsZ <= 1))
 		{
@@ -1450,15 +1457,17 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 			continue;
 		}
 
-		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + numAddedParticles);
-		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + numAddedParticles);
-		fluidObjectIds[fluidIndex].reserve(fluidObjectIds[fluidIndex].size() + numAddedParticles);
 
 		if (Simulation::getCurrent()->is2DSimulation())
 		{
 			stepsZ = 1;
 			start[2] = 0.0;
 		}
+		const unsigned int numAddedParticles = stepsX * stepsY * stepsZ;
+
+		fluidParticles[fluidIndex].reserve(fluidParticles[fluidIndex].size() + numAddedParticles);
+		fluidVelocities[fluidIndex].resize(fluidVelocities[fluidIndex].size() + numAddedParticles);
+		fluidObjectIds[fluidIndex].reserve(fluidObjectIds[fluidIndex].size() + numAddedParticles);
 
 		for (int j = 0; j < stepsX; j++)
 		{
@@ -1882,6 +1891,7 @@ void SimulatorBase::writeParameterState(BinaryFileWriter &binWriter)
 		binWriter.write(getColorMapType(model->getPointSetIndex()));
 		binWriter.write(getRenderMinValue(model->getPointSetIndex()));
 		binWriter.write(getRenderMaxValue(model->getPointSetIndex()));
+		binWriter.write(getVisible(model->getPointSetIndex()));
 	}
 }
 
@@ -1958,6 +1968,9 @@ void SimulatorBase::readParameterState(BinaryFileReader &binReader)
 		setRenderMinValue(model->getPointSetIndex(), v);
 		binReader.read(v);
 		setRenderMaxValue(model->getPointSetIndex(), v);
+		bool b;
+		binReader.read(b);
+		setVisible(model->getPointSetIndex(), b);
  	}
 }
 
@@ -2879,6 +2892,7 @@ void SimulatorBase::writeSceneFile(const std::string &fileName)
 				writer.updateMaterialParameterConfig(model->getId(), "colorMapType", getColorMapType(i));
 				writer.updateMaterialParameterConfig(model->getId(), "renderMinValue", getRenderMinValue(i));
 				writer.updateMaterialParameterConfig(model->getId(), "renderMaxValue", getRenderMaxValue(i));
+				writer.updateMaterialParameterConfig(model->getId(), "visible", getVisible(i));
 			}
 		}
 	}

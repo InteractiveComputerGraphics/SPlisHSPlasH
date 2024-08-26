@@ -73,6 +73,7 @@ namespace SPH
 		std::vector<int> m_colorMapType;
 		std::vector<Real> m_renderMaxValue;
 		std::vector<Real> m_renderMinValue;
+		std::vector<bool> m_visible;
 		float const* m_colorMapBuffer;
 		unsigned int m_colorMapLength;
 		BoundarySimulator *m_boundarySimulator;
@@ -209,6 +210,8 @@ namespace SPH
 		void setRenderMaxValue(const unsigned int fluidModelIndex, Real val) { m_renderMaxValue[fluidModelIndex] = val; }
 		Real getRenderMinValue(const unsigned int fluidModelIndex) const { return m_renderMinValue[fluidModelIndex]; }
 		void setRenderMinValue(const unsigned int fluidModelIndex, Real val) { m_renderMinValue[fluidModelIndex] = val; }
+		bool getFluidPhaseVisible(const unsigned int fluidModelIndex) const { return m_visible[fluidModelIndex]; }
+		void setFluidPhaseVisible(const unsigned int fluidModelIndex, bool val) { m_visible[fluidModelIndex] = val; }
 		std::string getOutputPath() const { return m_outputPath; }
 
 		unsigned int getLastObjectId() const { return m_currentObjectId;  }

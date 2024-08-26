@@ -253,6 +253,7 @@ void AnimationFieldParameterObject::initParameters()
 int MaterialParameterObject::MATERIAL_ID = -1;
 int MaterialParameterObject::MATERIAL_MIN_VAL = -1;
 int MaterialParameterObject::MATERIAL_MAX_VAL = -1;
+int MaterialParameterObject::MATERIAL_VISIBLE = -1;
 int MaterialParameterObject::MATERIAL_COLOR_FIELD = -1;
 int MaterialParameterObject::MATERIAL_COLOR_MAP = -1;
 int MaterialParameterObject::MATERIAL_MAX_EMITTER_PARTICLES = -1;
@@ -281,6 +282,10 @@ void MaterialParameterObject::initParameters()
 	MATERIAL_COLOR_MAP = createNumericParameter<unsigned int>("colorMapType", "Color map type", &colorMapType);
 	setGroup(MATERIAL_COLOR_MAP, "Material");
 	setDescription(MATERIAL_COLOR_MAP, "Selection of a color map for coloring the scalar/vector field: 0: None, 1 : Jet, 2 : Plasma, 3 : CoolWarm, 4 : BlueWhiteRed, 5 : Seismic");
+
+	MATERIAL_VISIBLE = createBoolParameter("visible", "Visible", &visible);
+	setGroup(MATERIAL_VISIBLE, "Material");
+	setDescription(MATERIAL_VISIBLE, "Defines if fluid phase is rendered.");
 
 	MATERIAL_MAX_EMITTER_PARTICLES = createNumericParameter<unsigned int>("maxEmitterParticles", "Max. emitter particles", &maxEmitterParticles);
 	setGroup(MATERIAL_MAX_EMITTER_PARTICLES, "Material");

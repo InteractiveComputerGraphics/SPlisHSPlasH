@@ -488,6 +488,13 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 			param3->readOnly = false;
 			param3->function = [this]() { getSimulatorBase()->determineMinMaxOfScalarField(); };
 			imguiParameters::addParam("Fluid Model", model->getId(), param3);
+
+			imguiParameters::imguiBoolParameter* param4 = new imguiParameters::imguiBoolParameter();
+			param4->description = "Define if fluid phase is rendered.";
+			param4->label = "Visible";
+			param4->getFct = [this]() -> bool { return getSimulatorBase()->getVisible(m_currentFluidModel); };
+			param4->setFct = [this](bool v) { getSimulatorBase()->setVisible(m_currentFluidModel, v); };
+			imguiParameters::addParam("Fluid Model", model->getId(), param4);
 		}
 
 		imguiParameters::createParameterObjectGUI(model);
@@ -615,6 +622,9 @@ void Simulator_GUI_imgui::render()
 		MiniGL::hsvToRgb(0.61f - 0.1f*i, 0.66f, 0.9f, fluidColor);
 		FluidModel *model = sim->getFluidModel(i);
 		SimulatorBase *base = getSimulatorBase();
+
+		if (!base->getVisible(i))
+			continue;
 
 		const FieldDescription* field = nullptr;
 		field = &model->getField(base->getColorField(i));

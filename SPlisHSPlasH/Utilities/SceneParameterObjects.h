@@ -269,6 +269,7 @@ namespace Utilities
 		unsigned int colorMapType;
 		Real minVal;
 		Real maxVal;
+		bool visible;
 		unsigned int maxEmitterParticles;
 		bool emitterReuseParticles;
 		Vector3r emitterBoxMin;
@@ -280,6 +281,7 @@ namespace Utilities
 			id = "Fluid";
 			minVal = 0.0;
 			maxVal = 10.0;
+			visible = true;
 			colorField = "velocity";
 			colorMapType = 1;
 			maxEmitterParticles = 10000;
@@ -288,12 +290,13 @@ namespace Utilities
 			emitterBoxMax = Vector3r(1.0, 1.0, 1.0);
 		}
 
-		MaterialParameterObject(std::string id_, std::string colorField_, unsigned int colorMapType_, Real minVal_, Real maxVal_,
+		MaterialParameterObject(std::string id_, std::string colorField_, unsigned int colorMapType_, Real minVal_, Real maxVal_, bool visible_,
 							unsigned int maxEmitterParticles_, bool emitterReuseParticles_, Vector3r emitterBoxMin_, Vector3r emitterBoxMax_)
 		{
 			id = id_;
 			minVal = minVal_;
 			maxVal = maxVal_;
+			visible = visible_;
 			colorField = colorField_;
 			colorMapType = colorMapType_;
 			maxEmitterParticles = maxEmitterParticles_;
@@ -305,6 +308,7 @@ namespace Utilities
 		static int MATERIAL_ID;
 		static int MATERIAL_MIN_VAL;
 		static int MATERIAL_MAX_VAL;
+		static int MATERIAL_VISIBLE;
 		static int MATERIAL_COLOR_FIELD;
 		static int MATERIAL_COLOR_MAP;
 		static int MATERIAL_MAX_EMITTER_PARTICLES;

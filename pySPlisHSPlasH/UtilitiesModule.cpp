@@ -373,8 +373,8 @@ void UtilitiesModule(py::module m) {
 
     py::class_<Utilities::MaterialParameterObject, GenParam::ParameterObject>(m_sub_sub, "MaterialData")
         .def(py::init<>())
-        .def(py::init<std::string, std::string, unsigned int, Real, Real, unsigned int, bool, Vector3r, Vector3r>(),
-                "id"_a, "colorField"_a="velocity", "colorMapType"_a=1, "minVal"_a=0.0, "maxVal"_a=10.0, //TODO: an id has to be provided
+        .def(py::init<std::string, std::string, unsigned int, Real, Real, bool, unsigned int, bool, Vector3r, Vector3r>(),
+                "id"_a, "colorField"_a="velocity", "colorMapType"_a=1, "minVal"_a=0.0, "maxVal"_a=10.0, "visible"_a=true, //TODO: an id has to be provided
                 "maxEmitterParticles"_a=10000, "emitterReuseParticles"_a=false, "emitterBoxMin"_a=Vector3r(-1.0, -1.0, -1.0),
                 "emitterBoxMax"_a=Vector3r(1.0, 1.0, 1.0))
         .def_readwrite("id", &Utilities::MaterialParameterObject::id)
@@ -382,6 +382,7 @@ void UtilitiesModule(py::module m) {
         .def_readwrite("colorMapType", &Utilities::MaterialParameterObject::colorMapType)
         .def_readwrite("minVal", &Utilities::MaterialParameterObject::minVal)
         .def_readwrite("maxVal", &Utilities::MaterialParameterObject::maxVal)
+        .def_readwrite("visible", &Utilities::MaterialParameterObject::visible)
         .def_readwrite("maxEmitterParticles", &Utilities::MaterialParameterObject::maxEmitterParticles)
         .def_readwrite("emitterReuseParticles", &Utilities::MaterialParameterObject::emitterReuseParticles)
         .def_readwrite("emitterBoxMin", &Utilities::MaterialParameterObject::emitterBoxMin)

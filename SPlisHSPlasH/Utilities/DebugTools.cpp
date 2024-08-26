@@ -14,6 +14,8 @@ DebugTools::DebugTools() :
 	ParameterObject()
 {
 	m_determineThreadIds = false;
+	m_determineNumNeighbors = false;
+	m_determineVelocityChanges = false;
 
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
@@ -123,6 +125,7 @@ void SPH::DebugTools::determineThreadIds()
 void SPH::DebugTools::determineNumNeighbors()
 {
 	Simulation* sim = Simulation::getCurrent();
+	sim->performNeighborhoodSearch();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)

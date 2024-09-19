@@ -32,8 +32,8 @@ else(USE_GPU_NEIGHBORHOOD_SEARCH)
 	ExternalProject_Add(
 	   Ext_NeighborhoodSearch
 	   PREFIX "${CMAKE_BINARY_DIR}/extern/CompactNSearch"
-	   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-	   GIT_TAG "99fa1fe052f353b33957948f36e628500f1737f7"
+	   GIT_REPOSITORY https://github.com/ruberith/CompactNSearch.git
+	   GIT_TAG "847c2c22fad4fdae9b99d62d21646db79ff88ef2"
 	   INSTALL_DIR ${ExternalInstallDir}/NeighborhoodSearch
 	   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/NeighborhoodSearch -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION} -DBUILD_DEMO:BOOL=OFF
 	)

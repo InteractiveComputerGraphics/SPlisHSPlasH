@@ -315,7 +315,7 @@ namespace SPH
 			if (q <= 1.0)
 			{
 				const Vector3r gradq = r * (static_cast<Real>(1.0) / (rl*m_radius));
-				res = m_l*gradq*pow(static_cast<Real>(1.0) - q, 3);
+				res = m_l*q*pow(static_cast<Real>(1.0) - q, static_cast<Real>(3.0))*gradq;
 			}
 			else
 				res.setZero();

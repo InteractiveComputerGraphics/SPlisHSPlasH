@@ -40,6 +40,9 @@ endif()
 ## Eigen3 is used by most of the libraries that follow
 find_package(Eigen3 REQUIRED)
 add_definitions(-DEIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -idirafter${EIGEN3_INCLUDE_DIR}")
+endif()
 
 ################################################################################
 # own external libraries

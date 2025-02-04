@@ -1,5 +1,5 @@
 add_subdirectory(Kernel)
 add_subdirectory(ReadWriteState)
-if (FOUND_AVX2)
+if (FOUND_SIMD)
 	add_subdirectory(AVX)
 endif()

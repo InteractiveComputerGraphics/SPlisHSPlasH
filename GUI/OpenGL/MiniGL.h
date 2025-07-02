@@ -7,27 +7,16 @@
 #include "SPlisHSPlasH/TriangleMesh.h"
 
 #ifdef USE_DOUBLE
-#define glNormal3v glNormal3dv
-#define glVertex3v glVertex3dv
-#define glVertex3 glVertex3d
-#define glMultMatrix glMultMatrixd
-#define glGetRealv glGetDoublev
-#define glLoadMatrix glLoadMatrixd
-#define glTranslate glTranslated
 #define GL_REAL GL_DOUBLE
+#define glVertexAttrib3r glVertexAttrib3d
+#define glVertexAttrib3rv glVertexAttrib3dv
 #else
-#define glNormal3v glNormal3fv
-#define glVertex3v glVertex3fv
-#define glVertex3 glVertex3f
-#define glMultMatrix glMultMatrixf
-#define glGetRealv glGetFloatv
-#define glLoadMatrix glLoadMatrixf
-#define glTranslate glTranslatef
 #define GL_REAL GL_FLOAT
+#define glVertexAttrib3r glVertexAttrib3f
+#define glVertexAttrib3rv glVertexAttrib3fv
 #endif
 
 struct GLFWwindow;
-typedef class GLUquadric GLUquadricObj;
 
 namespace SPH
 {
@@ -93,6 +82,9 @@ namespace SPH
 		static std::vector<MouseWheelFct> m_mouseWheelFct;
 		static int m_width;
 		static int m_height;
+		static int m_windowWidth;
+		static int m_windowHeight;
+		static Real m_devicePixelRatio;
 		static Vector3r m_translation;
 		static Quaternionr m_rotation;
 		static Real m_zoom;
@@ -118,10 +110,23 @@ namespace SPH
 		static int m_context_profile;
 		static bool m_breakPointActive;
 		static bool m_breakPointLoop;
-		static GLUquadricObj* m_sphereQuadric;
 		static GLFWwindow* m_glfw_window;
 		static bool m_vsync;
 		static double m_lastTime;
+		static Shader m_shader;
+		static Shader m_shader_screen;
+		static Matrix4r m_modelview_matrix;
+		static Matrix4r m_projection_matrix;
+		static Vector3f m_ambientIntensity;
+		static unsigned int m_numLights;
+		static VectorXf m_diffuseIntensity;
+		static VectorXf m_specularIntensity;
+		static VectorXf m_lightPosition;
+		static GLuint m_vao;
+		static GLuint m_vbo_vertices;
+		static GLuint m_vbo_normals;
+		static GLuint m_vbo_texcoords;
+		static GLuint m_vbo_faces;
 
 		static void reshape (GLFWwindow* glfw_window, int w, int h);
 		static void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods);		
@@ -139,7 +144,7 @@ namespace SPH
 		static void drawVector(const Vector3r &a, const Vector3r &b, const float w, float *color);
 		/** Renders a closed cylinder between two points.
 		*/
-		static void drawCylinder(const Vector3r &a, const Vector3r &b, const float *color, const float radius = 0.02, const unsigned int subdivisions = 8);
+		static void drawCylinder(const Vector3r &a, const Vector3r &b, const float *color, const float radius = 0.02, const unsigned int subdivisions = 8, const bool lighting = true);
 		static void drawSphere(const Vector3r &translation, float radius, float *color, const unsigned int subDivision = 16);
 		static void drawQuad (const Vector3r &a, const Vector3r &b, const Vector3r &c, const Vector3r &d, const Vector3r &norm, float *color);
 		/** Draw a tetrahedron.
@@ -174,6 +179,7 @@ namespace SPH
 		static void setSelectionFunc(void(*func) (const Vector2i&, const Vector2i&, void*), void *clientData);
 		static void setMouseMoveFunc(int button, void(*func) (int, int, void*));
 		static void unproject(const int x, const int y, Vector3r &pos);
+		static void unproject(const Vector3r& win, Vector3r& pos);
 		static float getZNear();
 		static float getZFar();
 		static void hsvToRgb(float h, float s, float v, float *rgb);
@@ -199,6 +205,7 @@ namespace SPH
 
 		static int getWidth() { return m_width; }
 		static int getHeight() { return m_height; }
+		static Real getDevicePixelRatio() { return m_devicePixelRatio; }
 		
 		static int getDrawMode() { return drawMode; }
 		static void setDrawMode(int val) { drawMode = val; }
@@ -217,6 +224,51 @@ namespace SPH
 		static void setWindowSize(int w, int h);
 		static bool getWindowMaximized();
 		static void setWindowMaximized(const bool b);
+
+		static const Matrix4r& getModelviewMatrix() { return m_modelview_matrix; }
+		static const Matrix4r& getProjectionMatrix() { return m_projection_matrix; }
+
+		static void initShaders(const std::string& shaderPath);
+		static void destroyShaders();
+		static void enableShader(const Vector3f& ambientReflectance, const Vector3f& diffuseReflectance, const Vector3f& specularReflectance, const float shininess, const float pointSize=1.0);
+		static void disableShader();
+		static void enableScreenShader(const Vector3f& color);
+		static void disableScreenShader();
+
+		static const GLuint getVao() { return m_vao; }
+		static const GLuint getVboVertices() { return m_vbo_vertices; }
+		static const GLuint getVboNormals() { return m_vbo_normals; }
+		static const GLuint getVboTexcoords() { return m_vbo_texcoords; }
+		static const GLuint getVboFaces() { return m_vbo_faces; }
+
+		// Fill a VBO with vector data and map to the VAO attribute at the specified index.
+		static void supplyVectors(GLuint index, GLuint vbo, unsigned int dim, unsigned int n, const float* data);
+		static void supplyVectors(GLuint index, GLuint vbo, unsigned int dim, unsigned int n, const double* data);
+		// Fill the dedicated VBO with 3D vertex data and map to the VAO attribute at the specified index.
+		template<typename T>
+		static void supplyVertices(GLuint index, unsigned int numVectors, const T* data)
+		{
+			supplyVectors(index, m_vbo_vertices, 3, numVectors, data);
+		}
+		// Fill the dedicated VBO with 3D normal data and map to the VAO attribute at the specified index.
+		template<typename T>
+		static void supplyNormals(GLuint index, unsigned int numVectors, const T* data)
+		{
+			supplyVectors(index, m_vbo_normals, 3, numVectors, data);
+		}
+		// Fill the dedicated VBO with 2D texcoord data and map to the VAO attribute at the specified index.
+		template<typename T>
+		static void supplyTexcoords(GLuint index, unsigned int numVectors, const T* data)
+		{
+			supplyVectors(index, m_vbo_texcoords, 2, numVectors, data);
+		}
+		// Fill a VBO with index data.
+		static void supplyIndices(GLuint vbo, unsigned int n, const unsigned int* data);
+		// Fill the dedicated VBO with face index data.
+		static void supplyFaces(unsigned int numIndices, const unsigned int* data)
+		{
+			supplyIndices(m_vbo_faces, numIndices, data);
+		}
 	};
 }
 

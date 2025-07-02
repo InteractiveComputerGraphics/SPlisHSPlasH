@@ -1,3 +1,8 @@
+2.13.2
+	- updated pybind11
+	- added avx implementation of the paper Peer et al., "An implicit SPH formulation for incompressible linearly elastic solids", Computer Graphics Forum, 2018
+	- bugfixes
+
 2.13.1
 	- fixed z-sort 
 	- added parameter stepsPerZSort

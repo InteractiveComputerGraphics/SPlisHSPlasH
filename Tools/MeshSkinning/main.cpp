@@ -60,7 +60,7 @@ string meshFile = "";
 string sceneFile = "";
 bool overwriteExistingFiles = false;
 Vector3r scale(1.0, 1.0, 1.0);
-Vector3r translation(1.0, 1.0, 1.0);
+Vector3r translation(0.0, 0.0, 0.0);
 Matrix3r rotation = Matrix3r::Identity();
 unsigned int startFrame = 1;
 unsigned int endFrame = 0xffffffff;

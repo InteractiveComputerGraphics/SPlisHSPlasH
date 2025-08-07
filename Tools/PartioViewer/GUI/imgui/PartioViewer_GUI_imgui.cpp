@@ -318,8 +318,7 @@ void PartioViewer_GUI_imgui::initParameterGUI()
 	iparam->setFct = [this](int v) { m_viewer->setFPS(v); };
 	imguiParameters::addParam("Export", "", iparam);
 
-	if (MiniGL::checkOpenGLVersion(3, 3))
-		PartioViewer_OpenGL::initShaders(m_viewer->getExePath() + "/resources/shaders");
+	PartioViewer_OpenGL::initShaders(m_viewer->getExePath() + "/resources/shaders");
 
 	MiniGL::setClientSceneFunc(std::bind(&PartioViewer_GUI_imgui::renderScene, this));
 }
@@ -421,6 +420,7 @@ void PartioViewer_GUI_imgui::destroy()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+	PartioViewer_OpenGL::destroyShaders();
 }
 
 

@@ -33,6 +33,8 @@ Simulator_OpenGL::~Simulator_OpenGL(void)
 
 void Simulator_OpenGL::initShaders(const std::string &shaderPath)
 {
+	MiniGL::initShaders(shaderPath);
+
 	string vertFile = shaderPath + "/vs_points_vector.glsl";
 	string fragFile = shaderPath + "/fs_points.glsl";
 	m_shader_vector.compileShaderFile(GL_VERTEX_SHADER, vertFile);
@@ -93,6 +95,15 @@ void Simulator_OpenGL::initShaders(const std::string &shaderPath)
 	glGenTextures(1, &m_textureMap);
 }
 
+void Simulator_OpenGL::destroyShaders()
+{
+	glDeleteTextures(1, &m_textureMap);
+	m_shader_vector.destroy();
+	m_shader_scalar.destroy();
+	m_shader_scalar_map.destroy();
+	m_meshShader.destroy();
+	MiniGL::destroyShaders();
+}
 
 void Simulator_OpenGL::meshShaderBegin(const float *col)
 {
@@ -100,12 +111,10 @@ void Simulator_OpenGL::meshShaderBegin(const float *col)
 	glUniform1f(m_meshShader.getUniform("shininess"), 5.0f);
 	glUniform1f(m_meshShader.getUniform("specular_factor"), 0.2f);
 
-	GLfloat matrix[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-	glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-	GLfloat pmatrix[16];
-	glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-	glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+	const Matrix4f matrix(MiniGL::getModelviewMatrix().cast<float>());
+	glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, &matrix(0,0));
+	const Matrix4f pmatrix(MiniGL::getProjectionMatrix().cast<float>());
+	glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, &pmatrix(0,0));
 	glUniform3fv(m_meshShader.getUniform("surface_color"), 1, col);
 }
 
@@ -139,18 +148,12 @@ void Simulator_OpenGL::pointShaderBegin(Shader *shader, const Real particleRadiu
 	}
 
 
-	GLfloat matrix[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-	glUniformMatrix4fv(shader->getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-	GLfloat pmatrix[16];
-	glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-	glUniformMatrix4fv(shader->getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+	const Matrix4f matrix(MiniGL::getModelviewMatrix().cast<float>());
+	glUniformMatrix4fv(shader->getUniform("modelview_matrix"), 1, GL_FALSE, &matrix(0,0));
+	const Matrix4f pmatrix(MiniGL::getProjectionMatrix().cast<float>());
+	glUniformMatrix4fv(shader->getUniform("projection_matrix"), 1, GL_FALSE, &pmatrix(0,0));
 
 	glEnable(GL_DEPTH_TEST);
-	// Point sprites do not have to be explicitly enabled since OpenGL 3.2 where
-	// they are enabled by default. Moreover GL_POINT_SPRITE is deprecate and only
-	// supported before OpenGL 3.2 or with compatibility profile enabled.
-	glEnable(GL_POINT_SPRITE);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	glPointParameterf(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
 }
@@ -172,82 +175,51 @@ void Simulator_OpenGL::renderFluid(FluidModel *model, float *fluidColor,
 	if (nParticles == 0)
 		return;
 
-	float surfaceColor[4] = { 0.2f, 0.6f, 0.8f, 1 };
-	float speccolor[4] = { 1.0, 1.0, 1.0, 1.0 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, surfaceColor);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, surfaceColor);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, speccolor);
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100.0);
-	glColor3fv(surfaceColor);
-
 	const Real particleRadius = sim->getParticleRadius();
 	const Real supportRadius = sim->getSupportRadius();
-	Real vmax = static_cast<Real>(0.4*2.0)*supportRadius / TimeManager::getCurrent()->getTimeStepSize();
-	Real vmin = 0.0;
 
-	if (MiniGL::checkOpenGLVersion(3, 3))
+	Shader *shader_scalar = &m_shader_scalar_map;
+	float const *color_map = nullptr;
+	if (colorMapType == 1)
+		color_map = reinterpret_cast<float const*>(colormap_jet);
+	else if (colorMapType == 2)
+		color_map = reinterpret_cast<float const*>(colormap_plasma);
+	else if (colorMapType == 3)
+		color_map = reinterpret_cast<float const*>(colormap_coolwarm);
+	else if (colorMapType == 4)
+		color_map = reinterpret_cast<float const*>(colormap_bwr);
+	else if (colorMapType == 5)
+		color_map = reinterpret_cast<float const*>(colormap_seismic);
+
+	if (colorMapType == 0)
+		shader_scalar = &m_shader_scalar;
+
+	if (!useScalarField)
+		pointShaderBegin(shader_scalar, particleRadius, &fluidColor[0], renderMinValue, renderMaxValue, false);
+	else 
+		pointShaderBegin(shader_scalar, particleRadius, &fluidColor[0], renderMinValue, renderMaxValue, true, color_map);
+
+	if (model->numActiveParticles() > 0)
 	{
-		Shader *shader_scalar = &m_shader_scalar_map;
-		float const *color_map = nullptr;
-		if (colorMapType == 1)
-			color_map = reinterpret_cast<float const*>(colormap_jet);
-		else if (colorMapType == 2)
-			color_map = reinterpret_cast<float const*>(colormap_plasma);
-		else if (colorMapType == 3)
-			color_map = reinterpret_cast<float const*>(colormap_coolwarm);
-		else if (colorMapType == 4)
-			color_map = reinterpret_cast<float const*>(colormap_bwr);
-		else if (colorMapType == 5)
-			color_map = reinterpret_cast<float const*>(colormap_seismic);
+		MiniGL::supplyVertices(0, model->numActiveParticles(), &model->getPosition(0)(0));
 
-		if (colorMapType == 0)
-			shader_scalar = &m_shader_scalar;
-
-		if (!useScalarField)
-			pointShaderBegin(shader_scalar, particleRadius, &fluidColor[0], renderMinValue, renderMaxValue, false);
-		else 
-			pointShaderBegin(shader_scalar, particleRadius, &fluidColor[0], renderMinValue, renderMaxValue, true, color_map);
-
-		if (model->numActiveParticles() > 0)
+		if (useScalarField)
 		{
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
-
-			if (useScalarField)
-			{
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &scalarField[0]);
-			}
-
-			glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
-			glDisableVertexAttribArray(0);
-			glDisableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, MiniGL::getVboNormals());
+			glBufferData(GL_ARRAY_BUFFER, model->numActiveParticles() * sizeof(float), &scalarField[0], GL_STREAM_DRAW);
+			glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);
+			glEnableVertexAttribArray(1);
 		}
 
-		if (!useScalarField)
-			pointShaderEnd(shader_scalar, false);
-		else 
-			pointShaderEnd(shader_scalar, true);
+		glDrawArrays(GL_POINTS, 0, model->numActiveParticles());
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
 	}
-	else
-	{
-		glPointSize(4.0);
-		glDisable(GL_LIGHTING);
-		glBegin(GL_POINTS);
-		for (unsigned int i = 0; i < nParticles; i++)
-		{
-			Real v = model->getVelocity(i).norm();
-			v = static_cast<Real>(0.5)*((v - vmin) / (vmax - vmin));
-			v = min(static_cast<Real>(128.0)*v*v, static_cast<Real>(0.5));
-			float fluidColor[4] = { 0.2f, 0.2f, 0.2f, 1.0 };
-			MiniGL::hsvToRgb(0.55f, 1.0f, 0.5f + (float)v, fluidColor);
 
-			glColor3fv(fluidColor);
-			glVertex3v(&model->getPosition(i)[0]);
-		}
-		glEnd();
-		glEnable(GL_LIGHTING);
-	}
+	if (!useScalarField)
+		pointShaderEnd(shader_scalar, false);
+	else 
+		pointShaderEnd(shader_scalar, true);
 }
 
 void Simulator_OpenGL::renderSelectedParticles(FluidModel *model, const std::vector<std::vector<unsigned int>>& selectedParticles,
@@ -258,40 +230,20 @@ void Simulator_OpenGL::renderSelectedParticles(FluidModel *model, const std::vec
 	const unsigned int fluidIndex = model->getPointSetIndex();
 	Simulation *sim = Simulation::getCurrent();
 	const Real particleRadius = sim->getParticleRadius();
-	if (MiniGL::checkOpenGLVersion(3, 3))
-	{
-		if ((selectedParticles.size() > 0) && ((selectedParticles[fluidIndex].size() > 0)))
-		{
-			pointShaderBegin(&m_shader_vector, particleRadius, &red[0], renderMinValue, renderMaxValue);
-			const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
-			glUniform1f(m_shader_vector.getUniform("radius"), (float)radius*1.05f);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0));
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0));
-			glDrawElements(GL_POINTS, (GLsizei)selectedParticles[fluidIndex].size(), GL_UNSIGNED_INT, selectedParticles[fluidIndex].data());
-			glDisableVertexAttribArray(0);
-			glDisableVertexAttribArray(1);
-			pointShaderEnd(&m_shader_vector);
-		}
-	}
-	else
-	{
-		if (selectedParticles.size() > 0)
-		{
-			glPointSize(4.0);
-			glDisable(GL_LIGHTING);
-			glBegin(GL_POINTS);
-			for (unsigned int i = 0; i < selectedParticles[fluidIndex].size(); i++)
-			{
-				glColor3fv(red);
-				glVertex3v(&model->getPosition(selectedParticles[fluidIndex][i])[0]);
-			}
-			glEnd();
-			glEnable(GL_LIGHTING);
-		}
-	}
 
+	if ((selectedParticles.size() > 0) && ((selectedParticles[fluidIndex].size() > 0)))
+	{
+		pointShaderBegin(&m_shader_vector, particleRadius, &red[0], renderMinValue, renderMaxValue);
+		const Real radius = sim->getValue<Real>(Simulation::PARTICLE_RADIUS);
+		glUniform1f(m_shader_vector.getUniform("radius"), (float)radius*1.05f);
+		MiniGL::supplyVertices(0, model->numActiveParticles(), &model->getPosition(0)(0));
+		MiniGL::supplyNormals(1, model->numActiveParticles(), &model->getVelocity(0)(0));
+		MiniGL::supplyFaces(selectedParticles[fluidIndex].size(), selectedParticles[fluidIndex].data());
+		glDrawElements(GL_POINTS, (GLsizei)selectedParticles[fluidIndex].size(), GL_UNSIGNED_INT, (void*)0);
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+		pointShaderEnd(&m_shader_vector);
+	}
 }
 
 void Simulator_OpenGL::renderBoundaryParticles(BoundaryModel_Akinci2012 *model, const float *col,
@@ -300,32 +252,13 @@ void Simulator_OpenGL::renderBoundaryParticles(BoundaryModel_Akinci2012 *model, 
 	Simulation *sim = Simulation::getCurrent();
 	const Real particleRadius = sim->getParticleRadius();
 
-	if (MiniGL::checkOpenGLVersion(3, 3))
-	{
-		Simulator_OpenGL::pointShaderBegin(&m_shader_vector, particleRadius, col, renderMinValue, renderMaxValue);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_REAL, GL_FALSE, 0, &model->getPosition(0)[0]);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_REAL, GL_FALSE, 0, &model->getVelocity(0)[0]);
-		glDrawArrays(GL_POINTS, 0, model->numberOfParticles());
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		Simulator_OpenGL::pointShaderEnd(&m_shader_vector);
-	}
-	else
-	{
-		glDisable(GL_LIGHTING);
-		glPointSize(4.0f);
-
-		glBegin(GL_POINTS);
-		for (unsigned int i = 0; i < model->numberOfParticles(); i++)
-		{
-			glColor3fv(col);
-			glVertex3v(&model->getPosition(i)[0]);
-		}
-		glEnd();
-		glEnable(GL_LIGHTING);
-	}
+	Simulator_OpenGL::pointShaderBegin(&m_shader_vector, particleRadius, col, renderMinValue, renderMaxValue);
+	MiniGL::supplyVertices(0, model->numberOfParticles(), &model->getPosition(0)(0));
+	MiniGL::supplyNormals(1, model->numberOfParticles(), &model->getVelocity(0)(0));
+	glDrawArrays(GL_POINTS, 0, model->numberOfParticles());
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	Simulator_OpenGL::pointShaderEnd(&m_shader_vector);
 }
 
 void Simulator_OpenGL::renderBoundary(BoundaryModel *model, const float *col)
@@ -334,12 +267,10 @@ void Simulator_OpenGL::renderBoundary(BoundaryModel *model, const float *col)
 	glUniform1f(m_meshShader.getUniform("shininess"), 5.0f);
 	glUniform1f(m_meshShader.getUniform("specular_factor"), 0.2f);
 
-	GLfloat matrix[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-	glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-	GLfloat pmatrix[16];
-	glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-	glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+	const Matrix4f matrix(MiniGL::getModelviewMatrix().cast<float>());
+	glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, &matrix(0,0));
+	const Matrix4f pmatrix(MiniGL::getProjectionMatrix().cast<float>());
+	glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, &pmatrix(0,0));
 
 	glUniform3fv(m_meshShader.getUniform("surface_color"), 1, col);
 

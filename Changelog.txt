@@ -1,3 +1,9 @@
+2.14.0
+	- Implemented alternative (Blender style) camera controls (thanks to Fabian Löschner)
+	- updated pybind11 to version 3.0.0
+	- updated zlib to version 1.3.1
+	- updated CMake files
+
 2.13.2
 	- updated pybind11
 	- added avx implementation of the paper Peer et al., "An implicit SPH formulation for incompressible linearly elastic solids", Computer Graphics Forum, 2018

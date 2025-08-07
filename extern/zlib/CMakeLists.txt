@@ -5,7 +5,11 @@ add_library(zlib STATIC
 	src/crc32.h
 	src/deflate.c
 	src/deflate.h
-	src/gzio.c
+	src/gzclose.c
+	src/gzguts.h
+    src/gzlib.c
+    src/gzread.c
+    src/gzwrite.c
 	src/infback.c
 	src/inffast.c
 	src/inffast.h

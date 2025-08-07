@@ -71,6 +71,7 @@ std::vector<MiniGL::MouseMoveFct> MiniGL::m_mouseMoveFct;
 std::vector<MiniGL::MouseWheelFct> MiniGL::m_mouseWheelFct;
 GLFWwindow* MiniGL::m_glfw_window = nullptr;
 bool MiniGL::m_vsync = false;
+bool MiniGL::m_alt_camera = false;
 double MiniGL::m_lastTime;
 
 void MiniGL::bindTexture()
@@ -470,7 +471,7 @@ void MiniGL::setClientSceneFunc (SceneFct func)
 	scenefunc = func;
 }
 
-void MiniGL::init(const int width, const int height, const char *name, const bool vsync, const bool maximized)
+void MiniGL::init(const int width, const int height, const char *name, const bool vsync, const bool maximized, const bool alt_camera)
 {
 	fovy = 60;
 	znear = 0.5f;
@@ -479,6 +480,7 @@ void MiniGL::init(const int width, const int height, const char *name, const boo
 	m_width = width;
 	m_height = height;
 	m_vsync = vsync;
+	m_alt_camera = alt_camera;
 
 	scenefunc = nullptr;
 
@@ -833,6 +835,11 @@ void MiniGL::mouseWheel(GLFWwindow* window, double xoffset, double yoffset)
 			return;
 	}
 
+	if (m_alt_camera && yoffset != 0) {
+		// translate scene in z direction
+		move (0, 0, static_cast<Real>(yoffset) / static_cast<Real>(10.0));
+	}
+
 	if (yoffset > 0)
 		movespeed *= 2.0;
 	else
@@ -851,7 +858,7 @@ void MiniGL::mouseMove (GLFWwindow* window, double x, double y)
 	double d_x = mouse_pos_x_old - x;
 	double d_y = y - mouse_pos_y_old;
 
-	if (mouse_button == GLFW_MOUSE_BUTTON_1)
+	if ((!m_alt_camera && mouse_button == GLFW_MOUSE_BUTTON_1) || (m_alt_camera && mouse_button == GLFW_MOUSE_BUTTON_MIDDLE))
 	{
 		// translate scene in z direction		
 		if (modifier_key == GLFW_MOD_CONTROL)
@@ -864,7 +871,7 @@ void MiniGL::mouseMove (GLFWwindow* window, double x, double y)
 			move (-static_cast<Real>(d_x) / static_cast<Real>(20.0), -static_cast<Real>(d_y) / static_cast<Real>(20.0), 0);
 		}
 		// rotate scene around x, y axis
-		else if (modifier_key == GLFW_MOD_ALT)
+		else if (modifier_key == GLFW_MOD_ALT || m_alt_camera)
 		{
 			rotateX(static_cast<Real>(d_y)/ static_cast<Real>(100.0));
 			rotateY(-static_cast<Real>(d_x)/ static_cast<Real>(100.0));

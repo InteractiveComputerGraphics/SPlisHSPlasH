@@ -121,6 +121,7 @@ namespace SPH
 		static GLUquadricObj* m_sphereQuadric;
 		static GLFWwindow* m_glfw_window;
 		static bool m_vsync;
+		static bool m_alt_camera;
 		static double m_lastTime;
 
 		static void reshape (GLFWwindow* glfw_window, int w, int h);
@@ -158,7 +159,7 @@ namespace SPH
 		static void setClientDestroyFunc(DestroyFct func);
 		static void addKeyFunc(int key, int modifiers, std::function<void()> const& func);
 		static std::vector<KeyFunction> &getKeyFunc() { return keyfunc; }
-		static void init(const int width, const int height, const char* name, const bool vsync, const bool maximized = false);
+		static void init(const int width, const int height, const char* name, const bool vsync, const bool maximized = false, const bool alt_camera = false);
 		static void destroy ();
 		static void viewport ();
 		static void initLights ();
@@ -180,6 +181,8 @@ namespace SPH
 		static void rgbToHsv(float r, float g, float b, float *hsv);
 		static int getModifierKey() { return modifier_key; }
 		static bool getVSync() { return m_vsync; }
+		static void setAltCameraMode(const bool enabled) { m_alt_camera = enabled; }
+		static bool getAltCameraMode() { return m_alt_camera; }
 
 		static void addReshapeFunc(ReshapeFct func) { m_reshapeFct.push_back(func); }
 		static std::vector<ReshapeFct> &getReshapeFunc() { return m_reshapeFct; }

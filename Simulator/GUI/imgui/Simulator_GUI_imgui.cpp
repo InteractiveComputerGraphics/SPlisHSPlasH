@@ -28,6 +28,7 @@ Simulator_GUI_imgui::Simulator_GUI_imgui(SimulatorBase *base) :
 	m_currentFluidModel = 0;
 	m_currentScaleIndex = 0;
 	m_vsync = false;
+	m_alt_camera = false;
 	m_iniFound = false;
 	m_showLogWindow = true;
 }
@@ -62,7 +63,7 @@ void Simulator_GUI_imgui::init(const char *name)
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 	ImGui::LoadIniSettingsFromDisk(io.IniFilename);
 
-	MiniGL::init(1280, 960, name, m_userSettings.vsync, m_userSettings.maximized);
+	MiniGL::init(1280, 960, name, m_userSettings.vsync, m_userSettings.maximized, m_userSettings.alt_camera);
 	MiniGL::initLights();
 
 	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
@@ -145,6 +146,7 @@ void Simulator_GUI_imgui::readIni(ImGuiContext* ctx, ImGuiSettingsHandler* handl
 	else if (sscanf(line, "scale=%d", &i) == 1) { settings->scaleIndex = i; }
 	else if (sscanf(line, "maximized=%d", &i) == 1) { settings->maximized = (i != 0); }
 	else if (sscanf(line, "vsync=%d", &i) == 1) { settings->vsync = (i != 0); }
+	else if (sscanf(line, "alt_camera=%d", &i) == 1) { settings->alt_camera = (i != 0); }
 	else if (sscanf(line, "show_log_window=%d", &i) == 1) { settings->show_log_window = (i != 0); }
 	else if (sscanf(line, "log_filter=%d", &i) == 1) { settings->log_filter = i; }
 }
@@ -166,6 +168,7 @@ void Simulator_GUI_imgui::writeIni(ImGuiContext* ctx, ImGuiSettingsHandler* hand
 	out_buf->appendf("maximized=%d\n", MiniGL::getWindowMaximized());
 
 	out_buf->appendf("vsync=%d\n", gui->m_vsync);
+	out_buf->appendf("alt_camera=%d\n", gui->m_alt_camera);
 	out_buf->appendf("show_log_window=%d\n", gui->m_showLogWindow);
 	out_buf->appendf("log_filter=%d\n", gui->m_logWindow->getSelectedFilter());
 }
@@ -176,6 +179,7 @@ void Simulator_GUI_imgui::applySettings(ImGuiContext* ctx, ImGuiSettingsHandler*
 	UserSettings* settings = (UserSettings*) &gui->m_userSettings;
 	gui->m_currentScaleIndex = settings->scaleIndex;
 	gui->m_vsync = settings->vsync;
+	gui->m_alt_camera = settings->alt_camera;
 	gui->m_showLogWindow = settings->show_log_window;
 	gui->m_iniFound = true;
 	gui->m_logWindow->setSelectedFilter(settings->log_filter);
@@ -293,6 +297,11 @@ void Simulator_GUI_imgui::createMenuBar()
 			{
 				m_vsync = !m_vsync;
 				openpopup = true;
+			}
+			if (ImGui::MenuItem("Alternative camera controls", "", m_alt_camera))
+			{
+				m_alt_camera = !m_alt_camera;
+				MiniGL::setAltCameraMode(m_alt_camera);
 			}
 			if (ImGui::MenuItem("Scale - 100%", "", m_currentScaleIndex == 0))
 			{

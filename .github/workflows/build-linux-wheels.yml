@@ -48,7 +48,7 @@ jobs:
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pysplishsplash-linux-wheels
+          name: pysplishsplash-${{matrix.python-version}}
           path: wheelhouse
         if: always()
 

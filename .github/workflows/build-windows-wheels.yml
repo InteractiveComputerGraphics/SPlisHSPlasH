@@ -2,7 +2,7 @@ name: build-windows-wheels
 
 on:
   push:
-    branches: [ master, fix-macos ]
+    branches: [ master ]
 
 jobs:
   # Build the python wheel in parallel

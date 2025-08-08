@@ -2,7 +2,7 @@ name: build-linux-wheels
 
 on:
   push:
-    branches: [ master, fix-macos ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
           python -m cibuildwheel --output-dir wheelhouse
 
       - name: Upload wheels artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pysplishsplash-linux-wheels
           path: wheelhouse

@@ -8,10 +8,10 @@ on:
 jobs:
   build-mac-python:
     runs-on: macos-latest
-    strategy:
-      matrix:
+    # strategy:
+      # matrix:
         # python-version: ["cp38-macosx_arm64", "cp39-macosx_arm64", "cp310-macosx_arm64", "cp311-macosx_arm64", "cp312-macosx_arm64",  "cp313-macosx_arm64"]
-        python-version: ["cp313-macosx_arm64"]
+        # python-version: ["cp313-macosx_arm64"]
 
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +35,8 @@ jobs:
       - name: Build manylinux wheels with cibuildwheel
         env:
           # Target CPython versions (align with former matrix)
-          CIBW_BUILD: ${{ matrix.python-version }}
-          EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On -DCI_BUILD=On"
+          # CIBW_BUILD: ${{ matrix.python-version }}
+          EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On"
         run: |
           # If needed, adapt setup.py to consume EXTRA_CMAKE_DEFINES; for now rely on defaults.
           python -m cibuildwheel --output-dir wheelhouse
@@ -44,7 +44,7 @@ jobs:
       - name: Upload wheels artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pysplishsplash-${{matrix.python-version}}
+          name: pysplishsplash
           path: wheelhouse
         if: always()
 

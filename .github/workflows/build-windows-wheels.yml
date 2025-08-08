@@ -15,6 +15,9 @@ jobs:
 
     steps:
     # Checkout repo
+    - uses: actions/checkout@v3
+
+    # Checkout repo
     - name: Set up Python (runner)
       uses: actions/setup-python@v5
       with:

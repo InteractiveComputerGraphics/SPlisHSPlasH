@@ -13,10 +13,10 @@ jobs:
         python-version: ["cp38-manylinux_x86_64", "cp39-manylinux_x86_64", "cp310-manylinux_x86_64", "cp311-manylinux_x86_64", "cp312-manylinux_x86_64",  "cp313-manylinux_x86_64"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python (runner)
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 

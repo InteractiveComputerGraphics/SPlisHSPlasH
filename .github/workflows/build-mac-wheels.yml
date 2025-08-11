@@ -39,9 +39,8 @@ jobs:
           EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On"
           # Ensure libomp from Homebrew is visible inside cibuildwheel build env
           # This block is executed in a shell for each build by cibuildwheel.
-          CIBW_ENVIRONMENT_MACOS: >
-            LIBOMP_PREFIX=$(brew --prefix libomp) &&
-            CMAKE_PREFIX_PATH="$LIBOMP_PREFIX:$CMAKE_PREFIX_PATH"
+          CIBW_ENVIRONMENT_MACOS: >-
+            CMAKE_PREFIX_PATH=$(brew --prefix libomp)
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 

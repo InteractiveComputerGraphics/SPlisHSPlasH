@@ -32,13 +32,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade cibuildwheel twine
 
-      - name: Build manylinux wheels with cibuildwheel
+      - name: Build macOS wheels with cibuildwheel
         env:
           # Target CPython versions (align with former matrix)
           # CIBW_BUILD: ${{ matrix.python-version }}
           EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On"
+          # Ensure libomp from Homebrew is visible inside cibuildwheel build env
+          # This block is executed in a shell for each build by cibuildwheel.
+          CIBW_ENVIRONMENT_MACOS: >
+            LIBOMP_PREFIX=$(brew --prefix libomp) &&
+            CMAKE_PREFIX_PATH="$LIBOMP_PREFIX:$CMAKE_PREFIX_PATH"
         run: |
-          # If needed, adapt setup.py to consume EXTRA_CMAKE_DEFINES; for now rely on defaults.
           python -m cibuildwheel --output-dir wheelhouse
 
       - name: Upload wheels artifact

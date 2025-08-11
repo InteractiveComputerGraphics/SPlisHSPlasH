@@ -54,6 +54,7 @@ class CMakeBuild(build_ext):
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
         print(f"Using cmake args {cmake_args}")
+        print(f"Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]

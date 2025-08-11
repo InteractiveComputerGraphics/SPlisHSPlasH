@@ -52,8 +52,8 @@ class CMakeBuild(build_ext):
         bin_dir_windows = os.path.join(os.path.abspath(self.build_temp), "bin")
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYBIND11_PYTHON_VERSION=' + f"{sys.version_info.major}.{sys.version_info.minor}"
-                      '-DUSE_PYTHON_BINDINGS=On'
-                    #   '-DPYTHON_EXECUTABLE=' + sys.executable,
+                    #   '-DUSE_PYTHON_BINDINGS=On'
+                      '-DPYTHON_EXECUTABLE=' + sys.executable,
                       ]
 
         print(f"Using cmake args {cmake_args}")

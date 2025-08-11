@@ -35,7 +35,7 @@ jobs:
       - name: Build macOS wheels with cibuildwheel
         env:
           # Target CPython versions (align with former matrix)
-          # CIBW_BUILD: ${{ matrix.python-version }}
+          CIBW_BUILD: ${{ matrix.python-version }}
           EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On"
           # Ensure libomp from Homebrew is visible inside cibuildwheel build env
           # This block is executed in a shell for each build by cibuildwheel.

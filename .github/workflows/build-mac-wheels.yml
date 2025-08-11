@@ -42,7 +42,7 @@ jobs:
           # CIBW_BEFORE_BUILD: >-
             # brew install libomp && ls -a /opt/homebrew/opt/libomp/
           CIBW_ENVIRONMENT_MACOS: >-
-            LDFLAGS="-L/opt/homebrew/opt/libomp/lib" CPPFLAGS="-I/opt/homebrew/opt/libomp/include" MACOSX_DEPLOYMENT_TARGET="10.13"
+            LDFLAGS="-L/opt/homebrew/opt/libomp/lib" CPPFLAGS="-I/opt/homebrew/opt/libomp/include" MACOSX_DEPLOYMENT_TARGET="14.0"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 

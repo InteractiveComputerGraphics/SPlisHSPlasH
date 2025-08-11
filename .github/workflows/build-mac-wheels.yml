@@ -40,7 +40,7 @@ jobs:
           # Ensure libomp from Homebrew is visible inside cibuildwheel build env
           # This block is executed in a shell for each build by cibuildwheel.
           CIBW_BEFORE_BUILD: >-
-            brew install libomp
+            brew install libomp && ls -a /opt/homebrew/opt/libomp/
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 

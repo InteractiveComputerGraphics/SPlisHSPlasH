@@ -2,7 +2,7 @@ name: build-mac
 
 on:
   push:
-    branches: [ master, fix-macos ]
+    branches: [ master ]
 
 jobs:
   build-mac:

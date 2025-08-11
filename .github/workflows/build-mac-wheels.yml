@@ -41,6 +41,8 @@ jobs:
           # This block is executed in a shell for each build by cibuildwheel.
           CIBW_BEFORE_BUILD: >-
             brew install libomp && ls -a /opt/homebrew/opt/libomp/
+          CIBW_ENVIRONMENT_MACOS: >-
+            LDFLAGS="-L/opt/homebrew/opt/libomp/lib" CPPFLAGS="-I/opt/homebrew/opt/libomp/include"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 

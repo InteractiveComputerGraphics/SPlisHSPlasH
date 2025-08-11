@@ -1,4 +1,3 @@
-set(PYBIND11_FINDPYTHON ON)
 pybind11_add_module(pysplishsplash
   main.cpp
   AnimationFieldModule.cpp

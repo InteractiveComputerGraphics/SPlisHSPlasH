@@ -41,8 +41,6 @@ jobs:
           # This block is executed in a shell for each build by cibuildwheel.
           CIBW_BEFORE_BUILD: >-
             brew install libomp
-          CIBW_ENVIRONMENT_MACOS: >-
-            CMAKE_PREFIX_PATH="$(brew --prefix libomp)"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 

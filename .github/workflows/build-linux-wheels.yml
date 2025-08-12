@@ -3,7 +3,6 @@ name: build-linux-wheels
 on:
   push:
     branches: [ master ]
-  workflow_dispatch:
 
 jobs:
   build-manylinux-python:
@@ -53,10 +52,10 @@ jobs:
           path: wheelhouse
         if: always()
 
-    #   - name: Publish wheels to PyPI
-    #     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    #     env:
-    #       TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-    #       TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-    #     run: |
-    #       twine upload wheelhouse/*-manylinux*.whl --skip-existing
+      - name: Publish wheels to PyPI
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload wheelhouse/*-manylinux*.whl --skip-existing

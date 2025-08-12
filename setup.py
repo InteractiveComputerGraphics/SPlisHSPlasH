@@ -53,7 +53,7 @@ class CMakeBuild(build_ext):
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                     #   '-DPYBIND11_PYTHON_VERSION=' + f"{sys.version_info.major}.{sys.version_info.minor}"
                     #   '-DUSE_PYTHON_BINDINGS=On'
-                      '-DPYTHON_EXECUTABLE=' + sys.executable,
+                      '-DPython_EXECUTABLE=' + sys.executable,
                       ]
 
         print(f"Using cmake args {cmake_args}")

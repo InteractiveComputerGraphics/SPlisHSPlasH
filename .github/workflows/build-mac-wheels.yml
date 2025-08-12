@@ -2,7 +2,7 @@ name: build-mac-wheels
 
 on:
   push:
-    branches: [ ]
+    branches: [ master ]
 
 jobs:
   build-mac-python:

@@ -1,3 +1,7 @@
+2.14.1
+	- updated CompactNSearch
+	- updated DiscreGrid
+
 2.14.0
 	- Fixed CI for Python wheels (thanks to Stefan Jeske)
 	- Implemented alternative (Blender style) camera controls (thanks to Fabian Löschner)

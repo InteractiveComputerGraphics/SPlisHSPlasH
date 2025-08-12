@@ -66,7 +66,7 @@ Discregrid::CubicLagrangeDiscreteGrid* SDFFunctions::generateSDF(const unsigned 
 	Discregrid::TriangleMesh sdfMesh(&doubleVec[0], faces, numVertices, numFaces);
 #endif
 
-	Discregrid::MeshDistance md(sdfMesh);
+	Discregrid::TriangleMeshDistance md(sdfMesh);
 	Eigen::AlignedBox3d domain;
 	domain.extend(bbox.min().cast<double>());
 	domain.extend(bbox.max().cast<double>());
@@ -78,7 +78,7 @@ Discregrid::CubicLagrangeDiscreteGrid* SDFFunctions::generateSDF(const unsigned 
 	Real factor = 1.0;
 	if (invert)
 		factor = -1.0;
-	func = [&md,&factor](Eigen::Vector3d const& xi) {return factor * md.signedDistanceCached(xi); };
+	func = [&md,&factor](Eigen::Vector3d const& xi) {return factor * md.signed_distance(xi).distance; };
 
 	distanceField->addFunction(func, false);
 	STOP_TIMING_PRINT;

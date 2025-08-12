@@ -81,8 +81,7 @@ void Simulator_GUI_imgui::init(const char *name)
 	MiniGL::addKeyFunc(GLFW_KEY_W, GLFW_MOD_CONTROL, std::bind(&SimulatorBase::writeScene, m_simulatorBase));
 	MiniGL::addKeyFunc(GLFW_KEY_KP_ADD, 0, std::bind(&SimulatorBase::singleTimeStep, m_simulatorBase));
 
-	if (MiniGL::checkOpenGLVersion(3, 3))
-		Simulator_OpenGL::initShaders(m_simulatorBase->getExePath() + "/resources/shaders");
+	Simulator_OpenGL::initShaders(m_simulatorBase->getExePath() + "/resources/shaders");
 
 	const int width = MiniGL::getWidth();
 	const int height = MiniGL::getHeight();
@@ -606,6 +605,7 @@ void Simulator_GUI_imgui::destroy()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+	Simulator_OpenGL::destroyShaders();
 }
 
 void Simulator_GUI_imgui::cleanup()

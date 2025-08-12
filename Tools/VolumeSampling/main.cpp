@@ -62,6 +62,7 @@ bool useCache = true;
 std::shared_ptr<Discregrid::CubicLagrangeDiscreteGrid> distanceField;
 
 
+namespace std {
 std::ostream& operator << (std::ostream& out, const Eigen::Matrix<unsigned int, 3, 1>& r)
 {
 	out << r[0] << ", " << r[1] << ", " << r[2];
@@ -72,6 +73,7 @@ std::ostream& operator << (std::ostream& out, const Vector3r& r)
 {
 	out << r[0] << ", " << r[1] << ", " << r[2];
 	return out;
+}
 }
 
 // main 
@@ -161,7 +163,7 @@ int main(int argc, char **argv)
 		LOG_INFO << "Radius: " << radius;
 
 		if (result.count("scale"))
-			scale = Vector3r(result["scale"].as<std::vector<Real>>().data()); 
+			scale = Vector3r(result["scale"].as<std::vector<Real>>().data());
 		LOG_INFO << "Scale: " << scale;
 
 		if (result.count("steps"))
@@ -209,7 +211,7 @@ int main(int argc, char **argv)
 			const std::vector<Real> &v = result["region"].as<std::vector<Real>>();
 			if (v.size() == 6)
 				region = SamplingBase::Region(v[0], v[1], v[2], v[3], v[4], v[5]);
-			else 
+			else
 				LOG_WARN << "Region parameter has wrong number of elements.";
 			useRegion = true;
 			LOG_INFO << "Region - min: " << region.m_min.transpose();

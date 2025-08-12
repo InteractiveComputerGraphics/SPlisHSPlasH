@@ -276,12 +276,12 @@ void UtilitiesModule(py::module m) {
     py::class_<Utilities::BoundaryParameterObject, GenParam::ParameterObject>(m_sub_sub, "BoundaryData")
         .def(py::init<>())
         .def(py::init<std::string, std::string, Vector3r, Vector3r, Real, Vector3r, bool, bool,
-                        Eigen::Matrix<float, 4, 1, Eigen::DontAlign>, std::string, bool, Real,
+                        Vector4r, std::string, bool, Real,
                         Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
                 "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
                 "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(),
                 "isDynamic"_a = false, "isWall"_a = false,
-                "color"_a = Eigen::Vector4f(1.f, 0.f, 0.f, 0.f), 
+                "color"_a = Vector4r(1., 0., 0., 0.),
                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
                 "samplingMode"_a = 0, "isAnimated"_a = false)

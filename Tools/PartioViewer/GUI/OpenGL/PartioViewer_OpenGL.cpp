@@ -55,6 +55,8 @@ void PartioViewer_OpenGL::getImage(int width, int height, unsigned char *image)
 
 void PartioViewer_OpenGL::initShaders(const std::string &shaderPath)
 {
+	MiniGL::initShaders(shaderPath);
+
 	string vertFile = shaderPath + "/vs_points_vector.glsl";
 	string fragFile = shaderPath + "/fs_points.glsl";
 	m_shader_vector.compileShaderFile(GL_VERTEX_SHADER, vertFile);
@@ -115,6 +117,15 @@ void PartioViewer_OpenGL::initShaders(const std::string &shaderPath)
 	glGenTextures(1, &m_textureMap);
 }
 
+void PartioViewer_OpenGL::destroyShaders()
+{
+	glDeleteTextures(1, &m_textureMap);
+	m_shader_vector.destroy();
+	m_shader_scalar.destroy();
+	m_shader_scalar_map.destroy();
+	m_meshShader.destroy();
+	MiniGL::destroyShaders();
+}
 
 void PartioViewer_OpenGL::pointShaderBegin(Shader *shader, const Real particleRadius, const float *col, const Real minVal, const Real maxVal, const bool useTexture, float const* color_map)
 {
@@ -141,18 +152,12 @@ void PartioViewer_OpenGL::pointShaderBegin(Shader *shader, const Real particleRa
 	}
 
 
-	GLfloat matrix[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-	glUniformMatrix4fv(shader->getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-	GLfloat pmatrix[16];
-	glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-	glUniformMatrix4fv(shader->getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+	const Matrix4f matrix(MiniGL::getModelviewMatrix().cast<float>());
+	glUniformMatrix4fv(shader->getUniform("modelview_matrix"), 1, GL_FALSE, &matrix(0,0));
+	const Matrix4f pmatrix(MiniGL::getProjectionMatrix().cast<float>());
+	glUniformMatrix4fv(shader->getUniform("projection_matrix"), 1, GL_FALSE, &pmatrix(0,0));
 
 	glEnable(GL_DEPTH_TEST);
-	// Point sprites do not have to be explicitly enabled since OpenGL 3.2 where
-	// they are enabled by default. Moreover GL_POINT_SPRITE is deprecate and only
-	// supported before OpenGL 3.2 or with compatibility profile enabled.
-	glEnable(GL_POINT_SPRITE);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	glPointParameterf(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
 }
@@ -211,148 +216,89 @@ void PartioViewer_OpenGL::render(const Fluid &fluid, const Real particleRadius,
 	fluid.partioData->attributeInfo(fluid.posIndex, posAttr);
 	const float* partioX = fluid.partioData->data<float>(posAttr, 0);
 
-	if (MiniGL::checkOpenGLVersion(3, 3))
-	{
-		Shader *shader_s = &m_shader_scalar_map;
-		float const *color_map = nullptr;
-		if (colorMapType == 1)
-			color_map = reinterpret_cast<float const*>(colormap_jet);
-		else if (colorMapType == 2)
-			color_map = reinterpret_cast<float const*>(colormap_plasma);
-		else if (colorMapType == 3)
-			color_map = reinterpret_cast<float const*>(colormap_coolwarm);
-		else if (colorMapType == 4)
-			color_map = reinterpret_cast<float const*>(colormap_bwr);
-		else if (colorMapType == 5)
-			color_map = reinterpret_cast<float const*>(colormap_seismic);
+	Shader *shader_s = &m_shader_scalar_map;
+	float const *color_map = nullptr;
+	if (colorMapType == 1)
+		color_map = reinterpret_cast<float const*>(colormap_jet);
+	else if (colorMapType == 2)
+		color_map = reinterpret_cast<float const*>(colormap_plasma);
+	else if (colorMapType == 3)
+		color_map = reinterpret_cast<float const*>(colormap_coolwarm);
+	else if (colorMapType == 4)
+		color_map = reinterpret_cast<float const*>(colormap_bwr);
+	else if (colorMapType == 5)
+		color_map = reinterpret_cast<float const*>(colormap_seismic);
 
-		if (colorMapType == 0)
-			shader_s = &m_shader_scalar;
+	if (colorMapType == 0)
+		shader_s = &m_shader_scalar;
 
-		if (fluid.partioData->numAttributes() == 0)
-			pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, false);
-		else
-			pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, true, color_map);
-
-		if (nParticles > 0)
-		{
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, partioX);
-
-			if (fluid.partioData->numAttributes() > 0)
-			{
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &scalarField[0]);
-			}
-
-			if (usePlane)
-				glDrawElements(GL_POINTS, (GLsizei)fluid.visibleParticles.size(), GL_UNSIGNED_INT, fluid.visibleParticles.data());
-			else
-				glDrawArrays(GL_POINTS, 0, nParticles);
-
-			glDisableVertexAttribArray(0);
-			//			glDisableVertexAttribArray(1);
-		}
-
-		if (fluid.partioData->numAttributes() == 0)
-			pointShaderEnd(shader_s, false);
-		else
-			pointShaderEnd(shader_s, true);
-	}
+	if (fluid.partioData->numAttributes() == 0)
+		pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, false);
 	else
+		pointShaderBegin(shader_s, particleRadius, fluidColor, renderMinValue, renderMaxValue, true, color_map);
+
+	if (nParticles > 0)
 	{
-		const Real supportRadius = particleRadius * static_cast<Real>(4.0);
-		float fluidColor[4] = { 0.1f, 0.2f, 0.6f, 1.0f };
+		MiniGL::supplyVertices(0, nParticles, partioX);
 
-		Partio::ParticleAttribute attr;
 		if (fluid.partioData->numAttributes() > 0)
-			fluid.partioData->attributeInfo(colorField, attr);
-
-		glPointSize(4.0);
-		glDisable(GL_LIGHTING);
-		glBegin(GL_POINTS);
-		for (unsigned int i = 0; i < nParticles; i++)
 		{
-			if (fluid.partioData->numAttributes() > 0)
-			{
-				float v = 0.0;
-				const float* partioVals = NULL;
-				if (attr.type == Partio::VECTOR)
-				{
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					v = sqrt(partioVals[3 * i] * partioVals[3 * i] + partioVals[3 * i + 1] * partioVals[3 * i + 1] + partioVals[3 * i + 2] * partioVals[3 * i + 2]);
-				}
-				else if (attr.type == Partio::FLOAT)
-				{
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					v = partioVals[3 * i];
-				}
-
-				v = 0.5f*((v - renderMinValue) / (renderMaxValue - renderMinValue));
-				v = min(128.0f*v*v, 0.5f);
-				float fluidColor[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
-				MiniGL::hsvToRgb(0.55f, 1.0f, 0.5f + v, fluidColor);
-				glColor3fv(fluidColor);
-			}
-			else
-				glColor3fv(fluidColor);
-			glVertex3fv(&partioX[3 * i]);
+			glBindBuffer(GL_ARRAY_BUFFER, MiniGL::getVboNormals());
+			glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), &scalarField[0], GL_STREAM_DRAW);
+			glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);
+			glEnableVertexAttribArray(1);
 		}
-		glEnd();
-		glEnable(GL_LIGHTING);
+
+		if (usePlane)
+		{
+			MiniGL::supplyFaces(fluid.visibleParticles.size(), fluid.visibleParticles.data());
+			glDrawElements(GL_POINTS, (GLsizei)fluid.visibleParticles.size(), GL_UNSIGNED_INT, (void*)0);
+		}
+		else
+			glDrawArrays(GL_POINTS, 0, nParticles);
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
 	}
+
+	if (fluid.partioData->numAttributes() == 0)
+		pointShaderEnd(shader_s, false);
+	else
+		pointShaderEnd(shader_s, true);
 
 	float red[4] = { 0.8f, 0.0f, 0.0f, 1 };
-	if (MiniGL::checkOpenGLVersion(3, 3))
+	pointShaderBegin(&m_shader_vector, particleRadius, &red[0], renderMinValue, renderMaxValue);
+	if (fluid.selectedParticles.size() > 0)
 	{
-		pointShaderBegin(&m_shader_vector, particleRadius, &red[0], renderMinValue, renderMaxValue);
-		if (fluid.selectedParticles.size() > 0)
-		{
-			glUniform1f(m_shader_vector.getUniform("radius"), (float)particleRadius*1.05f);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FALSE, GL_FALSE, 0, partioX);
+		glUniform1f(m_shader_vector.getUniform("radius"), (float)particleRadius*1.05f);
+		MiniGL::supplyVertices(0, nParticles, partioX);
 
-			if (fluid.partioData->numAttributes() > 0)
-			{
-				Partio::ParticleAttribute attr;
-				fluid.partioData->attributeInfo(colorField, attr);
-				const float* partioVals = NULL;
-				if (attr.type == Partio::VECTOR)
-				{
-					glEnableVertexAttribArray(1);
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, &partioVals[0]);
-				}
-				else if (attr.type == Partio::FLOAT)
-				{
-					glEnableVertexAttribArray(1);
-					partioVals = fluid.partioData->data<float>(attr, 0);
-					glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, &partioVals[0]);
-				}
-			}
-
-			glDrawElements(GL_POINTS, (GLsizei)fluid.selectedParticles.size(), GL_UNSIGNED_INT, fluid.selectedParticles.data());
-			glDisableVertexAttribArray(0);
-			glDisableVertexAttribArray(1);
-		}
-		pointShaderEnd(&m_shader_vector);
-	}
-	else
-	{
-		if (fluid.selectedParticles.size() > 0)
+		if (fluid.partioData->numAttributes() > 0)
 		{
-			glPointSize(4.0);
-			glDisable(GL_LIGHTING);
-			glBegin(GL_POINTS);
-			for (unsigned int i = 0; i < fluid.selectedParticles.size(); i++)
+			Partio::ParticleAttribute attr;
+			fluid.partioData->attributeInfo(colorField, attr);
+			const float* partioVals = NULL;
+			if (attr.type == Partio::VECTOR)
 			{
-				glColor3fv(red);
-				glVertex3fv(&partioX[3 * fluid.selectedParticles[i]]);
+				partioVals = fluid.partioData->data<float>(attr, 0);
+				MiniGL::supplyNormals(1, nParticles, partioVals);
 			}
-			glEnd();
-			glEnable(GL_LIGHTING);
+			else if (attr.type == Partio::FLOAT)
+			{
+				partioVals = fluid.partioData->data<float>(attr, 0);
+				glBindBuffer(GL_ARRAY_BUFFER, MiniGL::getVboNormals());
+				glBufferData(GL_ARRAY_BUFFER, nParticles * sizeof(float), partioVals, GL_STREAM_DRAW);
+				glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);
+				glEnableVertexAttribArray(1);
+			}
 		}
+
+		MiniGL::supplyFaces(fluid.selectedParticles.size(), fluid.selectedParticles.data());
+		glDrawElements(GL_POINTS, (GLsizei)fluid.selectedParticles.size(), GL_UNSIGNED_INT, (void*)0);
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
 	}
+	pointShaderEnd(&m_shader_vector);
 }
 
 
@@ -364,12 +310,10 @@ void PartioViewer_OpenGL::render(const Boundary &boundary, const bool renderWall
 		glUniform1f(m_meshShader.getUniform("shininess"), 5.0f);
 		glUniform1f(m_meshShader.getUniform("specular_factor"), 0.2f);
 
-		GLfloat matrix[16];
-		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
-		glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, matrix);
-		GLfloat pmatrix[16];
-		glGetFloatv(GL_PROJECTION_MATRIX, pmatrix);
-		glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, pmatrix);
+		const Matrix4f matrix(MiniGL::getModelviewMatrix().cast<float>());
+		glUniformMatrix4fv(m_meshShader.getUniform("modelview_matrix"), 1, GL_FALSE, &matrix(0,0));
+		const Matrix4f pmatrix(MiniGL::getProjectionMatrix().cast<float>());
+		glUniformMatrix4fv(m_meshShader.getUniform("projection_matrix"), 1, GL_FALSE, &pmatrix(0,0));
 
 		glUniform3fv(m_meshShader.getUniform("surface_color"), 1, &boundary.color[0]);
 

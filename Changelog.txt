@@ -1,4 +1,5 @@
 2.14.0
+	- Fixed CI for Python wheels (thanks to Stefan Jeske)
 	- Implemented alternative (Blender style) camera controls (thanks to Fabian Löschner)
 	- updated pybind11 to version 3.0.0
 	- updated zlib to version 1.3.1

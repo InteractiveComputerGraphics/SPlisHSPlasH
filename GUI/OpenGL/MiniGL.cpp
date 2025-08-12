@@ -107,10 +107,10 @@ void MiniGL::getOpenGLVersion(int &major_version, int &minor_version)
 void MiniGL::coordinateSystem() 
 {
 	Vector3r a(0,0,0);
-	Vector3r b(2,0,0);
-	Vector3r c(0,2,0);
-	Vector3r d(0,0,2);
-	float lineWidth = 3.0;
+	Vector3r b(1,0,0);
+	Vector3r c(0,1,0);
+	Vector3r d(0,0,1);
+	float lineWidth = 1.0;
 	Vector3f color;
 
 	color << 1,0,0;
@@ -362,12 +362,12 @@ void MiniGL::drawGrid_xz(float *color)
 	glDisableVertexAttribArray(0);
 	disableShader();
 
-	float lineWidth = 3.0;
+	float lineWidth = 1.0;
 
 	drawVector(Vector3r(-size, 0.0, 0.0), Vector3r(0.0, 0.0, 0.0), lineWidth, color);
-	drawVector(Vector3r(2.0, 0.0, 0.0), Vector3r(size, 0.0, 0.0), lineWidth, color);
+	drawVector(Vector3r(1.0, 0.0, 0.0), Vector3r(size, 0.0, 0.0), lineWidth, color);
 	drawVector(Vector3r(0.0, 0.0, -size), Vector3r(0.0, 0.0, 0.0), lineWidth, color);
-	drawVector(Vector3r(0.0, 0.0, 2.0), Vector3r(0.0, 0.0, size), lineWidth, color);
+	drawVector(Vector3r(0.0, 0.0, 1.0), Vector3r(0.0, 0.0, size), lineWidth, color);
 }
 
 void MiniGL::drawGrid_xy(float *color)
@@ -392,12 +392,12 @@ void MiniGL::drawGrid_xy(float *color)
 	glDisableVertexAttribArray(0);
 	disableShader();
 
-	float lineWidth = 3.0;
+	float lineWidth = 1.0;
 
 	drawVector(Vector3r(-size, 0.0, 0.0), Vector3r(0.0, 0.0, 0.0), lineWidth, color);
-	drawVector(Vector3r(2.0, 0.0, 0.0), Vector3r(size, 0.0, 0.0), lineWidth, color);
+	drawVector(Vector3r(1.0, 0.0, 0.0), Vector3r(size, 0.0, 0.0), lineWidth, color);
 	drawVector(Vector3r(0.0, -size, 0.0), Vector3r(0.0, 0.0, 0.0), lineWidth, color);
-	drawVector(Vector3r(0.0, 2.0, 0.0), Vector3r(0.0, size, 0.0), lineWidth, color);
+	drawVector(Vector3r(0.0, 1.0, 0.0), Vector3r(0.0, size, 0.0), lineWidth, color);
 }
 
 void MiniGL::setViewport(float pfovy, float pznear, float pzfar, const Vector3r &peyepoint, const Vector3r &plookat)

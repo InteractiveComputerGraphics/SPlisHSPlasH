@@ -1,3 +1,7 @@
+2.15.0
+	- macOS support (thanks to Robin Rademacher)
+	- update to OpenGL 3.3 (thanks to Robin Rademacher)
+
 2.14.1
 	- updated CompactNSearch
 	- updated DiscreGrid

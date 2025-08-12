@@ -2,13 +2,14 @@ name: build-windows-wheels
 
 on:
   push:
-    branches: [ master, fix-macos ]
+    branches: [ master ]
 
 jobs:
   # Build the python wheel in parallel
   build-windows-wheels:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         # python-version: [3.7]
         python-version: ['cp38-win_amd64', 'cp39-win_amd64', 'cp310-win_amd64', 'cp311-win_amd64', 'cp312-win_amd64', 'cp313-win_amd64']

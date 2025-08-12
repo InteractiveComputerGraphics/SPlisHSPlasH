@@ -2037,7 +2037,7 @@ public:
 	inline pointer allocate(size_type n) {
 #ifdef _WIN32
 		return (pointer)_aligned_malloc(n * sizeof(value_type), N);
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 		// NB! Argument order is opposite from MSVC/Windows
 		return (pointer) aligned_alloc(N, n * sizeof(value_type));
 #else
@@ -2048,7 +2048,7 @@ public:
 	inline void deallocate(pointer p, size_type) {
 #ifdef _WIN32
 		_aligned_free(p);
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 		free(p);
 #else
 #error "Unknown platform"

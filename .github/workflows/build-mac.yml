@@ -1,20 +1,21 @@
-name: build-linux
+name: build-mac
 
 on:
   push:
     branches: [ master ]
 
 jobs:
-  build-ubuntu:
+  build-mac:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     
     steps:
     - uses: actions/checkout@v4
-    - name: apt-get update
-      run: sudo apt-get update --fix-missing
-    - name: Install packages
-      run: sudo apt-get -y install xorg-dev freeglut3-dev
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@main
+    - name: Install OpenMP
+      run: brew install libomp
     - name: configure
       run: mkdir build-release && cd build-release && cmake -DCMAKE_BUILD_TYPE=Release ..
     - name: build

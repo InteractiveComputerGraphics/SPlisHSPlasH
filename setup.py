@@ -5,6 +5,7 @@ import platform
 import subprocess
 import multiprocessing as mp
 import argparse
+import shlex
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -50,14 +51,34 @@ class CMakeBuild(build_ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         bin_dir_windows = os.path.join(os.path.abspath(self.build_temp), "bin")
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
+                    #   '-DPYBIND11_PYTHON_VERSION=' + f"{sys.version_info.major}.{sys.version_info.minor}"
+                      '-DPYBIND11_FINDPYTHON=On',
+                      '-DPython_EXECUTABLE=' + sys.executable,
+                      ]
+
+        print(f"Using cmake args {cmake_args}")
+        print(f"Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
 
-        # Add cmake command line arguments
+        # Determine if this is a manylinux (cibuildwheel) build: either explicit flag or CIBUILDWHEEL env var
+        is_manylinux = args.manylinux_build or os.environ.get('CIBUILDWHEEL') == '1'
+
+        # Add cmake command line arguments from setup.py -D flags
         if cmake_clargs is not None:
             cmake_args += ['-D{}'.format(arg) for arg in cmake_clargs]
+
+        # Add extra cmake defines from environment variable (e.g. provided by CI)
+        extra_env_defines = os.environ.get('EXTRA_CMAKE_DEFINES')
+        if extra_env_defines:
+            for token in shlex.split(extra_env_defines):
+                if not token:
+                    continue
+                if token.startswith('-D'):
+                    cmake_args.append(token)
+                else:
+                    cmake_args.append(f'-D{token}')
 
         if platform.system() == "Windows":
             cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir),
@@ -80,7 +101,7 @@ class CMakeBuild(build_ext):
 
             # Using relative rpath messes up repairing the wheel file. The relative rpath is only necessary when
             # building locally from source
-            if not args.manylinux_build:
+            if not is_manylinux:
                 cmake_args += ['-DCMAKE_INSTALL_RPATH={}'.format("$ORIGIN"),
                                '-DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON',
                                '-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=OFF']
@@ -88,12 +109,14 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
-        if not args.manylinux_build:
+        if not is_manylinux:
             subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
             subprocess.check_call(['cmake', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
         else:
-            subprocess.check_call(['cmake3', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-            subprocess.check_call(['cmake3', '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
+            # Use cmake3 in manylinux image where only cmake3 may have required version name
+            cmake_exe = 'cmake3' if platform.system() == "Linux" else 'cmake'
+            subprocess.check_call([cmake_exe, ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
+            subprocess.check_call([cmake_exe, '--build', '.', '--target', internal_name] + build_args, cwd=self.build_temp)
 
 
 # List the files that should be installed alongside the package

@@ -28,7 +28,7 @@ namespace SPH
 		// volumes in rest configuration
 		std::vector<Real> m_restVolumes;
 		std::vector<Matrix3r> m_rotations;
-		std::vector<Vector6r> m_stress;
+		std::vector<Matrix3r> m_stress;
 		std::vector<Matrix3r> m_L;
 		std::vector<Matrix3r> m_RL;
 		std::vector<Matrix3r> m_F;
@@ -36,6 +36,7 @@ namespace SPH
 		unsigned int m_maxIter;
 		Real m_maxError;
 		Real m_alpha;
+		int m_maxNeighbors;
 		Solver m_solver;
 
 		void initValues();
@@ -62,12 +63,36 @@ namespace SPH
 			res[2] = M[4] * v[0] + M[5] * v[1] + M[2] * v[2];
 		}
 
+		FORCE_INLINE void generateIndices(const unsigned int* map, const unsigned int* idx, std::array<unsigned int, 8>& indices, const unsigned char count = 8u)
+		{
+			switch (count)
+			{
+			case 1u:
+				indices = { map[idx[0]], 0, 0, 0, 0, 0, 0, 0 }; break;
+			case 2u:
+				indices = { map[idx[0]], map[idx[1]], 0, 0, 0, 0, 0, 0 }; break;
+			case 3u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], 0, 0, 0, 0, 0 }; break;
+			case 4u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], map[idx[3]], 0, 0, 0, 0 }; break;
+			case 5u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], map[idx[3]], map[idx[4]], 0, 0, 0 }; break;
+			case 6u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], map[idx[3]], map[idx[4]], map[idx[5]], 0, 0 }; break;
+			case 7u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], map[idx[3]], map[idx[4]], map[idx[5]], map[idx[6]], 0 }; break;
+			case 8u:
+				indices = { map[idx[0]], map[idx[1]], map[idx[2]], map[idx[3]], map[idx[4]], map[idx[5]], map[idx[6]], map[idx[7]] }; break;
+			}
+		}
+
 
 	public:
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
 		static int ALPHA;
+		static int MAX_NEIGHBORS;
 
 		Elasticity_Peer2018(FluidModel *model);
 		virtual ~Elasticity_Peer2018(void);

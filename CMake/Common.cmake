@@ -55,7 +55,7 @@ if (USE_THIRD_PARTY_METHODS)
 	add_definitions( -DUSE_THIRD_PARTY_METHODS)	
 endif (USE_THIRD_PARTY_METHODS)
 
-cmake_dependent_option(USE_PYTHON_BINDINGS "Generate Python Bindings using PyBind11" ON "PYTHON_EXECUTABLE" OFF)
+cmake_dependent_option(USE_PYTHON_BINDINGS "Generate Python Bindings using PyBind11" ON "Python_EXECUTABLE" OFF)
 if (USE_PYTHON_BINDINGS AND UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")

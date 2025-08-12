@@ -77,7 +77,7 @@ void ElasticityBase::determineFixedParticles()
 	{
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			const Vector3r& x = m_model->getPosition(i);
+			const Vector3r& x = m_model->getPosition0(i);
 			if ((x[0] > m_fixedBoxMin[0]) && (x[1] > m_fixedBoxMin[1]) && (x[2] > m_fixedBoxMin[2]) &&
 				(x[0] < m_fixedBoxMax[0]) && (x[1] < m_fixedBoxMax[1]) && (x[2] < m_fixedBoxMax[2]))
 			{

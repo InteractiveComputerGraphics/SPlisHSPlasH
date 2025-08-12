@@ -173,7 +173,7 @@ void Simulation::initParameters()
 	setGroup(ENABLE_Z_SORT, "Simulation|Simulation");
 	setDescription(ENABLE_Z_SORT, "Enable z-sort to improve cache hits.");
 
-	STEPS_PER_Z_SORT = createNumericParameter("enableZSort", "Simulation steps per z-sort", &m_stepsPerZSort);
+	STEPS_PER_Z_SORT = createNumericParameter("stepsPerZSort", "Simulation steps per z-sort", &m_stepsPerZSort);
 	setGroup(STEPS_PER_Z_SORT, "Simulation|Simulation");
 	setDescription(STEPS_PER_Z_SORT, "Number of simulation steps which are performed before a z-sort is applied.");
 	static_cast<UnsignedIntParameter*>(getParameter(STEPS_PER_Z_SORT))->setMinValue(1u);
@@ -519,13 +519,13 @@ void Simulation::reset()
 	if (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		updateBoundaryVolume();
 
+	performNeighborhoodSearchSort();
 	if (m_timeStep)
 		m_timeStep->reset();
 
 	m_animationFieldSystem->reset();
 
 	m_counter = 0;
-	performNeighborhoodSearchSort();
 
 	TimeManager::getCurrent()->setTime(0.0);
 }

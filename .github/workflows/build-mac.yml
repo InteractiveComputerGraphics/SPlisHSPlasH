@@ -1,0 +1,25 @@
+name: build-mac
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-mac:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@main
+    - name: Install OpenMP
+      run: brew install libomp
+    - name: configure
+      run: mkdir build-release && cd build-release && cmake -DCMAKE_BUILD_TYPE=Release ..
+    - name: build
+      run: cmake --build build-release
+    - name: tests
+      run: cd bin && ./KernelTests && ./ReadWriteStateTests
+

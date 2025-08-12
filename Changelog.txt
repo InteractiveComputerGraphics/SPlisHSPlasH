@@ -1,3 +1,19 @@
+2.14.1
+	- updated CompactNSearch
+	- updated DiscreGrid
+
+2.14.0
+	- Fixed CI for Python wheels (thanks to Stefan Jeske)
+	- Implemented alternative (Blender style) camera controls (thanks to Fabian Löschner)
+	- updated pybind11 to version 3.0.0
+	- updated zlib to version 1.3.1
+	- updated CMake files
+
+2.13.2
+	- updated pybind11
+	- added avx implementation of the paper Peer et al., "An implicit SPH formulation for incompressible linearly elastic solids", Computer Graphics Forum, 2018
+	- bugfixes
+
 2.13.1
 	- fixed z-sort 
 	- added parameter stepsPerZSort

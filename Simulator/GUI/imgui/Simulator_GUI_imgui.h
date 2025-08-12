@@ -18,11 +18,12 @@ namespace SPH
 		int win_x, win_y;
 		int win_width, win_height;
 		bool vsync;
+		bool alt_camera;
 		bool show_log_window;
 		bool maximized;
 		int log_filter;
 
-		UserSettings() { win_x = 0; win_y = 0; win_width = 1280; win_height = 960; scaleIndex = 0; vsync = false; maximized = false; log_filter = 1; }
+		UserSettings() { win_x = 0; win_y = 0; win_width = 1280; win_height = 960; scaleIndex = 0; vsync = false; alt_camera = false; maximized = false; log_filter = 1; }
 	};
 
 	class LogWindow;
@@ -43,6 +44,7 @@ namespace SPH
 			std::vector<float> m_scales;
 			unsigned int m_currentScaleIndex;
 			bool m_vsync;
+			bool m_alt_camera;
 			bool m_showLogWindow;
 			ImGuiContext* m_context;
 			UserSettings m_userSettings;

@@ -112,11 +112,6 @@ SimulatorBase::SimulatorBase()
 
 SimulatorBase::~SimulatorBase()
 {
-	Utilities::Timing::printAverageTimes();
-	Utilities::Timing::printTimeSums();
-
-	Utilities::Counting::printAverageCounts();
-	Utilities::Counting::printCounterSums();
 }
 
 void SimulatorBase::initParameters()
@@ -486,6 +481,8 @@ void SimulatorBase::initSimulation()
 	std::string progFilePath = FileSystem::normalizePath(m_outputPath + "/program");
 	FileSystem::makeDirs(progFilePath);
 	FileSystem::copyFile(m_argv[0], progFilePath + "/" + FileSystem::getFileNameWithExt(m_argv[0]));
+	std::string diffFilePath = FileSystem::normalizePath(m_exePath + "/git_diff.txt");
+	FileSystem::copyFile(diffFilePath, progFilePath + "/git_diff.txt");
 	#endif
 
 	Simulation *sim = Simulation::getCurrent();
@@ -630,6 +627,13 @@ void SimulatorBase::cleanup()
 
 	delete m_boundarySimulator;
 	cleanupExporters();
+
+	// print stats before loggers are deleted
+	Utilities::Timing::printAverageTimes();
+	Utilities::Timing::printTimeSums();
+
+	Utilities::Counting::printAverageCounts();
+	Utilities::Counting::printCounterSums();
 
 	auto& sinks = Utilities::logger.getSinks();
 	while (sinks.size() != 0)
@@ -2407,7 +2411,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 		Real sign = 1.0;
 		if (boundaryData->mapInvert)
 			sign = -1.0;
-		func = [&md, &sign, &tolerance](Eigen::Vector3d const& xi) {return sign * (md.signed_distance(xi).distance - tolerance); };
+		func = [&md, &sign, &tolerance](Eigen::Vector3d const& xi) {return sign * (md.signed_distance(xi).distance - tolerance); }; 
 
 		LOG_INFO << "Generate SDF";
 		START_TIMING("SDF Construction");

@@ -37,8 +37,7 @@ jobs:
             yum install -y epel-release &&
             yum install -y cmake3 libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGLU-devel
           # Provide flags similar to prior pip-wheel-args (handled via env; setup.py could be adapted to read these)
-        #   EXTRA_CMAKE_DEFINES: "-DUSE_AVX=Off -DCI_BUILD=On"
-          EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On -DCI_BUILD=On"
+          EXTRA_CMAKE_DEFINES: "-DUSE_AVX=Off -DCI_BUILD=On"
           # Verbosity
           CIBW_BUILD_VERBOSITY: "1"
         run: |

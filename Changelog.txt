@@ -1,3 +1,6 @@
+2.15.1
+	- deactivated avx in Linux wheels due to problems 
+
 2.15.0
 	- macOS support (thanks to Robin Rademacher)
 	- update to OpenGL 3.3 (thanks to Robin Rademacher)

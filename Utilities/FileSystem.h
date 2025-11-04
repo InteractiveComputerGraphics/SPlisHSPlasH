@@ -12,6 +12,7 @@
 #else
 #include <unistd.h>
 #include <dirent.h>
+#include <dlfcn.h>
 #endif
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -217,21 +218,65 @@ namespace Utilities
 
 		static std::string getProgramPath()
 		{
+			bool inPythonModule = false;
 			char buffer[1000];
-#ifdef WIN32	
-			GetModuleFileName(NULL, buffer, 1000);
+			std::string bufferStr(buffer);
+#ifdef WIN32
+			GetModuleFileNameA(NULL, buffer, 1000);
+			bufferStr = std::string(buffer);
+
+			// If the program is running as a Python module, the path to the module, not the executable, must be obtained
+			inPythonModule = bufferStr.size() >= 10 && bufferStr.substr(bufferStr.size() - 10) == "python.exe";
+
+			if (inPythonModule) {
+				// Get the module handle for the current module
+				HMODULE hModule = nullptr;
+				GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+								reinterpret_cast<LPCSTR>(&getProgramPath), &hModule);
+
+				// Retrieve the full path of the module
+				DWORD length = GetModuleFileNameA(hModule, buffer, 1000);
+				bufferStr = std::string(buffer);
+
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+			}
+			else {
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+			}
 #elif defined(__APPLE__)
 			uint32_t bufferSize = sizeof(buffer);
 			_NSGetExecutablePath(buffer, &bufferSize);
+			bufferStr = std::string(buffer);
+			bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
 #else
 			char szTmp[32];
 			sprintf(szTmp, "/proc/%d/exe", getpid());
 			int bytes = std::min((int)readlink(szTmp, buffer, 1000), 999);
 			buffer[bytes] = '\0';
-#endif
-			std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-			return std::string(buffer).substr(0, pos);
+			bufferStr = std::string(buffer);
 
+			// If the program is running as a Python module, the path to the module, not the executable, must be obtained
+			inPythonModule = bufferStr.size() >= 6
+				&& bufferStr.substr(bufferStr.size() - std::min<size_t>(10, bufferStr.size())).find("python")
+					!= std::string::npos;
+
+			if (inPythonModule) {
+				Dl_info info{};
+				dladdr(reinterpret_cast<void*>(&getProgramPath), &info) && info.dli_fname;
+				bufferStr = info.dli_fname;
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+				bufferStr += "/bin";
+			}
+			else {
+				bufferStr = bufferStr.substr(0, bufferStr.find_last_of("\\/"));
+			}
+#endif
+			return bufferStr;
 		}
 
 		static bool copyFile(const std::string &source, const std::string &dest)

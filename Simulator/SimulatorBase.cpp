@@ -1314,39 +1314,41 @@ void SimulatorBase::createEmitters()
 				ed->width = 1;
 				ed->type = 0;
 			}
-			Matrix3r rot = AngleAxisr(ed->angle, ed->axis).toRotationMatrix();
-			model->getEmitterSystem()->addEmitter(
-				ed->width, ed->height,
-				ed->x, rot,
-				ed->velocity,
-				ed->type);
+            Matrix3r rot = AngleAxisr(ed->angle, ed->axis.normalized()).toRotationMatrix();
+            model->getEmitterSystem()->addEmitter(ed->width, ed->height, ed->x, rot, ed->velocity, ed->type,
+                                                  ed->useBoundary);
 
-			// Generate boundary geometry around emitters
-			Emitter *emitter = model->getEmitterSystem()->getEmitters().back();
-			BoundaryParameterObject *emitterBoundary = new BoundaryParameterObject();
-			emitterBoundary->dynamic = false;
-			emitterBoundary->isWall = false;
-			emitterBoundary->color = { 0.2f, 0.2f, 0.2f, 1.0f };
-			emitterBoundary->axis = ed->axis;
-			emitterBoundary->angle = ed->angle;
-			const Real supportRadius = sim->getSupportRadius();
-			const Vector3r & emitDir = rot.col(0);
-			emitterBoundary->scale = Emitter::getSize(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
-			const Vector3r pos = ed->x;
-			emitterBoundary->translation = pos;
-			emitterBoundary->samplesFile = "";
-			emitterBoundary->mapInvert = false;
-			emitterBoundary->mapResolution = Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>(20, 20, 20);
-			emitterBoundary->mapThickness = 0.0;
+            Emitter* emitter = model->getEmitterSystem()->getEmitters().back();
+            if (ed->useBoundary) {
+                // Generate boundary geometry around emitters
+                BoundaryParameterObject* emitterBoundary = new BoundaryParameterObject();
+                emitterBoundary->dynamic = false;
+                emitterBoundary->isWall = false;
+                emitterBoundary->color = {0.2f, 0.2f, 0.2f, 1.0f};
+                emitterBoundary->axis = ed->axis;
+                emitterBoundary->angle = ed->angle;
+                const Real supportRadius = sim->getSupportRadius();
+                const Vector3r& emitDir = rot.col(0);
+                emitterBoundary->scale =
+                    Emitter::getSizeExtraMargin(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
+                const Vector3r pos = ed->x;
+                emitterBoundary->translation = pos;
+                emitterBoundary->samplesFile = "";
+                emitterBoundary->mapInvert = false;
+                emitterBoundary->mapResolution = Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>(20, 20, 20);
+                emitterBoundary->mapThickness = 0.0;
 
-			if (sim->is2DSimulation())
-				emitterBoundary->scale[2] = 2 * supportRadius;
+                if (sim->is2DSimulation())
+                    emitterBoundary->scale[2] = 2 * supportRadius;
 
-			if (ed->type == 0)
-				emitterBoundary->meshFile = FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterBox.obj");
-			else if (ed->type == 1)
-				emitterBoundary->meshFile = FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterCylinder.obj");
-			scene.boundaryModels.push_back(emitterBoundary);
+                if (ed->type == 0)
+                    emitterBoundary->meshFile =
+                        FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterBox.obj");
+                else if (ed->type == 1)
+                    emitterBoundary->meshFile =
+                        FileSystem::normalizePath(getExePath() + "/resources/emitter_boundary/EmitterCylinder.obj");
+                scene.boundaryModels.push_back(emitterBoundary);
+            }
 			
 			// reuse particles if they are outside of a bounding box
 			bool emitterReuseParticles = false;

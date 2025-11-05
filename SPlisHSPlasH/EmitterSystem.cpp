@@ -59,17 +59,6 @@ void EmitterSystem::step()
 	// reset particle state
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
-	for (unsigned int m = 0; m < nModels; m++)
-	{
-		FluidModel *fm = sim->getFluidModel(m);
-		const unsigned int numParticles = fm->numActiveParticles();
-		#pragma omp parallel for schedule(static) default(shared)
-		for (int i = 0; i < (int)numParticles; i++)
-		{
-			if (fm->getParticleState(i) == ParticleState::AnimatedByEmitter)
-				fm->setParticleState(i, ParticleState::Active);
-		}
-	}
 
 	reuseParticles();
 	unsigned int indexReuse = 0;	
@@ -93,16 +82,11 @@ void EmitterSystem::reset()
 	}
 }
 
-void EmitterSystem::addEmitter(const unsigned int width, const unsigned int height,
-	const Vector3r &pos, const Matrix3r & rotation,
-	const Real velocity,
-	const unsigned int type)
+void EmitterSystem::addEmitter(const unsigned int width, const unsigned int height, const Vector3r& pos,
+                               const Matrix3r& rotation, const Real velocity, const unsigned int type,
+                               const bool useBoundary)
 {
-	m_emitters.push_back(new Emitter(m_model,
-		width, height,
-		pos, rotation,
-		velocity,
-		type));
+    m_emitters.push_back(new Emitter(m_model, width, height, pos, rotation, velocity, type, useBoundary));
 }
 
 void EmitterSystem::enableReuseParticles(const Vector3r &boxMin /*= Vector3r(-1, -1, -1)*/, const Vector3r &boxMax /*= Vector3r(1, 1, 1)*/)

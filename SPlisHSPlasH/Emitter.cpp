@@ -1,401 +1,202 @@
 #include "Emitter.h"
+#include "FluidModel.h"
 #include "SPHKernels.h"
-#include <iostream>
+#include "Simulation.h"
 #include "TimeManager.h"
 #include "TimeStep.h"
-#include "FluidModel.h"
-#include "Simulation.h"
+#include "Utilities/Logger.h"
+#include <iostream>
 
 using namespace SPH;
 
-Emitter::Emitter(FluidModel *model,
-	const unsigned int width, const unsigned int height,
-	const Vector3r &pos, const Matrix3r & rotation,
-	const Real velocity,
-	const unsigned int type)
-	: m_model(model)
-	, m_width(width)
-	, m_height(height)
-	, m_x(pos)
-	, m_rotation(rotation)
-	, m_velocity(velocity)
-	, m_type(type)
-	, m_nextEmitTime(0)
-	, m_emitStartTime(0)
-	, m_emitEndTime(std::numeric_limits<Real>::max())
-	, m_emitCounter(0)
+Emitter::Emitter(FluidModel* model, const unsigned int width, const unsigned int height, const Vector3r& pos,
+                 const Matrix3r& rotation, const Real velocity, const unsigned int type, const bool useBoundary)
+    : m_model(model), m_width(width), m_x(pos), m_rotation(rotation), m_velocity(velocity), m_type(type),
+      m_useBoundary(useBoundary)
 {
+    Simulation* sim = Simulation::getCurrent();
+    m_depth = getDepth();
+
+    if (m_type == 1) {
+        // for cylindrical emitters, the height must not be smaller than the width, to spawn the initial particles.
+        m_height = width;
+    }
+    else {
+        m_height = height;
+    }
+
+    m_size = getSize(static_cast<Real>(m_width), static_cast<Real>(m_height), m_type);
 }
 
-Emitter::~Emitter(void)
-{
-}
+Emitter::~Emitter(void) {}
 
-void Emitter::reset()
+void Emitter::reset() { m_emitCounter = 0; }
+
+int Emitter::getDepth()
 {
-	m_nextEmitTime = m_emitStartTime;
-	m_emitCounter = 0;	
+    // This is its own function to not repeat the calculation in the constructor but still have it available for the
+    // static getSize().
+    Simulation* sim = Simulation::getCurrent();
+    return static_cast<int>(std::ceil(sim->getSupportRadius() / sim->getParticleRadius()));
 }
 
 Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 {
-	Simulation *sim = Simulation::getCurrent();
-	const Real radius = sim->getParticleRadius();
-	const Real diam = static_cast<Real>(2.0)*radius;
 
-	const Real supportRadius = sim->getSupportRadius();
-	const Real animationMarginAround = diam;
-	Vector3r size;
-	if (type == 0)
-	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
-		{
-			size = {
-				2 * supportRadius,
-				height * diam + 2 * animationMarginAround,
-				width * diam + 2 * animationMarginAround
-			};
-		}
-		else
-		{
-			size = {
-				static_cast<Real>(2.0)* supportRadius,
-				height * diam + static_cast<Real>(2.5) * animationMarginAround,
-				width * diam + static_cast<Real>(2.5) * animationMarginAround
-			};
-		}
-	}
-	else
-	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
-		{
-			// height and radius of cylinder
-			const Real h = 2 * supportRadius;
-			const Real r = 0.5f * width * diam + animationMarginAround;
-			size = { h, 2 * r, 2 * r };
-		}
-		else
-		{
-			// height and radius of cylinder
-			const Real h = static_cast<Real>(2.25) * supportRadius;
-			const Real r = 0.5f * width * diam + animationMarginAround;
-			size = { h, static_cast<Real>(2.25) * r, static_cast<Real>(2.25) * r };
-		}
-	}
+    const Simulation* sim = Simulation::getCurrent();
+    const Real particleDiameter = 2 * sim->getParticleRadius();
+    const Real depth = static_cast<Real>(getDepth());
+    Vector3r size;
 
-	return size;
+    // The emitter must be larger in emit direction, else particles may spawn just outside.
+    if (type == 0) {
+        // box emitter
+        size = {depth + 1, height, width};
+    }
+    else if (type == 1) {
+        // cylindrical emitter
+        size = {depth + 1, width, width};
+    }
+
+    return size * particleDiameter;
 }
 
-void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+Vector3r Emitter::getSizeExtraMargin(const Real width, const Real height, const int type)
 {
-	TimeManager *tm = TimeManager::getCurrent();
-	const Real t = tm->getTime();
-	const Real timeStepSize = tm->getTimeStepSize();
-	const Vector3r & emitDir = m_rotation.col(0);
-	Vector3r emitVel = m_velocity * emitDir;
-	Simulation *sim = Simulation::getCurrent();
-	const Real radius = sim->getParticleRadius();
-	const Real diam = static_cast<Real>(2.0)*radius;
+    // The box or cylinder around the emitter needs some padding.
+    const Simulation* sim = Simulation::getCurrent();
+    // const BoundaryHandlingMethods* boundaryMethod = sim->getBoundaryHandlingMethod();
+    Real extraMargin;
+    if (type == 0) {
+        // box emitter
+        if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+            extraMargin = static_cast<Real>(2.0);
+        }
+        else {
+            extraMargin = static_cast<Real>(2.5);
+        }
+    }
+    else if (type == 1) {
+        // cylindrical emitter
+        if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012) {
+            extraMargin = static_cast<Real>(2.0);
+        }
+        else {
+            extraMargin = static_cast<Real>(2.5);
+        }
+    }
+    else {
+        extraMargin = 0.0;
+    }
 
-	// shortly before the emitter starts, cleanup the emitter from particles
-	if (t < m_emitStartTime || t > m_emitEndTime)
- 		emitVel = emitDir * radius * 10 / 0.25;
-
-	if (t >= m_emitStartTime - 0.25 && t <= m_emitEndTime)
-	{
-		// animate emitted particles
-		const Vector3r & x0 = m_x;
-
-		const Real animationMarginAhead = sim->getSupportRadius();
-		const Vector3r size = getSize(static_cast<Real>(m_width), static_cast<Real>(m_height), m_type);
-		const Vector3r halfSize = 0.5 * size;
-		const Vector3r pos = x0 + static_cast<Real>(0.5) * animationMarginAhead * emitDir;
-
-		const unsigned int nModels = sim->numberOfFluidModels();
-		for (unsigned int m = 0; m < nModels; m++)
-		{
-			FluidModel *fm = sim->getFluidModel(m);
-			const unsigned int numParticles = fm->numActiveParticles();
-			#pragma omp parallel for schedule(static) default(shared)
-			for (int i = 0; i < (int)numParticles; i++)
-			{
-				Vector3r &xi = fm->getPosition(i);
-				if (inBox(xi, pos, m_rotation, halfSize))
-				{
-					fm->getVelocity(i) = emitVel;
-					fm->getPosition(i) += timeStepSize * emitVel;
-					fm->setParticleState(i, ParticleState::AnimatedByEmitter);
-					fm->setObjectId(i, m_objectId);
-				}
-			}
-		}
-	}
-	if (t < m_nextEmitTime || t > m_emitEndTime)
-	{
-		return;
-	}
-
-	const Vector3r axisHeight = m_rotation.col(1);
-	const Vector3r axisWidth = m_rotation.col(2);
-	
-	const Real startX = -static_cast<Real>(0.5)*(m_width  - 1)*diam;
-	const Real startZ = -static_cast<Real>(0.5)*(m_height - 1)*diam;
-
-	// t-m_nextEmitTime is the time that has passed between the time the particle has been emitted and the current time step.
-	// timeStepSize is added because emission happens at the end of the time step, but the particles are not animated anymore.
-	const Real dt = t - m_nextEmitTime + timeStepSize;
-
-	const Vector3r velocityOffset = dt * emitVel;
-	const Vector3r offset = m_x + velocityOffset;
-
-	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
-		(reusedParticles.size() > 0))
-	{
-		unsigned int indexNotReuse = m_model->numActiveParticles();
-		for (unsigned int i = 0; i < m_width; i++)
-		{
-			for (unsigned int j = 0; j < m_height; j++)
-			{
-				unsigned int index = 0;
-				bool reused = false;
-				if (indexReuse < reusedParticles.size())
-				{
-					index = reusedParticles[indexReuse];
-					reused = true;
-				}
-				else
-				{
-					index = indexNotReuse;
-				}
-
-				if (index < m_model->numParticles())
-				{
-					m_model->getPosition(index) = (i*diam + startX)*axisWidth + (j*diam + startZ)*axisHeight + offset;
-					m_model->getVelocity(index) = emitVel;
-					m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
-					m_model->setObjectId(index, m_objectId);
-
-					if (reused)
-					{
-						indexReuse++;
-					}
-					else
-					{
-						numEmittedParticles++;
-						indexNotReuse++;
-					}
-					index++;
-				}
-			}
-		}
-
-		if (numEmittedParticles != 0)
-		{
-			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
-		}
-	}
-	else
-	{
-		if (m_model->numActiveParticles() < m_model->numParticles())
-		{
-			unsigned int index = m_model->numActiveParticles();
-			for (unsigned int i = 0; i < m_width; i++)
-			{
-				for (unsigned int j = 0; j < m_height; j++)
-				{
-					if (index < m_model->numParticles())
-					{
-						m_model->getPosition(index) = (i*diam + startX)*axisWidth + (j*diam + startZ)*axisHeight + offset;
-						m_model->getVelocity(index) = emitVel;
-						m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
-						m_model->setObjectId(index, m_objectId);
-						numEmittedParticles++;
-					}
-					index++;
-				}
-			}
-			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
-		}
-	}
-
-	m_nextEmitTime += diam / m_velocity;
-	m_emitCounter++;
+    return getSize(width + extraMargin, height + extraMargin, type);
 }
 
-
-
-void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+void Emitter::emitParticles(std::vector<unsigned int>& reusedParticles, unsigned int& indexReuse,
+                            unsigned int& numEmittedParticles)
 {
-	TimeManager *tm = TimeManager::getCurrent();
-	const Real t = tm->getTime();
-	const Real timeStepSize = tm->getTimeStepSize();
-	const Vector3r & emitDir = m_rotation.col(0);
-	Simulation *sim = Simulation::getCurrent();
-	const Real particleRadius = sim->getParticleRadius();
-	const Real diam = static_cast<Real>(2.0)*particleRadius;
-	Vector3r emitVel = m_velocity * emitDir;
+    TimeManager* tm = TimeManager::getCurrent();
+    const Real t = tm->getTime();
+    const Real timeStepSize = tm->getTimeStepSize();
+    const Vector3r axisDepth = m_rotation.col(0);
+    const Vector3r axisHeight = m_rotation.col(1);
+    const Vector3r axisWidth = m_rotation.col(2);
+    Vector3r emitVel = m_velocity * axisDepth;
+    Simulation* sim = Simulation::getCurrent();
+    const Real particleRadius = sim->getParticleRadius();
+    const Real particleDiameter = static_cast<Real>(2.0) * particleRadius;
 
-	// shortly before the emitter starts, cleanup the emitter from particles
-	if (t < m_emitStartTime || t > m_emitEndTime)
-		emitVel = emitDir * particleRadius * 10 / 0.25;
+    unsigned int indexNextNewParticle = m_model->numActiveParticles();
 
-	if (t >= m_emitStartTime - 0.25 && t <= m_emitEndTime)
-	{
-		// animate emitted particles		
-		const Vector3r & x0 = m_x;
+    // fill the emitter at the start of the simulation
+    // The emitter is filled starting from the plane the particles leave the emitter.
+    // TODO: maybe this should be done in the constructor or somewhere else?
+    const Vector3r startPos = m_x + m_depth * particleRadius * axisDepth - (m_width - 1) * particleRadius * axisWidth
+        - (m_height - 1) * particleRadius * axisHeight;
+    if (t == 0.0) {
+        for (unsigned int i = 0; i < m_depth; i++) {
+            for (unsigned int j = 0; j < m_width; j++) {
+                for (unsigned int k = 0; k < m_height; k++) {
+                    const Vector3r spawnPos = startPos - i * axisDepth * particleDiameter
+                        + j * axisWidth * particleDiameter + k * axisHeight * particleDiameter;
 
-		const Real animationMarginAhead = sim->getSupportRadius();
-		const Vector3r size = getSize(static_cast<Real>(m_width), static_cast<Real>(m_height), m_type);
-		const Real h = size[0];
- 		const Real r = 0.5f * size[1];
-		const Real r2 = r * r;
-		const Vector3r pos = x0 + 0.5f * animationMarginAhead * emitDir;
+                    // Spawn particles in a grid.
+                    // Skip the particles outside when a cylindrical emitter is used.
+                    if (m_type == 0
+                        || (m_type == 1
+                            && inCylinder(spawnPos, m_x, m_rotation, m_size[0], (m_size[1] * m_size[1]) / 4)))
+                    {
+                        m_model->setPosition(indexNextNewParticle, spawnPos);
+                        m_model->setParticleState(indexNextNewParticle, ParticleState::AnimatedByEmitter);
+                        m_model->setVelocity(indexNextNewParticle, emitVel);
+                        m_model->setObjectId(indexNextNewParticle, m_objectId);
 
+                        indexNextNewParticle++;
+                        numEmittedParticles++;
+                    }
+                }
+            }
+        }
+    }
 
-		const unsigned int nModels = sim->numberOfFluidModels();
-		for (unsigned int m = 0; m < nModels; m++)
-		{
-			FluidModel *fm = sim->getFluidModel(m);
-			const unsigned int numParticles = fm->numActiveParticles();
- 			#pragma omp parallel for schedule(static) default(shared)
- 			for (int i = 0; i < (int)numParticles; i++)
- 			{
- 				Vector3r &xi = fm->getPosition(i);
- 				if (inCylinder(xi, pos, m_rotation, h, r2))
- 				{
- 					fm->getVelocity(i) = emitVel;
- 					fm->getPosition(i) += timeStepSize * emitVel;
- 					fm->setParticleState(i, ParticleState::AnimatedByEmitter);
-					fm->setObjectId(i, m_objectId);
- 				}
- 			}
-		}
- 	}
-	if (t < m_nextEmitTime || t > m_emitEndTime)
-	{
-		return;
-	}
+    if (t >= m_emitStartTime && t < m_emitEndTime) {
+        // emitter is active
+        for (unsigned int i = 0; i < indexNextNewParticle; i++) {
+            const Vector3r tempPos = m_model->getPosition(i);
+            // Check if the particle is inside the emitter.
+            const bool insideEmitter = (m_type == 0 && inBox(tempPos, m_x, m_rotation, 0.5 * m_size))
+                || (m_type == 1 && inCylinder(tempPos, m_x, m_rotation, m_size[0], (m_size[1] * m_size[1]) / 4));
 
-	Vector3r axisHeight = m_rotation.col(1);
-	Vector3r axisWidth = m_rotation.col(2);
+            if (insideEmitter) {
+                // Advect ALL particles inside the emitter.
+                // TODO: Doesn't get all particles within the boundary. Perhaps use getSizeExtraMargin()?
+                m_model->setPosition(i, tempPos + timeStepSize * emitVel);
+                m_model->setVelocity(i, emitVel);
+            }
+            if (!insideEmitter && m_model->getParticleState(i) == ParticleState::AnimatedByEmitter
+                && m_model->getObjectId(i) == m_objectId)
+            {
+                // particle has left the emitter during last step
+                m_model->setParticleState(i, ParticleState::Active);
+                m_model->setObjectId(i, 0);
+                // reuse or spawn a new particle upstream
+                if (indexReuse < reusedParticles.size()) {
+                    // reuse a particle
+                    m_model->setPosition(reusedParticles[indexReuse], tempPos - axisDepth * particleDiameter * m_depth);
+                    m_model->setParticleState(reusedParticles[indexReuse], ParticleState::AnimatedByEmitter);
+                    m_model->setVelocity(reusedParticles[indexReuse], bulkEmitVel);
+                    m_model->setObjectId(reusedParticles[indexReuse], m_objectId);
+                    indexReuse++;
+                }
+                else if (m_model->numActiveParticles() < m_model->numParticles()) {
+                    // spawn a new particle
+                    m_model->setPosition(indexNextNewParticle, tempPos - axisDepth * particleDiameter * m_depth);
+                    m_model->setParticleState(indexNextNewParticle, ParticleState::AnimatedByEmitter);
+                    m_model->setVelocity(indexNextNewParticle, emitVel);
+                    m_model->setObjectId(indexNextNewParticle, m_objectId);
 
-	const Real radius = (static_cast<Real>(0.5) * (Real)m_width * diam);
-	const Real radius2 = radius*radius;
+                    indexNextNewParticle++;
+                    numEmittedParticles++;
+                }
+                else {
+                    LOG_INFO << "No particles left for the emitter to reuse or activate!";
+                }
+            }
+        }
+    }
 
-	const Real startX = -static_cast<Real>(0.5)*(m_width - 1)*diam;
-	const Real startZ = -static_cast<Real>(0.5)*(m_width - 1)*diam;
-
-	// t-m_nextEmitTime is the time that has passed between the time the particle has been emitted and the current time step.
-	// timeStepSize is added because emission happens at the end of the time step, but the particles are not animated anymore.
-	const Real dt = t - m_nextEmitTime + timeStepSize;
-	const Vector3r velocity = emitVel;
-	const Vector3r velocityOffset = dt * velocity;
-	const Vector3r offset = m_x + velocityOffset;
-
-	if ((m_model->numActiveParticles() < m_model->numParticles()) ||
-		(reusedParticles.size() > 0))
-	{
-		unsigned int indexNotReuse = m_model->numActiveParticles();
-		for (unsigned int i = 0; i < m_width; i++)
-		{
-			for (unsigned int j = 0; j < m_width; j++)
-			{
-				const Real x = (i*diam + startX);
-				const Real y = (j*diam + startZ);
-
-				unsigned int index = 0;
-				bool reused = false;
-				if (indexReuse < reusedParticles.size())
-				{
-					index = reusedParticles[indexReuse];
-					reused = true;
-				}
-				else
-				{
-					index = indexNotReuse;
-				}
-
-				if ((index < m_model->numParticles()) && (x*x + y*y <= radius2))
-				{
-					m_model->getPosition(index) = x*axisWidth + y*axisHeight + offset;
-					m_model->getVelocity(index) = velocity;
-					m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
-					m_model->setObjectId(index, m_objectId);
-
-					if (reused)
-					{
-						indexReuse++;
-					}
-					else
-					{
-						numEmittedParticles++;
-						indexNotReuse++;
-					}
-					index++;
-				}
-			}
-		}
-
-		if (numEmittedParticles != 0)
-		{
-			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
-		}
-	}
-	else
-	{
-		if (m_model->numActiveParticles() < m_model->numParticles())
-		{
-			unsigned int index = m_model->numActiveParticles();
-			for (unsigned int i = 0; i < m_width; i++)
-			{
-				for (unsigned int j = 0; j < m_width; j++)
-				{
-					const Real x = (i*diam + startX);
-					const Real y = (j*diam + startZ);
-					if ((index < m_model->numParticles()) && (x*x + y*y <= radius2))
-					{
-						m_model->getPosition(index) = x*axisWidth + y*axisHeight + offset;
-						m_model->getVelocity(index) = velocity;
-						m_model->setParticleState(index, ParticleState::AnimatedByEmitter);
-						m_model->setObjectId(index, m_objectId);
-						numEmittedParticles++;
-						index++;
-					}
-				}
-			}
-			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
-			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
-		}
-	}
-
-	m_nextEmitTime += diam / m_velocity;
-	m_emitCounter++;
+    m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
+    sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
+    sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0],
+                                                   m_model->numActiveParticles());
 }
 
-void Emitter::step(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles)
+void Emitter::step(std::vector<unsigned int>& reusedParticles, unsigned int& indexReuse,
+                   unsigned int& numEmittedParticles)
 {
-	if (m_type == 1)
-		emitParticlesCircle(reusedParticles, indexReuse, numEmittedParticles);
-	else
-		emitParticles(reusedParticles, indexReuse, numEmittedParticles);
+    emitParticles(reusedParticles, indexReuse, numEmittedParticles);
 }
 
-void SPH::Emitter::saveState(BinaryFileWriter &binWriter)
-{
-	binWriter.write(m_nextEmitTime);
-	binWriter.write(m_emitCounter);
-}
+void SPH::Emitter::saveState(BinaryFileWriter& binWriter) { binWriter.write(m_emitCounter); }
 
-void SPH::Emitter::loadState(BinaryFileReader &binReader)
-{
-	binReader.read(m_nextEmitTime);
-	binReader.read(m_emitCounter);
-}
-
+void SPH::Emitter::loadState(BinaryFileReader& binReader) { binReader.read(m_emitCounter); }

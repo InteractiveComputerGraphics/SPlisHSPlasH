@@ -28,9 +28,6 @@ void EmitterModule(py::module m_sub){
                 return SPH::Emitter(model, width, height, pos, rotation, velocity, type);
             }))
             .def("emitParticles", &SPH::Emitter::emitParticles)
-            .def("emitParticlesCircle", &SPH::Emitter::emitParticlesCircle)
-            .def("getNextEmitTime", &SPH::Emitter::getNextEmitTime)
-            .def("setNextEmitTime", &SPH::Emitter::setNextEmitTime)
             .def("setEmitStartTime", &SPH::Emitter::setEmitStartTime)
             .def("setEmitEndTime", &SPH::Emitter::setEmitEndTime)
             .def("getPosition", &SPH::Emitter::getPosition)

@@ -17,6 +17,7 @@ int FluidBlockParameterObject::FLUID_BLOCK_VISMESH = -1;
 int FluidBlockParameterObject::FLUID_BLOCK_MODE = -1;
 int FluidBlockParameterObject::FLUID_BLOCK_INITIAL_VEL = -1;
 int FluidBlockParameterObject::FLUID_BLOCK_INITIAL_ANGVEL = -1;
+int EmitterParameterObject::EMITTER_USEBOUNDARY = -1;
 
 void FluidBlockParameterObject::initParameters()
 {
@@ -180,6 +181,10 @@ void EmitterParameterObject::initParameters()
 	EMITTER_TYPE = createNumericParameter<unsigned int>("type", "Emitter type", &type);
 	setGroup(EMITTER_TYPE, "Emitter");
 	setDescription(EMITTER_TYPE, "Defines the shape of the emitter: 0: box, 1: circle.");
+
+	EMITTER_USEBOUNDARY = createBoolParameter("useBoundary", "Use Boundary", &useBoundary);
+    setGroup(EMITTER_USEBOUNDARY, "Emitter");
+    setDescription(EMITTER_USEBOUNDARY, "Creates a boundary model around the emitter if defined");
 }
 
 

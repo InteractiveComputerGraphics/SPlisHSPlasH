@@ -11,26 +11,25 @@ namespace SPH
 	class Emitter 
 	{
 		public:
-			Emitter(FluidModel *model,
-				const unsigned int width, const unsigned int height,
-				const Vector3r &pos, const Matrix3r & rotation,
-				const Real velocity,
-				const unsigned int type = 0);
-			virtual ~Emitter();
+    		Emitter(FluidModel* model, const unsigned int width, const unsigned int height, const Vector3r& pos,
+            const Matrix3r& rotation, const Real velocity, const unsigned int type = 0, const bool useBoundary = false);
+    		virtual ~Emitter();
 
 		protected:
 			FluidModel *m_model;
 			unsigned int m_width; 
 			unsigned int m_height;
+			unsigned int m_depth;
+    		Vector3r m_size{0, 0, 0};
 			Vector3r m_x;
 			Matrix3r m_rotation;
 			Real m_velocity;
 			unsigned int m_type;
-			Real m_nextEmitTime;
-			Real m_emitStartTime;
-			Real m_emitEndTime;
-			unsigned int m_emitCounter;
+			Real m_emitStartTime{0};
+			Real m_emitEndTime{std::numeric_limits<Real>::max()};
+			unsigned int m_emitCounter{0};
 			unsigned int m_objectId;
+			bool m_useBoundary;
 
 			FORCE_INLINE bool inBox(const Vector3r &x, const Vector3r &xBox, const Matrix3r &rotBox, const Vector3r &scaleBox)
 			{
@@ -53,12 +52,11 @@ namespace SPH
 
 		public:
 			void emitParticles(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
-			void emitParticlesCircle(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
-			Real getNextEmitTime() const { return m_nextEmitTime; }
-			void setNextEmitTime(Real val) { m_nextEmitTime = val; }
-			void setEmitStartTime(Real val) { m_emitStartTime = val; setNextEmitTime(val); }
+			void setEmitStartTime(Real val) { m_emitStartTime = val; }
 			void setEmitEndTime(Real val) { m_emitEndTime = val; }
+			static int getDepth();
 			static Vector3r getSize(const Real width, const Real height, const int type);
+			static Vector3r getSizeExtraMargin(const Real width, const Real height, const int type);
 
 			void step(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
 			virtual void reset();

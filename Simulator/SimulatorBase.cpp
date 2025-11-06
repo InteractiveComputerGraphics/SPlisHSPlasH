@@ -1316,7 +1316,7 @@ void SimulatorBase::createEmitters()
 			}
             Matrix3r rot = AngleAxisr(ed->angle, ed->axis.normalized()).toRotationMatrix();
             model->getEmitterSystem()->addEmitter(ed->width, ed->height, ed->x, rot, ed->velocity, ed->type,
-                                                  ed->useBoundary);
+                                                  ed->useBoundary, ed->velocityProfile);
 
             Emitter* emitter = model->getEmitterSystem()->getEmitters().back();
             if (ed->useBoundary) {

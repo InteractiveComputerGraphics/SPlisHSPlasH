@@ -84,9 +84,10 @@ void EmitterSystem::reset()
 
 void EmitterSystem::addEmitter(const unsigned int width, const unsigned int height, const Vector3r& pos,
                                const Matrix3r& rotation, const Real velocity, const unsigned int type,
-                               const bool useBoundary)
+                               const bool useBoundary, const unsigned int velocityProfile)
 {
-    m_emitters.push_back(new Emitter(m_model, width, height, pos, rotation, velocity, type, useBoundary));
+    m_emitters.push_back(
+        new Emitter(m_model, width, height, pos, rotation, velocity, type, useBoundary, velocityProfile));
 }
 
 void EmitterSystem::enableReuseParticles(const Vector3r &boxMin /*= Vector3r(-1, -1, -1)*/, const Vector3r &boxMax /*= Vector3r(1, 1, 1)*/)

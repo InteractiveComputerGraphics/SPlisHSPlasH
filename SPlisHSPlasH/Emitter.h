@@ -12,7 +12,8 @@ namespace SPH
 	{
 		public:
     		Emitter(FluidModel* model, const unsigned int width, const unsigned int height, const Vector3r& pos,
-            const Matrix3r& rotation, const Real velocity, const unsigned int type = 0, const bool useBoundary = false);
+            const Matrix3r& rotation, const Real velocity, const unsigned int type = 0, const bool useBoundary = false,
+            const unsigned int velocityProfile = 0);
     		virtual ~Emitter();
 
 		protected:
@@ -30,6 +31,7 @@ namespace SPH
 			unsigned int m_emitCounter{0};
 			unsigned int m_objectId;
 			bool m_useBoundary;
+			unsigned int m_velocityProfile;// 0: constant, 1: linear, 2: quadratic
 
 			FORCE_INLINE bool inBox(const Vector3r &x, const Vector3r &xBox, const Matrix3r &rotBox, const Vector3r &scaleBox)
 			{

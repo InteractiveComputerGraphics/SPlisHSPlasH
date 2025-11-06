@@ -145,6 +145,7 @@ namespace Utilities
 		Real emitEndTime;
 		unsigned int type;	// type: 0 = rectangular, 1 = circle
 		bool useBoundary;
+		unsigned int velocityProfile;
 
 		EmitterParameterObject()
 		{
@@ -160,11 +161,12 @@ namespace Utilities
 			emitEndTime = std::numeric_limits<Real>::max();
 			type = 0;
 			useBoundary = false;
+			velocityProfile = 0;
 		}
 
     EmitterParameterObject(std::string id_, unsigned int width_, unsigned int height_, Vector3r x_, Real velocity_,
                            Vector3r axis_, Real angle_, Real emitStartTime_, Real emitEndTime_, unsigned int type_,
-                           bool useBoundary_)
+                           bool useBoundary_, unsigned int velocityProfile_)
 		{
 			id = id_;
 			width = width_;
@@ -177,6 +179,7 @@ namespace Utilities
 			emitEndTime = emitEndTime_;
 			type = type_;
 			useBoundary = useBoundary_;
+			velocityProfile = velocityProfile_;
 		}
 
 		static int EMITTER_ID;
@@ -190,6 +193,7 @@ namespace Utilities
 		static int EMITTER_ENDTIME;
 		static int EMITTER_TYPE;
 		static int EMITTER_USEBOUNDARY;
+		static int EMITTER_VELOCITYPROFILE;
 
 		virtual void initParameters();
 	};

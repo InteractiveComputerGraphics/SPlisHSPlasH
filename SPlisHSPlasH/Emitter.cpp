@@ -10,9 +10,10 @@
 using namespace SPH;
 
 Emitter::Emitter(FluidModel* model, const unsigned int width, const unsigned int height, const Vector3r& pos,
-                 const Matrix3r& rotation, const Real velocity, const unsigned int type, const bool useBoundary)
+                 const Matrix3r& rotation, const Real velocity, const unsigned int type, const bool useBoundary,
+                 const unsigned int velocityProfile)
     : m_model(model), m_width(width), m_x(pos), m_rotation(rotation), m_velocity(velocity), m_type(type),
-      m_useBoundary(useBoundary)
+      m_useBoundary(useBoundary), m_velocityProfile(velocityProfile)
 {
     Simulation* sim = Simulation::getCurrent();
     m_depth = getDepth();
@@ -101,7 +102,7 @@ void Emitter::emitParticles(std::vector<unsigned int>& reusedParticles, unsigned
     const Vector3r axisDepth = m_rotation.col(0);
     const Vector3r axisHeight = m_rotation.col(1);
     const Vector3r axisWidth = m_rotation.col(2);
-    Vector3r emitVel = m_velocity * axisDepth;
+    Vector3r bulkEmitVel = m_velocity * axisDepth;
     Simulation* sim = Simulation::getCurrent();
     const Real particleRadius = sim->getParticleRadius();
     const Real particleDiameter = static_cast<Real>(2.0) * particleRadius;
@@ -128,7 +129,6 @@ void Emitter::emitParticles(std::vector<unsigned int>& reusedParticles, unsigned
                     {
                         m_model->setPosition(indexNextNewParticle, spawnPos);
                         m_model->setParticleState(indexNextNewParticle, ParticleState::AnimatedByEmitter);
-                        m_model->setVelocity(indexNextNewParticle, emitVel);
                         m_model->setObjectId(indexNextNewParticle, m_objectId);
 
                         indexNextNewParticle++;
@@ -149,9 +149,24 @@ void Emitter::emitParticles(std::vector<unsigned int>& reusedParticles, unsigned
 
             if (insideEmitter) {
                 // Advect ALL particles inside the emitter.
-                // TODO: Doesn't get all particles within the boundary. Perhaps use getSizeExtraMargin()?
-                m_model->setPosition(i, tempPos + timeStepSize * emitVel);
-                m_model->setVelocity(i, emitVel);
+                //
+                // TODO: Doesn't get all particles within the rigid body. Perhaps use getSizeExtraMargin()?
+                Vector3r localEmitVel;
+                if (m_type == 1 && m_velocityProfile != 0) {
+                    // different velocity profiles for circular emitters
+                    const Vector3r localPos = tempPos - m_x;
+                    const Real r = sqrt(pow(axisWidth.dot(localPos), 2.0) + (pow(axisHeight.dot(localPos), 2.0)));
+                    const Vector3r maxEmitVel =
+                        (1.0 / (1.0 - (2.0 / (static_cast<Real>(m_velocityProfile) + 2.0)))) * bulkEmitVel;
+                    const Real relativeRadius = r / (m_size[1] / 2.0);
+                    localEmitVel = maxEmitVel * (1.0 - pow(relativeRadius, static_cast<Real>(m_velocityProfile)));
+                }
+                else {// box shaped emitter or uniform velocity profile
+                    localEmitVel = bulkEmitVel;
+                }
+
+                m_model->setPosition(i, tempPos + timeStepSize * localEmitVel);
+                m_model->setVelocity(i, localEmitVel);
             }
             if (!insideEmitter && m_model->getParticleState(i) == ParticleState::AnimatedByEmitter
                 && m_model->getObjectId(i) == m_objectId)
@@ -172,7 +187,6 @@ void Emitter::emitParticles(std::vector<unsigned int>& reusedParticles, unsigned
                     // spawn a new particle
                     m_model->setPosition(indexNextNewParticle, tempPos - axisDepth * particleDiameter * m_depth);
                     m_model->setParticleState(indexNextNewParticle, ParticleState::AnimatedByEmitter);
-                    m_model->setVelocity(indexNextNewParticle, emitVel);
                     m_model->setObjectId(indexNextNewParticle, m_objectId);
 
                     indexNextNewParticle++;

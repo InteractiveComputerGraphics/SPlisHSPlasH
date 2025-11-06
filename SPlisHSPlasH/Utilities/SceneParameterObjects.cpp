@@ -139,6 +139,7 @@ int EmitterParameterObject::EMITTER_ROTANGLE = -1;
 int EmitterParameterObject::EMITTER_STARTTIME = -1;
 int EmitterParameterObject::EMITTER_ENDTIME = -1;
 int EmitterParameterObject::EMITTER_TYPE = -1;
+int EmitterParameterObject::EMITTER_VELOCITYPROFILE = -1;
 
 void EmitterParameterObject::initParameters()
 {
@@ -185,6 +186,11 @@ void EmitterParameterObject::initParameters()
 	EMITTER_USEBOUNDARY = createBoolParameter("useBoundary", "Use Boundary", &useBoundary);
     setGroup(EMITTER_USEBOUNDARY, "Emitter");
     setDescription(EMITTER_USEBOUNDARY, "Creates a boundary model around the emitter if defined");
+
+    EMITTER_VELOCITYPROFILE =
+        createNumericParameter<unsigned int>("velocityProfile", "Velocity Profile", &velocityProfile);
+    setGroup(EMITTER_VELOCITYPROFILE, "Emitter");
+    setDescription(EMITTER_VELOCITYPROFILE, "Defines the velocity profile of the emitter.");
 }
 
 

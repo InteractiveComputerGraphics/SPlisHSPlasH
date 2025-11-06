@@ -340,10 +340,11 @@ void UtilitiesModule(py::module m) {
     py::class_<Utilities::EmitterParameterObject, GenParam::ParameterObject>(m_sub_sub, "EmitterData")
         .def(py::init<>())
         .def(py::init<std::string, unsigned int, unsigned int, Vector3r, Real, Vector3r, Real, Real, Real, unsigned int,
-                      bool>(),
+                      bool, unsigned int>(),
              "id"_a = "Fluid", "width"_a = 5, "height"_a = 5, "x"_a = Vector3r::Zero(), "velocity"_a = 1,
              "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "emitStartTime"_a = 0,
-             "emitEndTime"_a = std::numeric_limits<Real>::max(), "type"_a = 0, "useBoundary"_a = false)
+             "emitEndTime"_a = std::numeric_limits<Real>::max(), "type"_a = 0, "useBoundary"_a = false,
+             "velocityProfile"_a = 0)
         .def_readwrite("id", &Utilities::EmitterParameterObject::id)
         .def_readwrite("width", &Utilities::EmitterParameterObject::width)
         .def_readwrite("height", &Utilities::EmitterParameterObject::height)

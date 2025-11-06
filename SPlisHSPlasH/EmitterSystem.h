@@ -35,7 +35,7 @@ namespace SPH
 			void addEmitter(const unsigned int width, const unsigned int height,
 				const Vector3r &pos, const Matrix3r & rotation,
 				const Real velocity,const unsigned int type,
-				const bool useBoundary = false);
+				const bool useBoundary = false, const unsigned int velocityProfile = 0);
 			unsigned int numEmitters() const { return static_cast<unsigned int>(m_emitters.size()); }
 			std::vector<Emitter*> &getEmitters() { return m_emitters; }
 

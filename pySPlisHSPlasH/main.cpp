@@ -33,6 +33,7 @@ void DFSPHModule(py::module);
 void DragModule(py::module);
 void ElasticityModule(py::module);
 void IISPHModule(py::module);
+void ICSPHModule(py::module);
 void PBFModule(py::module);
 void PCISPHModule(py::module);
 void PFModule(py::module);
@@ -40,6 +41,7 @@ void SurfaceTensionModule(py::module);
 void ViscosityModule(py::module);
 void VorticityModule(py::module);
 void WCSPHModule(py::module);
+void XSPHModule(py::module);
 
 void ExtrasModule(py::module);
 
@@ -62,6 +64,7 @@ PYBIND11_MODULE(pysplishsplash, m) {
     DragModule(m);
     ElasticityModule(m);
     IISPHModule(m);
+    ICSPHModule(m);
     PBFModule(m);
     PCISPHModule(m);
     PFModule(m);
@@ -71,6 +74,7 @@ PYBIND11_MODULE(pysplishsplash, m) {
     WCSPHModule(m);
     GUIModule(m);
     ExporterModule(m);
+    XSPHModule(m);
 
     ExtrasModule(m);
 }

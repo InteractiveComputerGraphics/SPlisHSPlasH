@@ -72,6 +72,7 @@ void SimulationModule(py::module m_sub){
             .value("IISPH", SPH::SimulationMethods::IISPH)
             .value("DFSPH", SPH::SimulationMethods::DFSPH)
             .value("PF", SPH::SimulationMethods::PF)
+            .value("ICSPH", SPH::SimulationMethods::ICSPH)
             .value("NumSimulationMethods", SPH::SimulationMethods::NumSimulationMethods);
 
     // ---------------------------------------
@@ -83,10 +84,12 @@ void SimulationModule(py::module m_sub){
             .value("Bender2019", SPH::BoundaryHandlingMethods::Bender2019)
             .value("NumSimulationMethods", SPH::BoundaryHandlingMethods::NumSimulationMethods);
 
+
+
     // ---------------------------------------
     // Class Simulation
     // ---------------------------------------
-    py::class_<SPH::Simulation, GenParam::ParameterObject>(m_sub, "Simulation")
+    auto sim = py::class_<SPH::Simulation, GenParam::ParameterObject>(m_sub, "Simulation")
             .def_readwrite_static("SIM_2D", &SPH::Simulation::SIM_2D)
             .def_readwrite_static("PARTICLE_RADIUS", &SPH::Simulation::PARTICLE_RADIUS)
             .def_readwrite_static("GRAVITATION", &SPH::Simulation::GRAVITATION)
@@ -189,17 +192,28 @@ void SimulationModule(py::module m_sub){
             .def("getNeighborhoodSearch", &SPH::Simulation::getNeighborhoodSearch, py::return_value_policy::reference_internal)
             .def("saveState", &SPH::Simulation::saveState)
             .def("loadState", &SPH::Simulation::loadState)
+            .def("addDragMethod", &SPH::Simulation::addDragMethod)
+            .def("getDragMethods", &SPH::Simulation::getDragMethods)
+            .def("addElasticityMethod",  &SPH::Simulation::addElasticityMethod)
+            .def("getElasticityMethods", &SPH::Simulation::getElasticityMethods)
+            .def("addSurfaceTensionMethod",  &SPH::Simulation::addSurfaceTensionMethod)
+            .def("getSurfaceTensionMethods", &SPH::Simulation::getSurfaceTensionMethods)
             .def("addViscosityMethod", &SPH::Simulation::addViscosityMethod)
             .def("getViscosityMethods", &SPH::Simulation::getViscosityMethods)
             .def("addVorticityMethod", &SPH::Simulation::addVorticityMethod)
             .def("getVorticityMethods", &SPH::Simulation::getVorticityMethods)
-            .def("addDragMethod", &SPH::Simulation::addDragMethod)
-            .def("getDragMethods", &SPH::Simulation::getDragMethods)
             .def("numberOfPointSets", &SPH::Simulation::numberOfPointSets)
             .def("numberOfNeighbors", &SPH::Simulation::numberOfNeighbors)
             .def("getNeighbor", &SPH::Simulation::getNeighbor)
             .def("getNeighborList", &SPH::Simulation::getNeighborList); // TODO: Might not work because of array pointer
 
+
+    // ---------------------------------------
+    // Class Non Pressure Force Method
+    // ---------------------------------------
+    py::class_<SPH::Simulation::NonPressureForceMethod>(sim, "NonPressureForceMethod")
+        .def_readonly("id", &SPH::Simulation::NonPressureForceMethod::m_id)
+        .def_readonly("name", &SPH::Simulation::NonPressureForceMethod::m_name);
 
 
     // ---------------------------------------
@@ -267,7 +281,8 @@ void SimulationModule(py::module m_sub){
 							"stopAt"_a = -1.0,
 							"param"_a = "")
             .def("initSimulation", &SPH::SimulatorBase::initSimulation)
-			.def("runSimulation", &SPH::SimulatorBase::runSimulation)
+            .def("initParameters", &SPH::SimulatorBase::initParameters)
+            .def("runSimulation", &SPH::SimulatorBase::runSimulation)
             .def("cleanup", &SPH::SimulatorBase::cleanup)
 
             .def("reset", &SPH::SimulatorBase::reset)
@@ -336,8 +351,9 @@ void SimulationModule(py::module m_sub){
             .def("getRigidBodyExporters", &SPH::SimulatorBase::getRigidBodyExporters)
 
             .def("activateExporter", &SPH::SimulatorBase::activateExporter)
+            .def("createExporters", &SPH::SimulatorBase::createExporters)
 
-			.def("setTimeStepCB", &SPH::SimulatorBase::setTimeStepCB)
+            .def("setTimeStepCB", &SPH::SimulatorBase::setTimeStepCB)
             .def("setResetCB", &SPH::SimulatorBase::setResetCB);
 
      // ---------------------------------------

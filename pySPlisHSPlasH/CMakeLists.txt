@@ -41,8 +41,8 @@ target_link_libraries(pysplishsplash PRIVATE SimulatorBase)
 add_dependencies(pysplishsplash SimulatorBase)
 
 add_custom_target(pysplishsplash_install
-        ${PYTHON_EXECUTABLE} setup.py bdist_wheel
-        COMMAND ${PYTHON_EXECUTABLE} -m pip install -I build/dist/py*.whl
+        ${Python_EXECUTABLE} setup.py bdist_wheel
+        COMMAND ${Python_EXECUTABLE} -m pip install -I build/dist/py*.whl
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 		
 OPTION(USE_EMBEDDED_PYTHON "Enable embedded Python support"	OFF)
@@ -80,6 +80,7 @@ if (USE_EMBEDDED_PYTHON)
 		ExporterModule.cpp
 		ExtrasModule.cpp
 		PBDModule.cpp
+		XSPHModule.cpp
 	)
 	
 	target_compile_definitions(pysplishsplash_embed PUBLIC -DUSE_EMBEDDED_PYTHON)	

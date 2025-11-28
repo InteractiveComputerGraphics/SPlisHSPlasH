@@ -9,25 +9,28 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Bender2017::METHOD_NAME = "Bender and Koschier 2017";
+int Viscosity_Bender2017::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Bender2017::ITERATIONS = -1;
 int Viscosity_Bender2017::MAX_ITERATIONS = -1;
 int Viscosity_Bender2017::MAX_ERROR = -1;
 
 
 Viscosity_Bender2017::Viscosity_Bender2017(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 	m_targetStrainRate.resize(model->numParticles(), Vector6r::Zero());
 	m_viscosityFactor.resize(model->numParticles(), Matrix6r::Zero());
 	m_viscosityLambda.resize(model->numParticles(), Vector6r::Zero());
 
+	m_viscosity = static_cast<Real>(0.01);
 	m_iterations = 0;
 	m_maxIter = 50;
-	m_maxError = 0.01;
+	m_maxError = static_cast<Real>(0.01);
 
-	model->addField({ "target strain rate", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_targetStrainRate[i][0]; } });
-	model->addField({ "viscosity factor", FieldType::Matrix6, [&](const unsigned int i) -> Real* { return &m_viscosityFactor[i](0,0); } });
-	model->addField({ "viscosity lambda", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_viscosityLambda[i][0]; } });
+	model->addField({ "target strain rate", METHOD_NAME, FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_targetStrainRate[i][0]; } });
+	model->addField({ "viscosity factor", METHOD_NAME, FieldType::Matrix6, [&](const unsigned int i) -> Real* { return &m_viscosityFactor[i](0,0); } });
+	model->addField({ "viscosity lambda", METHOD_NAME, FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_viscosityLambda[i][0]; } });
 }
 
 Viscosity_Bender2017::~Viscosity_Bender2017(void)
@@ -43,7 +46,13 @@ Viscosity_Bender2017::~Viscosity_Bender2017(void)
 
 void Viscosity_Bender2017::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
 	setGroup(ITERATIONS, "Fluid Model|Viscosity");
@@ -58,8 +67,8 @@ void Viscosity_Bender2017::initParameters()
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
 	setGroup(MAX_ERROR, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
-	rparam->setMinValue(1e-6);
+	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	rparam->setMinValue(static_cast<Real>(1e-6));
 }
 
 void Viscosity_Bender2017::step()

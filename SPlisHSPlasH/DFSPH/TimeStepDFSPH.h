@@ -26,6 +26,10 @@ namespace SPH
 	protected:
 		SimulationDataDFSPH m_simulationData;
 		const Real m_eps = static_cast<Real>(1.0e-5);
+		unsigned int m_iterations;
+		Real m_maxError;
+		unsigned int m_minIterations;
+		unsigned int m_maxIterations;
 		bool m_enableDivergenceSolver;
 		unsigned int m_iterationsV;
 		Real m_maxErrorV;
@@ -49,6 +53,11 @@ namespace SPH
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
+		static int SOLVER_ITERATIONS;
+		static int MIN_ITERATIONS;
+		static int MAX_ITERATIONS;
+		static int MAX_ERROR;
 		static int SOLVER_ITERATIONS_V;
 		static int MAX_ITERATIONS_V;
 		static int MAX_ERROR_V;
@@ -62,6 +71,8 @@ namespace SPH
 		virtual void reset();
 
 		virtual void resize();
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		virtual int getNumIterations() { return m_iterations; }
 	};
 }
 

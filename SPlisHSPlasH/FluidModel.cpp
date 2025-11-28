@@ -7,11 +7,7 @@
 #include "NeighborhoodSearch.h"
 #include "Simulation.h"
 #include "EmitterSystem.h"
-#include "Viscosity/ViscosityBase.h"
-#include "SurfaceTension/SurfaceTensionBase.h"
-#include "Vorticity/VorticityBase.h"
-#include "Drag/DragBase.h"
-#include "Elasticity/ElasticityBase.h"
+#include "NonPressureForceBase.h"
 #include "XSPH.h"
 
 
@@ -504,7 +500,7 @@ void FluidModel::setSurfaceTensionMethod(const unsigned int val)
 	{
 		if (stMethods[i].m_id == m_surfaceTensionMethod)
 		{
-			m_surfaceTension = static_cast<SurfaceTensionBase*>(stMethods[i].m_creator(this));
+			m_surfaceTension = static_cast<NonPressureForceBase*>(stMethods[i].m_creator(this));
 			break;
 		}
 	}
@@ -551,7 +547,7 @@ void FluidModel::setViscosityMethod(const unsigned int val)
 	{
 		if (viscoMethods[i].m_id == m_viscosityMethod)
 		{
-			m_viscosity = static_cast<ViscosityBase*>(viscoMethods[i].m_creator(this));
+			m_viscosity = static_cast<NonPressureForceBase*>(viscoMethods[i].m_creator(this));
 			break;
 		}
 	}
@@ -597,7 +593,7 @@ void FluidModel::setVorticityMethod(const unsigned int val)
 	for (unsigned int i = 0; i < vorticityMethods.size(); i++)
 	{
 		if (vorticityMethods[i].m_id == m_vorticityMethod)
-			m_vorticity = static_cast<VorticityBase*>(vorticityMethods[i].m_creator(this));
+			m_vorticity = static_cast<NonPressureForceBase*>(vorticityMethods[i].m_creator(this));
 	}
 
 	if (m_vorticity != nullptr)
@@ -641,7 +637,7 @@ void FluidModel::setDragMethod(const unsigned int val)
 	for (unsigned int i = 0; i < dragMethods.size(); i++)
 	{
 		if (dragMethods[i].m_id == m_dragMethod)
-			m_drag = static_cast<DragBase*>(dragMethods[i].m_creator(this));
+			m_drag = static_cast<NonPressureForceBase*>(dragMethods[i].m_creator(this));
 	}
 
 	if (m_drag != nullptr)
@@ -684,7 +680,7 @@ void FluidModel::setElasticityMethod(const unsigned int val)
 	for (unsigned int i = 0; i < elasticityMethods.size(); i++)
 	{
 		if (elasticityMethods[i].m_id == m_elasticityMethod)
-			m_elasticity = static_cast<ElasticityBase*>(elasticityMethods[i].m_creator(this));
+			m_elasticity = static_cast<NonPressureForceBase*>(elasticityMethods[i].m_creator(this));
 	}
 
 	if (m_elasticity != nullptr)
@@ -698,7 +694,7 @@ void FluidModel::setElasticityMethod(const unsigned int val)
 void FluidModel::addField(const FieldDescription &field)
 {
 	m_fields.push_back(field);
-	std::sort(m_fields.begin(), m_fields.end(), [](FieldDescription &i, FieldDescription &j) -> bool { return (i.name < j.name); });
+	std::sort(m_fields.begin(), m_fields.end(), [](FieldDescription& i, FieldDescription& j) -> bool { if (i.methodName == j.methodName) return (i.name < j.name); else return (i.methodName < j.methodName); });
 }
 
 void FluidModel::removeFieldByName(const std::string &fieldName)

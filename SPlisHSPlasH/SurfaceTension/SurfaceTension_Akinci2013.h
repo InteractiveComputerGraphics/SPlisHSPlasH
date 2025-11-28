@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,16 +13,26 @@ namespace SPH
 	* References:
 	* - [AAT13] Nadir Akinci, Gizem Akinci, and Matthias Teschner. Versatile surface tension and adhesion for sph fluids. ACM Trans. Graph., 32(6):182:1-182:8, November 2013. URL: http://doi.acm.org/10.1145/2508363.2508395
 	*/
-	class SurfaceTension_Akinci2013 : public SurfaceTensionBase
+	class SurfaceTension_Akinci2013 : public NonPressureForceBase
 	{
 	protected: 
+		Real m_surfaceTension;
+		Real m_surfaceTensionBoundary;
+
 		std::vector<Vector3r> m_normals;
 
+		virtual void initParameters();
+
 	public:
+		static std::string METHOD_NAME;
+		static int SURFACE_TENSION;
+		static int SURFACE_TENSION_BOUNDARY;
+
 		SurfaceTension_Akinci2013(FluidModel *model);
 		virtual ~SurfaceTension_Akinci2013(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_Akinci2013(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

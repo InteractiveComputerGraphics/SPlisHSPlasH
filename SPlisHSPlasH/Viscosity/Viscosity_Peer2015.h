@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 
 
@@ -16,13 +16,14 @@ namespace SPH
 	* References:
 	* - [PICT15] A. Peer, M. Ihmsen, J. Cornelis, and M. Teschner. An Implicit Viscosity Formulation for SPH Fluids. ACM Trans. Graph., 34(4):1-10, 2015. URL: http://doi.acm.org/10.1145/2766925
 	*/
-	class Viscosity_Peer2015 : public ViscosityBase
+	class Viscosity_Peer2015 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Real> m_density;
 		std::vector<Matrix3r> m_targetNablaV;
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner1D> Solver;
 		Solver m_solver;
+		Real m_viscosity;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;
 		Real m_maxError;
@@ -31,6 +32,8 @@ namespace SPH
 		void computeDensities();
 
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -39,6 +42,7 @@ namespace SPH
 		virtual ~Viscosity_Peer2015(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Peer2015(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

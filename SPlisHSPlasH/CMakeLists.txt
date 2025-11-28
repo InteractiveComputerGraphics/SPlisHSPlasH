@@ -71,7 +71,6 @@ set(ICSPH_SOURCE_FILES
 	)	
 	
 set(SURFACETENSION_HEADER_FILES
-	SurfaceTension/SurfaceTensionBase.h
 	SurfaceTension/SurfaceTension_Becker2007.h
 	SurfaceTension/SurfaceTension_Akinci2013.h
 	SurfaceTension/SurfaceTension_He2014.h
@@ -79,7 +78,6 @@ set(SURFACETENSION_HEADER_FILES
 	)
 	
 set(SURFACETENSION_SOURCE_FILES
-	SurfaceTension/SurfaceTensionBase.cpp
 	SurfaceTension/SurfaceTension_Becker2007.cpp
 	SurfaceTension/SurfaceTension_Akinci2013.cpp
 	SurfaceTension/SurfaceTension_He2014.cpp
@@ -87,7 +85,6 @@ set(SURFACETENSION_SOURCE_FILES
 	)	
 
 set(VISCOSITY_HEADER_FILES
-	Viscosity/ViscosityBase.h
 	Viscosity/Viscosity_Standard.h
 	Viscosity/Viscosity_Bender2017.h
 	Viscosity/Viscosity_Peer2015.h
@@ -97,7 +94,6 @@ set(VISCOSITY_HEADER_FILES
 	)
 	
 set(VISCOSITY_SOURCE_FILES
-	Viscosity/ViscosityBase.cpp
 	Viscosity/Viscosity_Standard.cpp
 	Viscosity/Viscosity_Bender2017.cpp
 	Viscosity/Viscosity_Peer2015.cpp
@@ -107,38 +103,34 @@ set(VISCOSITY_SOURCE_FILES
 	)	
 	
 set(VORTICITY_HEADER_FILES
-	Vorticity/VorticityBase.h
 	Vorticity/MicropolarModel_Bender2017.h
 	Vorticity/VorticityConfinement.h
+	Vorticity/VorticityRefinement_Liu2021.h
 	)
 	
 set(VORTICITY_SOURCE_FILES
-	Vorticity/VorticityBase.cpp
 	Vorticity/MicropolarModel_Bender2017.cpp
 	Vorticity/VorticityConfinement.cpp
+	Vorticity/VorticityRefinement_Liu2021.cpp
 	)	
 
 set(DRAG_HEADER_FILES
-	Drag/DragBase.h
 	Drag/DragForce_Gissler2017.h
 	Drag/DragForce_Macklin2014.h
 	)
 	
 set(DRAG_SOURCE_FILES
-	Drag/DragBase.cpp
 	Drag/DragForce_Gissler2017.cpp
 	Drag/DragForce_Macklin2014.cpp
 	)	
 	
 set(ELASTICITY_HEADER_FILES
-	Elasticity/ElasticityBase.h
 	Elasticity/Elasticity_Becker2009.h	
 	Elasticity/Elasticity_Peer2018.h
 	Elasticity/Elasticity_Kugelstadt2021.h
 	)
 	
 set(ELASTICITY_SOURCE_FILES
-	Elasticity/ElasticityBase.cpp
 	Elasticity/Elasticity_Becker2009.cpp
 	Elasticity/Elasticity_Peer2018.cpp
 	Elasticity/Elasticity_Kugelstadt2021.cpp

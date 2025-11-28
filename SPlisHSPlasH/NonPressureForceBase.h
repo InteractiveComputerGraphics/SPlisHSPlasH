@@ -20,6 +20,8 @@ namespace SPH
         NonPressureForceBase& operator=(const NonPressureForceBase&) = delete;
 		virtual ~NonPressureForceBase(void);
 
+		/** returns the name of the method */
+		virtual std::string getMethodName() = 0;
 		virtual void step() = 0;
 		virtual void reset() {};
 

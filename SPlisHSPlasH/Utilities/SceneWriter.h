@@ -2,6 +2,8 @@
 #define __SceneWriter_h__
 
 #include "SPlisHSPlasH/Common.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
+#include "SPlisHSPlasH/TimeStep.h"
 #include "extern/json/json.hpp"
 #include <vector>
 #include "ParameterObject.h"
@@ -26,7 +28,7 @@ namespace Utilities
 		bool writeValue(nlohmann::json &j, const std::string& key, const T &v)
 		{
 			if (j.is_null())
-				return false;
+				j = { {key, v} };
 
 			j[key] = v;
 			return true;
@@ -64,6 +66,7 @@ namespace Utilities
 		}
 
 		void updateMaterialParameterConfig(const std::string& key, GenParam::ParameterObject* paramObj);
+		void updateMaterialParameterConfig(const std::string& key, SPH::NonPressureForceBase* paramObj);
 		template <typename T>
 		void updateMaterialParameterConfig(const std::string& id, const std::string& key, const T &v)
 		{
@@ -81,6 +84,7 @@ namespace Utilities
 			}
 		}
 		void writeParameterObject(const std::string &key, GenParam::ParameterObject *paramObj);
+		void writeTimeStepParameterObject(const std::string& key, SPH::TimeStep* paramObj);
 	};
 
 }

@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 
 
@@ -16,7 +16,7 @@ namespace SPH
 	* References:
 	* - [PT16] Andreas Peer and Matthias Teschner. Prescribed Velocity Gradients for Highly Viscous SPH Fluids with Vorticity Diffusion. IEEE Transactions on Visualization and Computer Graphics, 2016. URL: https://doi.org/10.1109/TVCG.2016.2636144
 	*/
-	class Viscosity_Peer2016 : public ViscosityBase
+	class Viscosity_Peer2016 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Real> m_density;
@@ -25,6 +25,7 @@ namespace SPH
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, JacobiPreconditioner1D> Solver;
 		Solver m_solverV;
 		Solver m_solverOmega;
+		Real m_viscosity;
 		unsigned int m_iterationsV;
 		unsigned int m_iterationsOmega;
 		unsigned int m_maxIterV;
@@ -36,6 +37,8 @@ namespace SPH
 		void computeDensities();
 
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int ITERATIONS_V;
 		static int ITERATIONS_OMEGA;
 		static int MAX_ITERATIONS_V;
@@ -47,6 +50,7 @@ namespace SPH
 		virtual ~Viscosity_Peer2016(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Peer2016(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

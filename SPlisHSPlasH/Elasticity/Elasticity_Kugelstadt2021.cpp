@@ -13,7 +13,11 @@
 using namespace SPH;
 using namespace GenParam;
 
-
+std::string Elasticity_Kugelstadt2021::METHOD_NAME = "Kugelstadt et al. 2021";
+int Elasticity_Kugelstadt2021::YOUNGS_MODULUS = -1;
+int Elasticity_Kugelstadt2021::POISSON_RATIO = -1;
+int Elasticity_Kugelstadt2021::FIXED_BOX_MIN = -1;
+int Elasticity_Kugelstadt2021::FIXED_BOX_MAX = -1;
 int Elasticity_Kugelstadt2021::ITERATIONS_V = -1;
 int Elasticity_Kugelstadt2021::MAX_ITERATIONS_V = -1;
 int Elasticity_Kugelstadt2021::MAX_ERROR_V = -1;
@@ -22,7 +26,7 @@ int Elasticity_Kugelstadt2021::MAX_NEIGHBORS = -1;
 
 
 Elasticity_Kugelstadt2021::Elasticity_Kugelstadt2021(FluidModel *model) :
-	ElasticityBase(model)
+	NonPressureForceBase(model)
 {
 	const unsigned int numParticles = model->numActiveParticles();
 	m_restVolumes.resize(numParticles);
@@ -36,18 +40,22 @@ Elasticity_Kugelstadt2021::Elasticity_Kugelstadt2021(FluidModel *model) :
 	m_RL.resize(numParticles);								// stores the rotation matrix times the matrix L
 	m_vDiff.resize(numParticles, Vector3r::Zero());			// velocity difference used for the warm start of the volume cg solver
 
+	m_youngsModulus = static_cast<Real>(100000.0);
+	m_poissonRatio = static_cast<Real>(0.3);
 	m_iterationsV = 0;
 	m_maxIterV = 100;
 	m_maxErrorV = static_cast<Real>(1.0e-4);
 	m_alpha = 0.0;
 	m_youngsModulus = 5000000;
 	m_maxNeighbors = -1;
+	m_fixedBoxMin.setZero();
+	m_fixedBoxMax.setZero();
 
-	model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
-	model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
-	model->addField({ "stress", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_stress[i]; } });
-	model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
-	model->addField({ "correction matrix", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_L[i](0,0); } });
+	model->addField({ "rest volume", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
+	model->addField({ "rotation", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
+	model->addField({ "stress", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_stress[i]; } });
+	model->addField({ "deformation gradient", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
+	model->addField({ "correction matrix", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_L[i](0,0); } });
 }
 
 Elasticity_Kugelstadt2021::~Elasticity_Kugelstadt2021(void)
@@ -70,9 +78,10 @@ void Elasticity_Kugelstadt2021::deferredInit()
 	initValues();
 }
 
-
 void Elasticity_Kugelstadt2021::initParameters()
 {
+	NonPressureForceBase::initParameters();
+
 	ParameterBase::GetFunc<Real> getFctYM = [&]()-> Real { return m_youngsModulus; };
 	ParameterBase::SetFunc<Real> setFctYM = [&](Real val) 
 	{ 
@@ -168,6 +177,26 @@ void Elasticity_Kugelstadt2021::initParameters()
 	setGroup(FIXED_BOX_MAX, "Fluid Model|Elasticity");
 	setDescription(FIXED_BOX_MAX, "Maximum point of box of which contains the fixed particles.");
 	getParameter(FIXED_BOX_MAX)->setReadOnly(true);
+}
+
+/** Mark all particles in the bounding box as fixed.
+*/
+void Elasticity_Kugelstadt2021::determineFixedParticles()
+{
+	const unsigned int numParticles = m_model->numActiveParticles();
+
+	if (!m_fixedBoxMin.isZero() || !m_fixedBoxMax.isZero())
+	{
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			const Vector3r& x = m_model->getPosition0(i);
+			if ((x[0] > m_fixedBoxMin[0]) && (x[1] > m_fixedBoxMin[1]) && (x[2] > m_fixedBoxMin[2]) &&
+				(x[0] < m_fixedBoxMax[0]) && (x[1] < m_fixedBoxMax[1]) && (x[2] < m_fixedBoxMax[2]))
+			{
+				m_model->setParticleState(i, ParticleState::Fixed);
+			}
+		}
+	}
 }
 
 /** Compute an MD4 check sum using the neighborhood structure in order to 
@@ -1430,46 +1459,41 @@ void Elasticity_Kugelstadt2021::matrixVecProd(const Real* vec, Real *result, voi
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			if (model->getParticleState(i) == ParticleState::Active)
+			const unsigned int i0 = current_to_initial_index[i];
+			const Vector3r& pi = Eigen::Map<const Vector3r>(&vec[3 * i], 3);
+			const unsigned int numNeighbors = (unsigned int)initialNeighbors[i0].size();
+
+			const Vector3f8 pi_avx(pi);
+
+			//////////////////////////////////////////////////////////////////////////
+			// compute corotated deformation gradient 
+			//////////////////////////////////////////////////////////////////////////
+			Scalarf8 trace_avx;
+			trace_avx.setZero();
+			for (unsigned int j = 0; j < numNeighbors; j += 8)
 			{
-				const unsigned int i0 = current_to_initial_index[i];
-				const Vector3r& pi = Eigen::Map<const Vector3r>(&vec[3 * i], 3);
-				const unsigned int numNeighbors = (unsigned int)initialNeighbors[i0].size();
+				const unsigned int count = std::min(numNeighbors - j, 8u);
+				unsigned int nIndices[8];
+				for (auto k = 0u; k < count; k++)
+					nIndices[k] = initial_to_current_index[initialNeighbors[i0][j + k]];
+				const Vector3f8 pj_avx = convertVec_zero(nIndices, &vec[0], count);
+				const Vector3f8 pj_pi = pj_avx - pi_avx;
 
-				const Vector3f8 pi_avx(pi);
+				const Vector3f8& correctedRotatedKernel = precomp_RL_gradW8[precomputed_indices8[i] + j / 8];
 
-				//////////////////////////////////////////////////////////////////////////
-				// compute corotated deformation gradient 
-				//////////////////////////////////////////////////////////////////////////
-				Scalarf8 trace_avx;
-				trace_avx.setZero();
-				for (unsigned int j = 0; j < numNeighbors; j += 8)
-				{
-					const unsigned int count = std::min(numNeighbors - j, 8u);
-					unsigned int nIndices[8];
-					for (auto k = 0u; k < count; k++)
-						nIndices[k] = initial_to_current_index[initialNeighbors[i0][j + k]];
-					const Vector3f8 pj_avx = convertVec_zero(nIndices, &vec[0], count);
-					const Vector3f8 pj_pi = pj_avx - pi_avx;
-
-					const Vector3f8& correctedRotatedKernel = precomp_RL_gradW8[precomputed_indices8[i] + j / 8];
-
-					// We need the trace of the strain tensor. Therefore, we are only interested in the
-					// diagonal elements which are F_ii-1. However, instead of computing the trace
-					// of a dyadic product, we can determine the dot product of the vectors to get the trace
-					// of F. Then the trace of the strain is the result minus 3. 
-					trace_avx += pj_pi.dot(correctedRotatedKernel);
-				}
-				Real trace = trace_avx.reduce();
-				trace *= dt;
-
-				//////////////////////////////////////////////////////////////////////////
-				// First Piola Kirchhoff stress = lambda trace(epsilon) I
-				//////////////////////////////////////////////////////////////////////////
-				stress[i] = elasticity->m_lambda * trace;
+				// We need the trace of the strain tensor. Therefore, we are only interested in the
+				// diagonal elements which are F_ii-1. However, instead of computing the trace
+				// of a dyadic product, we can determine the dot product of the vectors to get the trace
+				// of F. Then the trace of the strain is the result minus 3. 
+				trace_avx += pj_pi.dot(correctedRotatedKernel);
 			}
-			else
-				stress[i] = 0.0;
+			Real trace = trace_avx.reduce();
+			trace *= dt;
+
+			//////////////////////////////////////////////////////////////////////////
+			// First Piola Kirchhoff stress = lambda trace(epsilon) I
+			//////////////////////////////////////////////////////////////////////////
+			stress[i] = elasticity->m_lambda * trace;
 		}
 	}
 

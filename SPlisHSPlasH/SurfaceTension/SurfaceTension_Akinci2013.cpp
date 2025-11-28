@@ -6,19 +6,44 @@
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+std::string SurfaceTension_Akinci2013::METHOD_NAME = "Akinci et al. 2013";
+int SurfaceTension_Akinci2013::SURFACE_TENSION = -1;
+int SurfaceTension_Akinci2013::SURFACE_TENSION_BOUNDARY = -1;
+
 
 SurfaceTension_Akinci2013::SurfaceTension_Akinci2013(FluidModel *model) :
-	SurfaceTensionBase(model)
+	NonPressureForceBase(model)
 {
+	m_surfaceTension = static_cast<Real>(0.05);
+	m_surfaceTensionBoundary = static_cast<Real>(0.01);
 	m_normals.resize(model->numParticles(), Vector3r::Zero());
 
-	model->addField({ "normal", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_normals[i][0]; }, false });
+	model->addField({ "normals", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_normals[i][0]; }, false });
 }
 
 SurfaceTension_Akinci2013::~SurfaceTension_Akinci2013(void)
 {
-	m_model->removeFieldByName("normal");
+	m_model->removeFieldByName("normals");
 	m_normals.clear();
+}
+
+void SurfaceTension_Akinci2013::initParameters()
+{
+	NonPressureForceBase::initParameters();
+
+	SURFACE_TENSION = createNumericParameter("surfaceTension", "Surface tension coefficient", &m_surfaceTension);
+	setGroup(SURFACE_TENSION, "Fluid Model|Surface tension");
+	setDescription(SURFACE_TENSION, "Coefficient for the surface tension computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION));
+	rparam->setMinValue(0.0);
+
+	SURFACE_TENSION_BOUNDARY = createNumericParameter("surfaceTensionBoundary", "Boundary surface tension coefficient", &m_surfaceTensionBoundary);
+	setGroup(SURFACE_TENSION_BOUNDARY, "Fluid Model|Surface tension");
+	setDescription(SURFACE_TENSION_BOUNDARY, "Coefficient for the surface tension computation at the boundary");
+	rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION_BOUNDARY));
+	rparam->setMinValue(0.0);
 }
 
 

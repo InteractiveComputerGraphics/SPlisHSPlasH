@@ -34,11 +34,6 @@ void TimeModule(py::module m_sub) {
     // Abstract Class Time Step
     // ---------------------------------------
     py::class_<SPH::TimeStep, GenParam::ParameterObject>(m_sub, "TimeStep")
-            .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStep::SOLVER_ITERATIONS)
-            .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStep::MIN_ITERATIONS)
-            .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStep::MAX_ITERATIONS)
-            .def_readwrite_static("MAX_ERROR", &SPH::TimeStep::MAX_ERROR)
-
             .def("step", &SPH::TimeStep::step)
             .def("reset", &SPH::TimeStep::reset)
             .def("init", &SPH::TimeStep::init)

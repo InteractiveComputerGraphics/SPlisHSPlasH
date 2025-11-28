@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,17 +13,27 @@ namespace SPH
 	* References:
 	* - [HWZ+14] Xiaowei He, Huamin Wang, Fengjun Zhang, Hongan Wang, Guoping Wang, and Kun Zhou. Robust simulation of sparsely sampled thin features in SPH-based free surface flows. ACM Trans. Graph., 34(1):7:1-7:9, December 2014. URL: http://doi.acm.org/10.1145/2682630
 	*/
-	class SurfaceTension_He2014 : public SurfaceTensionBase
+	class SurfaceTension_He2014 : public NonPressureForceBase
 	{
 	protected: 
+		Real m_surfaceTension;
+		Real m_surfaceTensionBoundary;
+
 		std::vector<Real> m_color;
 		std::vector<Real> m_gradC2;
 
+		virtual void initParameters();
+
 	public:
+		static std::string METHOD_NAME;
+		static int SURFACE_TENSION;
+		static int SURFACE_TENSION_BOUNDARY;
+
 		SurfaceTension_He2014(FluidModel *model);
 		virtual ~SurfaceTension_He2014(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_He2014(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

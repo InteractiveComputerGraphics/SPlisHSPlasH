@@ -15,6 +15,11 @@ using namespace SPH;
 using namespace std;
 using namespace GenParam;
 
+std::string TimeStepICSPH::METHOD_NAME = "ICSPH";
+int TimeStepICSPH::SOLVER_ITERATIONS = -1;
+int TimeStepICSPH::MIN_ITERATIONS = -1;
+int TimeStepICSPH::MAX_ITERATIONS = -1;
+int TimeStepICSPH::MAX_ERROR = -1;
 int TimeStepICSPH::LAMBDA = -1;
 int TimeStepICSPH::PRESSURE_CLAMPING = -1;
 
@@ -22,6 +27,10 @@ TimeStepICSPH::TimeStepICSPH() :
 	TimeStep()
 {
 	m_simulationData.init();
+	m_iterations = 0;
+	m_minIterations = 2;
+	m_maxIterations = 100;
+	m_maxError = static_cast<Real>(0.01);
 	m_lambda = 200000;
 	m_clamping = true;
 
@@ -30,11 +39,11 @@ TimeStepICSPH::TimeStepICSPH() :
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "a_ii", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getAii(fluidModelIndex, i); } });
-		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); }, true });
-		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
-		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
-		model->addField({ "pressure gradient", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureGradient(fluidModelIndex, i)[0]; } });
+		model->addField({ "a_ii", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getAii(fluidModelIndex, i); } });
+		model->addField({ "pressure", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); }, true });
+		model->addField({ "advected density", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+		model->addField({ "pressure gradient", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureGradient(fluidModelIndex, i)[0]; } });
 	}
 }
 
@@ -56,6 +65,26 @@ TimeStepICSPH::~TimeStepICSPH(void)
 void TimeStepICSPH::initParameters()
 {
 	TimeStep::initParameters();
+
+	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
+	setGroup(SOLVER_ITERATIONS, "Simulation|ICSPH");
+	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
+	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
+
+	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
+	setGroup(MIN_ITERATIONS, "Simulation|ICSPH");
+	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
+
+	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
+	setGroup(MAX_ITERATIONS, "Simulation|ICSPH");
+	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
+	setGroup(MAX_ERROR, "Simulation|ICSPH");
+	setDescription(MAX_ERROR, "Maximal density error (%).");
+	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(static_cast<Real>(1e-6));
 
 	LAMBDA = createNumericParameter("lambda", "Lambda", &m_lambda);
 	setGroup(LAMBDA, "Simulation|ICSPH");
@@ -158,6 +187,7 @@ void TimeStepICSPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
+	m_iterations = 0;
 }
 
 

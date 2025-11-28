@@ -12,18 +12,7 @@ namespace SPH
 	*/
 	class TimeStep : public GenParam::ParameterObject
 	{
-	public: 
-		static int SOLVER_ITERATIONS;
-		static int MIN_ITERATIONS;
-		static int MAX_ITERATIONS;
-		static int MAX_ERROR;
-
 	protected:
-		unsigned int m_iterations;	
-		Real m_maxError;
-		unsigned int m_minIterations;
-		unsigned int m_maxIterations;	
-
 		/** Clear accelerations and add gravitation.
 		*/
 		void clearAccelerations(const unsigned int fluidModelIndex);
@@ -44,6 +33,8 @@ namespace SPH
 		*/
 		void computeDensities(const unsigned int fluidModelIndex);
 
+		/** returns the name of the method */
+		virtual std::string getMethodName() = 0;
 		virtual void step() = 0;
 		virtual void reset();
 
@@ -59,6 +50,8 @@ namespace SPH
 
 		virtual void saveState(BinaryFileWriter &binWriter) {};
 		virtual void loadState(BinaryFileReader &binReader) {};
+
+		virtual int getNumIterations() = 0;
 
 #ifdef USE_PERFORMANCE_OPTIMIZATION
 		void precomputeValues();

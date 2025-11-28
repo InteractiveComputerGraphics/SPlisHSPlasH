@@ -634,14 +634,13 @@ namespace SPH
 			{
 				const Real posX = stepSize * (Real)i;		// Store kernel values in the middle of an interval
 				m_W[i] = KernelType::W(posX);
-				KernelType::setRadius(val);
 				if (posX > 1.0e-9)
 					m_gradW[i] = KernelType::gradW(Vector3r(posX, 0.0, 0.0))[0] / posX;
 				else
 					m_gradW[i] = 0.0;
 			}
 			m_gradW[resolution] = 0.0;
-			m_W_zero = W(static_cast<Real>(0));
+			m_W_zero = KernelType::W(static_cast<Real>(0));
 		}
 
 	public:

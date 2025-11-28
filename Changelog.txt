@@ -1,3 +1,8 @@
+2.16.0
+	- added implementation of turbulence method: Liu et al., "Turbulent Details Simulation for SPH Fluids via Vorticity Refinement", Computer Graphics Forum, 2021
+	- Scene files now have a namespace for each pressure and non-pressure solver. This means existing scene files have to be adapted (see doc/file_format.md).
+	- fixed some bugs in the elasticity solvers
+
 2.15.1
 	- deactivated avx in Linux wheels due to problems 
 

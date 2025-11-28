@@ -15,5 +15,6 @@ void XSPHModule(py::module m_sub) {
         .def_readwrite_static("FLUID_COEFFICIENT", &SPH::XSPH::FLUID_COEFFICIENT)
         .def_readwrite_static("BOUNDARY_COEFFICIENT", &SPH::XSPH::BOUNDARY_COEFFICIENT)
 
-        .def(py::init<SPH::FluidModel*>());
+        .def(py::init<SPH::FluidModel*>())
+        .def("getMethodName", &SPH::XSPH::getMethodName);
 }

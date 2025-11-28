@@ -16,6 +16,11 @@ using namespace SPH;
 using namespace std;
 using namespace GenParam;
 
+std::string TimeStepPF::METHOD_NAME = "Projective Fluids";
+int TimeStepPF::SOLVER_ITERATIONS = -1;
+int TimeStepPF::MIN_ITERATIONS = -1;
+int TimeStepPF::MAX_ITERATIONS = -1;
+int TimeStepPF::MAX_ERROR = -1;
 int TimeStepPF::STIFFNESS = -1;
 
 #define Vec3Block(i) template segment<3>(3 * (i))
@@ -55,15 +60,20 @@ TimeStepPF::TimeStepPF() :
 {
 	m_simulationData.init();
 
+	m_iterations = 0;
+	m_minIterations = 2;
+	m_maxIterations = 100;
+	m_maxError = static_cast<Real>(1e-10);
+
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "oldPosition", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getOldPosition(fluidModelIndex, i)[0]; }, true });
-		model->addField({ "S", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getS(fluidModelIndex, i)[0]; } });
-		model->addField({ "numFluidNeighbors", FieldType::UInt, [this, fluidModelIndex](const unsigned int i) -> unsigned int* { return &m_simulationData.getNumFluidNeighbors(fluidModelIndex, i); } });
-		model->addField({ "diag", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDiag(fluidModelIndex, i)[0]; } });
+		model->addField({ "oldPosition", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getOldPosition(fluidModelIndex, i)[0]; }, true });
+		model->addField({ "S", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getS(fluidModelIndex, i)[0]; } });
+		model->addField({ "numFluidNeighbors", METHOD_NAME, FieldType::UInt, [this, fluidModelIndex](const unsigned int i) -> unsigned int* { return &m_simulationData.getNumFluidNeighbors(fluidModelIndex, i); } });
+		model->addField({ "diag", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDiag(fluidModelIndex, i)[0]; } });
 	}
 }
 
@@ -85,10 +95,30 @@ void TimeStepPF::initParameters()
 {
 	TimeStep::initParameters();
 
-	STIFFNESS = createNumericParameter("stiffnessPF", "Stiffness", &m_stiffness);
-	setGroup(STIFFNESS, "Simulation|PF");
+	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
+	setGroup(SOLVER_ITERATIONS, "Simulation|Projective Fluids");
+	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
+	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
+
+	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
+	setGroup(MIN_ITERATIONS, "Simulation|Projective Fluids");
+	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
+
+	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
+	setGroup(MAX_ITERATIONS, "Simulation|Projective Fluids");
+	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("maxError", "Max. error", &m_maxError);
+	setGroup(MAX_ERROR, "Simulation|Projective Fluids");
+	setDescription(MAX_ERROR, "Maximal error.");
+	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(static_cast<Real>(1e-12));
+
+	STIFFNESS = createNumericParameter("stiffness", "Stiffness", &m_stiffness);
+	setGroup(STIFFNESS, "Simulation|Projective Fluids");
 	setDescription(STIFFNESS, "Stiffness coefficient.");
-	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(1e-6);
+	static_cast<RealParameter*>(getParameter(STIFFNESS))->setMinValue(static_cast<Real>(1e-6));
 }
 
 void TimeStepPF::step()
@@ -139,6 +169,7 @@ void TimeStepPF::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
+	m_iterations = 0;
 }
 
 void TimeStepPF::initialGuessForPositions(const unsigned int fluidModelIndex)

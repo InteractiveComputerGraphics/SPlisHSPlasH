@@ -19,6 +19,10 @@ namespace SPH
 	{
 	protected:
 		SimulationDataPCISPH m_simulationData;
+		unsigned int m_iterations;
+		Real m_maxError;
+		unsigned int m_minIterations;
+		unsigned int m_maxIterations;
 
 		void pressureSolve();
 		void pressureSolveIteration(const unsigned int fluidModelIndex, Real &avg_density_err);
@@ -27,13 +31,24 @@ namespace SPH
 
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
+		/** Init all generic parameters */
+		virtual void initParameters();
+
 	public:
+		static std::string METHOD_NAME;
+		static int SOLVER_ITERATIONS;
+		static int MIN_ITERATIONS;
+		static int MAX_ITERATIONS;
+		static int MAX_ERROR;
+
 		TimeStepPCISPH();
 		virtual ~TimeStepPCISPH(void);
 
 		virtual void step();
 		virtual void reset();
 		virtual void resize();
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		virtual int getNumIterations() { return m_iterations; }
 	};
 }
 

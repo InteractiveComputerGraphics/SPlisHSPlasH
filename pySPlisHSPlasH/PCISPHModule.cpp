@@ -47,5 +47,11 @@ void PCISPHModule(py::module m_sub) {
     // Class Time Step PCISPH
     // ---------------------------------------
     py::class_<SPH::TimeStepPCISPH, SPH::TimeStep>(m_sub, "TimeStepPCISPH")
-            .def(py::init<>());
+            .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStepPCISPH::SOLVER_ITERATIONS)
+            .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStepPCISPH::MIN_ITERATIONS)
+            .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStepPCISPH::MAX_ITERATIONS)
+            .def_readwrite_static("MAX_ERROR", &SPH::TimeStepPCISPH::MAX_ERROR)
+            .def(py::init<>())
+            .def("getMethodName", &SPH::TimeStepPCISPH::getMethodName)
+            .def("getNumIterations", &SPH::TimeStepPCISPH::getNumIterations);
 }

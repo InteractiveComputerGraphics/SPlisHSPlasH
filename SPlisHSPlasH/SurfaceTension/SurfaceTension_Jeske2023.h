@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 #include "Utilities/Logger.h"
 
@@ -16,9 +16,12 @@ namespace SPH
 	* - [JWL+23] Jeske, Stefan Rhys, Lukas Westhofen, Fabian Löschner, José Antonio Fernández-Fernández, and Jan Bender. “Implicit Surface Tension for SPH Fluid Simulation.” ACM Transactions on Graphics, November 7, 2023. URL: https://doi.org/10.1145/3631936.
 
 	*/
-	class SurfaceTension_Jeske2023 : public SurfaceTensionBase
+	class SurfaceTension_Jeske2023 : public NonPressureForceBase
 	{
 	protected:
+		Real m_surfaceTension;
+		Real m_surfaceTensionBoundary;
+
         Real m_viscosity;
         Real m_boundaryViscosity;
 
@@ -46,6 +49,9 @@ namespace SPH
 		virtual void initParameters();
 		
 	public:
+		static std::string METHOD_NAME;
+		static int SURFACE_TENSION;
+		static int SURFACE_TENSION_BOUNDARY;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -57,6 +63,7 @@ namespace SPH
 		virtual ~SurfaceTension_Jeske2023(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_Jeske2023(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

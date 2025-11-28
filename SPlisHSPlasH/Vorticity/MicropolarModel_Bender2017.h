@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "VorticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,17 +13,21 @@ namespace SPH
 	* References:
 	* - [BKKW17] Jan Bender, Dan Koschier, Tassilo Kugelstadt, and Marcel Weiler. A micropolar material model for turbulent SPH fluids. In ACM SIGGRAPH / Eurographics Symposium on Computer Animation, SCA '17. ACM, 2017. URL: http://doi.acm.org/10.1145/3099564.3099578
 	*/
-	class MicropolarModel_Bender2017 : public VorticityBase
+	class MicropolarModel_Bender2017 : public NonPressureForceBase
 	{
 	protected:
 		std::vector<Vector3r> m_angularAcceleration;
 		std::vector<Vector3r> m_omega;
+
+		Real m_vorticityCoeff;
 		Real m_viscosityOmega;
 		Real m_inertiaInverse;
 
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
+		static int VORTICITY_COEFFICIENT;
 		static int VISCOSITY_OMEGA;
 		static int INERTIA_INVERSE;
 
@@ -31,7 +35,8 @@ namespace SPH
 		virtual ~MicropolarModel_Bender2017(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new MicropolarModel_Bender2017(model); }
-
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		
 		virtual void step();
 		virtual void reset();
 

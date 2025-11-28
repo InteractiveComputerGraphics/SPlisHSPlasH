@@ -7,38 +7,39 @@
 		"sim2D": true, 
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 2,
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.1,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
 		"particleAttributes": "velocity",
 		"renderWalls": 1,
-		"boundaryHandlingMethod": 0
+		"boundaryHandlingMethod": 0,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.1,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
-			"surfaceTension": 0.2,
-			"surfaceTensionMethod": 0,		
-			"viscosity": 0.01,
+			"density0": 1000, 
 			"viscosityMethod": 1, 
-			"vorticityMethod": 0, 
-			"vorticity": 0.1, 
-			"viscosityOmega": 0.05,
-			"inertiaInverse": 0.5,
 			"colorMapType": 0,
-			"renderMaxValue": 5.0
+			"renderMaxValue": 5.0,
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+            }
 		},
 		{
 			"id": "Viscous",
+			"density0": 1000, 
 			"viscosityMethod": 6,
 			"viscosity": 1,
 			"viscosityBoundary": 0,

@@ -11,22 +11,25 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Peer2015::METHOD_NAME = "Peer et al. 2015";
+int Viscosity_Peer2015::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Peer2015::ITERATIONS = -1;
 int Viscosity_Peer2015::MAX_ITERATIONS = -1;
 int Viscosity_Peer2015::MAX_ERROR = -1;
 
 
 Viscosity_Peer2015::Viscosity_Peer2015(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 	m_density.resize(model->numParticles(), 0.0);
-	m_targetNablaV.resize(model->numParticles(), Matrix3r::Zero());
+	m_targetNablaV.resize(model->numParticles(), Matrix3r::Identity());
 
+	m_viscosity = static_cast<Real>(0.01);
 	m_iterations = 0;
 	m_maxIter = 50;
-	m_maxError = 0.01;
+	m_maxError = static_cast<Real>(0.01);
 
-	model->addField({ "target nablaV", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_targetNablaV[i](0,0); } });
+	model->addField({ "target nablaV", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_targetNablaV[i](0,0); } });
 }
 
 Viscosity_Peer2015::~Viscosity_Peer2015(void)
@@ -39,7 +42,13 @@ Viscosity_Peer2015::~Viscosity_Peer2015(void)
 
 void Viscosity_Peer2015::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
 	setGroup(ITERATIONS, "Fluid Model|Viscosity");
@@ -54,8 +63,8 @@ void Viscosity_Peer2015::initParameters()
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
 	setGroup(MAX_ERROR, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
-	rparam->setMinValue(1e-6);
+	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	rparam->setMinValue(static_cast<Real>(1e-6));
 }
 
 void Viscosity_Peer2015::computeDensities()
@@ -307,6 +316,12 @@ void Viscosity_Peer2015::step()
 
 void Viscosity_Peer2015::reset()
 {
+	const unsigned int numParticles = m_model->numActiveParticles();
+	for (int i = 0; i < (int)numParticles; i++)
+	{
+		m_density[i] = 0.0;
+		m_targetNablaV[i].setIdentity();
+	}
 }
 
 void Viscosity_Peer2015::performNeighborhoodSearchSort()

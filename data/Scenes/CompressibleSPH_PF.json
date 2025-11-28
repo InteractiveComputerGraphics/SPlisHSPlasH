@@ -5,30 +5,30 @@
 		"cameraLookat": [0,0,0],
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 4,
-		"density0": 1000, 
 		"simulationMethod": 5,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.05,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffnessPF": 25000,
-		"exponent": 1,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
 		"boundaryHandlingMethod": 2,
-		"lambda": 100000, 
-		"pressureClamping": false
+		"Projective Fluids": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.05,
+			"stiffness": 25000
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
-			"viscosity": 0.01,
+			"density0": 1000, 
 			"viscosityMethod": 1,
-			"colorMapType": 1
+			"colorMapType": 1,
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+            }
 		}
 	],
 	"RigidBodies": [

@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ElasticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,9 +13,14 @@ namespace SPH
 	* References: 
 	* - [BIT09] Markus Becker, Markus Ihmsen, and Matthias Teschner. Corotated SPH for deformable solids. In Proceedings of Eurographics Conference on Natural Phenomena, 27-34. 2009. URL: http://dx.doi.org/10.2312EG/DL/conf/EG2009/nph/027-034
 	*/
-	class Elasticity_Becker2009 : public ElasticityBase
+	class Elasticity_Becker2009 : public NonPressureForceBase
 	{
 	protected:
+		Real m_youngsModulus;
+		Real m_poissonRatio;
+		Vector3r m_fixedBoxMin;
+		Vector3r m_fixedBoxMax;
+
 		// initial particle indices, used to access their original positions
 		std::vector<unsigned int> m_current_to_initial_index;
 		std::vector<unsigned int> m_initial_to_current_index;
@@ -28,12 +33,19 @@ namespace SPH
 		std::vector<Matrix3r> m_F;
 		Real m_alpha;
 
+		void determineFixedParticles();
 		void initValues();
 		void computeRotations();
 		void computeStress();
 		void computeForces();
 
 		virtual void initParameters();
+		/** This function is called after the simulation scene is loaded and all
+		* parameters are initialized. While reading a scene file several parameters
+		* can change. The deferred init function should initialize all values which
+		* depend on these parameters.
+		*/
+		virtual void deferredInit();
 
 		//////////////////////////////////////////////////////////////////////////
 		// multiplication of symmetric matrix, represented by a 6D vector, and a 
@@ -48,12 +60,18 @@ namespace SPH
 
 
 	public:
+		static std::string METHOD_NAME;
+		static int YOUNGS_MODULUS;
+		static int POISSON_RATIO;
+		static int FIXED_BOX_MIN;
+		static int FIXED_BOX_MAX;
 		static int ALPHA;
 
 		Elasticity_Becker2009(FluidModel *model);
 		virtual ~Elasticity_Becker2009(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Elasticity_Becker2009(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

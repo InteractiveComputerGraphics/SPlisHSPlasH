@@ -23,10 +23,14 @@ void ExtrasModule(py::module m){
     m_sub_sub.attr("CoilingModel_Peer2016") = "data/Scenes/CoilingModel_Peer2016.json";
     m_sub_sub.attr("CoilingModel_Takahashi2015") = "data/Scenes/CoilingModel_Takahashi2015.json";
     m_sub_sub.attr("CoilingModel_Weiler2018") = "data/Scenes/CoilingModel_Weiler2018.json";
+    m_sub_sub.attr("CompressibleSPH_ICSPH") = "data/Scenes/CompressibleSPH_ICSPH.json";
+    m_sub_sub.attr("CompressibleSPH_PF") = "data/Scenes/CompressibleSPH_PF.json";
+    m_sub_sub.attr("CompressibleSPH_WCSPH") = "data/Scenes/CompressibleSPH_WCSPH.json";
     m_sub_sub.attr("DamBreakModel") = "data/Scenes/DamBreakModel.json";
     m_sub_sub.attr("DamBreakModelDragons") = "data/Scenes/DamBreakModelDragons.json";
     m_sub_sub.attr("DamBreakModel_2D") = "data/Scenes/DamBreakModel_2D.json";
     m_sub_sub.attr("DamBreakWithObjects") = "data/Scenes/DamBreakWithObjects.json";
+    m_sub_sub.attr("DeformableBunnies") = "data/Scenes/DeformableBunnies.json";
     m_sub_sub.attr("DeformableModel") = "data/Scenes/DeformableModel.json";
     m_sub_sub.attr("DoubleDamBreak") = "data/Scenes/DoubleDamBreak.json";
     m_sub_sub.attr("DoubleDamBreakMultiPhase") = "data/Scenes/DoubleDamBreakMultiPhase.json";
@@ -43,5 +47,14 @@ void ExtrasModule(py::module m){
     m_sub_sub.attr("MultiPhaseColoring") = "data/Scenes/MultiPhaseColoring.json";
     m_sub_sub.attr("Obstacle") = "data/Scenes/Obstacle.json";
     m_sub_sub.attr("Sampling_2D") = "data/Scenes/Sampling_2D.json";
+    m_sub_sub.attr("SurfaceTension_BreakDamZR2020.json") = "SurfaceTension_BreakDamZR2020.json";
+    m_sub_sub.attr("SurfaceTension_CoveredSphere_JWL + 23.json") = "SurfaceTension_CoveredSphere_JWL + 23.json";
+    m_sub_sub.attr("SurfaceTension_CoveredSphere_ZR2020.json") = "SurfaceTension_CoveredSphere_ZR2020.json";
+    m_sub_sub.attr("SurfaceTension_Crown_ZR2020.json") = "SurfaceTension_Crown_ZR2020.json";
+    m_sub_sub.attr("SurfaceTension_DoubleDroplet_ZR2020.json") = "SurfaceTension_DoubleDroplet_ZR2020.json";
+    m_sub_sub.attr("SurfaceTension_FluidChain_JWL + 23.json") = "SurfaceTension_FluidChain_JWL + 23.json";
+    m_sub_sub.attr("SurfaceTension_NoGravCube_ZR2020.json") = "SurfaceTension_NoGravCube_ZR2020.json";
+    m_sub_sub.attr("SurfaceTension_SnakeTestZR2020.json") = "SurfaceTension_SnakeTestZR2020.json";
+    m_sub_sub.attr("SurfaceTension_WaterBell_JWL + 23.json") = "SurfaceTension_WaterBell_JWL + 23.json";
     m_sub_sub.attr("ViscousBunny") = "data/Scenes/ViscousBunny.json";
 }

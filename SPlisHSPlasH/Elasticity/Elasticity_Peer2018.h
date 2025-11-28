@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ElasticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 
 namespace SPH
@@ -15,10 +15,15 @@ namespace SPH
 	* References:
 	* - [PGBT18] Andreas Peer, Christoph Gissler, Stefan Band, and Matthias Teschner. An implicit SPH formulation for incompressible linearly elastic solids. Computer Graphics Forum, 2018. URL: http://dx.doi.org/10.1111/cgf.13317
 	*/
-	class Elasticity_Peer2018 : public ElasticityBase
+	class Elasticity_Peer2018 : public NonPressureForceBase
 	{
 	protected:
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, Eigen::IdentityPreconditioner> Solver;
+
+		Real m_youngsModulus;
+		Real m_poissonRatio;
+		Vector3r m_fixedBoxMin;
+		Vector3r m_fixedBoxMax;
 
 		// initial particle indices, used to access their original positions
 		std::vector<unsigned int> m_current_to_initial_index;
@@ -39,6 +44,7 @@ namespace SPH
 		int m_maxNeighbors;
 		Solver m_solver;
 
+		void determineFixedParticles();
 		void initValues();
 		void computeMatrixL();
 		void computeRotations();
@@ -88,6 +94,11 @@ namespace SPH
 
 
 	public:
+		static std::string METHOD_NAME;
+		static int YOUNGS_MODULUS;
+		static int POISSON_RATIO;
+		static int FIXED_BOX_MIN;
+		static int FIXED_BOX_MAX;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -98,6 +109,7 @@ namespace SPH
 		virtual ~Elasticity_Peer2018(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Elasticity_Peer2018(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

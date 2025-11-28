@@ -12,7 +12,8 @@ A SPlisHSPlasH scene file is a json file which can contain the following blocks:
 
 ## Configuration
 
-This part contains the general settings of the simulation and the pressure solver. 
+This part contains the general settings of the simulation and the pressure solvers. For each pressure solver you can add a block with the name of the method (e.g. 'DFSPH') and define the corresponding parameters in this block.
+
 
 Example code:
 ```json
@@ -28,14 +29,27 @@ Example code:
     "cflMethod": 1, 
     "cflFactor": 1,
     "cflMaxTimeStepSize": 0.005,
-    "maxIterations": 100,
-    "maxError": 0.01,
-    "maxIterationsV": 100,
-    "maxErrorV": 0.1,		
-    "stiffness": 50000,
-    "exponent": 7,
-    "velocityUpdateMethod": 0,
-    "enableDivergenceSolver": true
+    "WCSPH": 
+    {
+      "stiffness": 50000,
+      "exponent": 7
+    }
+    "PBF": 
+    {
+      "minIterations": 2,
+      "maxIterations": 100,
+      "maxError": 0.01,
+      "velocityUpdateMethod": 0
+    },
+    "DFSPH": 
+    {
+      "minIterations": 2,
+      "maxIterations": 100,
+      "maxError": 0.01,
+      "maxIterationsV": 100,
+      "maxErrorV": 0.1,		
+      "enableDivergenceSolver": true
+    }
 }
 ```
 ##### General:
@@ -74,8 +88,6 @@ Example code:
 * sim2D (bool): If this parameter is set to true, a 2D simulation is performend instead of a 3D simulation (default: false).
 * enableZSort (bool): Enable z-sort to improve cache hits and therefore to improve the performance (default: true).
 * gravitation (vec3): Vector to define the gravitational acceleration (default: [0,-9.81,0]).
-* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
-* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
 * boundaryHandlingMethod (int): The boundary handling method that is used in the simulation (default: 2, Volume Maps):
     - 0: particle-based boundaries (Akinci et al. 2012)
     - 1: density maps (Koschier et al. 2017)
@@ -95,14 +107,32 @@ Example code:
 * stiffness (float): Stiffness coefficient of the equation of state.
 * exponent (float): Exponent in the equation of state.
 
+##### PCISPH parameters:
+
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
+
 ##### PBF parameters:
 
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
 * velocityUpdateMethod (int): 
   - 0: First Order Update
   - 1: Second Order Update
 
+##### IISPH parameters:
+
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
+
 ##### DFSPH parameters:
 
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
 * enableDivergenceSolver (bool): Turn divergence solver on/off.
 * maxIterationsV (int): Maximal number of iterations of the divergence solver.
 * maxErrorV (float): Maximal divergence error in percent which the pressure solver tolerates.
@@ -110,9 +140,15 @@ Example code:
 ##### Projective Fluids parameters:
 
 * stiffness (float): Stiffness coefficient used by the pressure solver.
-
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal error which the pressure solver tolerates (default: 1.0e-10).
+  
 ##### ICSPH parameters:
 
+* minIterations (int): Minimal number of iterations of the pressure solver (default: 2).
+* maxIterations (int): Maximal number of iterations of the pressure solver (default: 100).
+* maxError (float): Maximal density error in percent which the pressure solver tolerates (default: 0.01).
 * lambda (float): Stiffness coefficient of the equation of state.
 * pressureClamping (bool): Enable pressure clamping.
 
@@ -210,7 +246,7 @@ Example code:
 * scale (vec3): Scaling vector of the fluid model. 
 * rotationAxis (vec3): Axis used to rotate the particle data after loading.
 * rotationAngle (float): Rotation angle for the initial rotation of the particle data. 
-* id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
+* id: This id is used in the "Materials block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used.
 * initialVelocity (vec3): The initial velocity is set for all particles in the fluid model.
 * initialAngularVelocity (vec3): The initial angular velocity of the fluid model.
 * visMesh (string): Path of an OBJ file containing a high resolution mesh which is used by the tool MeshSkinning to generate a sequence of deformed meshes (more info about this can be found in the documentation of the tool).
@@ -245,7 +281,7 @@ Example code:
 * rotationAxis (vec3): Axis used to rotate the emitter. Note that in 2D simulations the axis is always set to [0,0,1] (default: [0,0,1]).
 * rotationAngle (float): Rotation angle for the initial rotation of the emitter (default: 0). 
 * velocity (float): Initial velocity of the emitted particles in direction of the emitter (default: 1).
-* id: This id is used in the "Fluid parameter block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used (default: "Fluid").	
+* id: This id is used in the "Materials block" (see below) to define the properties of the fluid block. If no id is defined, then the standard id "Fluid" is used (default: "Fluid").	
 * emitStartTime (float): Start time of the emitter (default: 0).
 * emitEndTime (float): End time of the emitter (default: REAL_MAX).
 
@@ -293,6 +329,9 @@ Example code:
 
 ## Materials
 
+For different fluid phases different materials can be defined. Each fluid phase can select a material by choosing the 'id' of the material. For each non-pressure force method you can add a block with the name of the method (e.g. 'Bender et al. 2017') and define the corresponding parameters in this block.
+
+Example code:
 ```json
 "Materials": [
     {
@@ -302,20 +341,27 @@ Example code:
         "colorMapType": 1,
         "renderMinValue": 0.0,
         "renderMaxValue": 5.0,
-        "xsph": 0.0,
-        "xsphBoundary": 0.0,
-        "surfaceTension": 0.2,
-        "surfaceTensionMethod": 0,		
-        "viscosity": 0.01,
         "viscosityMethod": 1, 
         "vorticityMethod": 1, 
-        "vorticity": 0.15, 
-        "viscosityOmega": 0.05,
-        "inertiaInverse": 0.5,
         "maxEmitterParticles": 1000,
         "emitterReuseParticles": false,
         "emitterBoxMin": [-4.0,-1.0,-4.0],
-        "emitterBoxMax": [0.0,4,4.0]
+        "emitterBoxMax": [0.0,4,4.0],
+        "XSPH": 
+        {
+          "xsph": 0.0,
+          "xsphBoundary": 0.0
+        },
+        "Standard viscosity":
+        {
+          "viscosity": 0.01
+        },
+        "Bender et al. 2017": 
+        {
+          "vorticity": 0.15,
+          "viscosityOmega": 0.05,
+          "inertiaInverse": 0.5
+        } 
     }
 ]
 ```
@@ -324,8 +370,6 @@ Example code:
 
 * id (string): Defines the id of the material.  You have to give the same id to a FluidBlock, a FluidModel or an Emitter if they should have the defined material behavior.
 * density0 (float): Rest density of the corresponding fluid.
-* xsph (float): Coefficient (in [0,1]) for the XSPH velocity filter in the fluid (default: 0.0).
-* xsphBoundary (float): Coefficient (in [0,1]) for the XSPH velocity filter at the boundary (default: 0.0).
   
 ##### Particle Coloring 
 
@@ -340,6 +384,11 @@ Example code:
 * renderMinValue (float): Minimum value used for color-coding the color field in the rendering process.
 * renderMaxValue (float): Maximum value used for color-coding the color field in the rendering process.
 
+##### XSPH
+
+* xsph (float): Coefficient (in [0,1]) for the XSPH velocity filter in the fluid (default: 0.0).
+* xsphBoundary (float): Coefficient (in [0,1]) for the XSPH velocity filter at the boundary (default: 0.0).
+
 ##### Viscosity
 
 * viscosityMethod (int): Viscosity method
@@ -350,13 +399,43 @@ Example code:
   - 4: Peer et al. 2016
   - 5: Takahashi et al. 2015 (improved)
   - 6: Weiler et al. 2018
-* viscosity (float): Coefficient for the viscosity force computation
-  * "Standard" and "Weiler et al. 2018" use the kinematic viscosity as parameter
-  * "Bender and Koschier 2017" and "Peer et al. 2015/2016" use a coefficient in [0,1]
-* viscoMaxIter (int): (Implicit solvers) Max. iterations of the viscosity solver.
-* viscoMaxError (float): (Implicit solvers) Max. error of the viscosity solver.
-* viscoMaxIterOmega (int): (Peer et al. 2016) Max. iterations of the vorticity diffusion solver.
-* viscoMaxErrorOmega (float): (Peer et al. 2016) Max. error of the vorticity diffusion solver.
+
+###### Standard
+
+* viscosity (float): Coefficient of the kinematic viscosity
+* viscosityBoundary (float): Coefficient for the viscosity force computation at the boundary.
+
+###### Bender and Koschier 2017
+
+* viscosity (float): Coefficient for the viscosity force computation (use a coefficient in [0,1])
+* viscoMaxIter (int): Max. iterations of the viscosity solver.
+* viscoMaxError (float): Max. error of the viscosity solver.
+
+###### Peer et al. 2015
+
+* viscosity (float): Coefficient for the viscosity force computation (use a coefficient in [0,1])
+* viscoMaxIter (int): Max. iterations of the viscosity solver.
+* viscoMaxError (float): Max. error of the viscosity solver.
+
+###### Peer et al. 2016
+
+* viscosity (float): Coefficient for the viscosity force computation (use a coefficient in [0,1])
+* viscoMaxIter (int): Max. iterations of the viscosity solver.
+* viscoMaxError (float): Max. error of the viscosity solver.
+* viscoMaxIterOmega (int): Max. iterations of the vorticity diffusion solver.
+* viscoMaxErrorOmega (float): Max. error of the vorticity diffusion solver.
+
+###### Takahashi et al. 2015 (improved) 
+
+* viscosity (float): Coefficient of the kinematic viscosity
+* viscoMaxIter (int): Max. iterations of the viscosity solver.
+* viscoMaxError (float): Max. error of the viscosity solver.
+
+###### Weiler et al. 2018
+
+* viscosity (float): Coefficient of the kinematic viscosity
+* viscoMaxIter (int): Max. iterations of the viscosity solver.
+* viscoMaxError (float): Max. error of the viscosity solver.
 * viscosityBoundary (float): (Weiler et al. 2018) Coefficient for the viscosity force computation at the boundary.
 
 
@@ -364,11 +443,24 @@ Example code:
 
 * vorticityMethod (int): Vorticity method
   - 0: None
-  - 1: Micropolar model
+  - 1: Bender et al. 2017
   - 2: Vorticity confinement
+  - 3: Liu et al. 2021
+
+###### Bender et al. 2017
+
 * vorticity (float): Coefficient for the vorticity force computation
-* viscosityOmega (float): (Micropolar model) Viscosity coefficient for the angular velocity field.
-* inertiaInverse (float): (Micropolar model) Inverse microinertia used in the micropolar model.
+* viscosityOmega (float): (Bender et al. 2017) Viscosity coefficient for the angular velocity field.
+* inertiaInverse (float): (Bender et al. 2017) Inverse microinertia used in the micropolar model.
+
+###### Vorticity confinement
+
+* vorticity (float): Coefficient for the vorticity force computation
+
+###### Liu et al. 2021
+
+* vorticity (float): Coefficient for the vorticity force computation
+* kinetmaticViscosity (float): (Liu et al. 2021) Kinematic viscosity coefficient.
 
 ##### Drag force
 
@@ -376,6 +468,13 @@ Example code:
   - 0: None
   - 1: Macklin et al. 2014
   - 2: Gissler et al. 2017
+
+###### Macklin et al. 2014
+
+* drag (float): Coefficient for the drag force computation
+
+###### Gissler et al. 2017
+
 * drag (float): Coefficient for the drag force computation
 
 ##### Surface tension
@@ -385,7 +484,57 @@ Example code:
   - 1: Becker & Teschner 2007
   - 2: Akinci et al. 2013
   - 3: He et al. 2014
+  - 4: Jeske et al. 2023
+  - 5: Zorilla, Ritter et al. 2020
+
 * surfaceTension (float): Coefficient for the surface tension computation
+* surfaceTensionBoundary (float): Coefficient for the surface tension computation at the boundary
+* surfaceTensionViscosity (float): Coefficient for the viscosity force computation
+* surfaceTensionViscosityBoundary (float): Coefficient for the viscosity force computation at the boundary
+* surfaceTensionMaxIter (unsigned int): Max. iterations of the viscosity solver
+* surfaceTensionMaxError (float): Max. error of the surface tension solver
+* surfaceTensionXSPH (float): Factor for xsph smoothing
+
+###### Becker & Teschner 2007
+
+* surfaceTension (float): Coefficient for the surface tension computation
+* surfaceTensionBoundary (float): Coefficient for the surface tension computation at the boundary
+
+###### Akinci et al. 2013
+
+* surfaceTension (float): Coefficient for the surface tension computation
+* surfaceTensionBoundary (float): Coefficient for the surface tension computation at the boundary
+
+###### He et al. 2014
+
+* surfaceTension (float): Coefficient for the surface tension computation
+* surfaceTensionBoundary (float): Coefficient for the surface tension computation at the boundary
+
+###### Jeske et al. 2023
+
+* surfaceTension (float): Coefficient for the surface tension computation
+* surfaceTensionBoundary (float): Coefficient for the surface tension computation at the boundary
+* surfaceTensionViscosity (float): Coefficient for the viscosity force computation
+* surfaceTensionViscosityBoundary (float): Coefficient for the viscosity force computation at the boundary
+* surfaceTensionMaxIter (unsigned int): Max. iterations of the viscosity solver
+* surfaceTensionMaxError (float): Max. error of the surface tension solver
+* surfaceTensionXSPH (float): Factor for xsph smoothing
+
+###### Zorilla, Ritter et al. 2020
+
+* surfTZRCsd (int): Samples per Second. (default: 10000)
+* surfTZRMCSamples (int): Fixed nr of MC samples per step (default: -1)
+* surfTZRPcaMixCur (float) Factor to mix-in pca curvature (default: 0.500000)
+* surfTZRPcaMixNrm (float): Factor to mix-in pca normal (default: 0.750000)
+* surfTZRd (float): Classifier constant d (default: 12.000000)
+* surfTZRnormal-mode (int): Normal estimation method (default: 1), Options: (0, PCA) (1, Monte Carlo) (2, Mix)
+* surfTZRr-ratio (float): R1 to R2 ratio (default: 0.800000)
+* surfTZRsampling (int): Monte Carlo samping method (default: 0), Options: (0, Halton) (1, Rnd)
+* surfTZRtau (float): Smoothing factor tau (default: 0.500000)
+* surfTZRtemporalSmooth (bool): Enable temporal smoothing (default: 0)
+* surfTZRversion (int): Method or extended method (default: 1), Options: (0, V2019) (1, V2020)
+* surfaceTension (float): Coefficient for the surface tension computation (default: 0.050000)
+
 
 ##### Elasticity
 
@@ -393,6 +542,18 @@ Example code:
   - 0: None
   - 1: Becker et al. 2009
   - 2: Peer et al. 2018
+  - 3: Kugelstadt et al. 2021
+
+###### Becker et al. 2009
+
+* youngsModulus (float): Young's modulus - coefficient for the stiffness of the material (default: 100000.0)
+* poissonsRatio (float): Poisson's ratio - measure of the Poisson effect (default: 0.3)
+* alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
+* fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
+* fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
+
+###### Peer et al. 2018
+
 * youngsModulus (float): Young's modulus - coefficient for the stiffness of the material (default: 100000.0)
 * poissonsRatio (float): Poisson's ratio - measure of the Poisson effect (default: 0.3)
 * alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
@@ -400,6 +561,20 @@ Example code:
 * elasticityMaxError (float): (Peer et al. 2019) Maximum elasticity error allowed by the solver (default: 1.0e-4)
 * fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
 * fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
+* maxNeighbors (int): Maximum number of neighbors that are considered (default: -1)
+
+###### Kugelstadt et al. 2021
+
+* youngsModulus (float): Young's modulus - coefficient for the stiffness of the material (default: 100000.0)
+* poissonsRatio (float): Poisson's ratio - measure of the Poisson effect (default: 0.3)
+* alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
+* elasticityMaxIter (int): (Peer et al. 2018) Maximum solver iterations (default: 100)
+* elasticityMaxError (float): (Peer et al. 2019) Maximum elasticity error allowed by the solver (default: 1.0e-4)
+* fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
+* fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
+* maxNeighbors (int): Maximum number of neighbors that are considered (default: -1)
+* volumeMaxError (float): Max. error of the volume solver (default: 0.000100)
+* volumeMaxIter (uint): Max. iterations of the volume solver (default: 100)
 
 ##### Emitters
 

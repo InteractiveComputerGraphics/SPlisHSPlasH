@@ -3,18 +3,9 @@
     "pause": true,
     "pauseAt": 20.0,
     "stopAt": -1.0,
-    "sceneScale": 1,
     "numberOfStepsPerRenderUpdate": 4,
     "renderWalls": 4,
-    "enablePartioExport": false,
-    "enableVTKExport": false,
-    "enableRigidBodyExport": false,
-    "enableRigidBodyVTKExport": false,
-    "dataExportFPS": 100.0,
     "particleAttributes": "velocity;density",
-    "enableStateExport": false,
-    "stateExportFPS": 1.0,
-    "enableObjectSplitting": false,
     "timeStepSize": 0.0010000000474974513,
     "particleRadius": 0.014999999664723873,
     "sim2D": false,
@@ -24,16 +15,8 @@
       -9.8100004196167,
       4.288087325221568e-07
     ],
-    "maxIterations": 100,
-    "maxError": 0.009999999776482582,
     "boundaryHandlingMethod": 2,
     "simulationMethod": 4,
-    "stiffness": 50000.0,
-    "exponent": 7.0,
-    "velocityUpdateMethod": 0,
-    "enableDivergenceSolver": true,
-    "maxIterationsV": 100,
-    "maxErrorV": 0.10000000149011612,
     "kernel": 0,
     "gradKernel": 0,
     "cflMethod": 0,
@@ -49,7 +32,16 @@
       -2.5401246602996252e-05,
       -0.20855534076690674,
       0.9780105352401733
-    ]
+    ],
+    "DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.01,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
   },
   "RigidBodies": [],
   "FluidModels": [],
@@ -125,33 +117,6 @@
       "colorMapType": 1,
       "renderMinValue": 0.0,
       "renderMaxValue": 10.0,
-      "viscosityMethod": 0,
-      "viscosity": 0.20000000298023224,
-      "viscoMaxIter": 100,
-      "viscoMaxError": 0.009999999776482582,
-      "viscoMaxIterOmega": 100,
-      "viscoMaxErrorOmega": 0.009999999776482582,
-      "viscosityBoundary": 0.0,
-      "vorticityMethod": 0,
-      "vorticity": 0.0,
-      "viscosityOmega": 0.009999999776482582,
-      "inertiaInverse": 0.0,
-      "dragMethod": 0,
-      "drag": 0.0,
-      "surfaceTensionMethod": 4,
-      "surfaceTension": 10799.999275803582,
-      "surfaceTensionBoundary": 0.0,
-      "surfaceTensionViscosity": 0.05,
-      "surfaceTensionViscosityBoundary": 0.0,
-      "surfaceTensionMaxIter": 100,
-      "surfaceTensionMaxError": 0.0010000000474974513,
-      "surfaceTensionMode": 1,
-      "elasticityMethod": 0,
-      "youngsModulus": 100000.0,
-      "poissonsRatio": 0.30000001192092896,
-      "alpha": 0.0,
-      "elasticityMaxIter": 100,
-      "elasticityMaxError": 0.00039999998989515007,
       "maxEmitterParticles": 10000000,
       "emitterReuseParticles": false,
       "emitterBoxMin": [
@@ -164,8 +129,18 @@
         0.0,
         0.0
       ],
-      "surfTZRr-ratio": 0.800000011920929,
-      "surfTZRnormal-mode": 2
+      "viscosityMethod": 0,
+      "surfaceTensionMethod": 4,
+      "Jeske et al. 2023": 
+      {
+        "surfaceTension": 10799.999275803582,
+        "surfaceTensionBoundary": 0.0,
+        "surfaceTensionViscosity": 0.05,
+        "surfaceTensionViscosityBoundary": 0.0,
+        "surfaceTensionMaxIter": 100,
+        "surfaceTensionMaxError": 0.0010000000474974513,
+        "surfaceTensionMode": 1
+      }
     }
   ]
 }

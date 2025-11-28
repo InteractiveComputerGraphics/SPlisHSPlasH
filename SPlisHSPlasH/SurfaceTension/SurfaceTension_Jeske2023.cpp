@@ -11,6 +11,9 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string SurfaceTension_Jeske2023::METHOD_NAME = "Jeske et al. 2023";
+int SurfaceTension_Jeske2023::SURFACE_TENSION = -1;
+int SurfaceTension_Jeske2023::SURFACE_TENSION_BOUNDARY = -1;
 int SurfaceTension_Jeske2023::ITERATIONS = -1;
 int SurfaceTension_Jeske2023::MAX_ITERATIONS = -1;
 int SurfaceTension_Jeske2023::MAX_ERROR = -1;
@@ -20,7 +23,9 @@ int SurfaceTension_Jeske2023::VISCOSITY_COEFFICIENT = -1;
 int SurfaceTension_Jeske2023::VISCOSITY_COEFFICIENT_BOUNDARY = -1;
 
 SurfaceTension_Jeske2023::SurfaceTension_Jeske2023(FluidModel *model) :
-        SurfaceTensionBase(model), m_vDiff(), m_gradRho() {
+        NonPressureForceBase(model), m_vDiff(), m_gradRho() {
+    m_surfaceTension = static_cast<Real>(0.05);
+    m_surfaceTensionBoundary = static_cast<Real>(0.01);
     m_viscosity = 0;
     m_boundaryViscosity = 0;
 
@@ -39,14 +44,14 @@ SurfaceTension_Jeske2023::SurfaceTension_Jeske2023(FluidModel *model) :
     m_nonlinearGrad.resize(model->numParticles(), Vector3r::Zero());
 
 
-    model->addField( {"velocity difference", FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_vDiff[i][0]; }, true});
-    model->addField( {"density gradient", FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_gradRho[i]; }, true});
-    model->addField( {"surface energy", FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_surfaceEnergy[i]; }, true});
-    model->addField( {"surface color", FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_color[i]; }, true});
-    model->addField( {"surface color grad", FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_colorGrad[i][0]; }, true});
-    model->addField( {"surface nonlinear acc", FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearAcc[i][0]; }, true});
-    model->addField( {"surface nonlinear res", FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearRes[i][0]; }, true});
-    model->addField( {"surface nonlinear grad", FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearGrad[i][0]; }, true});
+    model->addField( {"velocity difference", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_vDiff[i][0]; }, true});
+    model->addField( {"density gradient", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_gradRho[i]; }, true});
+    model->addField( {"surface energy", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_surfaceEnergy[i]; }, true});
+    model->addField( {"surface color", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real * { return &m_color[i]; }, true});
+    model->addField( {"surface color grad", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_colorGrad[i][0]; }, true});
+    model->addField( {"surface nonlinear acc", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearAcc[i][0]; }, true});
+    model->addField( {"surface nonlinear res", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearRes[i][0]; }, true});
+    model->addField( {"surface nonlinear grad", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real * { return &m_nonlinearGrad[i][0]; }, true});
 }
 
 SurfaceTension_Jeske2023::~SurfaceTension_Jeske2023(void) {
@@ -63,12 +68,24 @@ SurfaceTension_Jeske2023::~SurfaceTension_Jeske2023(void) {
 }
 
 void SurfaceTension_Jeske2023::initParameters() {
-    SurfaceTensionBase::initParameters();
+    NonPressureForceBase::initParameters();
+
+    SURFACE_TENSION = createNumericParameter("surfaceTension", "Surface tension coefficient", &m_surfaceTension);
+    setGroup(SURFACE_TENSION, "Fluid Model|Surface tension");
+    setDescription(SURFACE_TENSION, "Coefficient for the surface tension computation");
+    RealParameter* rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION));
+    rparam->setMinValue(0.0);
+
+    SURFACE_TENSION_BOUNDARY = createNumericParameter("surfaceTensionBoundary", "Boundary surface tension coefficient", &m_surfaceTensionBoundary);
+    setGroup(SURFACE_TENSION_BOUNDARY, "Fluid Model|Surface tension");
+    setDescription(SURFACE_TENSION_BOUNDARY, "Coefficient for the surface tension computation at the boundary");
+    rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION_BOUNDARY));
+    rparam->setMinValue(0.0);
 
     VISCOSITY_COEFFICIENT = createNumericParameter("surfaceTensionViscosity", "Viscosity coefficient ", &m_viscosity);
     setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Surface tension");
     setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation.");
-    RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+    rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
     rparam->setMinValue(0.0);
 
     VISCOSITY_COEFFICIENT_BOUNDARY = createNumericParameter("surfaceTensionViscosityBoundary", "Viscosity coefficient (Boundary)", &m_boundaryViscosity);

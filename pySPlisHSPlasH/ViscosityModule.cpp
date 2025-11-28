@@ -5,7 +5,6 @@
 
 #include <pybind11/pybind11.h>
 
-#include <SPlisHSPlasH/Viscosity/ViscosityBase.h>
 #include <SPlisHSPlasH/Viscosity/Viscosity_Bender2017.h>
 #include <SPlisHSPlasH/Viscosity/Viscosity_Peer2015.h>
 #include <SPlisHSPlasH/Viscosity/Viscosity_Peer2016.h>
@@ -16,16 +15,12 @@
 namespace py = pybind11;
 
 void ViscosityModule(py::module m_sub) {
-    // ---------------------------------------
-    // Viscosity Base
-    // ---------------------------------------
-    py::class_<SPH::ViscosityBase, SPH::NonPressureForceBase>(m_sub, "ViscosityBase")
-            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::ViscosityBase::VISCOSITY_COEFFICIENT);
 
     // ---------------------------------------
     // Viscosity Bender 2017
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Bender2017, SPH::ViscosityBase>(m_sub, "Viscosity_Bender2017")
+    py::class_<SPH::Viscosity_Bender2017, SPH::NonPressureForceBase>(m_sub, "Viscosity_Bender2017")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Bender2017::VISCOSITY_COEFFICIENT)
             .def_readwrite_static("ITERATIONS", &SPH::Viscosity_Bender2017::ITERATIONS)
             .def_readwrite_static("MAX_ITERATIONS", &SPH::Viscosity_Bender2017::MAX_ITERATIONS)
             .def_readwrite_static("MAX_ERROR", &SPH::Viscosity_Bender2017::MAX_ERROR)
@@ -42,12 +37,14 @@ void ViscosityModule(py::module m_sub) {
             .def("setViscosityFactor", &SPH::Viscosity_Bender2017::setViscosityFactor)
             .def("getViscosityLambda", (const Vector6r& (SPH::Viscosity_Bender2017::*)(const unsigned int)const)&SPH::Viscosity_Bender2017::getViscosityLambda)
             // .def("getViscosityLambda", (Vector6r& (SPH::Viscosity_Bender2017::*)(const unsigned int))&SPH::Viscosity_Bender2017::getViscosityLambda) // TODO: wont work by reference
-            .def("setViscosityLambda", &SPH::Viscosity_Bender2017::setViscosityLambda);
+            .def("setViscosityLambda", &SPH::Viscosity_Bender2017::setViscosityLambda)
+            .def("getMethodName", &SPH::Viscosity_Bender2017::getMethodName);
 
     // ---------------------------------------
     // Viscosity Peer 2015
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Peer2015, SPH::ViscosityBase>(m_sub, "Viscosity_Peer2015")
+    py::class_<SPH::Viscosity_Peer2015, SPH::NonPressureForceBase>(m_sub, "Viscosity_Peer2015")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Peer2015::VISCOSITY_COEFFICIENT)
             .def_readwrite_static("ITERATIONS", &SPH::Viscosity_Peer2015::ITERATIONS)
             .def_readwrite_static("MAX_ITERATIONS", &SPH::Viscosity_Peer2015::MAX_ITERATIONS)
             .def_readwrite_static("MAX_ERROR", &SPH::Viscosity_Peer2015::MAX_ERROR)
@@ -56,12 +53,14 @@ void ViscosityModule(py::module m_sub) {
             .def_static("diagonalMatrixElement", &SPH::Viscosity_Peer2015::diagonalMatrixElement)
             .def("getTargetNablaV", (const Matrix3r& (SPH::Viscosity_Peer2015::*)(const unsigned int)const)(&SPH::Viscosity_Peer2015::getTargetNablaV))
             // .def("getTargetNablaV", (Matrix3r& (SPH::Viscosity_Peer2015::*)(const unsigned int))&SPH::Viscosity_Peer2015::getTargetNablaV) // TODO: wont work by reference
-            .def("setTargetNablaV", &SPH::Viscosity_Peer2015::setTargetNablaV);
+            .def("setTargetNablaV", &SPH::Viscosity_Peer2015::setTargetNablaV)
+            .def("getMethodName", &SPH::Viscosity_Peer2015::getMethodName);
 
     // ---------------------------------------
     // Viscosity Peer2016
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Peer2016, SPH::ViscosityBase>(m_sub, "Viscosity_Peer2016")
+    py::class_<SPH::Viscosity_Peer2016, SPH::NonPressureForceBase>(m_sub, "Viscosity_Peer2016")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Peer2016::VISCOSITY_COEFFICIENT)
             .def_readwrite_static("ITERATIONS_V", &SPH::Viscosity_Peer2016::ITERATIONS_V)
             .def_readwrite_static("ITERATIONS_OMEGA", &SPH::Viscosity_Peer2016::ITERATIONS_OMEGA)
             .def_readwrite_static("MAX_ITERATIONS_V", &SPH::Viscosity_Peer2016::MAX_ITERATIONS_V)
@@ -79,19 +78,23 @@ void ViscosityModule(py::module m_sub) {
             .def("setTargetNablaV", &SPH::Viscosity_Peer2016::setTargetNablaV)
             .def("getOmega", (const Vector3r& (SPH::Viscosity_Peer2016::*)(const unsigned int)const)&SPH::Viscosity_Peer2016::getOmega)
             // .def("getOmega", ( Vector3r& (SPH::Viscosity_Peer2016::*)(const unsigned int))&SPH::Viscosity_Peer2016::getOmega) // TODO: wont work by reference
-            .def("setOmega", &SPH::Viscosity_Peer2016::setOmega);
+            .def("setOmega", &SPH::Viscosity_Peer2016::setOmega)
+            .def("getMethodName", &SPH::Viscosity_Peer2016::getMethodName);
 
     // ---------------------------------------
     // Viscosity Standard
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Standard, SPH::ViscosityBase>(m_sub, "Viscosity_Standard")
-            .def_readwrite_static("VISCOSITY_COEFFICIENT_BOUNDARY", &SPH::Viscosity_Standard::VISCOSITY_COEFFICIENT)
-            .def(py::init<SPH::FluidModel*>());
+    py::class_<SPH::Viscosity_Standard, SPH::NonPressureForceBase>(m_sub, "Viscosity_Standard")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Standard::VISCOSITY_COEFFICIENT)
+            .def_readwrite_static("VISCOSITY_COEFFICIENT_BOUNDARY", &SPH::Viscosity_Standard::VISCOSITY_COEFFICIENT_BOUNDARY)
+            .def(py::init<SPH::FluidModel*>())
+            .def("getMethodName", &SPH::Viscosity_Standard::getMethodName);
 
     // ---------------------------------------
     // Viscosity
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Takahashi2015, SPH::ViscosityBase>(m_sub, "Viscosity_Takahashi2015")
+    py::class_<SPH::Viscosity_Takahashi2015, SPH::NonPressureForceBase>(m_sub, "Viscosity_Takahashi2015")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Takahashi2015::VISCOSITY_COEFFICIENT)
             .def_readwrite_static("ITERATIONS", &SPH::Viscosity_Takahashi2015::ITERATIONS)
             .def_readwrite_static("MAX_ITERATIONS", &SPH::Viscosity_Takahashi2015::MAX_ITERATIONS)
             .def_readwrite_static("MAX_ERROR", &SPH::Viscosity_Takahashi2015::MAX_ERROR)
@@ -103,12 +106,14 @@ void ViscosityModule(py::module m_sub) {
             .def("setViscousStress", &SPH::Viscosity_Takahashi2015::setViscousStress)
             .def("getAccel", (const Vector3r& (SPH::Viscosity_Takahashi2015::*)(const unsigned int)const)&SPH::Viscosity_Takahashi2015::getAccel)
             // .def("getAccel", (Vector3r& (SPH::Viscosity_Takahashi2015::*)(const unsigned int))&SPH::Viscosity_Takahashi2015::getAccel) // TODO: wont work by reference
-            .def("setAccel", &SPH::Viscosity_Takahashi2015::setAccel);
+            .def("setAccel", &SPH::Viscosity_Takahashi2015::setAccel)
+            .def("getMethodName", &SPH::Viscosity_Takahashi2015::getMethodName);
 
     // ---------------------------------------
     // Viscosity Weiler 2018
     // ---------------------------------------
-    py::class_<SPH::Viscosity_Weiler2018, SPH::ViscosityBase>(m_sub, "Viscosity_Weiler2018")
+    py::class_<SPH::Viscosity_Weiler2018, SPH::NonPressureForceBase>(m_sub, "Viscosity_Weiler2018")
+            .def_readwrite_static("VISCOSITY_COEFFICIENT", &SPH::Viscosity_Weiler2018::VISCOSITY_COEFFICIENT)
             .def_readwrite_static("ITERATIONS", &SPH::Viscosity_Weiler2018::ITERATIONS)
             .def_readwrite_static("MAX_ITERATIONS", &SPH::Viscosity_Weiler2018::MAX_ITERATIONS)
             .def_readwrite_static("MAX_ERROR", &SPH::Viscosity_Weiler2018::MAX_ERROR)
@@ -117,5 +122,6 @@ void ViscosityModule(py::module m_sub) {
             .def(py::init<SPH::FluidModel*>())
             .def_static("matrixVecProd", &SPH::Viscosity_Weiler2018::matrixVecProd)
             .def("getVDiff", (const Vector3r& (SPH::Viscosity_Weiler2018::*)(const unsigned int)const)& SPH::Viscosity_Weiler2018::getVDiff)
-            .def("setVDiff", &SPH::Viscosity_Weiler2018::setVDiff);
+            .def("setVDiff", &SPH::Viscosity_Weiler2018::setVDiff)
+            .def("getMethodName", &SPH::Viscosity_Weiler2018::getMethodName);
 }

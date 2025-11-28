@@ -4,35 +4,40 @@
 		"timeStepSize": 0.002,
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 2,
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 0, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.01,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffness": 50000,
-		"exponent": 7,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
 		"enableZSort": false,
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 2,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.01,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
+			"density0": 1000, 
 			"elasticityMethod": 3,
-			"viscosity": 0.01,
 			"viscosityMethod": 1,
-			"surfaceTension": 0.02,
-			"surfaceTensionMethod": 0,
-			"youngsModulus": 1000000.0,
-			"poissonsRatio": 0.33, 
-			"alpha": 0.1, 
-			"maxNeighbors": 15
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+            },
+			"Kugelstadt et al. 2021": 
+			{
+				"youngsModulus": 1000000.0,
+				"poissonsRatio": 0.33, 
+				"alpha": 0.1, 
+				"maxNeighbors": 15	
+			}
 		}
 	],
 	"RigidBodies": [

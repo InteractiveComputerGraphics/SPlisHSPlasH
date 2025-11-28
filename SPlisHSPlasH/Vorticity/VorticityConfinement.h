@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "VorticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,17 +13,25 @@ namespace SPH
 	* References:
 	* - [MM13] Miles Macklin and Matthias Müller. Position based fluids. ACM Trans. Graph., 32(4):104:1-104:12, July 2013. URL: http://doi.acm.org/10.1145/2461912.2461984
 	*/
-	class VorticityConfinement : public VorticityBase
+	class VorticityConfinement : public NonPressureForceBase
 	{
 	protected:
+		Real m_vorticityCoeff;
+
 		std::vector<Vector3r> m_omega;
 		std::vector<Real> m_normOmega;
 
+		virtual void initParameters();
+
 	public:
+		static std::string METHOD_NAME;
+		static int VORTICITY_COEFFICIENT;
+
 		VorticityConfinement(FluidModel *model);
 		virtual ~VorticityConfinement(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new VorticityConfinement(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

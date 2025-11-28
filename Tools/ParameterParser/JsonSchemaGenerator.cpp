@@ -64,14 +64,35 @@ void JsonSchemaGenerator::jsonVecParam(RealVectorParameter* param)
 void JsonSchemaGenerator::jsonParameterObject(const ParameterObject* obj)
 {
 	if ((dynamic_cast<const SimulatorBase*>(obj) != nullptr) ||
-		(dynamic_cast<const Simulation*>(obj) != nullptr))
-		m_currentData = &m_jsonData["properties"]["Configuration"]["properties"];
+		(dynamic_cast<const Simulation*>(obj) != nullptr) ||
+		(dynamic_cast<const TimeStep*>(obj) != nullptr))
+	{
+		m_jsonData["definitions"]["Configuration"]["type"] = "object";
+		m_currentData = &m_jsonData["definitions"]["Configuration"]["properties"];
+		const TimeStep* timeStep = dynamic_cast<const TimeStep*>(obj);
+		if (timeStep != nullptr)
+		{
+			const std::string& str = const_cast<TimeStep*>(timeStep)->getMethodName();
+			m_currentData = &m_jsonData["definitions"]["Configuration"]["properties"][str];
+			m_jsonData["definitions"]["Configuration"]["properties"][str]["type"] = "object";
+			m_currentData = &m_jsonData["definitions"]["Configuration"]["properties"][str]["properties"];
+		}
+	}
 	else if ((dynamic_cast<const NonPressureForceBase*>(obj) != nullptr) ||
 		(dynamic_cast<const MaterialParameterObject*>(obj) != nullptr) ||
 		(dynamic_cast<const FluidModel*>(obj) != nullptr))
 	{
 		m_jsonData["definitions"]["Material"]["type"] = "object";
 		m_currentData = &m_jsonData["definitions"]["Material"]["properties"];
+
+		const NonPressureForceBase* base = dynamic_cast<const NonPressureForceBase*>(obj);
+		if (base != nullptr)
+		{
+			const std::string& str = const_cast<NonPressureForceBase*>(base)->getMethodName();
+			m_currentData = &m_jsonData["definitions"]["Material"]["properties"][str];
+			m_jsonData["definitions"]["Material"]["properties"][str]["type"] = "object";
+			m_currentData = &m_jsonData["definitions"]["Material"]["properties"][str]["properties"];
+		}
 	}
 	else if (dynamic_cast<const FluidBlockParameterObject*>(obj) != nullptr)
 	{
@@ -112,10 +133,6 @@ void JsonSchemaGenerator::generateSchemaFile(const std::string& fileName)
 	m_jsonData["description"] = "A json schema for SPlisHSPlasH's scene files";
 
 	m_jsonData["type"] = "object";
-
-	nlohmann::json& config = m_jsonData["properties"]["Configuration"];
-	config["type"] = "object";
-	config["description"] = "Contains the general settings of the simulation and the pressure solver";
 
 	// Basic type definitions
 	nlohmann::json& defs = m_jsonData["definitions"];
@@ -160,8 +177,14 @@ void JsonSchemaGenerator::generateSchemaFile(const std::string& fileName)
 
 	parser.parseParameters();
 
-	// fluid blocks properties
+	// configuration properties
 	nlohmann::json& props = m_jsonData["properties"];
+	nlohmann::json& config = props["Configuration"];
+	config["type"] = "object";
+	config["description"] = "Contains the general settings of the simulation and the pressure solver";
+	config["$ref"] = "#/definitions/Configuration";
+
+	// fluid blocks properties
 	nlohmann::json& blocks = props["FluidBlocks"];
 	blocks["type"] = "array";
 	blocks["description"] = "Definition of axis-aligned blocks of fluid particles.";

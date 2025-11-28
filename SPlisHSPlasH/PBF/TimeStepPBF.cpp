@@ -15,6 +15,11 @@ using namespace SPH;
 using namespace std;
 using namespace GenParam;
 
+std::string TimeStepPBF::METHOD_NAME = "PBF";
+int TimeStepPBF::SOLVER_ITERATIONS = -1;
+int TimeStepPBF::MIN_ITERATIONS = -1;
+int TimeStepPBF::MAX_ITERATIONS = -1;
+int TimeStepPBF::MAX_ERROR = -1;
 int TimeStepPBF::VELOCITY_UPDATE_METHOD = -1;
 int TimeStepPBF::ENUM_PBF_FIRST_ORDER = -1;
 int TimeStepPBF::ENUM_PBF_SECOND_ORDER = -1;
@@ -24,6 +29,10 @@ TimeStepPBF::TimeStepPBF() :
 	TimeStep()
 {
 	m_simulationData.init();
+	m_iterations = 0;
+	m_minIterations = 2;
+	m_maxIterations = 100;
+	m_maxError = static_cast<Real>(0.01);
 	m_velocityUpdateMethod = 0;
 
 	Simulation *sim = Simulation::getCurrent();
@@ -31,8 +40,8 @@ TimeStepPBF::TimeStepPBF() :
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "lambda", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getLambda(fluidModelIndex, i); } });
-		model->addField({ "deltaX", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDeltaX(fluidModelIndex, i)[0]; } });
+		model->addField({ "lambda", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getLambda(fluidModelIndex, i); } });
+		model->addField({ "deltaX", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDeltaX(fluidModelIndex, i)[0]; } });
 	}
 }
 
@@ -51,6 +60,26 @@ TimeStepPBF::~TimeStepPBF(void)
 void TimeStepPBF::initParameters()
 {
 	TimeStep::initParameters();
+
+	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
+	setGroup(SOLVER_ITERATIONS, "Simulation|PBF");
+	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
+	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
+
+	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
+	setGroup(MIN_ITERATIONS, "Simulation|PBF");
+	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
+
+	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
+	setGroup(MAX_ITERATIONS, "Simulation|PBF");
+	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
+	setGroup(MAX_ERROR, "Simulation|PBF");
+	setDescription(MAX_ERROR, "Maximal density error (%).");
+	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(static_cast<Real>(1e-6));
 
 	VELOCITY_UPDATE_METHOD = createEnumParameter("velocityUpdateMethod", "Velocity update method", &m_velocityUpdateMethod);
 	setGroup(VELOCITY_UPDATE_METHOD, "Simulation|PBF");
@@ -162,6 +191,7 @@ void TimeStepPBF::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
+	m_iterations = 0;
 }
 
 

@@ -35,7 +35,7 @@ Please get in contact for feedback/support.
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
 #include "Utilities/StringTools.h"
-#include "SurfaceTensionBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include <chrono>
 
 namespace SPH
@@ -47,14 +47,19 @@ namespace SPH
 	*   and
 	*   original version 2019: https://diglib.eg.org/handle/10.2312/cgvc20191260
 	*/
-	class SurfaceTension_ZorillaRitter2020 : public SurfaceTensionBase
+	class SurfaceTension_ZorillaRitter2020 : public NonPressureForceBase
 	{
+	protected:
+		Real m_surfaceTension;
+
 	public:
+		static std::string METHOD_NAME;
 
 		SurfaceTension_ZorillaRitter2020(FluidModel* model);
 		virtual ~SurfaceTension_ZorillaRitter2020(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new SurfaceTension_ZorillaRitter2020(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		/** Linear classifier. Divides into surface or non-surface particle. The function is equivalent
 			to the network classifier. Also, inspect lines 344 to 348 in the cpp file
@@ -69,6 +74,7 @@ namespace SPH
 		 void performNeighborhoodSearchSort() override;
 
 	private:
+		static int SURFACE_TENSION;
 
 		// -- GUI handle variables
 		static int SURFACE_TENSION_MEDIAN;

@@ -2,11 +2,7 @@
 #include "Simulator/SimulatorBase.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/TimeManager.h"
-#include "SPlisHSPlasH/Viscosity/ViscosityBase.h"
-#include "SPlisHSPlasH/Drag/DragBase.h"
-#include "SPlisHSPlasH/SurfaceTension/SurfaceTensionBase.h"
-#include "SPlisHSPlasH/Vorticity/VorticityBase.h"
-#include "SPlisHSPlasH/Elasticity/ElasticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/XSPH.h"
 #include <vector>
 
@@ -22,11 +18,12 @@ void ParameterObjectParser::parseParameters()
 	// generate SimulatorBase object
 	SimulatorBase* base = new SimulatorBase();
 	Utilities::logger.removeSink(Utilities::logger.getSinks()[0]);		// avoid output
+	base->createExporters();
 	base->initParameters();
 
 	// generate Simulation object
 	Simulation* sim = Simulation::getCurrent();
-	sim->init(0.025, false);
+	sim->init(static_cast<Real>(0.025), false);
 
 	// generate TimeManager object
 	TimeManager* tm = TimeManager::getCurrent();
@@ -100,6 +97,7 @@ void ParameterObjectParser::parseParameters()
 
 	// cleanup
 	delete Simulation::getCurrent();
+	base->cleanupExporters();
 	delete base;
 
 	// parse example fluid block

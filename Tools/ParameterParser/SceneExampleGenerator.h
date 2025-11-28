@@ -21,7 +21,7 @@ namespace SPH
 		void jsonParam(T* param)
 		{
 			std::string str1 = param->getName() + " - comment";
-			std::string str2 = param->getDescription() + "(Default: " + std::to_string(param->getValue()) + ", Type: " + typeid(param->getValue()).name() + ")";
+			std::string str2 = param->getDescription() + " (Default: " + std::to_string(param->getValue()) + ", Type: " + typeid(param->getValue()).name() + ")";
 			(*m_currentData)[str1] = str2;
 			(*m_currentData)[param->getName()] = param->getValue();
 		}

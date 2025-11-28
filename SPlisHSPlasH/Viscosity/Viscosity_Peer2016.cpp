@@ -10,6 +10,8 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Peer2016::METHOD_NAME = "Peer et al. 2016";
+int Viscosity_Peer2016::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Peer2016::ITERATIONS_V = -1;
 int Viscosity_Peer2016::ITERATIONS_OMEGA = -1;
 int Viscosity_Peer2016::MAX_ITERATIONS_V = -1;
@@ -19,21 +21,22 @@ int Viscosity_Peer2016::MAX_ERROR_OMEGA = -1;
 
 
 Viscosity_Peer2016::Viscosity_Peer2016(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 	m_density.resize(model->numParticles(), 0.0);
 	m_targetNablaV.resize(model->numParticles(), Matrix3r::Zero());
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 
+	m_viscosity = static_cast<Real>(0.01);
 	m_iterationsV = 0;
 	m_iterationsOmega = 0;
 	m_maxIterV = 50;
-	m_maxErrorV = 0.01;
+	m_maxErrorV = static_cast<Real>(0.01);
 	m_maxIterOmega = 50;
-	m_maxErrorOmega = 0.01;
+	m_maxErrorOmega = static_cast<Real>(0.01);
 
-	model->addField({ "target nablaV", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_targetNablaV[i](0,0); } });
-	model->addField({ "omega (visco)", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
+	model->addField({ "target nablaV", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_targetNablaV[i](0,0); } });
+	model->addField({ "omega (visco)", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
 }
 
 Viscosity_Peer2016::~Viscosity_Peer2016(void)
@@ -48,7 +51,13 @@ Viscosity_Peer2016::~Viscosity_Peer2016(void)
 
 void Viscosity_Peer2016::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	ITERATIONS_V = createNumericParameter("viscoIterationsV", "Iterations (velocity field)", &m_iterationsV);
 	setGroup(ITERATIONS_V, "Fluid Model|Viscosity");
@@ -68,8 +77,8 @@ void Viscosity_Peer2016::initParameters()
 	MAX_ERROR_V = createNumericParameter("viscoMaxError", "Max. error", &m_maxErrorV);
 	setGroup(MAX_ERROR_V, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR_V, "Max. error of the viscosity solver.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_V));
-	rparam->setMinValue(1e-6);
+	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_V));
+	rparam->setMinValue(static_cast<Real>(1e-6));
 
 	MAX_ITERATIONS_OMEGA = createNumericParameter("viscoMaxIterOmega", "Max. iterations (vorticity diffusion)", &m_maxIterOmega);
 	setGroup(MAX_ITERATIONS_OMEGA, "Fluid Model|Viscosity");
@@ -80,7 +89,7 @@ void Viscosity_Peer2016::initParameters()
 	setGroup(MAX_ERROR_OMEGA, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR_OMEGA, "Max. error of the vorticity diffusion solver.");
 	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR_OMEGA));
-	rparam->setMinValue(1e-6);
+	rparam->setMinValue(static_cast<Real>(1e-6));
 }
 
 void Viscosity_Peer2016::computeDensities()
@@ -500,4 +509,11 @@ void Viscosity_Peer2016::reset()
 
 void Viscosity_Peer2016::performNeighborhoodSearchSort()
 {
+	const unsigned int numPart = m_model->numActiveParticles();
+	if (numPart == 0)
+		return;
+
+	Simulation* sim = Simulation::getCurrent();
+	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
+	d.sort_field(&m_omega[0]);
 }

@@ -37,6 +37,7 @@ void SceneWriter::writeScene(const char* fileName)
 	try
 	{
 		output_file << std::setw(4) << m_jsonData << std::endl;
+		output_file.close();
 	}
 	catch (const std::exception& e)
 	{
@@ -65,6 +66,27 @@ void SceneWriter::updateMaterialParameterConfig(const std::string& key, Paramete
 	}
 }
 
+void SceneWriter::updateMaterialParameterConfig(const std::string& key, NonPressureForceBase* paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	if (m_jsonData.find("Materials") != m_jsonData.end())
+	{
+		nlohmann::json &materials = m_jsonData["Materials"];
+		for (auto& material : materials)
+		{
+			string id = material["id"];
+			if (key == id)
+			{
+				nlohmann::json &material_section = material[paramObj->getMethodName()];
+				writeParameterObject(material_section, paramObj);
+			}
+		}
+	}
+}
+
+
 void SceneWriter::writeParameterObject(const std::string& key, ParameterObject* paramObj)
 {
 	if (paramObj == nullptr)
@@ -77,6 +99,22 @@ void SceneWriter::writeParameterObject(const std::string& key, ParameterObject* 
 	{
 		nlohmann::json &config = m_jsonData[key];
 		writeParameterObject(config, paramObj);
+	}
+}
+
+void SceneWriter::writeTimeStepParameterObject(const std::string& key, TimeStep* paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	//////////////////////////////////////////////////////////////////////////
+	// write configuration 
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find(key) != m_jsonData.end())
+	{
+		nlohmann::json& config = m_jsonData[key];
+		nlohmann::json& method_section = config[paramObj->getMethodName()];
+		writeParameterObject(method_section, paramObj);
 	}
 }
 

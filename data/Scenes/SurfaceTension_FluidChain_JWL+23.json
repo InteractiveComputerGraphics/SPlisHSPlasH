@@ -17,14 +17,12 @@
     "cflMethod": 0,
     "cflMinTimeStepSize": 9.999999747378752e-05,
     "dataExportFPS": 25.0,
-    "enableDivergenceSolver": true,
-    "enablePartioExport": true,
+    "enablePartioExport": false,
     "enableRigidBodyExport": false,
     "enableRigidBodyVTKExport": false,
     "enableStateExport": false,
     "enableVTKExport": false,
     "enableZSort": true,
-    "exponent": 7.0,
     "gradKernel": 4,
     "gravitation": [
       0.0,
@@ -32,10 +30,6 @@
       0.0
     ],
     "kernel": 4,
-    "maxError": 0.009999999776482582,
-    "maxErrorV": 0.009999999776482582,
-    "maxIterations": 100,
-    "maxIterationsV": 100,
     "numberOfStepsPerRenderUpdate": 4,
     "particleAttributes": "velocity",
     "particleRadius": 0.01,
@@ -45,12 +39,17 @@
     "sim2D": false,
     "simulationMethod": 4,
     "stateExportFPS": 1.0,
-    "stiffness": 10000.0,
-    "stiffnessPF": 50000.0,
     "stopAt": -1.0,
     "timeStepSize": 0.001,
-    "velocityUpdateMethod": 0,
-    "scriptFile_": "two_emitters.py"
+    "DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.01,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.01,
+			"enableDivergenceSolver": true
+		}
   },
   "Emitters": [
     {
@@ -95,17 +94,9 @@
   "FluidModels": [],
   "Materials": [
     {
-      "alpha": 0.0,
       "colorField": "velocity",
       "colorMapType": 1,
       "density0": 1000.0,
-      "viscosity": 0.0125,
-      "viscosityMethod": 0,
-      "drag": 0.009999999776482582,
-      "dragMethod": 0,
-      "elasticityMaxError": 9.999999747378752e-05,
-      "elasticityMaxIter": 100,
-      "elasticityMethod": 0,
       "emitterBoxMax": [
         10.0,
         10.0,
@@ -124,18 +115,20 @@
       "emitterBoxMin2": -10.0,
       "emitterReuseParticles": true,
       "id": "Fluid",
-      "inertiaInverse": 0.5,
       "maxEmitterParticles": 10000000,
-      "poissonsRatio": 0.30000001192092896,
       "renderMaxValue": 5.0,
       "renderMinValue": 0.0,
+      "viscosityMethod": 0,
       "surfaceTensionMethod": 4,
-      "surfaceTension": 12000.000000000004,
-      "surfaceTensionBoundary": 0.0,
-      "surfaceTensionViscosity": 0.0075,
-      "surfaceTensionViscosityBoundary": 0.0,
-      "surfaceTensionMaxIter": 100,
-      "surfaceTensionMaxError": 0.0001
+      "Jeske et al. 2023": 
+      {
+        "surfaceTension": 12000.000000000004,
+        "surfaceTensionBoundary": 0.0,
+        "surfaceTensionViscosity": 0.0075,
+        "surfaceTensionViscosityBoundary": 0.0,
+        "surfaceTensionMaxIter": 100,
+        "surfaceTensionMaxError": 0.0001
+      }
     }
   ],
   "RigidBodies": []

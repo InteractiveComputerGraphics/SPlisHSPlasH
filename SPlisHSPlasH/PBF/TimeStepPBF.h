@@ -23,6 +23,10 @@ namespace SPH
 	{
 	protected:
 		SimulationDataPBF m_simulationData;
+		unsigned int m_iterations;
+		Real m_maxError;
+		unsigned int m_minIterations;
+		unsigned int m_maxIterations;
 		int m_velocityUpdateMethod;
 
 		/** Perform a position-based correction step for the following density constraint:\n
@@ -38,6 +42,11 @@ namespace SPH
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
+		static int SOLVER_ITERATIONS;
+		static int MIN_ITERATIONS;
+		static int MAX_ITERATIONS;
+		static int MAX_ERROR;
 		static int VELOCITY_UPDATE_METHOD;
 		static int ENUM_PBF_FIRST_ORDER;
 		static int ENUM_PBF_SECOND_ORDER;
@@ -52,6 +61,8 @@ namespace SPH
 		/** Reset the simulation method. */
 		virtual void reset();
 		virtual void resize();
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		virtual int getNumIterations() { return m_iterations; }
 	};
 }
 

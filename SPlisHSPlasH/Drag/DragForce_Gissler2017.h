@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "DragBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -13,9 +13,10 @@ namespace SPH
 	* References:
 	* - [GPB+17] Christoph Gissler, Stefan Band, Andreas Peer, Markus Ihmsen, and Matthias Teschner. Approximate air-fluid interactions for SPH. In Virtual Reality Interactions and Physical Simulations, 1-10. April 2017. URL: http://dx.doi.org/10.2312/vriphys.20171081
 	*/
-	class DragForce_Gissler2017 : public DragBase
+	class DragForce_Gissler2017 : public NonPressureForceBase
 	{
 	protected:
+		Real m_dragCoefficient;
 		const Real rho_a = static_cast<Real>(1.2041);
 		const Real sigma = static_cast<Real>(0.0724);
 		const Real mu_l = static_cast<Real>(0.00102);
@@ -25,11 +26,17 @@ namespace SPH
 		const Real C_b = static_cast<Real>(0.5);
 		const Real mu_a = static_cast<Real>(0.00001845);
 
+		virtual void initParameters();
+
 	public:
+		static std::string METHOD_NAME;
+		static int DRAG_COEFFICIENT;
+
 		DragForce_Gissler2017(FluidModel *model);
 		virtual ~DragForce_Gissler2017(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new DragForce_Gissler2017(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

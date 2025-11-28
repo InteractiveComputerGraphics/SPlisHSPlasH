@@ -11,6 +11,7 @@ namespace py = pybind11;
 
 void NonPressureForceBaseModule(py::module m_sub) {
     py::class_<SPH::NonPressureForceBase, GenParam::ParameterObject>(m_sub, "NonPressureForceBase")
+            .def("getMethodName", &SPH::NonPressureForceBase::getMethodName)
             .def("step", &SPH::NonPressureForceBase::step)
             .def("reset", &SPH::NonPressureForceBase::reset)
             .def("performNeighborhoodSearchSort", &SPH::NonPressureForceBase::performNeighborhoodSearchSort)

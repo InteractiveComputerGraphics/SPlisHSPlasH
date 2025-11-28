@@ -27,7 +27,8 @@ class PartioReader(VTKPythonAlgorithmBase):
             self, nInputPorts=0, nOutputPorts=1, outputType="vtkUnstructuredGrid"
         )
         self.fileList = []  
-        self.timeSteps = None        
+        self.timeSteps = None 
+        self.p = None       
             
     # function is required to give Paraview the info about the time steps
     @smproperty.doublevector(name="TimestepValues", information_only="1", si_class="vtkSITimeStepsProperty")
@@ -108,17 +109,19 @@ class PartioReader(VTKPythonAlgorithmBase):
         else:
             currentFile = self.fileList[0]
         
-        p = partio.read(currentFile)
+        if (self.p != None):
+            self.p.release()
+        self.p = partio.read(currentFile)
 
-        if p == None:
+        if self.p == None:
             return 1
             
-        totalParticles = p.numParticles()
+        totalParticles = self.p.numParticles()
             
-        for i in range(p.numAttributes()):
-            attr=p.attributeInfo(i)
+        for i in range(self.p.numAttributes()):
+            attr=self.p.attributeInfo(i)
             if attr.name=="position":
-                pos = np.array(p.data_buffer(attr), copy=False)  
+                pos = np.array(self.p.data_buffer(attr), copy=False)  
                 output.SetPoints(pos)
         
         # cell_conn contains tuples (num indices, vertex ids)
@@ -133,11 +136,11 @@ class PartioReader(VTKPythonAlgorithmBase):
         output.SetCells(cell_types, cell_offsets, cell_conn)
         
         # add field data
-        for i in range(p.numAttributes()):
-            attr=p.attributeInfo(i)
+        for i in range(self.p.numAttributes()):
+            attr=self.p.attributeInfo(i)
             if attr.name != "position": 
-                values = np.array(p.data_buffer(attr), copy=False)
-                output.PointData.append(values, attr.name)                
+                values = np.array(self.p.data_buffer(attr), copy=False)
+                output.PointData.append(values, attr.name)      
         return 1
    
 

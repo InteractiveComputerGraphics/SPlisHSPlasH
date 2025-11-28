@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -15,14 +15,17 @@ namespace SPH
 	* References:
 	* - [IOS+14] Markus Ihmsen, Jens Orthmann, Barbara Solenthaler, Andreas Kolb, and Matthias Teschner. SPH Fluids in Computer Graphics. In Sylvain Lefebvre and Michela Spagnuolo, editors, Eurographics 2014 - State of the Art Reports. The Eurographics Association, 2014. URL: http://dx.doi.org/10.2312/egst.20141034
 	*/
-	class Viscosity_Standard : public ViscosityBase
+	class Viscosity_Standard : public NonPressureForceBase
 	{
 	protected:
+		Real m_viscosity;
 		Real m_boundaryViscosity;
 
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int VISCOSITY_COEFFICIENT_BOUNDARY;
 
 		Viscosity_Standard(FluidModel *model);
@@ -32,6 +35,7 @@ namespace SPH
 		virtual void reset();
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Standard(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 	};
 }
 

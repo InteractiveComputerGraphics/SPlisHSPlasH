@@ -49,11 +49,7 @@
 namespace SPH 
 {	
 	class TimeStep;
-	class ViscosityBase;
-	class SurfaceTensionBase;
-	class VorticityBase;
-	class DragBase;
-	class ElasticityBase;
+	class NonPressureForceBase;
 	class XSPH;
 	class EmitterSystem;
 
@@ -61,14 +57,19 @@ namespace SPH
 	struct FieldDescription
 	{
 		std::string name;
+		std::string methodName;			// name of the method that added this field
 		FieldType type;
 		// getFct(particleIndex)
 		std::function<void*(const unsigned int)> getFct;
 		bool storeData;
 
-		FieldDescription(const std::string &n, const FieldType &t, 
+		FieldDescription(const std::string& n, const FieldType& t,
+			const std::function<void* (const unsigned int)>& fct, const bool s = false) :
+			name(n), methodName(""), type(t), getFct(fct), storeData(s) { }
+
+		FieldDescription(const std::string &n, const std::string& mn, const FieldType &t,
 			const std::function<void*(const unsigned int)> &fct, const bool s = false) :
-			name(n), type(t), getFct(fct), storeData(s) { }
+			name(n), methodName(mn), type(t), getFct(fct), storeData(s) { }
 	};
 
 	enum class ParticleState { Active = 0, AnimatedByEmitter, Fixed };
@@ -130,15 +131,15 @@ namespace SPH
 
 			XSPH* m_xsph;
 			unsigned int m_surfaceTensionMethod;
-			SurfaceTensionBase *m_surfaceTension;
+			NonPressureForceBase*m_surfaceTension;
 			unsigned int m_viscosityMethod;
-			ViscosityBase *m_viscosity;
+			NonPressureForceBase*m_viscosity;
 			unsigned int m_vorticityMethod;
-			VorticityBase *m_vorticity;
+			NonPressureForceBase *m_vorticity;
 			unsigned int m_dragMethod;
-			DragBase *m_drag;
+			NonPressureForceBase *m_drag;
 			unsigned int m_elasticityMethod;
-			ElasticityBase *m_elasticity;
+			NonPressureForceBase *m_elasticity;
 			std::vector<FieldDescription> m_fields;
 
 			std::function<void()> m_dragMethodChanged;
@@ -214,11 +215,11 @@ namespace SPH
 			void setElasticityMethod(const std::string& val);
 			void setElasticityMethod(const unsigned int val);
 
-			SurfaceTensionBase *getSurfaceTensionBase() { return m_surfaceTension; }
-			ViscosityBase *getViscosityBase() { return m_viscosity; }
-			VorticityBase *getVorticityBase() { return m_vorticity; }
-			DragBase *getDragBase() { return m_drag; }
-			ElasticityBase *getElasticityBase() { return m_elasticity; }
+			NonPressureForceBase *getSurfaceTensionBase() { return m_surfaceTension; }
+			NonPressureForceBase *getViscosityBase() { return m_viscosity; }
+			NonPressureForceBase *getVorticityBase() { return m_vorticity; }
+			NonPressureForceBase *getDragBase() { return m_drag; }
+			NonPressureForceBase *getElasticityBase() { return m_elasticity; }
 			XSPH* getXSPH() { return m_xsph; }
 
 			void setDragMethodChangedCallback(std::function<void()> const& callBackFct);

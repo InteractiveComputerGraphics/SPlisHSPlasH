@@ -11,14 +11,17 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Weiler2018::METHOD_NAME = "Weiler et al. 2018";
+int Viscosity_Weiler2018::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Weiler2018::ITERATIONS = -1;
 int Viscosity_Weiler2018::MAX_ITERATIONS = -1;
 int Viscosity_Weiler2018::MAX_ERROR = -1;
 int Viscosity_Weiler2018::VISCOSITY_COEFFICIENT_BOUNDARY = -1;
 
 Viscosity_Weiler2018::Viscosity_Weiler2018(FluidModel *model) :
-	ViscosityBase(model), m_vDiff()
+	NonPressureForceBase(model), m_vDiff()
 {
+	m_viscosity = static_cast<Real>(0.01);
 	m_maxIter = 100;
 	m_maxError = static_cast<Real>(0.01);
 	m_iterations = 0;
@@ -27,7 +30,7 @@ Viscosity_Weiler2018::Viscosity_Weiler2018(FluidModel *model) :
 
 	m_vDiff.resize(model->numParticles(), Vector3r::Zero());
 
-	model->addField({ "velocity difference", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_vDiff[i][0]; }, true });
+	model->addField({ "velocity difference", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_vDiff[i][0]; }, true });
 }
 
 Viscosity_Weiler2018::~Viscosity_Weiler2018(void)
@@ -39,12 +42,18 @@ Viscosity_Weiler2018::~Viscosity_Weiler2018(void)
 
 void Viscosity_Weiler2018::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	VISCOSITY_COEFFICIENT_BOUNDARY = createNumericParameter("viscosityBoundary", "Viscosity coefficient (Boundary)", &m_boundaryViscosity);
 	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_COEFFICIENT_BOUNDARY, "Coefficient for the viscosity force computation at the boundary.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
+	rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
 	rparam->setMinValue(0.0);
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);

@@ -2,14 +2,30 @@
 #include "SPlisHSPlasH/TimeManager.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+std::string DragForce_Macklin2014::METHOD_NAME = "Macklin et al. 2014";
+int DragForce_Macklin2014::DRAG_COEFFICIENT = -1;
 
 DragForce_Macklin2014::DragForce_Macklin2014(FluidModel *model) :
-	DragBase(model)
+	NonPressureForceBase(model)
 {
+	m_dragCoefficient = static_cast<Real>(0.01);
 }
 
 DragForce_Macklin2014::~DragForce_Macklin2014(void)
 {
+}
+
+void DragForce_Macklin2014::initParameters()
+{
+	NonPressureForceBase::initParameters();
+
+	DRAG_COEFFICIENT = createNumericParameter("drag", "Drag coefficient", &m_dragCoefficient);
+	setGroup(DRAG_COEFFICIENT, "Fluid Model|Drag force");
+	setDescription(DRAG_COEFFICIENT, "Coefficient for the drag force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(DRAG_COEFFICIENT));
+	rparam->setMinValue(0.0);
 }
 
 void DragForce_Macklin2014::step()

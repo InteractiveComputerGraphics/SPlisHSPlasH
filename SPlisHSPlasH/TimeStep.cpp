@@ -14,18 +14,8 @@ using namespace GenParam;
 
 //#define USE_FD_NORMAL
 
-int TimeStep::SOLVER_ITERATIONS = -1;
-int TimeStep::MIN_ITERATIONS = -1;
-int TimeStep::MAX_ITERATIONS = -1;
-int TimeStep::MAX_ERROR = -1;
-
-
 TimeStep::TimeStep()
 {
-	m_iterations = 0;
-	m_minIterations = 2;
-	m_maxIterations = 100;
-	m_maxError = 0.01;
 }
 
 TimeStep::~TimeStep(void)
@@ -40,26 +30,6 @@ void TimeStep::init()
 void TimeStep::initParameters()
 {
 	ParameterObject::initParameters();
-
-	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
-	setGroup(SOLVER_ITERATIONS, "Simulation|Simulation");
-	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
-	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
-
-	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
-	setGroup(MIN_ITERATIONS, "Simulation|Simulation");
-	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
-	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
-
-	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
-	setGroup(MAX_ITERATIONS, "Simulation|Simulation");
-	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
-	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
-
-	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
-	setGroup(MAX_ERROR, "Simulation|Simulation");
-	setDescription(MAX_ERROR, "Maximal density error (%).");
-	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(1e-6);
 }
 
 void TimeStep::clearAccelerations(const unsigned int fluidModelIndex)
@@ -202,7 +172,6 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 
 void TimeStep::reset()
 {
-	m_iterations = 0;
 }
 
 void TimeStep::computeVolumeAndBoundaryX()
@@ -336,7 +305,10 @@ void TimeStep::computeVolumeAndBoundaryX(const unsigned int fluidModelIndex, con
 			else if (dist <= 0.0)
 			{
 				// if a particle is in the boundary, animate the particle back
-				LOG_DEBUG << "Particle in boundary.";
+				#pragma omp critical 
+				{
+					LOG_DEBUG << "Particle in boundary.";
+				}
 				animateParticle = true;
 				boundaryVolume = 0.0;
 			}

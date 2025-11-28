@@ -105,9 +105,6 @@ namespace SPH
 		void setCommandLineParameter();
 		void setCommandLineParameter(GenParam::ParameterObject *paramObj);
 
-		void createExporters();
-		void cleanupExporters();
-		void initExporters();
 		std::string openFileDialog(const std::string& defaultPath, const std::string filterName, const std::string fileFilter);
 		std::string saveFileDialog(const std::string& defaultPath, const std::string& defaultName, const std::string filterName, const std::string fileFilter);
 
@@ -151,6 +148,10 @@ namespace SPH
 		void deferredInit();
 		void runSimulation();
 		void cleanup();
+
+		void createExporters();
+		void cleanupExporters();
+		void initExporters();
 
 		void reset();
 		void timeStep();

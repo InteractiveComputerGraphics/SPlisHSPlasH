@@ -5,38 +5,43 @@
 		"stopAt": 9.7216,
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 4,
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"timeStepSize": 0.005,
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.05,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffness": 50000,
-		"exponent": 7,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
 		"particleAttributes": "density;velocity",
-		"boundaryHandlingMethod": 0
+		"boundaryHandlingMethod": 0,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.05,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
-			"surfaceTension": 0.2,
-			"surfaceTensionMethod": 0,
-			"viscosity": 0.013,
-			"vorticityMethod": 1,
-			"vorticity": 0.3,
-			"viscosityOmega": 0.2,
-			"inertiaInverse": 0.5,
-			"viscosityBoundary": 0.0,
+			"density0": 1000, 			
 			"viscosityMethod": 6,
-			"viscoMaxIter": 2, 
-			"viscoMaxError": 0.075
+			"vorticityMethod": 1,						
+			"Weiler et al. 2018":
+            {
+                "viscosity": 0.013,
+				"viscosityBoundary": 0.0,
+				"viscoMaxIter": 2, 
+				"viscoMaxError": 0.075
+            },
+			"Bender et al. 2017": 
+			{
+				"vorticity": 0.3,
+				"viscosityOmega": 0.2,
+				"inertiaInverse": 0.5
+			}
 		}
 	],
 	"RigidBodies": [

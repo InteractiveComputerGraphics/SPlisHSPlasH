@@ -8,7 +8,7 @@
 #include "SPlisHSPlasH/Emitter.h"
 #include "SPlisHSPlasH/EmitterSystem.h"
 #include "SPlisHSPlasH/Simulation.h"
-#include "SPlisHSPlasH/Vorticity/MicropolarModel_Bender2017.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "NumericParameter.h"
 #include "Utilities/Logger.h"
 #include "Utilities/Timing.h"
@@ -508,18 +508,18 @@ void SimulatorBase::initSimulation()
 		{
 			FluidModel *model = sim->getFluidModel(i);
 			const std::string &key = model->getId();
-			model->setDragMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getDragBase()); });
-			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase()); });
-			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase()); });
-			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase()); });
-			model->setElasticityMethodChangedCallback([this, model]() { reset();  m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase()); });
+			model->setDragMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getDragBase()); });
+			model->setSurfaceMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getSurfaceTensionBase()); });
+			model->setViscosityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getViscosityBase()); });
+			model->setVorticityMethodChangedCallback([this, model]() { m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getVorticityBase()); });
+			model->setElasticityMethodChangedCallback([this, model]() { reset();  m_gui->initSimulationParameterGUI(); getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getElasticityBase()); });
 		}
 
 		m_gui->initSimulationParameterGUI();
 		Simulation::getCurrent()->setSimulationMethodChangedCallback([this]() { 
 			reset(); 
 			m_gui->initSimulationParameterGUI(); 
-			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep()); 
+			getSceneLoader()->readTimeStepParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
 			getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
 #endif
@@ -557,19 +557,19 @@ void SimulatorBase::deferredInit()
 		{
 			FluidModel* model = sim->getFluidModel(i);
 			if (model->getXSPH())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getXSPH());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getXSPH());
 			if (model->getDragBase())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getDragBase());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getDragBase());
 			if (model->getSurfaceTensionBase())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getSurfaceTensionBase());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getSurfaceTensionBase());
 			if (model->getViscosityBase())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getViscosityBase());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getViscosityBase());
 			if (model->getVorticityBase())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getVorticityBase());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getVorticityBase());
 			if (model->getElasticityBase())
-				getSceneLoader()->readMaterialParameterObject(model->getId(), (ParameterObject*)model->getElasticityBase());
+				getSceneLoader()->readMaterialParameterObject(model->getId(), (NonPressureForceBase*)model->getElasticityBase());
 		}
-		getSceneLoader()->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+		getSceneLoader()->readTimeStepParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 		m_gui->initSimulationParameterGUI();
 	}
 	sim->setSimulationInitialized(true);
@@ -645,7 +645,7 @@ void SimulatorBase::readParameters()
 	m_sceneLoader->readParameterObject("Configuration", this);
 	m_sceneLoader->readParameterObject("Configuration", TimeManager::getCurrent());
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent());
-	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+	m_sceneLoader->readTimeStepParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
 	m_sceneLoader->readParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
 #endif
@@ -657,12 +657,12 @@ void SimulatorBase::readParameters()
 		FluidModel *model = sim->getFluidModel(i);
 		const std::string &key = model->getId();
 		m_sceneLoader->readMaterialParameterObject(key, model);
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*)model->getXSPH());
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getDragBase());
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getSurfaceTensionBase());
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getViscosityBase());
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getVorticityBase());
-		m_sceneLoader->readMaterialParameterObject(key, (ParameterObject*) model->getElasticityBase());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*)model->getXSPH());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*) model->getDragBase());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*) model->getSurfaceTensionBase());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*) model->getViscosityBase());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*) model->getVorticityBase());
+		m_sceneLoader->readMaterialParameterObject(key, (NonPressureForceBase*) model->getElasticityBase());
 
 		for (auto material : scene.materials)
 		{
@@ -847,6 +847,7 @@ void SimulatorBase::reset()
 #endif
 
 	m_boundarySimulator->reset();
+	Simulation::getCurrent()->getNeighborhoodSearch()->reset();
 	if (m_gui)
 		m_gui->reset();
 
@@ -2871,7 +2872,7 @@ void SimulatorBase::writeSceneFile(const std::string &fileName)
 	Simulation* sim = Simulation::getCurrent();
 	writer.writeParameterObject("Configuration", this);
 	writer.writeParameterObject("Configuration", Simulation::getCurrent());
-	writer.writeParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
+	writer.writeTimeStepParameterObject("Configuration", Simulation::getCurrent()->getTimeStep());
 #ifdef USE_DEBUG_TOOLS
 	writer.writeParameterObject("Configuration", Simulation::getCurrent()->getDebugTools());
 #endif
@@ -2881,12 +2882,12 @@ void SimulatorBase::writeSceneFile(const std::string &fileName)
 		FluidModel* model = sim->getFluidModel(i);
 		const std::string& key = model->getId();
 		writer.updateMaterialParameterConfig(model->getId(), model);
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getXSPH());
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getDragBase());
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getSurfaceTensionBase());
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getViscosityBase());
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getVorticityBase());
-		writer.updateMaterialParameterConfig(model->getId(), (ParameterObject*)model->getElasticityBase());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getXSPH());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getDragBase());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getSurfaceTensionBase());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getViscosityBase());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getVorticityBase());
+		writer.updateMaterialParameterConfig(model->getId(), (NonPressureForceBase*)model->getElasticityBase());
 
 		for (auto material : scene.materials)
 		{

@@ -34,6 +34,10 @@ namespace SPH
 
 		SimulationDataPF m_simulationData;
 		Solver m_solver;
+		unsigned int m_iterations;
+		Real m_maxError;
+		unsigned int m_minIterations;
+		unsigned int m_maxIterations;
 		Real m_stiffness;
 		unsigned int m_numActiveParticlesTotal;
 
@@ -50,6 +54,11 @@ namespace SPH
 		virtual void initParameters() override;
 
 	public:
+		static std::string METHOD_NAME;
+		static int SOLVER_ITERATIONS;
+		static int MIN_ITERATIONS;
+		static int MAX_ITERATIONS;
+		static int MAX_ERROR;
 		static int STIFFNESS;
 
 		TimeStepPF();
@@ -58,6 +67,8 @@ namespace SPH
 		virtual void step()   override;
 		virtual void reset()  override;
 		virtual void resize() override;
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		virtual int getNumIterations() { return m_iterations; }
 
 		static void matrixVecProd(const Real* vec, Real *result, void *userData);
 	};

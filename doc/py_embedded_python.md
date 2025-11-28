@@ -2,7 +2,7 @@
 
 ## Build with embedded Python support
 
-To enable the embedded Python support just activate the CMake option USE_EMBEDDED_PYTHON which is by default turned off. Please ensure that CMake finds the Python interpreter. This can be achieved by setting the PYTHON_EXECUTABLE to the file path of the python interpreter.
+To enable the embedded Python support just activate the CMake option USE_EMBEDDED_PYTHON which is by default turned off. Please ensure that CMake finds the Python interpreter. This can be achieved by setting the Python_EXECUTABLE to the file path of the python interpreter.
 
 ## Run simulator with embedded Python support
 

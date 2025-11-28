@@ -8,6 +8,7 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string XSPH::METHOD_NAME = "XSPH";
 int XSPH::FLUID_COEFFICIENT = -1;
 int XSPH::BOUNDARY_COEFFICIENT = -1;
 

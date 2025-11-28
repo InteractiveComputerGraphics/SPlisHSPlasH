@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ElasticityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 #if USE_AVX
 #include "SPlisHSPlasH/Utilities/AVX_math.h"
@@ -22,7 +22,7 @@ namespace SPH
 	* Fast Corotated Elastic SPH Solids with Implicit Zero-Energy Mode Control. Proceedings of the ACM on Computer Graphics and 
 	* Interactive Techniques, 2021. URL: http://dx.doi.org/10.1145/3480142
 	*/
-	class Elasticity_Kugelstadt2021 : public ElasticityBase
+	class Elasticity_Kugelstadt2021 : public NonPressureForceBase
 	{
 	protected:
 
@@ -72,6 +72,11 @@ namespace SPH
 			~ElasticObject() { m_factorization = nullptr; }
 		};
 
+		Real m_youngsModulus;
+		Real m_poissonRatio;
+		Vector3r m_fixedBoxMin;
+		Vector3r m_fixedBoxMax;
+
 		// initial particle indices, used to access their original positions
 		std::vector<unsigned int> m_current_to_initial_index;
 		std::vector<unsigned int> m_initial_to_current_index;
@@ -117,6 +122,7 @@ namespace SPH
 		Solver m_solver;
 		void computeRHS(VectorXr& rhs);
 
+		void determineFixedParticles();
 		std::string computeMD5(const unsigned int objIndex);
 		void initValues();
 		void initSystem();
@@ -150,6 +156,11 @@ namespace SPH
 		void rotationMatricesToAVXQuaternions();
 
 	public:
+		static std::string METHOD_NAME;
+		static int YOUNGS_MODULUS;
+		static int POISSON_RATIO;
+		static int FIXED_BOX_MIN;
+		static int FIXED_BOX_MAX;
 		static int ITERATIONS_V;
 		static int MAX_ITERATIONS_V;
 		static int MAX_ERROR_V;
@@ -160,6 +171,7 @@ namespace SPH
 		virtual ~Elasticity_Kugelstadt2021(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Elasticity_Kugelstadt2021(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

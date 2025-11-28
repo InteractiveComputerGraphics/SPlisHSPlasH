@@ -10,22 +10,25 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Takahashi2015::METHOD_NAME = "Takahashi et al. 2015 (improved)";
+int Viscosity_Takahashi2015::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Takahashi2015::ITERATIONS = -1;
 int Viscosity_Takahashi2015::MAX_ITERATIONS = -1;
 int Viscosity_Takahashi2015::MAX_ERROR = -1;
 
 Viscosity_Takahashi2015::Viscosity_Takahashi2015(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
 	m_viscousStress.resize(model->numParticles(), Matrix3r::Zero());
 	m_accel.resize(model->numParticles(), Vector3r::Zero());
 
+	m_viscosity = static_cast<Real>(0.01);
 	m_maxIter = 100;
-	m_maxError = 0.01;
+	m_maxError = static_cast<Real>(0.01);
 	m_iterations = 0;
 
-	model->addField({ "viscous stress", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_viscousStress[i](0,0); } });
-	model->addField({ "accel (visco)", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_accel[i][0]; } });
+	model->addField({ "viscous stress", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_viscousStress[i](0,0); } });
+	model->addField({ "accel (visco)", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_accel[i][0]; } });
 }
 
 Viscosity_Takahashi2015::~Viscosity_Takahashi2015(void)
@@ -39,7 +42,13 @@ Viscosity_Takahashi2015::~Viscosity_Takahashi2015(void)
 
 void Viscosity_Takahashi2015::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	ITERATIONS = createNumericParameter("viscoIterations", "Iterations", &m_iterations);
 	setGroup(ITERATIONS, "Fluid Model|Viscosity");
@@ -54,8 +63,8 @@ void Viscosity_Takahashi2015::initParameters()
 	MAX_ERROR = createNumericParameter("viscoMaxError", "Max. visco error", &m_maxError);
 	setGroup(MAX_ERROR, "Fluid Model|Viscosity");
 	setDescription(MAX_ERROR, "Max. error of the viscosity solver.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
-	rparam->setMinValue(1e-6);
+	rparam = static_cast<RealParameter*>(getParameter(MAX_ERROR));
+	rparam->setMinValue(static_cast<Real>(1e-6));
 }
 
 void Viscosity_Takahashi2015::matrixVecProd(const Real* vec, Real *result, void *userData)

@@ -5,34 +5,41 @@
 		"sim2D": true, 
 		"numberOfStepsPerRenderUpdate": 4,
 		"particleRadius": 0.025, 
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 2, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.05,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffness": 50000,
-		"exponent": 7,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 2,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.05,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
+			"density0": 1000, 
 			"maxEmitterParticles": 10000,
 			"emitterReuseParticles": false,
 			"emitterBoxMin": [-2.0,-2.5,-2.0],
 			"emitterBoxMax": [1.0,4,2.0],
 			"viscosityMethod": 1,
-			"viscosity": 0.01,
 			"dragMethod": 2, 
-			"drag": 10.0,
-			"colorMapType": 1
+			"colorMapType": 1,
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+            },
+			"Gissler et al. 2017": 
+			{
+				"drag": 10.0
+			}
 		}
 	],
 	"RigidBodies": [

@@ -416,7 +416,23 @@ int main( int argc, char **argv )
 	// if in query mode, determine the max values per frame 
 	Real vDiffAvgMax, omegaDiffAvgMax, curvatureAvgMax, energyAvgMax;
 	if (queryMode)
+	{
 		queryValues(vDiffAvgMax, omegaDiffAvgMax, curvatureAvgMax, energyAvgMax);
+
+		taMin = static_cast<Real>(0.1) * vDiffAvgMax;
+		taMax = vDiffAvgMax;
+		wcMin = static_cast<Real>(0.1) * curvatureAvgMax;
+		wcMax = curvatureAvgMax;
+		voMin = static_cast<Real>(0.1) * omegaDiffAvgMax;
+		voMax = omegaDiffAvgMax;
+		keMin = static_cast<Real>(0.1) * energyAvgMax;
+		keMax = energyAvgMax;
+		LOG_INFO << "Parameters: --limits " << taMin << "," << taMax << ","
+			<< wcMin << "," << wcMax << ","
+			<< voMin << "," << voMax << ","
+			<< keMin << "," << keMax
+			<< " --ta 1 --wc 1 --vo 1";
+	}
 	else if (automaticMode)
 	{
 		queryValues(vDiffAvgMax, omegaDiffAvgMax, curvatureAvgMax, energyAvgMax);
@@ -429,10 +445,11 @@ int main( int argc, char **argv )
 		voMax = omegaDiffAvgMax;
 		keMin = static_cast<Real>(0.1)*energyAvgMax;
 		keMax = energyAvgMax;
-		LOG_INFO << "Limits: " << taMin << ", " << taMax << ", "
-			<< wcMin << ", " << wcMax << ", "
-			<< voMin << ", " << voMax << ", "
-			<< keMin << ", " << keMax;
+		LOG_INFO << "Parameters: --limits " << taMin << "," << taMax << ","
+			<< wcMin << "," << wcMax << ","
+			<< voMin << "," << voMax << ","
+			<< keMin << "," << keMax
+			<< " --ta 1 --wc 1 --vo 1";
 
 		k_ta = 1.0;
 		k_wc = 1.0;

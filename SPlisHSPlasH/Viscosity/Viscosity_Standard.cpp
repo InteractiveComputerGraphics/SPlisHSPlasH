@@ -10,12 +10,15 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Viscosity_Standard::METHOD_NAME = "Standard viscosity";
+int Viscosity_Standard::VISCOSITY_COEFFICIENT = -1;
 int Viscosity_Standard::VISCOSITY_COEFFICIENT_BOUNDARY = -1;
 
 
 Viscosity_Standard::Viscosity_Standard(FluidModel *model) :
-	ViscosityBase(model)
+	NonPressureForceBase(model)
 {
+	m_viscosity = static_cast<Real>(0.01);
 	m_boundaryViscosity = 0.0;
 }
 
@@ -25,12 +28,18 @@ Viscosity_Standard::~Viscosity_Standard(void)
 
 void Viscosity_Standard::initParameters()
 {
-	ViscosityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VISCOSITY_COEFFICIENT = createNumericParameter("viscosity", "Viscosity coefficient", &m_viscosity);
+	setGroup(VISCOSITY_COEFFICIENT, "Fluid Model|Viscosity");
+	setDescription(VISCOSITY_COEFFICIENT, "Coefficient for the viscosity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
 	VISCOSITY_COEFFICIENT_BOUNDARY = createNumericParameter("viscosityBoundary", "Viscosity coefficient (Boundary)", &m_boundaryViscosity);
 	setGroup(VISCOSITY_COEFFICIENT_BOUNDARY, "Fluid Model|Viscosity");
 	setDescription(VISCOSITY_COEFFICIENT_BOUNDARY, "Coefficient for the viscosity force computation at the boundary.");
-	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
+	rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_COEFFICIENT_BOUNDARY));
 	rparam->setMinValue(0.0);
 }
 

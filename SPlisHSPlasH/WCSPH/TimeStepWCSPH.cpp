@@ -14,6 +14,7 @@ using namespace SPH;
 using namespace std;
 using namespace GenParam;
 
+std::string TimeStepWCSPH::METHOD_NAME = "WCSPH";
 int TimeStepWCSPH::STIFFNESS = -1;
 int TimeStepWCSPH::EXPONENT = -1;
 
@@ -31,8 +32,8 @@ TimeStepWCSPH::TimeStepWCSPH() :
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
-		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+		model->addField({ "pressure", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
 	}
 }
 

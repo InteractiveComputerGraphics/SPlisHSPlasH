@@ -33,5 +33,7 @@ void WCSPHModule(py::module m_sub) {
     py::class_<SPH::TimeStepWCSPH, SPH::TimeStep>(m_sub, "TimeStepWCSPH")
             .def_readwrite_static("STIFFNESS", &SPH::TimeStepWCSPH::STIFFNESS)
             .def_readwrite_static("EXPONENT", &SPH::TimeStepWCSPH::EXPONENT)
-            .def(py::init<>());
+            .def(py::init<>())
+            .def("getMethodName", &SPH::TimeStepWCSPH::getMethodName)
+            .def("getNumIterations", &SPH::TimeStepWCSPH::getNumIterations);
 }

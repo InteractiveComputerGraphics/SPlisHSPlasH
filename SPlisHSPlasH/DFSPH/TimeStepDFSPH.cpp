@@ -15,7 +15,11 @@ using namespace SPH;
 using namespace std;
 using namespace GenParam;
 
-
+std::string TimeStepDFSPH::METHOD_NAME = "DFSPH";
+int TimeStepDFSPH::SOLVER_ITERATIONS = -1;
+int TimeStepDFSPH::MIN_ITERATIONS = -1;
+int TimeStepDFSPH::MAX_ITERATIONS = -1;
+int TimeStepDFSPH::MAX_ERROR = -1;
 int TimeStepDFSPH::SOLVER_ITERATIONS_V = -1;
 int TimeStepDFSPH::MAX_ITERATIONS_V = -1;
 int TimeStepDFSPH::MAX_ERROR_V = -1;
@@ -27,6 +31,10 @@ TimeStepDFSPH::TimeStepDFSPH() :
 	m_simulationData()
 {
 	m_simulationData.init();
+	m_iterations = 0;
+	m_minIterations = 2;
+	m_maxIterations = 100;
+	m_maxError = static_cast<Real>(0.01);
 	m_iterationsV = 0;
 	m_enableDivergenceSolver = true;
 	m_maxIterationsV = 100;
@@ -38,11 +46,11 @@ TimeStepDFSPH::TimeStepDFSPH() :
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "factor", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getFactor(fluidModelIndex, i); } });
-		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
-		model->addField({ "p / rho^2", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureRho2(fluidModelIndex, i); }, true });
-		model->addField({ "p_v / rho^2", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureRho2_V(fluidModelIndex, i); }, true });
-		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+		model->addField({ "factor", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getFactor(fluidModelIndex, i); } });
+		model->addField({ "advected density", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "p / rho^2", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureRho2(fluidModelIndex, i); }, true });
+		model->addField({ "p_v / rho^2", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureRho2_V(fluidModelIndex, i); }, true });
+		model->addField({ "pressure acceleration", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
 	}
 }
 
@@ -65,6 +73,26 @@ TimeStepDFSPH::~TimeStepDFSPH(void)
 void TimeStepDFSPH::initParameters()
 {
 	TimeStep::initParameters();
+
+	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
+	setGroup(SOLVER_ITERATIONS, "Simulation|DFSPH");
+	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
+	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
+
+	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
+	setGroup(MIN_ITERATIONS, "Simulation|DFSPH");
+	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
+
+	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
+	setGroup(MAX_ITERATIONS, "Simulation|DFSPH");
+	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
+	setGroup(MAX_ERROR, "Simulation|DFSPH");
+	setDescription(MAX_ERROR, "Maximal density error (%).");
+	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(static_cast<Real>(1e-6));
 
 	SOLVER_ITERATIONS_V = createNumericParameter("iterationsV", "Iterations (divergence)", &m_iterationsV);
 	setGroup(SOLVER_ITERATIONS_V, "Simulation|DFSPH");
@@ -575,7 +603,7 @@ void TimeStepDFSPH::pressureSolveIteration(const unsigned int fluidModelIndex, R
 			const Real residuum = min(s_i - aij_pj, static_cast<Real>(0.0));     // r = b - A*p
 			//p_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
 
-			p_rho2_i = max(p_rho2_i - 0.5 * (s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
+			p_rho2_i = max(p_rho2_i - static_cast<Real>(0.5) * (s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), static_cast<Real>(0.0));
 
 			//////////////////////////////////////////////////////////////////////////
 			// Compute the sum of the density errors
@@ -661,7 +689,7 @@ void TimeStepDFSPH::divergenceSolveIteration(const unsigned int fluidModelIndex,
 					residuum = 0.0;
 			}
 			//pv_rho2_i -= residuum * m_simulationData.getFactor(fluidModelIndex, i);
-			pv_rho2_i = max(pv_rho2_i - 0.5*(s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), 0.0);
+			pv_rho2_i = max(pv_rho2_i - static_cast<Real>(0.5)*(s_i - aij_pj) * m_simulationData.getFactor(fluidModelIndex, i), static_cast<Real>(0.0));
 
 
 			//////////////////////////////////////////////////////////////////////////

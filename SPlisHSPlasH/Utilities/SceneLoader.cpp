@@ -187,6 +187,32 @@ void SceneLoader::readMaterialParameterObject(const std::string &key, ParameterO
 	}
 }
 
+void SceneLoader::readMaterialParameterObject(const std::string& key, SPH::NonPressureForceBase* paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	if (m_jsonData.find("Materials") != m_jsonData.end())
+	{
+		nlohmann::json &materials = m_jsonData["Materials"];
+		for (auto& material : materials)
+		{
+			string id = "";
+			readValue(material["id"], id);
+
+			if (key == id)
+			{
+				if (material.find(paramObj->getMethodName()) != material.end())
+				{
+					nlohmann::json &material_section = material[paramObj->getMethodName()];
+					if (!material_section.is_null())
+						readParameterObject(material_section, paramObj);
+				}
+			}
+		}
+	}
+}
+
 void SceneLoader::readParameterObject(const std::string& key, ParameterObject* paramObj)
 {
 	if (paramObj == nullptr)
@@ -199,6 +225,26 @@ void SceneLoader::readParameterObject(const std::string& key, ParameterObject* p
 	{
 		nlohmann::json config = m_jsonData[key];
 		readParameterObject(config, paramObj);
+	}
+}
+
+void SceneLoader::readTimeStepParameterObject(const std::string& key, SPH::TimeStep* paramObj)
+{
+	if (paramObj == nullptr)
+		return;
+
+	//////////////////////////////////////////////////////////////////////////
+	// read configuration 
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find(key) != m_jsonData.end())
+	{
+		nlohmann::json config = m_jsonData[key];
+		if (config.find(paramObj->getMethodName()) != config.end())
+		{
+			nlohmann::json& method_section = config[paramObj->getMethodName()];
+			if (!method_section.is_null())
+				readParameterObject(method_section, paramObj);
+		}		
 	}
 }
 

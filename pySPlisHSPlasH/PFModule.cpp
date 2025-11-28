@@ -44,7 +44,13 @@ void PFModule(py::module m_sub) {
     // Class Time Step PF
     // ---------------------------------------
     py::class_<SPH::TimeStepPF, SPH::TimeStep>(m_sub, "TimeStepPF")
+            .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStepPF::SOLVER_ITERATIONS)
+            .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStepPF::MIN_ITERATIONS)
+            .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStepPF::MAX_ITERATIONS)
+            .def_readwrite_static("MAX_ERROR", &SPH::TimeStepPF::MAX_ERROR)
             .def_readwrite_static("STIFFNESS", &SPH::TimeStepPF::STIFFNESS)
             .def(py::init<>())
-            .def_static("matrixVecProd", &SPH::TimeStepPF::matrixVecProd);
+            .def_static("matrixVecProd", &SPH::TimeStepPF::matrixVecProd)
+            .def("getMethodName", &SPH::TimeStepPF::getMethodName)
+            .def("getNumIterations", &SPH::TimeStepPF::getNumIterations);
 }

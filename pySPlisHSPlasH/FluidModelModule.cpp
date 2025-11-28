@@ -5,11 +5,7 @@
 
 #include <SPlisHSPlasH/FluidModel.h>
 #include <SPlisHSPlasH/EmitterSystem.h>
-#include <SPlisHSPlasH/SurfaceTension/SurfaceTensionBase.h>
-#include <SPlisHSPlasH/Viscosity/ViscosityBase.h>
-#include <SPlisHSPlasH/Vorticity/VorticityBase.h>
-#include <SPlisHSPlasH/Drag/DragBase.h>
-#include <SPlisHSPlasH/Elasticity/ElasticityBase.h>
+#include <SPlisHSPlasH/NonPressureForceBase.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>

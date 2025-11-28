@@ -435,8 +435,12 @@ void Simulator_GUI_imgui::initSimulationParameterGUI()
 					(field.type == FieldType::UInt) || (field.type == FieldType::Matrix3) ||
 					(field.type == FieldType::Vector6) || (field.type == FieldType::Matrix6))
 				{
-					param->items.push_back(field.name);
-					m_colorFieldNames[idx] = field.name;
+					std::string fieldName = field.name;
+					m_colorFieldNames[idx] = fieldName;
+					if (field.methodName != "") 
+						fieldName = fieldName + " (" + field.methodName + ")";
+
+					param->items.push_back(fieldName);
 					idx++;
 				}
 			}

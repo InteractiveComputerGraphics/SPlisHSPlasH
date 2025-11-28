@@ -3,49 +3,56 @@
 	{
 		"particleRadius": 0.02,
 		"numberOfStepsPerRenderUpdate": 2,
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,0,0], 
 		"timeStepSize": 0.001,
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.01,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffness": 50000,
-		"exponent": 7,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true,
 		"particleAttributes": "density;velocity",
-		"boundaryHandlingMethod": 2
+		"boundaryHandlingMethod": 2,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.01,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
+			"density0": 1000, 
 			"renderMaxValue": 1.0,
 			"renderMinValue": 0.0,
 			"colorMapType": 1,
 			"colorField": "velocity",
-			"surfaceTension": 0.05 ,
 			"surfaceTensionMethod": 5,
-			"viscosity": 0.01,
 			"viscosityMethod": 1,
-			" ": 1,
-			"surfTZRCsd": 10000,
-			"surfTZRr-ratio": 0.8,
-			"surfTZRtau": 0.5,
-			"surfTZRd": 13,
-			"surfTZRsampling": 0,
-			"surfTZRnormal-mode": 2,
-			"surfTZRd-offset": 3,
-			"surfTZRPcaMixNrm": 0.4,
-			"surfTZRPcaMixCur": 0.2,
-			"surfTZRMCSamples": 75,
-			"surfTZRNeighLimit": 16,
-			"surfTZRsmoothPasses": 1,
-			"surfTZRtemporalSmooth" : false
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+			},
+			"Zorilla, Ritter, et al. 2020": 
+			{
+				"surfaceTension": 0.05,
+				"surfTZRversion": 1,
+				"surfTZRCsd": 10000,
+				"surfTZRr-ratio": 0.8,
+				"surfTZRtau": 0.5,
+				"surfTZRd": 13,
+				"surfTZRsampling": 0,
+				"surfTZRnormal-mode": 2,
+				"surfTZRd-offset": 3,
+				"surfTZRPcaMixNrm": 0.4,
+				"surfTZRPcaMixCur": 0.2,
+				"surfTZRMCSamples": 75,
+				"surfTZRNeighLimit": 16,
+				"surfTZRsmoothPasses": 1,
+				"surfTZRtemporalSmooth" : false
+			}
 		}
 	],
 	"FluidBlocks": [

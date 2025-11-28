@@ -5,11 +5,16 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string Elasticity_Becker2009::METHOD_NAME = "Becker et al. 2009";
+int Elasticity_Becker2009::YOUNGS_MODULUS = -1;
+int Elasticity_Becker2009::POISSON_RATIO = -1;
+int Elasticity_Becker2009::FIXED_BOX_MIN = -1;
+int Elasticity_Becker2009::FIXED_BOX_MAX = -1;
 int Elasticity_Becker2009::ALPHA = -1;
 
 
 Elasticity_Becker2009::Elasticity_Becker2009(FluidModel *model) :
-	ElasticityBase(model)
+	NonPressureForceBase(model)
 {
 	const unsigned int numParticles = model->numActiveParticles();
 	m_restVolumes.resize(numParticles);
@@ -19,14 +24,17 @@ Elasticity_Becker2009::Elasticity_Becker2009(FluidModel *model) :
 	m_rotations.resize(numParticles, Matrix3r::Identity());
 	m_stress.resize(numParticles);
 	m_F.resize(numParticles);
+
+	m_youngsModulus = static_cast<Real>(100000.0);
+	m_poissonRatio = static_cast<Real>(0.3);
 	m_alpha = 0.0;
+	m_fixedBoxMin.setZero();
+	m_fixedBoxMax.setZero();
 
-	initValues();
-
-	model->addField({ "rest volume", FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
-	model->addField({ "rotation", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
-	model->addField({ "stress", FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
-	model->addField({ "deformation gradient", FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
+	model->addField({ "rest volume", METHOD_NAME, FieldType::Scalar, [&](const unsigned int i) -> Real* { return &m_restVolumes[i]; }, true });
+	model->addField({ "rotation", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_rotations[i](0,0); } });
+	model->addField({ "stress", METHOD_NAME, FieldType::Vector6, [&](const unsigned int i) -> Real* { return &m_stress[i][0]; } });
+	model->addField({ "deformation gradient", METHOD_NAME, FieldType::Matrix3, [&](const unsigned int i) -> Real* { return &m_F[i](0,0); } });
 }
 
 Elasticity_Becker2009::~Elasticity_Becker2009(void)
@@ -37,15 +45,76 @@ Elasticity_Becker2009::~Elasticity_Becker2009(void)
 	m_model->removeFieldByName("deformation gradient");
 }
 
+void Elasticity_Becker2009::deferredInit()
+{
+	initValues();
+}
+
 void Elasticity_Becker2009::initParameters()
 {
-	ElasticityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	YOUNGS_MODULUS = createNumericParameter("youngsModulus", "Young`s modulus", &m_youngsModulus);
+	setGroup(YOUNGS_MODULUS, "Fluid Model|Elasticity");
+	setDescription(YOUNGS_MODULUS, "Stiffness of the elastic material");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(YOUNGS_MODULUS));
+	rparam->setMinValue(0.0);
+
+	POISSON_RATIO = createNumericParameter("poissonsRatio", "Poisson`s ratio", &m_poissonRatio);
+	setGroup(POISSON_RATIO, "Fluid Model|Elasticity");
+	setDescription(POISSON_RATIO, "Ratio of transversal expansion and axial compression");
+	rparam = static_cast<RealParameter*>(getParameter(POISSON_RATIO));
+	rparam->setMinValue(static_cast<Real>(-1.0 + 1e-4));
+	rparam->setMaxValue(static_cast<Real>(0.5 - 1e-4));
+
+	ParameterBase::GetVecFunc<Real> getFct = [&]()-> Real* { return m_fixedBoxMin.data(); };
+	ParameterBase::SetVecFunc<Real> setFct = [&](Real* val)
+	{
+		m_fixedBoxMin = Vector3r(val[0], val[1], val[2]);
+		determineFixedParticles();
+	};
+	FIXED_BOX_MIN = createVectorParameter("fixedBoxMin", "Fixed box min", 3u, getFct, setFct);
+	setGroup(FIXED_BOX_MIN, "Fluid Model|Elasticity");
+	setDescription(FIXED_BOX_MIN, "Minimum point of box of which contains the fixed particles.");
+	getParameter(FIXED_BOX_MIN)->setReadOnly(true);
+
+
+	ParameterBase::GetVecFunc<Real> getFct2 = [&]()-> Real* { return m_fixedBoxMax.data(); };
+	ParameterBase::SetVecFunc<Real> setFct2 = [&](Real* val)
+	{
+		m_fixedBoxMax = Vector3r(val[0], val[1], val[2]);
+		determineFixedParticles();
+	};
+	FIXED_BOX_MAX = createVectorParameter("fixedBoxMax", "Fixed box max", 3u, getFct2, setFct2);
+	setGroup(FIXED_BOX_MAX, "Fluid Model|Elasticity");
+	setDescription(FIXED_BOX_MAX, "Maximum point of box of which contains the fixed particles.");
+	getParameter(FIXED_BOX_MAX)->setReadOnly(true);
 
 	ALPHA = createNumericParameter("alpha", "Zero-energy modes suppression", &m_alpha);
 	setGroup(ALPHA, "Fluid Model|Elasticity");
 	setDescription(ALPHA, "Coefficent for zero-energy modes suppression method");
-	RealParameter *rparam = static_cast<RealParameter*>(getParameter(ALPHA));
+	rparam = static_cast<RealParameter*>(getParameter(ALPHA));
 	rparam->setMinValue(0.0);
+}
+
+/** Mark all particles in the bounding box as fixed.
+*/
+void Elasticity_Becker2009::determineFixedParticles()
+{
+	const unsigned int numParticles = m_model->numActiveParticles();
+
+	if (!m_fixedBoxMin.isZero() || !m_fixedBoxMax.isZero())
+	{
+		for (int i = 0; i < (int)numParticles; i++)
+		{
+			const Vector3r& x = m_model->getPosition0(i);
+			if ((x[0] > m_fixedBoxMin[0]) && (x[1] > m_fixedBoxMin[1]) && (x[2] > m_fixedBoxMin[2]) &&
+				(x[0] < m_fixedBoxMax[0]) && (x[1] < m_fixedBoxMax[1]) && (x[2] < m_fixedBoxMax[2]))
+			{
+				m_model->setParticleState(i, ParticleState::Fixed);
+			}
+		}
+	}
 }
 
 void Elasticity_Becker2009::initValues()
@@ -67,6 +136,10 @@ void Elasticity_Becker2009::initValues()
 			m_current_to_initial_index[i] = i;
 			m_initial_to_current_index[i] = i;
 
+			// reset particle state
+			if (model->getParticleState(i) == ParticleState::Fixed)
+				model->setParticleState(i, ParticleState::Active);
+
 			// only neighbors in same phase will influence elasticity
 			const unsigned int numNeighbors = sim->numberOfNeighbors(fluidModelIndex, fluidModelIndex, i);
 			m_initialNeighbors[i].resize(numNeighbors);
@@ -76,10 +149,14 @@ void Elasticity_Becker2009::initValues()
 			// compute volume
 			Real density = model->getMass(i) * sim->W_zero();
 			const Vector3r &xi = model->getPosition(i);
-			forall_fluid_neighbors_in_same_phase(
+			for (size_t j = 0; j < m_initialNeighbors[i].size(); j++)
+			{
+				const unsigned int neighborIndex = m_initialNeighbors[i][j];
+				const Vector3r& xj = model->getPosition(neighborIndex);
 				density += model->getMass(neighborIndex) * sim->W(xi - xj);
-			)
+			}
 			m_restVolumes[i] = model->getMass(i) / density;
+			m_rotations[i].setIdentity();
 		}
 	}
 
@@ -169,64 +246,64 @@ void Elasticity_Becker2009::computeStress()
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 	FluidModel *model = m_model;
 
-	// Elasticity tensor
-	Matrix6r C;
-	C.setZero();
-	const Real factor = m_youngsModulus / ((static_cast<Real>(1.0) + m_poissonRatio)*(static_cast<Real>(1.0) - static_cast<Real>(2.0) * m_poissonRatio));
-	C(0, 0) = C(1, 1) = C(2, 2) = factor * (static_cast<Real>(1.0) - m_poissonRatio);
-	C(0, 1) = C(0, 2) = C(1, 0) = C(1, 2) = C(2, 0) = C(2, 1) = factor * (m_poissonRatio);
-	C(3, 3) = C(4, 4) = C(5, 5) = factor * static_cast<Real>(0.5)*(static_cast<Real>(1.0) - static_cast<Real>(2.0) * m_poissonRatio);
+	Real mu = m_youngsModulus / (static_cast<Real>(2.0) * (static_cast<Real>(1.0) + m_poissonRatio));
+	Real lambda = m_youngsModulus * m_poissonRatio / ((static_cast<Real>(1.0) + m_poissonRatio) * (static_cast<Real>(1.0) - static_cast<Real>(2.0) * m_poissonRatio));
 
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int)numParticles; i++)
 		{
-			if (model->getParticleState(i) == ParticleState::Active)
+			const unsigned int i0 = m_current_to_initial_index[i];
+			const Vector3r& xi = m_model->getPosition(i);
+			const Vector3r& xi0 = m_model->getPosition0(i0);
+
+			Matrix3r nablaU;
+			nablaU.setZero();
+			const size_t numNeighbors = m_initialNeighbors[i0].size();
+
+			//////////////////////////////////////////////////////////////////////////
+			// Fluid
+			//////////////////////////////////////////////////////////////////////////
+			for (unsigned int j = 0; j < numNeighbors; j++)
 			{
-				const unsigned int i0 = m_current_to_initial_index[i];
-				const Vector3r& xi = m_model->getPosition(i);
-				const Vector3r& xi0 = m_model->getPosition0(i0);
+				const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
+				// get initial neighbor index considering the current particle order 
+				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
 
-				Matrix3r nablaU;
-				nablaU.setZero();
-				const size_t numNeighbors = m_initialNeighbors[i0].size();
+				const Vector3r& xj = model->getPosition(neighborIndex);
+				const Vector3r& xj0 = m_model->getPosition0(neighborIndex0);
 
-				//////////////////////////////////////////////////////////////////////////
-				// Fluid
-				//////////////////////////////////////////////////////////////////////////
-				for (unsigned int j = 0; j < numNeighbors; j++)
-				{
-					const unsigned int neighborIndex = m_initial_to_current_index[m_initialNeighbors[i0][j]];
-					// get initial neighbor index considering the current particle order 
-					const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+				const Vector3r xj_xi = xj - xi;
+				const Vector3r xj_xi_0 = xj0 - xi0;
 
-					const Vector3r& xj = model->getPosition(neighborIndex);
-					const Vector3r& xj0 = m_model->getPosition0(neighborIndex0);
-
-					const Vector3r xj_xi = xj - xi;
-					const Vector3r xj_xi_0 = xj0 - xi0;
-
-					const Vector3r uji = m_rotations[i].transpose() * xj_xi - xj_xi_0;
-					// subtract because kernel gradient is taken in direction of xji0 instead of xij0
-					nablaU -= (m_restVolumes[neighborIndex] * uji) * sim->gradW(xj_xi_0).transpose();
-				}
-				m_F[i] = nablaU + Matrix3r::Identity();
-
-				// compute Cauchy strain: epsilon = 0.5 (nabla u + nabla u^T)
-				Vector6r strain;
-				strain[0] = nablaU(0, 0);						// \epsilon_{00}
-				strain[1] = nablaU(1, 1);						// \epsilon_{11}
-				strain[2] = nablaU(2, 2);						// \epsilon_{22}
-				strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
-				strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
-				strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
-
-				// stress = C * epsilon
-				m_stress[i] = C * strain;
+				const Vector3r uji = m_rotations[i].transpose() * xj_xi - xj_xi_0;
+				// subtract because kernel gradient is taken in direction of xji0 instead of xij0
+				nablaU -= (m_restVolumes[neighborIndex] * uji) * sim->gradW(xj_xi_0).transpose();
 			}
-			else
-				m_stress[i].setZero();
+			m_F[i] = nablaU + Matrix3r::Identity();
+
+			// compute Cauchy strain: epsilon = 0.5 (nabla u + nabla u^T)
+			Vector6r strain;
+			strain[0] = nablaU(0, 0);						// \epsilon_{00}
+			strain[1] = nablaU(1, 1);						// \epsilon_{11}
+			strain[2] = nablaU(2, 2);						// \epsilon_{22}
+			strain[3] = static_cast<Real>(0.5) * (nablaU(0, 1) + nablaU(1, 0)); // \epsilon_{01}
+			strain[4] = static_cast<Real>(0.5) * (nablaU(0, 2) + nablaU(2, 0)); // \epsilon_{02}
+			strain[5] = static_cast<Real>(0.5) * (nablaU(1, 2) + nablaU(2, 1)); // \epsilon_{12}
+
+			//////////////////////////////////////////////////////////////////////////
+			// First Piola Kirchhoff stress = 2 mu epsilon + lambda trace(epsilon) I
+			//////////////////////////////////////////////////////////////////////////
+			const Real trace = strain[0] + strain[1] + strain[2];
+			const Real ltrace = lambda * trace;
+			Vector6r& stress = m_stress[i];
+			stress[0] = static_cast<Real>(2.0) * mu * strain[0] + ltrace;
+			stress[1] = static_cast<Real>(2.0) * mu * strain[1] + ltrace;
+			stress[2] = static_cast<Real>(2.0) * mu * strain[2] + ltrace;
+			stress[3] = static_cast<Real>(2.0) * mu * strain[3];
+			stress[4] = static_cast<Real>(2.0) * mu * strain[4];
+			stress[5] = static_cast<Real>(2.0) * mu * strain[5];
 		}
 	}
 }

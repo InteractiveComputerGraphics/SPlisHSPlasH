@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 
 #define USE_BLOCKDIAGONAL_PRECONDITIONER
@@ -16,9 +16,10 @@ namespace SPH
 	* References:
 	* - [WKBB18] Marcel Weiler, Dan Koschier, Magnus Brand, and Jan Bender. A physically consistent implicit viscosity solver for SPH fluids. Computer Graphics Forum (Eurographics), 2018. URL: https://doi.org/10.1111/cgf.13349
 	*/
-	class Viscosity_Weiler2018 : public ViscosityBase
+	class Viscosity_Weiler2018 : public NonPressureForceBase
 	{
 	protected:
+		Real m_viscosity;
 		Real m_boundaryViscosity;
 		unsigned int m_maxIter;
 		Real m_maxError;
@@ -39,6 +40,8 @@ namespace SPH
 		virtual void initParameters();
 		
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -48,6 +51,7 @@ namespace SPH
 		virtual ~Viscosity_Weiler2018(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Weiler2018(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

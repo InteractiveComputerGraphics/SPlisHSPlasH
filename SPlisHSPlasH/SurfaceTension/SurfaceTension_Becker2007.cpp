@@ -6,15 +6,41 @@
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+std::string SurfaceTension_Becker2007::METHOD_NAME = "Becker & Teschner 2007";
+int SurfaceTension_Becker2007::SURFACE_TENSION = -1;
+int SurfaceTension_Becker2007::SURFACE_TENSION_BOUNDARY = -1;
+
 
 SurfaceTension_Becker2007::SurfaceTension_Becker2007(FluidModel *model) :
-	SurfaceTensionBase(model)
+	NonPressureForceBase(model)
 {
+	m_surfaceTension = static_cast<Real>(0.05);
+	m_surfaceTensionBoundary = static_cast<Real>(0.01);
 }
 
 SurfaceTension_Becker2007::~SurfaceTension_Becker2007(void)
 {
 }
+
+void SurfaceTension_Becker2007::initParameters()
+{
+	NonPressureForceBase::initParameters();
+
+	SURFACE_TENSION = createNumericParameter("surfaceTension", "Surface tension coefficient", &m_surfaceTension);
+	setGroup(SURFACE_TENSION, "Fluid Model|Surface tension");
+	setDescription(SURFACE_TENSION, "Coefficient for the surface tension computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION));
+	rparam->setMinValue(0.0);
+
+	SURFACE_TENSION_BOUNDARY = createNumericParameter("surfaceTensionBoundary", "Boundary surface tension coefficient", &m_surfaceTensionBoundary);
+	setGroup(SURFACE_TENSION_BOUNDARY, "Fluid Model|Surface tension");
+	setDescription(SURFACE_TENSION_BOUNDARY, "Coefficient for the surface tension computation at the boundary");
+	rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION_BOUNDARY));
+	rparam->setMinValue(0.0);
+}
+
 
 void SurfaceTension_Becker2007::step()
 {

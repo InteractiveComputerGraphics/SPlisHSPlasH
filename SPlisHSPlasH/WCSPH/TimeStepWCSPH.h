@@ -33,12 +33,15 @@ namespace SPH
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
 		static int STIFFNESS;
 		static int EXPONENT;
 
 		TimeStepWCSPH();
 		virtual ~TimeStepWCSPH(void);
 
+		virtual std::string getMethodName() { return METHOD_NAME; }
+		virtual int getNumIterations() { return 0; }
 		virtual void step();
 		virtual void reset();
 		virtual void resize();

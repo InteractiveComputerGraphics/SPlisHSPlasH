@@ -4,14 +4,20 @@
 #include "../Simulation.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+std::string VorticityConfinement::METHOD_NAME = "Vorticity confinement";
+int VorticityConfinement::VORTICITY_COEFFICIENT = -1;
 
 VorticityConfinement::VorticityConfinement(FluidModel *model) :
-	VorticityBase(model)
+	NonPressureForceBase(model)
 {
+	m_vorticityCoeff = static_cast<Real>(0.01);
+
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 	m_normOmega.resize(model->numParticles(), 0.0);
 
-	model->addField({ "angular velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
+	model->addField({ "angular velocity", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; } });
 }
 
 VorticityConfinement::~VorticityConfinement(void)
@@ -22,6 +28,16 @@ VorticityConfinement::~VorticityConfinement(void)
 	m_normOmega.clear();
 }
 
+void VorticityConfinement::initParameters()
+{
+	NonPressureForceBase::initParameters();
+
+	VORTICITY_COEFFICIENT = createNumericParameter("vorticity", "Vorticity coefficient", &m_vorticityCoeff);
+	setGroup(VORTICITY_COEFFICIENT, "Fluid Model|Vorticity");
+	setDescription(VORTICITY_COEFFICIENT, "Coefficient for the vorticity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VORTICITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
+}
 
 void VorticityConfinement::step()
 {

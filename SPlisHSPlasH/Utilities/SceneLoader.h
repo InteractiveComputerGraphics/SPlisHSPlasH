@@ -6,6 +6,8 @@
 #include <vector>
 #include "SceneParameterObjects.h"
 #include "Utilities/Logger.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
+#include "SPlisHSPlasH/TimeStep.h"
 
 namespace Utilities
 {
@@ -138,7 +140,9 @@ namespace Utilities
 			return false;
 		}
 
-		void readMaterialParameterObject(const std::string& key, GenParam::ParameterObject* paramObj);
+		void readMaterialParameterObject(const std::string& key, GenParam::ParameterObject* paramObj);  // to be removed
+		void readMaterialParameterObject(const std::string& key, SPH::NonPressureForceBase* paramObj);
+		void readTimeStepParameterObject(const std::string& key, SPH::TimeStep* paramObj);
 		void readParameterObject(const std::string &key, GenParam::ParameterObject *paramObj);
 	};
 

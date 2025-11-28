@@ -7,18 +7,34 @@
 #include "../BoundaryModel_Bender2019.h"
 
 using namespace SPH;
+using namespace GenParam;
+
+std::string DragForce_Gissler2017::METHOD_NAME = "Gissler et al. 2017";
+int DragForce_Gissler2017::DRAG_COEFFICIENT = -1;
 
 // C.Gissler, S.Band, A.Peer, M.Ihmsen, M.Teschner,
 // "Approximate Air-Fluid Interactions for SPH,"
 // VRIPHYS 2017
 
 DragForce_Gissler2017::DragForce_Gissler2017(FluidModel *model) :
-	DragBase(model)
+	NonPressureForceBase(model)
 {
+	m_dragCoefficient = static_cast<Real>(0.01);
 }
 
 DragForce_Gissler2017::~DragForce_Gissler2017(void)
 {
+}
+
+void DragForce_Gissler2017::initParameters()
+{
+	NonPressureForceBase::initParameters();
+
+	DRAG_COEFFICIENT = createNumericParameter("drag", "Drag coefficient", &m_dragCoefficient);
+	setGroup(DRAG_COEFFICIENT, "Fluid Model|Drag force");
+	setDescription(DRAG_COEFFICIENT, "Coefficient for the drag force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(DRAG_COEFFICIENT));
+	rparam->setMinValue(0.0);
 }
 
 #ifdef USE_AVX
@@ -69,7 +85,7 @@ void DragForce_Gissler2017::step()
 	const Real y_coeff = (C_F * We_i_wo_v * c_def) / (C_k * C_b);
 
 	const Real n_full = 38;
-	const Real n_full_23 = n_full * 2.0/3.0;
+	const Real n_full_23 = n_full * static_cast<Real>(2.0/3.0);
 	
 	#pragma omp parallel default(shared)
 	{

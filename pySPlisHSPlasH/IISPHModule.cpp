@@ -56,7 +56,13 @@ void IISPHModule(py::module m_sub) {
     // Class Simulation Data IISPH
     // ---------------------------------------
     py::class_<SPH::TimeStepIISPH, SPH::TimeStep>(m_sub, "TimeStepIISPH")
+            .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStepIISPH::SOLVER_ITERATIONS)
+            .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStepIISPH::MIN_ITERATIONS)
+            .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStepIISPH::MAX_ITERATIONS)
+            .def_readwrite_static("MAX_ERROR", &SPH::TimeStepIISPH::MAX_ERROR)
             .def("getSimulationData", &SPH::TimeStepIISPH::getSimulationData)
+            .def("getMethodName", &SPH::TimeStepIISPH::getMethodName)
+            .def("getNumIterations", &SPH::TimeStepIISPH::getNumIterations)
             .def(py::init<>());
 }
 

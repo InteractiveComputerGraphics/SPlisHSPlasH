@@ -10,19 +10,23 @@
 using namespace SPH;
 using namespace GenParam;
 
+std::string MicropolarModel_Bender2017::METHOD_NAME = "Bender et al. 2017";
+int MicropolarModel_Bender2017::VORTICITY_COEFFICIENT = -1;
 int MicropolarModel_Bender2017::VISCOSITY_OMEGA = -1;
 int MicropolarModel_Bender2017::INERTIA_INVERSE = -1;
 
 
 MicropolarModel_Bender2017::MicropolarModel_Bender2017(FluidModel *model) :
-	VorticityBase(model)
+	NonPressureForceBase(model)
 {
 	m_omega.resize(model->numParticles(), Vector3r::Zero());
 	m_angularAcceleration.resize(model->numParticles(), Vector3r::Zero());
+
+	m_vorticityCoeff = static_cast<Real>(0.01);
 	m_inertiaInverse = static_cast<Real>(0.5);
 	m_viscosityOmega = static_cast<Real>(0.1);
 
-	model->addField({ "angular velocity", FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; }, true });
+	model->addField({ "angular velocity", METHOD_NAME, FieldType::Vector3, [&](const unsigned int i) -> Real* { return &m_omega[i][0]; }, true });
 }
 
 MicropolarModel_Bender2017::~MicropolarModel_Bender2017(void)
@@ -35,12 +39,18 @@ MicropolarModel_Bender2017::~MicropolarModel_Bender2017(void)
 
 void MicropolarModel_Bender2017::initParameters()
 {
-	VorticityBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	VORTICITY_COEFFICIENT = createNumericParameter("vorticity", "Vorticity coefficient", &m_vorticityCoeff);
+	setGroup(VORTICITY_COEFFICIENT, "Fluid Model|Vorticity");
+	setDescription(VORTICITY_COEFFICIENT, "Coefficient for the vorticity force computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VORTICITY_COEFFICIENT));
+	rparam->setMinValue(0.0);
 
  	VISCOSITY_OMEGA = createNumericParameter("viscosityOmega", "Angular viscosity coefficient", &m_viscosityOmega);
  	setGroup(VISCOSITY_OMEGA, "Fluid Model|Vorticity");
  	setDescription(VISCOSITY_OMEGA, "Viscosity coefficient for the angular velocity field.");
- 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_OMEGA));
+ 	rparam = static_cast<RealParameter*>(getParameter(VISCOSITY_OMEGA));
  	rparam->setMinValue(0.0);
 
 

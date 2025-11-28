@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "SPlisHSPlasH/Utilities/MatrixFreeSolver.h"
 
 
@@ -21,13 +21,14 @@ namespace SPH
 	* References:
 	* - [TDF+15] T. Takahashi, Y. Dobashi, I. Fujishiro, T. Nishita, and M.C. Lin. Implicit Formulation for SPH-based Viscous Fluids. Computer Graphics Forum, 34(2):493-502, 2015. URL: http://dx.doi.org/10.1111/cgf.12578
 	*/
-	class Viscosity_Takahashi2015 : public ViscosityBase
+	class Viscosity_Takahashi2015 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Vector3r> m_accel;
 		std::vector<Matrix3r> m_viscousStress;
 		typedef Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper, Eigen::IdentityPreconditioner> Solver;
 		Solver m_solver;
+		Real m_viscosity;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;
 		Real m_maxError;
@@ -36,6 +37,8 @@ namespace SPH
 		static void computeViscosityAcceleration(Viscosity_Takahashi2015 *visco, const Real* v);
 
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -44,6 +47,7 @@ namespace SPH
 		virtual ~Viscosity_Takahashi2015(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Takahashi2015(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

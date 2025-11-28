@@ -23,11 +23,14 @@ namespace SPH
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
 		static int FLUID_COEFFICIENT;
 		static int BOUNDARY_COEFFICIENT;
 
 		XSPH(FluidModel *model);
 		virtual ~XSPH(void);
+
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

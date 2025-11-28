@@ -3,7 +3,7 @@
 
 #include "SPlisHSPlasH/Common.h"
 #include "SPlisHSPlasH/FluidModel.h"
-#include "ViscosityBase.h"
+#include "SPlisHSPlasH/NonPressureForceBase.h"
 
 namespace SPH
 {
@@ -14,12 +14,13 @@ namespace SPH
 	* References:
 	* - [BK17] Jan Bender and Dan Koschier. Divergence-free SPH for incompressible and viscous fluids. IEEE Transactions on Visualization and Computer Graphics, 23(3):1193-1206, 2017. URL: http://dx.doi.org/10.1109/TVCG.2016.2578335
 	*/
-	class Viscosity_Bender2017 : public ViscosityBase
+	class Viscosity_Bender2017 : public NonPressureForceBase
 	{
 	protected: 
 		std::vector<Vector6r> m_targetStrainRate;
 		std::vector<Matrix6r> m_viscosityFactor;
 		std::vector<Vector6r> m_viscosityLambda;
+		Real m_viscosity;
 		unsigned int m_iterations;
 		unsigned int m_maxIter;
 		Real m_maxError;
@@ -27,6 +28,8 @@ namespace SPH
 		virtual void initParameters();
 
 	public:
+		static std::string METHOD_NAME;
+		static int VISCOSITY_COEFFICIENT;
 		static int ITERATIONS;
 		static int MAX_ITERATIONS;
 		static int MAX_ERROR;
@@ -35,6 +38,7 @@ namespace SPH
 		virtual ~Viscosity_Bender2017(void);
 
 		static NonPressureForceBase* creator(FluidModel* model) { return new Viscosity_Bender2017(model); }
+		virtual std::string getMethodName() { return METHOD_NAME; }
 
 		virtual void step();
 		virtual void reset();

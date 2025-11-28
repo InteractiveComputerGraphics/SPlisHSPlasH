@@ -12,21 +12,31 @@
 
 using namespace SPH;
 using namespace std;
+using namespace GenParam;
+
+std::string TimeStepPCISPH::METHOD_NAME = "PCISPH";
+int TimeStepPCISPH::SOLVER_ITERATIONS = -1;
+int TimeStepPCISPH::MIN_ITERATIONS = -1;
+int TimeStepPCISPH::MAX_ITERATIONS = -1;
+int TimeStepPCISPH::MAX_ERROR = -1;
 
 TimeStepPCISPH::TimeStepPCISPH() :
 	TimeStep()
 {
 	m_simulationData.init();
 	m_minIterations = 3;
+	m_iterations = 0;
+	m_maxIterations = 100;
+	m_maxError = static_cast<Real>(0.01);
 
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel *model = sim->getFluidModel(fluidModelIndex);
-		model->addField({ "pressure", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
-		model->addField({ "advected density", FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
-		model->addField({ "pressure acceleration", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
+		model->addField({ "pressure", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressure(fluidModelIndex, i); } });
+		model->addField({ "advected density", METHOD_NAME, FieldType::Scalar, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getDensityAdv(fluidModelIndex, i); } });
+		model->addField({ "pressure acceleration", METHOD_NAME, FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_simulationData.getPressureAccel(fluidModelIndex, i)[0]; } });
 	}
 }
 
@@ -41,6 +51,31 @@ TimeStepPCISPH::~TimeStepPCISPH(void)
 		model->removeFieldByName("advected density");
 		model->removeFieldByName("pressure acceleration");
 	}
+}
+
+void TimeStepPCISPH::initParameters()
+{
+	TimeStep::initParameters();
+
+	SOLVER_ITERATIONS = createNumericParameter("iterations", "Iterations", &m_iterations);
+	setGroup(SOLVER_ITERATIONS, "Simulation|PCISPH");
+	setDescription(SOLVER_ITERATIONS, "Iterations required by the pressure solver.");
+	getParameter(SOLVER_ITERATIONS)->setReadOnly(true);
+
+	MIN_ITERATIONS = createNumericParameter("minIterations", "Min. iterations", &m_minIterations);
+	setGroup(MIN_ITERATIONS, "Simulation|PCISPH");
+	setDescription(MIN_ITERATIONS, "Minimal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MIN_ITERATIONS))->setMinValue(0);
+
+	MAX_ITERATIONS = createNumericParameter("maxIterations", "Max. iterations", &m_maxIterations);
+	setGroup(MAX_ITERATIONS, "Simulation|PCISPH");
+	setDescription(MAX_ITERATIONS, "Maximal number of iterations of the pressure solver.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(MAX_ITERATIONS))->setMinValue(1);
+
+	MAX_ERROR = createNumericParameter("maxError", "Max. density error(%)", &m_maxError);
+	setGroup(MAX_ERROR, "Simulation|PCISPH");
+	setDescription(MAX_ERROR, "Maximal density error (%).");
+	static_cast<RealParameter*>(getParameter(MAX_ERROR))->setMinValue(static_cast<Real>(1e-6));
 }
 
 void TimeStepPCISPH::step()
@@ -300,6 +335,7 @@ void TimeStepPCISPH::reset()
 {
 	TimeStep::reset();
 	m_simulationData.reset();
+	m_iterations = 0;
 }
 
 void TimeStepPCISPH::performNeighborhoodSearchSort()

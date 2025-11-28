@@ -46,9 +46,12 @@ Please get in contact for feedback/support.
 using namespace SPH;
 using namespace std;
 using namespace chrono;
+using namespace GenParam;
 
+std::string SurfaceTension_ZorillaRitter2020::METHOD_NAME = "Zorilla, Ritter, et al. 2020";
 
 // -- GUI variable handles
+int SurfaceTension_ZorillaRitter2020::SURFACE_TENSION = -1;
 int SurfaceTension_ZorillaRitter2020::SURFACE_TENSION_MEDIAN = -1;
 
 int SurfaceTension_ZorillaRitter2020::VERSION = -1;
@@ -118,8 +121,9 @@ void SurfaceTension_ZorillaRitter2020::resizeV20States( size_t N )
 	m_classifier_output.resize(N, 0.0);
 }
 
-SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* model ) 
-	: SurfaceTensionBase( model )
+SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020(FluidModel* model)
+	: NonPressureForceBase(model)
+	, m_surfaceTension(0.05)
 	, m_step_version(StepVersion::V2020)
 	, m_Csd(10000) // 10000 // 36000 // 48000 // 60000
 	, m_tau(0.5)
@@ -138,8 +142,8 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 	, m_halton_sampling(RandomMethod::HALTON)
 	, m_normal_mode( NormalMethod::MC )
 {
-	m_model->addField( { "Curv.Final (SurfZR20)", FieldType::Scalar, [this](const unsigned int i ) -> Real* { return &this->getFinalCurvature( i ); } } );
-	m_model->addField( { "Surf.Class (SurfZR20)", FieldType::Scalar, [this](const unsigned int i) -> Real* { return &this->getClassifierOutput( i ); } });
+	m_model->addField( { "Curv.Final (SurfZR20)", METHOD_NAME, FieldType::Scalar, [this](const unsigned int i ) -> Real* { return &this->getFinalCurvature( i ); } } );
+	m_model->addField( { "Surf.Class (SurfZR20)", METHOD_NAME, FieldType::Scalar, [this](const unsigned int i) -> Real* { return &this->getClassifierOutput( i ); } });
 
 	// -- Both Versions
 	resizeV19States( model->numParticles() );
@@ -151,14 +155,19 @@ SurfaceTension_ZorillaRitter2020::SurfaceTension_ZorillaRitter2020( FluidModel* 
 }
 
 
-
 // -- setup GUI control parameters
 void SurfaceTension_ZorillaRitter2020::initParameters()
 {
 	using enumGet = GenParam::ParameterBase::GetFunc<int>;
 	using enumSet = GenParam::ParameterBase::SetFunc<int>;
 
-	SurfaceTensionBase::initParameters();
+	NonPressureForceBase::initParameters();
+
+	SURFACE_TENSION = createNumericParameter("surfaceTension", "Surface tension coefficient", &m_surfaceTension);
+	setGroup(SURFACE_TENSION, "Fluid Model|Surface tension");
+	setDescription(SURFACE_TENSION, "Coefficient for the surface tension computation");
+	RealParameter* rparam = static_cast<RealParameter*>(getParameter(SURFACE_TENSION));
+	rparam->setMinValue(0.0);
 
 	const string grp19 = "Fluid Model|Surface tension"; // "Surface tension ZR19";
 	const string grp20 = "Fluid Model|Surface tension"; // "Surface tension ZR20";

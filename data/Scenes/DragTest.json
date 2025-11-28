@@ -4,26 +4,30 @@
 		"timeStepSize": 0.001,
 		"numberOfStepsPerRenderUpdate": 2,
 		"particleRadius": 0.025, 
-		"density0": 1000, 
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
 		"cflMethod": 1, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
-		"maxIterations": 100,
-		"maxError": 0.01,
-		"maxIterationsV": 100,
-		"maxErrorV": 0.1,		
-		"stiffness": 50000,
-		"exponent": 7,
-		"velocityUpdateMethod": 0,
-		"enableDivergenceSolver": true		
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.01,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}		
 	},
 	"Materials": [
 		{
 			"id": "Fluid",
-			"dragMethod": 2,
-			"drag": 10.0
+			"density0": 1000, 
+			"dragMethod": 2,			
+			"Gissler et al. 2017": 
+			{
+				"drag": 10.0
+			}
 		}
 	],
     "FluidBlocks": [

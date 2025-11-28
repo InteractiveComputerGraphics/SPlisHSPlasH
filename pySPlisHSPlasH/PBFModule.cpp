@@ -51,8 +51,14 @@ void PBFModule(py::module m_sub) {
     // Class Time Step PBF
     // ---------------------------------------
     py::class_<SPH::TimeStepPBF, SPH::TimeStep>(m_sub, "TimeStepPBF")
+            .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStepPBF::SOLVER_ITERATIONS)
+            .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStepPBF::MIN_ITERATIONS)
+            .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStepPBF::MAX_ITERATIONS)
+            .def_readwrite_static("MAX_ERROR", &SPH::TimeStepPBF::MAX_ERROR)
             .def_readwrite_static("VELOCITY_UPDATE_METHOD", &SPH::TimeStepPBF::VELOCITY_UPDATE_METHOD)
             .def_readwrite_static("ENUM_PBF_FIRST_ORDER", &SPH::TimeStepPBF::ENUM_PBF_FIRST_ORDER)
             .def_readwrite_static("ENUM_PBF_SECOND_ORDER", &SPH::TimeStepPBF::ENUM_PBF_SECOND_ORDER)
-            .def(py::init<>());
+            .def(py::init<>())
+            .def("getMethodName", &SPH::TimeStepPBF::getMethodName)
+            .def("getNumIterations", &SPH::TimeStepPBF::getNumIterations);
 }

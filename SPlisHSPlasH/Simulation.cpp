@@ -66,9 +66,9 @@ Simulation::Simulation ()
 {
 	m_cflMethod = 1;
 	m_cflFactor = 0.5;
-	m_cflMinTimeStepSize = 0.0001;
-	m_cflMaxTimeStepSize = 0.005;
-	m_gravitation = Vector3r(0.0, -9.81, 0.0);
+	m_cflMinTimeStepSize = static_cast<Real>(0.0001);
+	m_cflMaxTimeStepSize = static_cast<Real>(0.005);
+	m_gravitation = Vector3r(0.0, static_cast<Real>(-9.81), 0.0);
 
 	m_kernelMethod = -1;
 	m_gradKernelMethod = -1;
@@ -200,17 +200,17 @@ void Simulation::initParameters()
 	CFL_FACTOR = createNumericParameter("cflFactor", "CFL - factor", &m_cflFactor);
 	setGroup(CFL_FACTOR, "Simulation|CFL");
 	setDescription(CFL_FACTOR, "Factor to scale the CFL time step size.");
-	static_cast<RealParameter*>(getParameter(CFL_FACTOR))->setMinValue(1e-6);
+	static_cast<RealParameter*>(getParameter(CFL_FACTOR))->setMinValue(static_cast<Real>(1e-6));
 
 	CFL_MIN_TIMESTEPSIZE = createNumericParameter("cflMinTimeStepSize", "CFL - min. time step size", &m_cflMinTimeStepSize);
 	setGroup(CFL_MIN_TIMESTEPSIZE, "Simulation|CFL");
 	setDescription(CFL_MIN_TIMESTEPSIZE, "Min. time step size.");
-	static_cast<RealParameter*>(getParameter(CFL_MIN_TIMESTEPSIZE))->setMinValue(1e-9);
+	static_cast<RealParameter*>(getParameter(CFL_MIN_TIMESTEPSIZE))->setMinValue(static_cast<Real>(1e-9));
 
 	CFL_MAX_TIMESTEPSIZE = createNumericParameter("cflMaxTimeStepSize", "CFL - max. time step size", &m_cflMaxTimeStepSize);
 	setGroup(CFL_MAX_TIMESTEPSIZE, "Simulation|CFL");
 	setDescription(CFL_MAX_TIMESTEPSIZE, "Max. time step size.");
-	static_cast<RealParameter*>(getParameter(CFL_MAX_TIMESTEPSIZE))->setMinValue(1e-6);
+	static_cast<RealParameter*>(getParameter(CFL_MAX_TIMESTEPSIZE))->setMinValue(static_cast<Real>(1e-6));
 
 	ParameterBase::GetFunc<int> getKernelFct = std::bind(&Simulation::getKernel, this);
 	ParameterBase::SetFunc<int> setKernelFct = std::bind(&Simulation::setKernel, this, std::placeholders::_1);
@@ -258,13 +258,13 @@ void Simulation::initParameters()
 	setGroup(SIMULATION_METHOD, "Simulation|Simulation");
 	setDescription(SIMULATION_METHOD, "Simulation method.");
 	enumParam = static_cast<EnumParameter*>(getParameter(SIMULATION_METHOD));
-	enumParam->addEnumValue("WCSPH", ENUM_SIMULATION_WCSPH);
-	enumParam->addEnumValue("PCISPH", ENUM_SIMULATION_PCISPH);
-	enumParam->addEnumValue("PBF", ENUM_SIMULATION_PBF);
-	enumParam->addEnumValue("IISPH", ENUM_SIMULATION_IISPH);
-	enumParam->addEnumValue("DFSPH", ENUM_SIMULATION_DFSPH);
-	enumParam->addEnumValue("Projective Fluids", ENUM_SIMULATION_PF);
-	enumParam->addEnumValue("ICSPH", ENUM_SIMULATION_ICSPH);
+	enumParam->addEnumValue(TimeStepWCSPH::METHOD_NAME, ENUM_SIMULATION_WCSPH);
+	enumParam->addEnumValue(TimeStepPCISPH::METHOD_NAME, ENUM_SIMULATION_PCISPH);
+	enumParam->addEnumValue(TimeStepPBF::METHOD_NAME, ENUM_SIMULATION_PBF);
+	enumParam->addEnumValue(TimeStepIISPH::METHOD_NAME, ENUM_SIMULATION_IISPH);
+	enumParam->addEnumValue(TimeStepDFSPH::METHOD_NAME, ENUM_SIMULATION_DFSPH);
+	enumParam->addEnumValue(TimeStepPF::METHOD_NAME, ENUM_SIMULATION_PF);
+	enumParam->addEnumValue(TimeStepICSPH::METHOD_NAME, ENUM_SIMULATION_ICSPH);
 
 	BOUNDARY_HANDLING_METHOD = createEnumParameter("boundaryHandlingMethod", "Boundary handling method", &m_boundaryHandlingMethod);
 	setGroup(BOUNDARY_HANDLING_METHOD, "Simulation|Simulation");
@@ -400,7 +400,9 @@ void Simulation::updateTimeStepSize()
 	{
 		Real h = TimeManager::getCurrent()->getTimeStepSize();
 		updateTimeStepSizeCFL();
-		const unsigned int iterations = m_timeStep->getValue<unsigned int>(TimeStep::SOLVER_ITERATIONS);
+		const unsigned int iterations = m_timeStep->getNumIterations();
+		if (iterations == 0)		// check if the method requried iterations
+			return;
 		if (iterations > 10)
 			h *= static_cast<Real>(0.9);
 		else if (iterations < 5)
@@ -478,8 +480,8 @@ void Simulation::updateTimeStepSizeCFL()
 	}
 
 	// avoid division by zero
-	if (maxVel < 1.0e-9)
-		maxVel = 1.0e-9;
+	if (maxVel < static_cast<Real>(1.0e-9))
+		maxVel = static_cast<Real>(1.0e-9);
 
 	// Approximate max. time step size 		
 	h = m_cflFactor * static_cast<Real>(0.4) * (diameter / (sqrt(maxVel)));
@@ -496,9 +498,9 @@ void Simulation::computeNonPressureForces()
 	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
 	{
 		FluidModel *fm = getFluidModel(i);
+		fm->computeVorticity();
 		fm->computeSurfaceTension();
 		fm->computeViscosity();
-		fm->computeVorticity();
 		fm->computeDragForce();
 		fm->computeElasticity();
 		fm->computeXSPH();

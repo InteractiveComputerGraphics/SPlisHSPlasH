@@ -41,7 +41,7 @@ void TimeStep::clearAccelerations(const unsigned int fluidModelIndex)
 	for (unsigned int i=0; i < count; i++)
 	{
 		// Clear accelerations of dynamic particles
-		if (model->getMass(i) != 0.0)
+		if (model->getMass(i) != 0.0 && model->getParticleState(i) == ParticleState::Active)
 		{
 			Vector3r &a = model->getAcceleration(i);
 			a = grav;

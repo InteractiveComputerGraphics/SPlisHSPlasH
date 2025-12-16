@@ -34,8 +34,8 @@ namespace SPH
 			void disableReuseParticles();
 			void addEmitter(const unsigned int width, const unsigned int height,
 				const Vector3r &pos, const Matrix3r & rotation,
-				const Real velocity,
-				const unsigned int type);
+				const Real velocity,const unsigned int type,
+				const bool useBoundary = false);
 			unsigned int numEmitters() const { return static_cast<unsigned int>(m_emitters.size()); }
 			std::vector<Emitter*> &getEmitters() { return m_emitters; }
 

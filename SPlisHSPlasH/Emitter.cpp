@@ -16,7 +16,6 @@ Emitter::Emitter(FluidModel* model, const unsigned int width, const unsigned int
       m_useBoundary(useBoundary), m_velocityProfile(velocityProfile)
 {
     Simulation* sim = Simulation::getCurrent();
-    m_depth = getDepth();
 
     if (m_type == 1) {
         // for cylindrical emitters, the height must not be smaller than the width, to spawn the initial particles.
@@ -33,20 +32,12 @@ Emitter::~Emitter(void) {}
 
 void Emitter::reset() { m_emitCounter = 0; }
 
-int Emitter::getDepth()
-{
-    // This is its own function to not repeat the calculation in the constructor but still have it available for the
-    // static getSize().
-    Simulation* sim = Simulation::getCurrent();
-    return static_cast<int>(std::ceil(sim->getSupportRadius() / sim->getParticleRadius()));
-}
-
 Vector3r Emitter::getSize(const Real width, const Real height, const int type)
 {
 
     const Simulation* sim = Simulation::getCurrent();
     const Real particleDiameter = 2 * sim->getParticleRadius();
-    const Real depth = static_cast<Real>(getDepth());
+    const Real depth = static_cast<Real>(m_depth);
     Vector3r size;
 
     // The emitter must be larger in emit direction, else particles may spawn just outside.

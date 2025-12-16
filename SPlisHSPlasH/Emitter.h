@@ -24,7 +24,7 @@ namespace SPH
 			FluidModel *m_model;
 			unsigned int m_width; 
 			unsigned int m_height;
-			unsigned int m_depth;
+			static const unsigned int m_depth{4};
     		Vector3r m_size{0, 0, 0};
 			Vector3r m_x;
 			Matrix3r m_rotation;
@@ -60,7 +60,6 @@ namespace SPH
 			void emitParticles(std::vector <unsigned int> &reusedParticles, unsigned int &indexReuse, unsigned int &numEmittedParticles);
 			void setEmitStartTime(Real val) { m_emitStartTime = val; }
 			void setEmitEndTime(Real val) { m_emitEndTime = val; }
-			static int getDepth();
 			static Vector3r getSize(const Real width, const Real height, const int type);
 			static Vector3r getSizeExtraMargin(const Real width, const Real height, const int type);
 

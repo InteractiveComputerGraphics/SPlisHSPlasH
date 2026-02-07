@@ -6,6 +6,7 @@
 #include <SPlisHSPlasH/Elasticity/Elasticity_Becker2009.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Peer2018.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Kugelstadt2021.h>
+#include <SPlisHSPlasH/Elasticity/Elasticity_Kee2023.h>
 
 #include <pybind11/pybind11.h>
 
@@ -61,5 +62,29 @@ void ElasticityModule(py::module m_sub) {
             .def_static("matrixVecProd", &SPH::Elasticity_Kugelstadt2021::matrixVecProd)
             .def("computeRotations", &SPH::Elasticity_Kugelstadt2021::computeRotations)
             .def("getMethodName", &SPH::Elasticity_Kugelstadt2021::getMethodName)
+            .def(py::init<SPH::FluidModel*>());
+
+    // ---------------------------------------
+    // Class Elasticity Kee 2023
+    // ---------------------------------------
+
+    py::class_<SPH::Elasticity_Kee2023, SPH::NonPressureForceBase>(m_sub, "Elasticity_Kee2023")
+            .def_readwrite_static("YOUNGS_MODULUS", &SPH::Elasticity_Kee2023::YOUNGS_MODULUS)
+            .def_readwrite_static("POISSON_RATIO", &SPH::Elasticity_Kee2023::POISSON_RATIO)
+            .def_readwrite_static("FIXED_BOX_MIN", &SPH::Elasticity_Kee2023::FIXED_BOX_MIN)
+            .def_readwrite_static("FIXED_BOX_MAX", &SPH::Elasticity_Kee2023::FIXED_BOX_MAX)
+            .def_readwrite_static("ALPHA", &SPH::Elasticity_Kee2023::ALPHA)
+            .def_readwrite_static("MAX_NEIGHBORS", &SPH::Elasticity_Kee2023::MAX_NEIGHBORS)
+            .def_readwrite_static("SOLVER_TYPE", &SPH::Elasticity_Kee2023::SOLVER_TYPE)
+            .def_readwrite_static("LBFGS_WINDOW_SIZE", &SPH::Elasticity_Kee2023::LBFGS_WINDOW_SIZE)
+            .def_readwrite_static("MATERIAL_TYPE", &SPH::Elasticity_Kee2023::MATERIAL_TYPE)
+            .def_readwrite_static("MAX_ITER", &SPH::Elasticity_Kee2023::MAX_ITER)
+            .def_readwrite_static("MAX_ERROR", &SPH::Elasticity_Kee2023::MAX_ERROR)
+            .def_readwrite_static("MAX_LS_ITER", &SPH::Elasticity_Kee2023::MAX_LS_ITER)
+            .def_readwrite_static("LS_ARMIJO_PARAM", &SPH::Elasticity_Kee2023::LS_ARMIJO_PARAM)
+            .def_readwrite_static("LS_BETA", &SPH::Elasticity_Kee2023::LS_BETA)
+            .def_readwrite_static("USE_LINE_SEARCH", &SPH::Elasticity_Kee2023::USE_LINE_SEARCH)
+
+            .def("getMethodName", &SPH::Elasticity_Kee2023::getMethodName)
             .def(py::init<SPH::FluidModel*>());
 }

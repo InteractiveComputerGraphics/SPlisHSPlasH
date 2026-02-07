@@ -28,6 +28,24 @@ namespace SPH
 		/** computes the APD of 8 deformation gradients. (Alg. 3 from the paper: Kugelstadt et al. "Fast Corotated FEM using Operator Splitting", CGF 2018)
 		*/
 		static void APD_Newton(const Matrix3r& F, Quaternionr& q);
+
+		/** Computes rotation matrix R from deformation gradient F using iARAP approach.
+		 * (Lin et al. "Isotropic ARAP energy using Cauchy-Green invariants", 2022)
+		 * Returns R directly as a 3x3 matrix computed from Cauchy-Green invariants.
+		 */
+		static void iARAP(const Matrix3r& F, Matrix3r& R);
+
+		/** Computes singular values from deformation gradient F using iARAP quartic.
+		 * Extracts singular values directly from quartic roots.
+		 * sigma is returned in ascending order (sigma[0] = smallest).
+		 */
+		static void ARAP_eigenvalues(const Matrix3r& F, Vector3r& sigma);
+
+		/** Computes full iARAP decomposition: R, sigma, and V.
+		 * Uses quartic for sigma, iARAP for R, and analytical eigenvectors for V.
+		 * sigma in ascending order. U = R * V.
+		 */
+		static void ARAP_decomposition(const Matrix3r& F, Matrix3r& R, Vector3r& sigma, Matrix3r& V);
 	};
 }
 

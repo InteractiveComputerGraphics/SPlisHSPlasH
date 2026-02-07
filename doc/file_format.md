@@ -543,6 +543,7 @@ Example code:
   - 1: Becker et al. 2009
   - 2: Peer et al. 2018
   - 3: Kugelstadt et al. 2021
+  - 4: Kee et al. 2023
 
 ###### Becker et al. 2009
 
@@ -570,6 +571,19 @@ Example code:
 * alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
 * elasticityMaxIter (int): (Peer et al. 2018) Maximum solver iterations (default: 100)
 * elasticityMaxError (float): (Peer et al. 2019) Maximum elasticity error allowed by the solver (default: 1.0e-4)
+* fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
+* fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
+* maxNeighbors (int): Maximum number of neighbors that are considered (default: -1)
+* volumeMaxError (float): Max. error of the volume solver (default: 0.000100)
+* volumeMaxIter (uint): Max. iterations of the volume solver (default: 100)
+
+###### Kee et al. 2023
+
+* youngsModulus (float): Young's modulus - coefficient for the stiffness of the material (default: 100000.0)
+* poissonsRatio (float): Poisson's ratio - measure of the Poisson effect (default: 0.3)
+* alpha (float): Coefficent for zero-energy modes suppression method (default: 0.0)
+* elasticityMaxIter (int): Maximum solver iterations (default: 100)
+* elasticityMaxError (float): Maximum elasticity error allowed by the solver (default: 1.0e-4)
 * fixedBoxMin (vec3): Minimum point of box of which contains the fixed particles.
 * fixedBoxMax (vec3): Maximum point of box of which contains the fixed particles.
 * maxNeighbors (int): Maximum number of neighbors that are considered (default: -1)

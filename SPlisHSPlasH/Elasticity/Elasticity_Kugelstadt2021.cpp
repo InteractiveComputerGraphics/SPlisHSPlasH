@@ -308,6 +308,29 @@ void Elasticity_Kugelstadt2021::initValues()
 		}
 	}
 
+	// Check neighbor list symmetry
+	{
+		unsigned int maxActualNeighbors = 0;
+		int asymmetricPairs = 0;
+		for (unsigned int i = 0; i < numParticles; i++)
+		{
+			if (m_initialNeighbors[i].size() > maxActualNeighbors)
+				maxActualNeighbors = (unsigned int)m_initialNeighbors[i].size();
+			for (size_t jn = 0; jn < m_initialNeighbors[i].size(); jn++)
+			{
+				unsigned int j = m_initialNeighbors[i][jn];
+				bool found = false;
+				for (size_t kn = 0; kn < m_initialNeighbors[j].size(); kn++)
+				{
+					if (m_initialNeighbors[j][kn] == i) { found = true; break; }
+				}
+				if (!found) asymmetricPairs++;
+			}
+		}
+		LOG_INFO << "Neighbor stats: maxNeighbors=" << maxActualNeighbors
+			<< ", asymmetricPairs=" << asymmetricPairs;
+	}
+
 	// mark all particles in the bounding box as fixed
 	determineFixedParticles();
 

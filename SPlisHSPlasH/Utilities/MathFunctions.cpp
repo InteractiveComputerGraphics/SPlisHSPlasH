@@ -444,8 +444,11 @@ void MathFunctions::iARAP(const Matrix3r& F, Matrix3r& R)
 
 	if (std::fabs(denom) < static_cast<Real>(1e-12))
 	{
-		// Degenerate case: return identity
-		R.setIdentity();
+		// Degenerate case: fall back to SVD polar decomposition
+		Eigen::JacobiSVD<Matrix3r> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		R = svd.matrixU() * svd.matrixV().transpose();
+		if (R.determinant() < 0)
+			R.col(2) = -R.col(2);
 		return;
 	}
 
@@ -462,6 +465,17 @@ void MathFunctions::iARAP(const Matrix3r& F, Matrix3r& R)
 	gJ.col(2) = F.col(0).cross(F.col(1));
 
 	R = df1 * g1 + df2 * g2 + dfJ * gJ;
+
+	// Validate: if R is not a proper rotation, fall back to SVD
+	const Real detR = R.determinant();
+	const Real orthoErr = (R.transpose() * R - Matrix3r::Identity()).squaredNorm();
+	if (std::fabs(detR - 1.0) > static_cast<Real>(1e-4) || orthoErr > static_cast<Real>(1e-4))
+	{
+		Eigen::JacobiSVD<Matrix3r> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		R = svd.matrixU() * svd.matrixV().transpose();
+		if (R.determinant() < 0)
+			R.col(2) = -R.col(2);
+	}
 }
 
 // ----------------------------------------------------------------------------------------------

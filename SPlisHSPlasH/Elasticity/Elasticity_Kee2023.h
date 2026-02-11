@@ -110,9 +110,10 @@ namespace SPH
 		std::vector<Real> m_restVolumes;
 		std::vector<Matrix3r> m_rotations;
 		std::vector<Real> m_stress;
+		std::vector<int> m_fixedGroupId;		// 0: free, 1: box1, 2: box2
 		std::vector<Matrix3r> m_L;
 		std::vector<Matrix3r> m_F;
-		std::vector<Matrix3r> m_RL;
+		std::vector<Matrix3r> m_PL;
 		Real m_alpha;
 		int m_maxNeighbors;
 		int m_solverType;			// 0: Newton, 1: LBFGS

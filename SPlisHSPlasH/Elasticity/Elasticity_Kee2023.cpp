@@ -1250,9 +1250,54 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	Real elasticEnergy = 0;
 	Real massEnergy = 0;
 
+#ifdef USE_AVX
+	// AVX workspace: pack each xk into Scalarf8 (3 lanes active); reused by Sections 1 and 5.
+	// Pattern follows Kugelstadt2021 stepElasticitySolver: coord-packed sparse matvec.
+	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> xk_avx(numParticles);
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < numParticles; i++)
+		xk_avx[i] = Scalarf8((float)xk[i][0], (float)xk[i][1], (float)xk[i][2], 0, 0, 0, 0, 0);
+#endif
+
 	//////////////////////////////////////////////////////////////////////////
 	// 1. Compute deformation gradient: F = D * xk  ->  m_F
 	//////////////////////////////////////////////////////////////////////////
+#ifdef USE_AVX
+	{
+		std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> f_avx(3 * numParticles);
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for schedule(static)
+			for (int i = 0; i < 3 * numParticles; i++)
+				f_avx[i].setZero();
+
+			// f_avx = D * xk_avx  (sparse matvec, coord-packed)
+			#pragma omp for schedule(static)
+			for (int k = 0; k < D.outerSize(); ++k)
+			{
+				for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
+					f_avx[it.row()] += Scalarf8((float)it.value()) * xk_avx[it.col()];
+			}
+
+			// Extract 3x3 F from the 3 Scalarf8 rows per particle (lanes 0..2)
+			#pragma omp for schedule(static)
+			for (int i = 0; i < numParticles; i++)
+			{
+				const unsigned int i0 = group[i];
+				const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+				float x0[8], x1[8], x2[8];
+				f_avx[3 * i].store(x0);
+				f_avx[3 * i + 1].store(x1);
+				f_avx[3 * i + 2].store(x2);
+
+				m_F[particleIndex] <<	x0[0], x0[1], x0[2],
+										x1[0], x1[1], x1[2],
+										x2[0], x2[1], x2[2];
+			}
+		}
+	}
+#else
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
@@ -1281,6 +1326,7 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 									f[3 * i + 2][0], f[3 * i + 2][1], f[3 * i + 2][2];
 		}
 	}
+#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// 2. Extract rotation R from F via polar decomposition
@@ -1375,6 +1421,39 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> gradient_ze(numParticles, Vector3r::Zero());
 	if (m_alpha != 0.0)
 	{
+#ifdef USE_AVX
+		// AVX: coord-packed sparse matvec gradient_ze = HTH * xk (reuses xk_avx from Section 1).
+		std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> gradient_ze_avx(numParticles);
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+			gradient_ze_avx[i].setZero();
+
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for reduction(+:zeroEnergy) schedule(static)
+			for (int k = 0; k < HT_K_H.outerSize(); ++k)
+			{
+				for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HT_K_H, k); it; ++it)
+				{
+					// energy term kept in double (accuracy matters for the scalar accumulation)
+					zeroEnergy += it.value() * xk[it.row()].dot(xk[it.col()]);
+					// gradient term: AVX coord-packed multiply
+					gradient_ze_avx[it.col()] += Scalarf8((float)it.value()) * xk_avx[it.row()];
+				}
+			}
+		}
+		zeroEnergy *= static_cast<Real>(0.5);
+
+		// Unpack AVX gradient_ze back to Vector3r for the debug print and final accumulation
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			float vals[8];
+			gradient_ze_avx[i].store(vals);
+			gradient_ze[i] = Vector3r((Real)vals[0], (Real)vals[1], (Real)vals[2]);
+			gradient[i] += gradient_ze[i];
+		}
+#else
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for reduction(+:zeroEnergy) schedule(static)
@@ -1391,6 +1470,7 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 
 		for (int i = 0; i < (int)numParticles; i++)
 			gradient[i] += gradient_ze[i];
+#endif
 	}
 
 	{

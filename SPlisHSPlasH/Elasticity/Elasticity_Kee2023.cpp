@@ -686,24 +686,12 @@ void Elasticity_Kee2023::initSystem()
 			// init vectors
 			int numParticles = (int)obj->m_particleIndices.size();
 			obj->m_dx.resize(numParticles - obj->m_nFixed);
-#ifdef USE_AVX			
-			obj->m_rhs.resize(3 * numParticles - obj->m_nFixed);
-			obj->m_xk.resize(3 * numParticles - obj->m_nFixed);
-			obj->m_f_avx.resize(3 * numParticles);
-			obj->m_xk_avx.resize(numParticles);
-
-			int vecSize;
-			if (numParticles % 8 == 0) vecSize = numParticles / 8;
-			else vecSize = numParticles / 8 + 1;
-			obj->m_quats_avx.resize(vecSize);
-			for (int i = 0; i < vecSize; i++)
-				obj->m_quats_avx[i] = Quaternion8f();
-#else 
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
-			obj->m_quats.resize(numParticles, Quaternionr::Identity());
+#ifndef USE_AVX
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
+#endif
 			int nFree = numParticles - obj->m_nFixed;
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
 
@@ -728,7 +716,6 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
-#endif
 		}
 		else    // no cache found
 		{
@@ -741,24 +728,12 @@ void Elasticity_Kee2023::initSystem()
 			// init vectors
 			int numParticles = (int)obj->m_particleIndices.size();
 			obj->m_dx.resize(numParticles - obj->m_nFixed);
-#ifdef USE_AVX
-			obj->m_rhs.resize(3 * numParticles - obj->m_nFixed);
-			obj->m_xk.resize(3 * numParticles - obj->m_nFixed);
-			obj->m_f_avx.resize(3 * numParticles);
-			obj->m_xk_avx.resize(numParticles);
-
-			int vecSize;
-			if (numParticles % 8 == 0) vecSize = numParticles / 8;
-			else vecSize = numParticles / 8 + 1;
-			obj->m_quats_avx.resize(vecSize);
-			for (int i = 0; i < vecSize; i++)
-				obj->m_quats_avx[i] = Quaternion8f();
-#else
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
-			obj->m_quats.resize(numParticles, Quaternionr::Identity());
+#ifndef USE_AVX
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
+#endif
 			int nFree = numParticles - obj->m_nFixed;
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
 
@@ -783,7 +758,6 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
-#endif
 
 			// write cache file
 			if (sim->getUseCache() && (Utilities::FileSystem::makeDir(sim->getCachePath()) == 0))
@@ -1116,275 +1090,6 @@ void Elasticity_Kee2023::loadState(BinaryFileReader &binReader)
 	binReader.readBuffer((char*)m_rotations.data(), m_rotations.size() * sizeof(Matrix3r));
 }
 
-#ifdef USE_AVX
-
-/** Solve the linear system for the stretching forces including zero energy mode control
-* using the precomputed matrix factorization.
-*/
-
-void Elasticity_Kee2023::stepElasticitySolver()
-{
-	START_TIMING("Elasticity_Kee2023")
-	const unsigned int numActiveParticles = m_model->numActiveParticles();
-	if (numActiveParticles == 0)
-		return;
-	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
-	Simulation* sim = Simulation::getCurrent();
-
-	size_t numObjects = m_objects.size();
-
-	// solve the systems for each object separately
-	for (auto objIndex = 0; objIndex < numObjects; objIndex++)
-	{
-		ElasticObject* obj = m_objects[objIndex];
-		const std::vector<unsigned int>& group = obj->m_particleIndices;
-		int numParticles = (int)group.size();
-
-		auto& D = obj->m_factorization->m_D;
-		auto& DT_K = obj->m_factorization->m_DT_K;
-		auto& HT_K_H = obj->m_factorization->m_matHTH;
-
-		auto& dx = obj->m_dx;
-		auto& f_avx = obj->m_f_avx;
-		auto& sol_avx = obj->m_xk_avx;
-		auto& quats = obj->m_quats_avx;
-
-		START_TIMING("advect x & Dx")
-		#pragma omp parallel default(shared)
-		{
-			//////////////////////////////////////////////////////////////////////////
-			// advect particles to get \tilde x in Eq. 29:
-			// store the 3 components of the advected positions in f_avx
-			// store the 3 components of dt*velocity in v_avx
-			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)numParticles; i++)
-			{
-				const unsigned int i0 = group[i];
-				const unsigned int particleIndex = m_initial_to_current_index[i0];
-				const size_t numNeighbors = m_initialNeighbors[i0].size();
-
-				const Real fdt = obj->m_factorization->m_dt;
-				const Vector3r x = m_model->getPosition(particleIndex);
-				const Vector3r dv = fdt * m_model->getVelocity(particleIndex);
-				const Vector3r xNew = x + dv;
-				// copy the 3 coordinates to sol_avx
-				sol_avx[i] = Scalarf8(xNew[0], xNew[1], xNew[2], 0, 0, 0, 0, 0);
-				f_avx[3 * i].setZero();
-				f_avx[3 * i + 1].setZero();
-				f_avx[3 * i + 2].setZero();
-			}
-
-			//////////////////////////////////////////////////////////////////////////
-			// compute deformation gradient F by sparse matrix-vector product in parallel:
-			//
-			// f_avx = D * x_advected		(Eq. 12 and Eq. 29)
-			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
-			for (int k = 0; k < D.outerSize(); ++k)
-			{
-				for (Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
-				{
-					f_avx[it.row()] += Scalarf8(it.value()) * sol_avx[it.col()];
-				}
-			}
-		}
-		STOP_TIMING_AVG;
-
-		int vecSize;
-		if (numParticles % 8 == 0) 
-			vecSize = numParticles / 8;
-		else 
-			vecSize = numParticles / 8 + 1;
-
-		START_TIMING("extract rot");
-		#pragma omp parallel default(shared)
-		{
-			//////////////////////////////////////////////////////////////////////////
-			// extract deformation gradient from avx values f_avx
-			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)numParticles; i++)
-			{
-				const unsigned int i0 = group[i];
-				const unsigned int particleIndex = m_initial_to_current_index[i0];
-
-				// copy data from f_avx to m_F
-				float x0[8], x1[8], x2[8];
-				f_avx[3*i].store(x0);
-				f_avx[3*i+1].store(x1);
-				f_avx[3*i+2].store(x2);
-
-				m_F[particleIndex] <<	x0[0], x0[1], x0[2],
-										x1[0], x1[1], x1[2],
-										x2[0], x2[1], x2[2];
-			}
-
-			//////////////////////////////////////////////////////////////////////////
-			// extract rotation from F by analytic polar decomposition (Kugelstadt et al. 2018)
-			//////////////////////////////////////////////////////////////////////////
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < vecSize; i++)
-			{
-				const int count = std::min(numParticles - i*8, 8);
-
-				// store the deformation gradient of 8 particles in avx vectors
-				int idx[8];
-				for (int j=0; j < count; j++)
-					idx[j] = m_initial_to_current_index[group[8*i + j]];
-				for (int j = count; j < 8; j++)
-					idx[j] = 0;
-
-				Vector3f8 F1, F2, F3;	//columns of the deformation gradient
-				F1 = Vector3f8(m_F[idx[0]].col(0), m_F[idx[1]].col(0), m_F[idx[2]].col(0), m_F[idx[3]].col(0), m_F[idx[4]].col(0), m_F[idx[5]].col(0), m_F[idx[6]].col(0), m_F[idx[7]].col(0));
-				F2 = Vector3f8(m_F[idx[0]].col(1), m_F[idx[1]].col(1), m_F[idx[2]].col(1), m_F[idx[3]].col(1), m_F[idx[4]].col(1), m_F[idx[5]].col(1), m_F[idx[6]].col(1), m_F[idx[7]].col(1));
-				F3 = Vector3f8(m_F[idx[0]].col(2), m_F[idx[1]].col(2), m_F[idx[2]].col(2), m_F[idx[3]].col(2), m_F[idx[4]].col(2), m_F[idx[5]].col(2), m_F[idx[6]].col(2), m_F[idx[7]].col(2));
-				
-				// perform polar decomposition
-				Quaternion8f& q = quats[i];
-				MathFunctions_AVX::APD_Newton_AVX(F1, F2, F3, q);
-
-				//transform quaternion to rotation matrix
-				Vector3f8 R1, R2, R3;	//columns of the rotation matrix
-				quats[i].toRotationMatrix(R1, R2, R3);
-
-				//////////////////////////////////////////////////////////////////////////
-				// R := R-F
-				//////////////////////////////////////////////////////////////////////////
-				R1 -= F1;
-				R2 -= F2;
-				R3 -= F3;
-
-				//////////////////////////////////////////////////////////////////////////
-				// store result in f_avx
-				// f_avx has size 3*n and 3 rows contain F-R
-				//////////////////////////////////////////////////////////////////////////
-				std::array<Vector3r, 8> v0, v1, v2;
-				R1.store(v0.data());
-				R2.store(v1.data());
-				R3.store(v2.data());
-				for (auto j = 0; j < count; j++)
-				{
-					f_avx[24*i + 3*j] =     Scalarf8(v0[j][0], v1[j][0], v2[j][0], 0, 0, 0, 0, 0);
-					f_avx[24*i + 3*j + 1] = Scalarf8(v0[j][1], v1[j][1], v2[j][1], 0, 0, 0, 0, 0);
-					f_avx[24*i + 3*j + 2] = Scalarf8(v0[j][2], v1[j][2], v2[j][2], 0, 0, 0, 0, 0);
-					if (8*i+j < dx.size())
-						dx[8*i+j] = Scalarf8(0.0f);
-				}
-			}
-		}
-		STOP_TIMING_AVG
-
-		//////////////////////////////////////////////////////////////////////////
-		// Compute right hand side
-		//////////////////////////////////////////////////////////////////////////		
-	
-		START_TIMING("rhs")
-
-		#pragma omp parallel default(shared)
-		{
-			//////////////////////////////////////////////////////////////////////////
-			// Compute D^T K * (R-F)		(Eq. 29)
-			// Note: K already contains the factor: 2 dt^2
-			//////////////////////////////////////////////////////////////////////////		
-			#pragma omp for schedule(static)  
-			for (int k = 0; k < DT_K.outerSize(); ++k)
-			{
-				for (Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(DT_K, k); it; ++it)
-				{
-					if (it.row() < (int) dx.size())
-						dx[it.row()] += Scalarf8(it.value()) * f_avx[it.col()];
-				}
-			}
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// If zero energy model control is turned on, 
-		// add the following term to the right hand side (Eq. 29): 
-		// H^T * K2 * H * x_advected
-		// Note: K2 already contains the factor: dt^2
-		//////////////////////////////////////////////////////////////////////////		
-		if (m_alpha != 0.0)
-		{
-			#pragma omp parallel default(shared)
-			{
-				#pragma omp for schedule(static)  
-				for (int k = 0; k < HT_K_H.outerSize(); ++k)
-				{
-					for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HT_K_H, k); it; ++it)
-					{
-						if (it.col() < (int)dx.size())
-							dx[it.col()] -= Scalarf8(static_cast<float>(it.value())) * sol_avx[it.row()];
-					}
-				}
-
-			}
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// Copy the right hand side in a vector for the cholesky solver
-		//////////////////////////////////////////////////////////////////////////
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int)dx.size(); i++)
-			{
-				float x[8];
-				dx[i].store(x);
-				obj->m_rhs[3 * i] = x[0];
-				obj->m_rhs[3 * i + 1] = x[1];
-				obj->m_rhs[3 * i + 2] = x[2];
-			}
-		}
-
-		STOP_TIMING_AVG;
-	}
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Solve linear system 
-	//////////////////////////////////////////////////////////////////////////		
-	START_TIMING("solve SLE")
-
-	#pragma omp parallel default(shared)
-	{
-		#pragma omp for schedule(static)  
-		for (int i = 0; i < 3*numObjects; i++)
-		{
-			int objIndex = i / 3;
-			int index = i % 3;
-			ElasticObject* obj = m_objects[objIndex];
-			obj->m_factorization->m_cholesky->solve(&obj->m_xk[index], &obj->m_rhs[index], /* stride = */ 3);
-		}
-	}
-	for (auto objIndex = 0; objIndex < numObjects; objIndex++)
-	{
-		ElasticObject* obj = m_objects[objIndex];
-		const std::vector<unsigned int>& group = obj->m_particleIndices;
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)  
-			for (int i = 0; i < (int) obj->m_xk.size()/3; i++)
-			{
-				const unsigned int i0 = group[i];
-				const unsigned int particleIndex = m_initial_to_current_index[i0];
-				if (m_model->getParticleState(particleIndex) == ParticleState::Active)
-				{
-					Vector3r& vi = m_model->getVelocity(particleIndex);
-					const Vector3r &dx = obj->m_xk.segment<3>(3*i);
-					const Real fdt = obj->m_factorization->m_dt;
-					vi += (1.0 / fdt) * dx;
-				}
-			}
-		}		
-	}
-	STOP_TIMING_AVG
-	
-	STOP_TIMING_AVG
-}
-
-
-#else
 
 /** Compute predicted position: xTilde = x + dt * v
 */
@@ -1436,7 +1141,6 @@ Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 	auto& HT_K_H = obj->m_factorization->m_matHTH;
 	auto& f = obj->m_f;
 	auto& xk = obj->m_xk;
-	auto& quats = obj->m_quats;
 	const Real fdt = obj->m_factorization->m_dt;
 
 	Real elasticEnergy = 0;
@@ -1527,6 +1231,7 @@ Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 *
 * Returns the total energy E(x).
 */
+
 Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -1538,7 +1243,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 
 	auto& gradient = obj->m_gradient;
 	auto& f = obj->m_f;
-	auto& quats = obj->m_quats;
 	auto& xk = obj->m_xk;
 
 	const Real fdt = obj->m_factorization->m_dt;
@@ -1547,58 +1251,59 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	Real massEnergy = 0;
 
 	//////////////////////////////////////////////////////////////////////////
-	// 1. Compute deformation gradient: F = D * xk
-	// 2. Extract rotation R from F via polar decomposition
-	//    Precompute P^T * L for each particle (stored in m_PL)
-	//    Accumulate elastic energy density Psi(F_i) * V_i
+	// 1. Compute deformation gradient: F = D * xk  ->  m_F
 	//////////////////////////////////////////////////////////////////////////
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
-		for (int i = 0; i < (int)numParticles; i++)
+		for (int i = 0; i < numParticles; i++)
 		{
 			f[3 * i].setZero();
 			f[3 * i + 1].setZero();
 			f[3 * i + 2].setZero();
 		}
 
-		// F = D * xk
 		#pragma omp for schedule(static)
 		for (int k = 0; k < D.outerSize(); ++k)
 		{
 			for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
-			{
 				f[it.row()] += it.value() * xk[it.col()];
-			}
 		}
 
-		// Extract F, compute R via iARAP (Cauchy-Green invariants), precompute P^T * L, accumulate elastic energy
+		#pragma omp for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+			m_F[particleIndex] <<	f[3 * i][0], f[3 * i][1], f[3 * i][2],
+									f[3 * i + 1][0], f[3 * i + 1][1], f[3 * i + 1][2],
+									f[3 * i + 2][0], f[3 * i + 2][1], f[3 * i + 2][2];
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// 2. Extract rotation R from F via polar decomposition
+	//    Precompute P^T * L for each particle (stored in m_PL)
+	//    Accumulate elastic energy density Psi(F_i) * V_i
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel default(shared)
+	{
 		#pragma omp for reduction(+:elasticEnergy) schedule(static)
 		for (int i = 0; i < (int)numParticles; i++)
 		{
 			const unsigned int i0 = group[i];
 			const unsigned int particleIndex = m_initial_to_current_index[i0];
 
-			const Vector3r &x0 = f[3 * i];
-			const Vector3r &x1 = f[3 * i + 1];
-			const Vector3r &x2 = f[3 * i + 2];
-
-			m_F[particleIndex] <<	x0[0], x0[1], x0[2],
-									x1[0], x1[1], x1[2],
-									x2[0], x2[1], x2[2];
-
-			// Compute R via SVD polar decomposition: R = U * V^T
 			Eigen::JacobiSVD<Matrix3r> svd_i(m_F[particleIndex], Eigen::ComputeFullU | Eigen::ComputeFullV);
 			Matrix3r U = svd_i.matrixU();
 			if ((U * svd_i.matrixV().transpose()).determinant() < 0)
 				U.col(2) = -U.col(2);
 			m_rotations[particleIndex] = U * svd_i.matrixV().transpose();
 
-			// Compute P and store P^T * L in m_PL for reuse in neighbor loop
 			const Matrix3r P_i = computeP(m_F[particleIndex], m_rotations[particleIndex]);
 			m_PL[particleIndex] = P_i.transpose() * m_L[particleIndex];
 
-			// Accumulate elastic energy density Psi(F_i) * V_i
 			elasticEnergy += m_restVolumes[particleIndex] * computePsi(m_F[particleIndex], m_rotations[particleIndex]);
 
 			gradient[i].setZero();
@@ -1607,7 +1312,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 
 	//////////////////////////////////////////////////////////////////////////
 	// 3. Elastic gradient: g_i = -dt^2 * V_i * sum_j V_j * (P_i^T L_i + P_j^T L_j) * gradW
-	//    P_i^T * L_i precomputed in m_PL (material-dependent)
 	//////////////////////////////////////////////////////////////////////////
 	#pragma omp parallel default(shared)
 	{
@@ -1648,9 +1352,7 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	}
 
 	//////////////////////////////////////////////////////////////////////////
-	// 4. Mass term: g_i += m_i * (sol_i - x_tilde_i)
-	//    x_tilde precomputed in stepElasticitySolver, m_i = particle mass
-	//    This term is zero for the first iteration (xk = xTilde)
+	// 4. Mass term: g_i += m_i * (xk_i - xTilde_i)
 	//////////////////////////////////////////////////////////////////////////
 	auto& xTilde = obj->m_xTilde;
 	#pragma omp parallel default(shared)
@@ -2334,6 +2036,30 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 {
 	auto& dx = obj->m_dx;
+	const int n = (int)dx.size();
+
+#ifdef USE_AVX
+	VectorXr b(3 * n), x(3 * n);
+
+	// Pack dx (n×3) into b (3n×1 interleaved)
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < n; i++)
+	{
+		b[3 * i]     = dx[i][0];
+		b[3 * i + 1] = dx[i][1];
+		b[3 * i + 2] = dx[i][2];
+	}
+
+	// Solve 3 independent n-systems (one per coordinate, stride 3)
+	#pragma omp parallel for schedule(static)
+	for (int c = 0; c < 3; c++)
+		obj->m_factorization->m_cholesky->solve(&x[c], &b[c], 3);
+
+	// Unpack x (3n×1) back into dx (n×3)
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < n; i++)
+		dx[i] = Vector3r(x[3 * i], x[3 * i + 1], x[3 * i + 2]);
+#else
 	auto& dx_perm = obj->m_dx_perm;
 	auto& permInd = obj->m_factorization->m_permInd;
 	auto& permInvInd = obj->m_factorization->m_permInvInd;
@@ -2344,7 +2070,7 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
-		for (int i = 0; i < (int)dx.size(); i++)
+		for (int i = 0; i < n; i++)
 			dx_perm[permInd[i]] = dx[i];
 	}
 
@@ -2368,9 +2094,10 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
-		for (int i = 0; i < (int)dx.size(); i++)
+		for (int i = 0; i < n; i++)
 			dx[permInvInd[i]] = dx_perm[i];
 	}
+#endif
 }
 
 /** Newton solve: compute energy+gradient, assemble true Hessian, solve 3N×3N system.
@@ -2788,7 +2515,6 @@ void Elasticity_Kee2023::stepElasticitySolver()
 	STOP_TIMING_AVG
 }
 
-#endif
 
 /** Compute energy density Psi based on material type.
 *

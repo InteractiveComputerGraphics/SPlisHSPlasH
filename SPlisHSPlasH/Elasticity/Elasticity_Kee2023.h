@@ -52,23 +52,16 @@ namespace SPH
 			std::string m_md5;
 			std::vector<unsigned int> m_particleIndices;
 			unsigned int m_nFixed;
-
 			std::shared_ptr<Factorization> m_factorization;
-#ifdef USE_AVX
-			VectorXr m_rhs;
-			VectorXr m_sol;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f_avx;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_sol_avx;
-			std::vector<Quaternion8f, AlignmentAllocator<Quaternion8f, 32>> m_quats_avx;
-#else
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_f;
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xk;
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xTilde;
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx;
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx_perm;
-			std::vector<Quaternionr, Eigen::aligned_allocator<Quaternionr>> m_quats;
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_gradient;  // gradient at current xk (for line search)
+
+			// Shared state (identical types for both AVX and non-AVX builds).
+			// AVX code uses function-local Scalarf8 / Vector3f8 / Matrix3f8 temporaries,
+			// not AVX-typed member variables.
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_f;        // F = D·xk workspace
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xk;       // current iterate
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xTilde;   // inertial target
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx;       // Newton/LBFGS step (also LLT solve RHS/result)
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_gradient; // ∇E at xk
 
 			// Newton: per-particle 9×9 Hessian (K_i = d²ψ/dvec(F)²)
 			std::vector<Eigen::Matrix<Real, 9, 9>> m_hessian9x9;
@@ -88,9 +81,14 @@ namespace SPH
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_last_sol;   // previous sol for s_k computation
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_q;          // temporary for two-loop recursion
 			int m_lbfgs_count = 0;             // number of stored secant pairs
+
+#ifndef USE_AVX
+			// Permutation workspace for scalar LLT (manual forward/backward sub).
+			// AVX path uses CholeskyAVXSolver which handles permutation internally.
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx_perm;
 #endif
 
-			ElasticObject() { m_factorization = nullptr; }
+			ElasticObject()  { m_factorization = nullptr; }
 			~ElasticObject() { m_factorization = nullptr; }
 		};
 
@@ -148,7 +146,6 @@ namespace SPH
 
 		void stepElasticitySolver();
 
-#ifndef USE_AVX
 		void computeXTilde(ElasticObject* obj);
 		void updateVelocity(ElasticObject* obj, const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& xk, Real fdt);
 		Real computeEnergy(ElasticObject* obj);
@@ -165,7 +162,6 @@ namespace SPH
 		Real newtonSolve(ElasticObject* obj, int& cgIter);
 		Real lbfgsSolve(ElasticObject* obj);
 		Real lineSearch(ElasticObject* obj, Real energy, int& lsIter);
-#endif
 
 		Matrix3r computeP(const Matrix3r& F, const Matrix3r& R) const;
 

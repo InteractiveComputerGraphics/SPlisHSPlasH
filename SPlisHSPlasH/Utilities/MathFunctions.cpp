@@ -311,7 +311,7 @@ void MathFunctions::APD_Newton(const Matrix3r& F, Quaternionr& q)
 // ----------------------------------------------------------------------------------------------
 namespace {
 
-const double M_2PI = 2.0 * M_PI;
+const double M_2PI = 6.28318530717958647692;
 const double quartic_eps = 1e-14;
 
 // Solve cubic equation x^3 + a*x^2 + b*x + c = 0

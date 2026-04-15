@@ -2033,7 +2033,7 @@ void Elasticity_Kee2023::computeStableNeoHookeanHessian9x9(ElasticObject* obj)
 			const Real cosArg = static_cast<Real>(3.0) * J / I_C * std::sqrt(static_cast<Real>(3.0) / I_C);
 			const Real clampedCos = std::max(static_cast<Real>(-1.0), std::min(static_cast<Real>(1.0), cosArg));
 			const Real theta = std::acos(clampedCos);
-			const Real pi = static_cast<Real>(M_PI);
+			const Real pi = static_cast<Real>(3.14159265358979323846);
 
 			for (int k = 0; k < 3; k++)
 			{
@@ -3235,12 +3235,13 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 			// Convergence check on ||dx||_inf (reduce from Scalarf8: max of lanes 0..2)
 			Real dxNorm = 0;
-			#pragma omp parallel for reduction(max:dxNorm) schedule(static)
+			#pragma omp parallel for schedule(static)
 			for (int i = 0; i < nFree; i++)
 			{
 				float v[8];
 				dx[i].store(v);
 				const Real localMax = std::max(std::max(std::abs((Real)v[0]), std::abs((Real)v[1])), std::abs((Real)v[2]));
+				#pragma omp critical
 				if (localMax > dxNorm) dxNorm = localMax;
 			}
 
@@ -3388,10 +3389,11 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 			// Convergence check on ||dx||_inf before line search
 			Real dxNorm = 0;
-			#pragma omp parallel for reduction(max:dxNorm) schedule(static)
+			#pragma omp parallel for schedule(static)
 			for (int i = 0; i < nFree; i++)
 			{
 				const Real localMax = dx[i].cwiseAbs().maxCoeff();
+				#pragma omp critical
 				if (localMax > dxNorm) dxNorm = localMax;
 			}
 

@@ -60,20 +60,21 @@ namespace SPH
 			std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> m_pcg_precond;
 
 #ifdef USE_AVX
-			// AVX state. Scalarf8 with 3 active lanes (x, y, z, 0...0).
-			// All solver math stays in Scalarf8; scalar conversion only at
-			// stepElasticitySolver boundary (positions/velocities from/to model).
+			// AVX state (Scalarf8, 3 active lanes x/y/z).
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f_avx;          // F = D·xk workspace (3*numParticles)
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xk_avx;         // current iterate
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xTilde_avx;     // inertial target
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx_avx;         // solver step (also LLT solve RHS/result)
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_gradient_avx;   // ∇E at xk
 
-			// Newton PCG workspace (Scalarf8)
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_r_avx;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_p_avx;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_Ap_avx;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_z_avx;
+			// Newton CG workspace (Vector3r — reuses scalar CG code in AVX build)
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_f;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_gradient;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_r;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_p;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_Ap;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_z;
 
 			// L-BFGS secant history
 			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_s_avx;
@@ -152,13 +153,13 @@ namespace SPH
 		Real m_mu;
 
 		// Precomputed V_j * gradW(xi0 - xj0) per neighbor pair.
-		// Constant for rest configuration; indexed by m_precomputed_indices[i] + j.
-#ifdef USE_AVX
-		std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> m_precomp_V_gradW8;
-		std::vector<unsigned int> m_precomputed_indices8;
-#else
+		// Scalar format (always available, used by Newton CG).
 		std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_precomp_V_gradW;
 		std::vector<unsigned int> m_precomputed_indices;
+#ifdef USE_AVX
+		// AVX-packed format (8 neighbors per entry, used by L-BFGS force loops).
+		std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> m_precomp_V_gradW8;
+		std::vector<unsigned int> m_precomputed_indices8;
 #endif
 
 #ifdef USE_AVX

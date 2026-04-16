@@ -712,6 +712,14 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
+			// Newton CG workspace (Vector3r — scalar CG reused in AVX build)
+			obj->m_f.resize(3 * numParticles);
+			obj->m_dx.resize(numParticles - obj->m_nFixed);
+			obj->m_gradient.resize(numParticles, Vector3r::Zero());
+			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
@@ -729,14 +737,15 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_q.resize(nFree, Vector3r::Zero());
 			obj->m_lbfgs_count = 0;
 
-			// Newton buffers (scalar only)
-			obj->m_hessian9x9.resize(numParticles);
+			// Newton buffers (scalar PCG workspace)
 			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
 #endif
+			// Shared Newton buffers (both builds)
+			obj->m_hessian9x9.resize(numParticles);
+			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
 		}
 		else    // no cache found
 		{
@@ -775,6 +784,14 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
+			// Newton CG workspace (Vector3r — scalar CG reused in AVX build)
+			obj->m_f.resize(3 * numParticles);
+			obj->m_dx.resize(numParticles - obj->m_nFixed);
+			obj->m_gradient.resize(numParticles, Vector3r::Zero());
+			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
+			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
@@ -792,14 +809,15 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_q.resize(nFree, Vector3r::Zero());
 			obj->m_lbfgs_count = 0;
 
-			// Newton buffers (scalar only)
-			obj->m_hessian9x9.resize(numParticles);
+			// Newton buffers (scalar PCG workspace)
 			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
 #endif
+			// Shared Newton buffers (both builds)
+			obj->m_hessian9x9.resize(numParticles);
+			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
 
 			// write cache file
 			if (sim->getUseCache() && (Utilities::FileSystem::makeDir(sim->getCachePath()) == 0))
@@ -1126,7 +1144,41 @@ void Elasticity_Kee2023::precomputeValues()
 	Simulation* sim = Simulation::getCurrent();
 	const int numParticles = (int)m_model->numActiveParticles();
 
+	// Scalar format (always filled — used by Newton CG in both builds)
+	m_precomputed_indices.clear();
+	m_precomp_V_gradW.clear();
+	m_precomputed_indices.resize(numParticles);
+
+	unsigned int sumNeighbors = 0;
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const size_t numNeighbors = m_initialNeighbors[i0].size();
+		m_precomputed_indices[i] = sumNeighbors;
+		sumNeighbors += numNeighbors;
+	}
+	m_precomp_V_gradW.resize(sumNeighbors);
+
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const Vector3r xi0 = m_model->getPosition0(i0);
+		const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
+		unsigned int base = m_precomputed_indices[i];
+
+		for (unsigned int j = 0; j < numNeighbors; j++)
+		{
+			const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+			const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
+			const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
+			const Real V_j = m_restVolumes[neighborCurrent];
+			m_precomp_V_gradW[base + j] = V_j * sim->gradW(xi0 - xj0);
+		}
+	}
+
 #ifdef USE_AVX
+	// AVX-packed format (additionally filled for L-BFGS force loops)
 	m_precomputed_indices8.clear();
 	m_precomp_V_gradW8.clear();
 	m_precomputed_indices8.resize(numParticles);
@@ -1167,39 +1219,6 @@ void Elasticity_Kee2023::precomputeValues()
 			const Vector3f8 gradW_avx = CubicKernel_AVX::gradW(xi0_avx - xj0_avx);
 			m_precomp_V_gradW8[base8 + idx] = gradW_avx * Vj_avx;
 			idx++;
-		}
-	}
-#else
-	m_precomputed_indices.clear();
-	m_precomp_V_gradW.clear();
-	m_precomputed_indices.resize(numParticles);
-
-	unsigned int sumNeighbors = 0;
-	for (int i = 0; i < numParticles; i++)
-	{
-		const unsigned int i0 = m_current_to_initial_index[i];
-		const size_t numNeighbors = m_initialNeighbors[i0].size();
-		m_precomputed_indices[i] = sumNeighbors;
-		sumNeighbors += numNeighbors;
-	}
-
-	m_precomp_V_gradW.resize(sumNeighbors);
-
-	#pragma omp parallel for schedule(static)
-	for (int i = 0; i < numParticles; i++)
-	{
-		const unsigned int i0 = m_current_to_initial_index[i];
-		const Vector3r xi0 = m_model->getPosition0(i0);
-		const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
-		unsigned int base = m_precomputed_indices[i];
-
-		for (unsigned int j = 0; j < numNeighbors; j++)
-		{
-			const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
-			const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
-			const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
-			const Real V_j = m_restVolumes[neighborCurrent];
-			m_precomp_V_gradW[base + j] = V_j * sim->gradW(xi0 - xj0);
 		}
 	}
 #endif
@@ -2157,7 +2176,140 @@ void Elasticity_Kee2023::computeNewtonPreconditioner(ElasticObject* obj)
 		precond[j] = precond[j].inverse();
 }
 
-#ifndef USE_AVX
+#ifdef USE_AVX
+/** AVX Newton matvec: AVX for D*p and HTH*p sparse matvecs only.
+*   K*Dx and force loop stay scalar (CG-sensitive, proven correct scalar).
+*   Pack/unpack at boundaries.
+*/
+void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
+{
+	const std::vector<unsigned int>& group = obj->m_particleIndices;
+	const int numParticles = (int)group.size();
+	const int nFree = numParticles - (int)obj->m_nFixed;
+	auto& x = obj->m_pcg_p;     // Vector3r (scalar CG)
+	auto& Ax = obj->m_pcg_Ap;   // Vector3r (scalar CG)
+
+	const Real dt = obj->m_factorization->m_dt;
+	const Real dt2 = dt * dt;
+	auto& D = obj->m_factorization->m_D;
+	auto& HTH = obj->m_factorization->m_matHTH;
+	auto& f_avx = obj->m_f_avx;  // Scalarf8 workspace
+
+	// Pack p → Scalarf8 for sparse matvecs
+	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> p_avx(nFree);
+	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> Ax_avx(nFree);
+	#pragma omp parallel for schedule(static)
+	for (int j = 0; j < nFree; j++)
+		p_avx[j] = Scalarf8((float)x[j][0], (float)x[j][1], (float)x[j][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	// Step 1: Ax_avx = M * p_avx
+	#pragma omp parallel for schedule(static)
+	for (int j = 0; j < nFree; j++)
+	{
+		const unsigned int j0 = group[j];
+		const unsigned int pj = m_initial_to_current_index[j0];
+		Ax_avx[j] = Scalarf8((float)m_model->getMass(pj)) * p_avx[j];
+	}
+
+	// Unpack Ax_avx → Ax (Vector3r) for mass term
+	#pragma omp parallel for schedule(static)
+	for (int j = 0; j < nFree; j++)
+	{
+		float v[8]; Ax_avx[j].store(v);
+		Ax[j] = Vector3r((Real)v[0], (Real)v[1], (Real)v[2]);
+	}
+
+	// Step 2: Ax += HTH * x (SCALAR — ColMajor parallel has data race with Scalarf8)
+	if (m_alpha != static_cast<Real>(0.0))
+	{
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for schedule(static)
+			for (int k = 0; k < HTH.outerSize(); ++k)
+			{
+				for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HTH, k); it; ++it)
+				{
+					const int row = (int)it.row();
+					const int col = (int)it.col();
+					if (row < nFree && col < nFree)
+						Ax[row] += it.value() * x[col];
+				}
+			}
+		}
+	}
+
+	// Step 3: f_avx = D * p_avx (AVX coord-packed sparse matvec)
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)
+		for (int i = 0; i < 3 * numParticles; i++)
+			f_avx[i].setZero();
+
+		#pragma omp for schedule(static)
+		for (int k = 0; k < D.outerSize(); ++k)
+		{
+			for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
+			{
+				const int col = (int)it.col();
+				if (col < nFree)
+					f_avx[it.row()] = f_avx[it.row()] + Scalarf8((float)it.value()) * p_avx[col];
+			}
+		}
+	}
+
+	// Step 4: Extract Dx from f_avx, K*Dx → dPtL (SCALAR — same as non-AVX)
+	const unsigned int numActiveParticles = m_model->numActiveParticles();
+	std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> dPtL(numActiveParticles, Matrix3r::Zero());
+
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = group[i];
+		const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+		float x0[8], x1[8], x2[8];
+		f_avx[3 * i].store(x0);
+		f_avx[3 * i + 1].store(x1);
+		f_avx[3 * i + 2].store(x2);
+
+		Eigen::Matrix<Real, 9, 1> Dxi;
+		Dxi << (Real)x0[0], (Real)x1[0], (Real)x2[0],
+		       (Real)x0[1], (Real)x1[1], (Real)x2[1],
+		       (Real)x0[2], (Real)x1[2], (Real)x2[2];
+
+		Eigen::Matrix<Real, 9, 1> KDx_vec = obj->m_hessian9x9[i] * Dxi;
+		Matrix3r dP;
+		dP.col(0) = KDx_vec.segment<3>(0);
+		dP.col(1) = KDx_vec.segment<3>(3);
+		dP.col(2) = KDx_vec.segment<3>(6);
+		dPtL[particleIndex] = dP.transpose() * m_L[particleIndex];
+	}
+
+	// Step 5: Scalar neighbor force with precomputed V_gradW (same as non-AVX)
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+	{
+		const unsigned int i0 = group[i];
+		const unsigned int particleIndex = m_initial_to_current_index[i0];
+		const Real V_i = m_restVolumes[particleIndex];
+		const Matrix3r& dPtL_i = dPtL[particleIndex];
+
+		const size_t numNeighbors = m_initialNeighbors[i0].size();
+		Vector3r force;
+		force.setZero();
+
+		for (unsigned int jn = 0; jn < numNeighbors; jn++)
+		{
+			const unsigned int j0 = m_initialNeighbors[i0][jn];
+			const unsigned int jCurrent = m_initial_to_current_index[j0];
+			const Matrix3r& dPtL_j = dPtL[jCurrent];
+			force += (dPtL_i + dPtL_j) * m_precomp_V_gradW[m_precomputed_indices[particleIndex] + jn];
+		}
+
+		Ax[i] -= dt2 * V_i * force;
+	}
+}
+#else
 /** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG.
 *   Uses D matrix approach: Ax = M*x + HTH*x + dt² * Σᵢ Vᵢ * D^T * K_i * D * x
 *   K_i is the unscaled material Hessian (2μ * I for simplified version).
@@ -2283,7 +2435,6 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 }
 #endif
 
-#ifndef USE_AVX
 /** Solve A*dx = -gradient using Preconditioned Conjugate Gradient.
 *   Uses block-diagonal preconditioner (3×3 blocks).
 *   Writes result into obj->m_dx.
@@ -2415,7 +2566,6 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 	return iter;
 }
-#endif
 
 /** Solve the linear system A * x = b using the prefactored Cholesky decomposition.
 *
@@ -2499,7 +2649,39 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 #endif
 }
 
-#ifndef USE_AVX
+#ifdef USE_AVX
+/** AVX Newton solve: energy+gradient in AVX, then unpack to Vector3r for scalar CG.
+*   Produces identical CG results to non-AVX — only the gradient computation is AVX-accelerated.
+*/
+Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
+{
+	// Step 1: AVX energy + gradient (fills gradient_avx, m_F, m_rotations, m_PL)
+	Real energy = computeEnergyAndGradient(obj);
+
+	// Step 2: Unpack gradient_avx → m_gradient (Vector3r) for scalar CG
+	const int nFree = (int)obj->m_dx.size();
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+	{
+		float v[8];
+		obj->m_gradient_avx[i].store(v);
+		obj->m_gradient[i] = Vector3r((Real)v[0], (Real)v[1], (Real)v[2]);
+	}
+
+	// Step 3: Hessian (scalar, reads m_F, writes shared m_hessian9x9)
+	computeHessian(obj);
+
+	// Step 4: Scalar CG (uses m_gradient, m_dx, m_pcg_* — all Vector3r)
+	cgIter = matFreePCG(obj);
+
+	// Step 5: Pack m_dx (Vector3r) → dx_avx (Scalarf8)
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+		obj->m_dx_avx[i] = Scalarf8((float)obj->m_dx[i][0], (float)obj->m_dx[i][1], (float)obj->m_dx[i][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	return energy;
+}
+#else
 /** Newton solve: compute energy+gradient, assemble true Hessian, solve 3N×3N system.
 *   Returns dx in obj->m_dx, gradient in obj->m_gradient.
 *   Returns energy at current xk.
@@ -2906,11 +3088,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 	precomputeValues();
 
-	if (m_solverType != 1)
-	{
-		LOG_ERR << "Elasticity_Kee2023 USE_AVX build supports L-BFGS only (solverType=1), got solverType=" << m_solverType;
-		return;
-	}
+	// AVX build supports both Newton (solverType=0) and L-BFGS (solverType=1).
 
 	size_t numObjects = m_objects.size();
 
@@ -2969,11 +3147,23 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 		obj->m_lbfgs_count = 0;
 
+		int totalCGIter = 0;
+
 		int iter = 0;
 		for (; iter < maxIter; iter++)
 		{
-			// lbfgsSolve (AVX simplified): sets dx = -H_0^{-1} * gradient
-			lbfgsSolve(obj);
+			// Compute search direction (stored in dx_avx)
+			Real energy;
+			if (m_solverType == 0)  // Newton
+			{
+				int cgIter;
+				energy = newtonSolve(obj, cgIter);
+				totalCGIter += cgIter;
+			}
+			else  // L-BFGS
+			{
+				energy = lbfgsSolve(obj);
+			}
 
 			// Convergence check on ||dx||_inf (reduce from Scalarf8: max of lanes 0..2)
 			Real dxNorm = 0;

@@ -685,25 +685,32 @@ void Elasticity_Kee2023::initSystem()
 
 			// init vectors
 			int numParticles = (int)obj->m_particleIndices.size();
+#ifdef USE_AVX
+			obj->m_dx_avx.resize(numParticles - obj->m_nFixed);
+			obj->m_f_avx.resize(3 * numParticles);
+			obj->m_xk_avx.resize(numParticles);
+			obj->m_xTilde_avx.resize(numParticles);
+#else
 			obj->m_dx.resize(numParticles - obj->m_nFixed);
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
+#endif
 			int nFree = numParticles - obj->m_nFixed;
 #ifdef USE_AVX
-			obj->m_gradient.resize(numParticles, Scalarf8(0.0f));
+			obj->m_gradient_avx.resize(numParticles, Scalarf8(0.0f));
 			// L-BFGS buffers (Scalarf8 domain)
-			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
-			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_s_avx.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_y_avx.resize(m_lbfgsWindowSize);
 			for (int w = 0; w < m_lbfgsWindowSize; w++)
 			{
-				obj->m_lbfgs_s[w].resize(nFree, Scalarf8(0.0f));
-				obj->m_lbfgs_y[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_s_avx[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_y_avx[w].resize(nFree, Scalarf8(0.0f));
 			}
 			obj->m_lbfgs_rho.resize(m_lbfgsWindowSize, 0);
 			obj->m_lbfgs_alpha.resize(m_lbfgsWindowSize, 0);
-			obj->m_lbfgs_last_sol.resize(nFree, Scalarf8(0.0f));
-			obj->m_lbfgs_q.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
@@ -741,25 +748,32 @@ void Elasticity_Kee2023::initSystem()
 
 			// init vectors
 			int numParticles = (int)obj->m_particleIndices.size();
+#ifdef USE_AVX
+			obj->m_dx_avx.resize(numParticles - obj->m_nFixed);
+			obj->m_f_avx.resize(3 * numParticles);
+			obj->m_xk_avx.resize(numParticles);
+			obj->m_xTilde_avx.resize(numParticles);
+#else
 			obj->m_dx.resize(numParticles - obj->m_nFixed);
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
+#endif
 			int nFree = numParticles - obj->m_nFixed;
 #ifdef USE_AVX
-			obj->m_gradient.resize(numParticles, Scalarf8(0.0f));
+			obj->m_gradient_avx.resize(numParticles, Scalarf8(0.0f));
 			// L-BFGS buffers (Scalarf8 domain)
-			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
-			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_s_avx.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_y_avx.resize(m_lbfgsWindowSize);
 			for (int w = 0; w < m_lbfgsWindowSize; w++)
 			{
-				obj->m_lbfgs_s[w].resize(nFree, Scalarf8(0.0f));
-				obj->m_lbfgs_y[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_s_avx[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_y_avx[w].resize(nFree, Scalarf8(0.0f));
 			}
 			obj->m_lbfgs_rho.resize(m_lbfgsWindowSize, 0);
 			obj->m_lbfgs_alpha.resize(m_lbfgsWindowSize, 0);
-			obj->m_lbfgs_last_sol.resize(nFree, Scalarf8(0.0f));
-			obj->m_lbfgs_q.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
@@ -1126,7 +1140,11 @@ void Elasticity_Kee2023::computeXTilde(ElasticObject* obj)
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
 	const int numParticles = (int)group.size();
 	const Real dt = obj->m_factorization->m_dt;
+#ifdef USE_AVX
+	auto& xTilde = obj->m_xTilde_avx;
+#else
 	auto& xTilde = obj->m_xTilde;
+#endif
 
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < numParticles; i++)
@@ -1148,7 +1166,11 @@ void Elasticity_Kee2023::updateVelocity(ElasticObject* obj, Real fdt)
 {
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
 	const int numParticles = (int)group.size();
+#ifdef USE_AVX
+	const auto& xk = obj->m_xk_avx;
+#else
 	const auto& xk = obj->m_xk;
+#endif
 	const Real damping = static_cast<Real>(0.0);
 	const Real invFdt = (1 - damping) / fdt;
 	#pragma omp parallel for schedule(static)
@@ -1182,9 +1204,9 @@ Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 
 	auto& D = obj->m_factorization->m_D;
 	auto& HT_K_H = obj->m_factorization->m_matHTH;
-	auto& f = obj->m_f;          // Scalarf8 (3*numParticles entries)
-	auto& xk = obj->m_xk;        // Scalarf8 (numParticles entries)
-	auto& xTilde = obj->m_xTilde;
+	auto& f = obj->m_f_avx;          // Scalarf8 (3*numParticles entries)
+	auto& xk = obj->m_xk_avx;        // Scalarf8 (numParticles entries)
+	auto& xTilde = obj->m_xTilde_avx;
 	const Real fdt = obj->m_factorization->m_dt;
 
 	Real elasticEnergy = 0;
@@ -1374,10 +1396,10 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	auto& D = obj->m_factorization->m_D;
 	auto& HT_K_H = obj->m_factorization->m_matHTH;
 
-	auto& gradient = obj->m_gradient;   // Scalarf8
-	auto& f = obj->m_f;                 // Scalarf8 (3*numParticles)
-	auto& xk = obj->m_xk;               // Scalarf8
-	auto& xTilde = obj->m_xTilde;       // Scalarf8
+	auto& gradient = obj->m_gradient_avx;   // Scalarf8
+	auto& f = obj->m_f_avx;                 // Scalarf8 (3*numParticles)
+	auto& xk = obj->m_xk_avx;               // Scalarf8
+	auto& xTilde = obj->m_xTilde_avx;       // Scalarf8
 
 	const Real fdt = obj->m_factorization->m_dt;
 
@@ -2327,7 +2349,11 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 */
 void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 {
+#ifdef USE_AVX
+	auto& dx = obj->m_dx_avx;
+#else
 	auto& dx = obj->m_dx;
+#endif
 	const int n = (int)dx.size();
 
 #ifdef USE_AVX
@@ -2457,23 +2483,23 @@ Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 *   all 8 lanes — lanes 3..7 are zero, so this gives the Vector3r dot product.
 *   No line search (caller applies step size 1).
 *
-*   Sets dx = -H^-1 * gradient (descent direction), gradient in m_gradient.
+*   Sets dx = -H^-1 * gradient (descent direction), gradient in m_gradient_avx.
 *   Returns energy at current xk.
 */
 Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 {
-	auto& dx = obj->m_dx;           // Scalarf8
+	auto& dx = obj->m_dx_avx;           // Scalarf8
 	const int windowSize = m_lbfgsWindowSize;
 	const int n = (int)dx.size();
 
 	int& count = obj->m_lbfgs_count;
-	auto& lbfgs_s = obj->m_lbfgs_s;     // Scalarf8 secant history
-	auto& lbfgs_y = obj->m_lbfgs_y;     // Scalarf8 secant history
+	auto& lbfgs_s = obj->m_lbfgs_s_avx;     // Scalarf8 secant history
+	auto& lbfgs_y = obj->m_lbfgs_y_avx;     // Scalarf8 secant history
 	auto& lbfgs_rho = obj->m_lbfgs_rho;         // Real
 	auto& lbfgs_alpha = obj->m_lbfgs_alpha;     // Real
-	auto& last_sol = obj->m_lbfgs_last_sol;     // Scalarf8
-	auto& gradient = obj->m_gradient;           // Scalarf8
-	auto& q = obj->m_lbfgs_q;                   // Scalarf8
+	auto& last_sol = obj->m_lbfgs_last_sol_avx;     // Scalarf8
+	auto& gradient = obj->m_gradient_avx;           // Scalarf8
+	auto& q = obj->m_lbfgs_q_avx;                   // Scalarf8
 
 	// Save g_{k-1} into q before computeEnergyAndGradient overwrites gradient
 	if (count > 0)
@@ -2493,7 +2519,7 @@ Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 		// s_{k-1} = x_k - x_{k-1}
 		#pragma omp parallel for schedule(static)
 		for (int i = 0; i < n; i++)
-			lbfgs_s[slot][i] = obj->m_xk[i] - last_sol[i];
+			lbfgs_s[slot][i] = obj->m_xk_avx[i] - last_sol[i];
 
 		// y_{k-1} = g_k - g_{k-1}
 		#pragma omp parallel for schedule(static)
@@ -2519,7 +2545,7 @@ Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 	for (int i = 0; i < n; i++)
 	{
 		q[i] = gradient[i];
-		last_sol[i] = obj->m_xk[i];
+		last_sol[i] = obj->m_xk_avx[i];
 	}
 
 	int nPairs = std::min(count, windowSize);
@@ -2811,8 +2837,8 @@ void Elasticity_Kee2023::stepElasticitySolver()
 	{
 		START_TIMING("objSolve")
 		ElasticObject* obj = m_objects[objIndex];
-		auto& xk = obj->m_xk;         // Scalarf8
-		auto& dx = obj->m_dx;         // Scalarf8
+		auto& xk = obj->m_xk_avx;         // Scalarf8
+		auto& dx = obj->m_dx_avx;         // Scalarf8
 		const std::vector<unsigned int>& group = obj->m_particleIndices;
 		int numParticles = (int)group.size();
 		const Real fdt = obj->m_factorization->m_dt;
@@ -2849,13 +2875,13 @@ void Elasticity_Kee2023::stepElasticitySolver()
 				m_model->getVelocity(particleIndex).setZero();
 			}
 			const Vector3r& p = m_model->getPosition(particleIndex);
-			obj->m_xTilde[i] = Scalarf8((float)p[0], (float)p[1], (float)p[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+			obj->m_xTilde_avx[i] = Scalarf8((float)p[0], (float)p[1], (float)p[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
 
 		// xk = xTilde  (initial iterate)
 		#pragma omp parallel for schedule(static)
 		for (int i = 0; i < numParticles; i++)
-			xk[i] = obj->m_xTilde[i];
+			xk[i] = obj->m_xTilde_avx[i];
 
 		const int maxIter = m_maxIter;
 		const int nFree = (int)dx.size();

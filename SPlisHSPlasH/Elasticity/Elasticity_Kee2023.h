@@ -58,19 +58,19 @@ namespace SPH
 			// AVX L-BFGS state. Scalarf8 with 3 active lanes (x, y, z, 0...0).
 			// All L-BFGS math stays in Scalarf8; scalar conversion only at
 			// stepElasticitySolver boundary (positions/velocities from/to model).
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f;          // F = D·xk workspace (3*numParticles)
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xk;         // current iterate
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xTilde;     // inertial target
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx;         // L-BFGS step (also LLT solve RHS/result)
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_gradient;   // ∇E at xk
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f_avx;          // F = D·xk workspace (3*numParticles)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xk_avx;         // current iterate
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xTilde_avx;     // inertial target
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx_avx;         // L-BFGS step (also LLT solve RHS/result)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_gradient_avx;   // ∇E at xk
 
 			// L-BFGS secant history
-			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_s;
-			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_y;
+			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_s_avx;
+			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_y_avx;
 			std::vector<Real> m_lbfgs_rho;
 			std::vector<Real> m_lbfgs_alpha;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_last_sol;
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_q;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_last_sol_avx;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_q_avx;
 			int m_lbfgs_count = 0;
 #else
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_f;        // F = D·xk workspace

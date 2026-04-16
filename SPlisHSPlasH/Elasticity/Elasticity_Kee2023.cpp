@@ -1116,6 +1116,95 @@ void Elasticity_Kee2023::computeMatrixL()
 	}
 }
 
+/** Precompute V_j * gradW(xi0 - xj0) for all neighbor pairs.
+*   Depends only on rest positions and volumes — constant for the simulation.
+*   Called once at init (and after any neighbor sort).
+*   AVX version packs 8 neighbors per Vector3f8 entry (Kugelstadt pattern).
+*/
+void Elasticity_Kee2023::precomputeValues()
+{
+	Simulation* sim = Simulation::getCurrent();
+	const int numParticles = (int)m_model->numActiveParticles();
+
+#ifdef USE_AVX
+	m_precomputed_indices8.clear();
+	m_precomp_V_gradW8.clear();
+	m_precomputed_indices8.resize(numParticles);
+
+	unsigned int sumBlocks = 0;
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const size_t numNeighbors = m_initialNeighbors[i0].size();
+		m_precomputed_indices8[i] = sumBlocks;
+		sumBlocks += (unsigned int)numNeighbors / 8u;
+		if (numNeighbors % 8 != 0)
+			sumBlocks++;
+	}
+
+	m_precomp_V_gradW8.resize(sumBlocks);
+
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const Vector3r xi0 = m_model->getPosition0(i0);
+		const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
+
+		const Vector3f8 xi0_avx(xi0.cast<float>());
+		unsigned int base8 = m_precomputed_indices8[i];
+		unsigned int idx = 0;
+
+		for (unsigned int j = 0; j < numNeighbors; j += 8)
+		{
+			const unsigned int count = std::min(numNeighbors - j, 8u);
+			unsigned int nIndices[8];
+			for (auto k = 0u; k < count; k++)
+				nIndices[k] = m_initial_to_current_index[m_initialNeighbors[i0][j + k]];
+
+			const Scalarf8 Vj_avx = convert_zero(nIndices, &m_restVolumes[0], count);
+			const Vector3f8 xj0_avx = convertVec_zero(&m_initialNeighbors[i0][j], &m_model->getPosition0(0), count);
+			const Vector3f8 gradW_avx = CubicKernel_AVX::gradW(xi0_avx - xj0_avx);
+			m_precomp_V_gradW8[base8 + idx] = gradW_avx * Vj_avx;
+			idx++;
+		}
+	}
+#else
+	m_precomputed_indices.clear();
+	m_precomp_V_gradW.clear();
+	m_precomputed_indices.resize(numParticles);
+
+	unsigned int sumNeighbors = 0;
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const size_t numNeighbors = m_initialNeighbors[i0].size();
+		m_precomputed_indices[i] = sumNeighbors;
+		sumNeighbors += numNeighbors;
+	}
+
+	m_precomp_V_gradW.resize(sumNeighbors);
+
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < numParticles; i++)
+	{
+		const unsigned int i0 = m_current_to_initial_index[i];
+		const Vector3r xi0 = m_model->getPosition0(i0);
+		const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
+		unsigned int base = m_precomputed_indices[i];
+
+		for (unsigned int j = 0; j < numNeighbors; j++)
+		{
+			const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+			const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
+			const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
+			const Real V_j = m_restVolumes[neighborCurrent];
+			m_precomp_V_gradW[base + j] = V_j * sim->gradW(xi0 - xj0);
+		}
+	}
+#endif
+}
+
 void Elasticity_Kee2023::saveState(BinaryFileWriter &binWriter)
 {
 	binWriter.writeBuffer((char*)m_current_to_initial_index.data(), m_current_to_initial_index.size() * sizeof(unsigned int));
@@ -1482,24 +1571,30 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 			const Real V_i = m_restVolumes[particleIndex];
 			const Matrix3r& PtL_i = m_PL[particleIndex];
 
-			const size_t numNeighbors = m_initialNeighbors[i0].size();
-			Vector3r force;
-			force.setZero();
+			const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
+			const Matrix3f8 PtLi_avx(m_PL[particleIndex].cast<float>());
+			Vector3f8 force_avx;
+			force_avx.setZero();
 
-			for (unsigned int j = 0; j < numNeighbors; j++)
+			for (unsigned int j = 0; j < numNeighbors; j += 8)
 			{
-				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
-				const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
-				const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
-				const Real V_j = m_restVolumes[neighborCurrent];
-				const Matrix3r& PtL_j = m_PL[neighborCurrent];
+				const unsigned int count = std::min(numNeighbors - j, 8u);
+				unsigned int nIndices[8];
+				for (auto k = 0u; k < count; k++)
+					nIndices[k] = m_initial_to_current_index[m_initialNeighbors[i0][j + k]];
 
-				const Vector3r gradW = sim->gradW(xi0 - xj0);
-				force += V_j * ((PtL_i + PtL_j) * gradW);
+				const Matrix3f8 PtLj_avx = convertMat_zero(nIndices, &m_PL[0], count);
+				const Vector3f8& V_gradW = m_precomp_V_gradW8[m_precomputed_indices8[particleIndex] + j / 8];
+				force_avx += (PtLi_avx + PtLj_avx) * V_gradW;
 			}
 
+			Vector3r force;
+			force[0] = force_avx.x().reduce();
+			force[1] = force_avx.y().reduce();
+			force[2] = force_avx.z().reduce();
+
 			const Vector3r g = -(fdt * fdt * V_i * force);
-			gradient[i] = Scalarf8((float)g[0], (float)g[1], (float)g[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+			gradient_avx[i] = Scalarf8((float)g[0], (float)g[1], (float)g[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
 	}
 
@@ -1647,12 +1742,8 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 			{
 				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
 				const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
-				const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
-				const Real V_j = m_restVolumes[neighborCurrent];
 				const Matrix3r& PtL_j = m_PL[neighborCurrent];
-
-				const Vector3r gradW = sim->gradW(xi0 - xj0);
-				force += V_j * ((PtL_i + PtL_j) * gradW);
+				force += (PtL_i + PtL_j) * m_precomp_V_gradW[m_precomputed_indices[particleIndex] + j];
 			}
 
 			gradient[i] = -(fdt * fdt * V_i * force);
@@ -1705,7 +1796,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 }
 #endif
 
-#ifndef USE_AVX
 /** Compute the Hessian of the elastic energy w.r.t. positions.
 *
 * For Newton: should be updated every iteration.
@@ -1719,9 +1809,7 @@ void Elasticity_Kee2023::computeHessian(ElasticObject* obj)
 	else  // Co-rotated
 		computeCorotatedHessian9x9(obj);
 }
-#endif
 
-#ifndef USE_AVX
 /** Compute the per-particle 9x9 Hessian d²ψ/d(vecF)² for the co-rotated model.
 *
 * Uses iARAP approach (Lin et al. 2022) for full decomposition:
@@ -1830,9 +1918,7 @@ void Elasticity_Kee2023::computeCorotatedHessian9x9(ElasticObject* obj)
 		obj->m_hessian9x9[i] = K;
 	}
 }
-#endif
 
-#ifndef USE_AVX
 /** Compute the per-particle 9x9 Hessian for Stable Neo-Hookean (Smith et al. 2018).
 *
 * Uses iARAP decomposition (Lin et al. 2022) for U, V, sigma.
@@ -1958,7 +2044,6 @@ void Elasticity_Kee2023::computeStableNeoHookeanHessian9x9(ElasticObject* obj)
 		obj->m_hessian9x9[i] = K;
 	}
 }
-#endif
 
 /** Assemble the 3N×3N Newton system matrix and Cholesky factorize.
 *
@@ -1969,7 +2054,6 @@ void Elasticity_Kee2023::computeStableNeoHookeanHessian9x9(ElasticObject* obj)
 * where H_i is the per-particle 9×9 Hessian, D is the deformation gradient operator,
 * and HTH is the zero-energy mode control matrix.
 */
-#ifndef USE_AVX
 /** Compute block-diagonal preconditioner for Newton PCG.
 *   Extracts and inverts 3×3 diagonal blocks of A = M + D^T·K·D + H^T·K_ze·H.
 *   Note: K already includes dt² * Vi (pre-multiplied in computeCorotatedHessian9x9)
@@ -2072,20 +2156,18 @@ void Elasticity_Kee2023::computeNewtonPreconditioner(ElasticObject* obj)
 	for (int j = 0; j < nFree; j++)
 		precond[j] = precond[j].inverse();
 }
-#endif
 
-#ifndef USE_AVX
 /** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG.
 *   Uses D matrix approach: Ax = M*x + HTH*x + dt² * Σᵢ Vᵢ * D^T * K_i * D * x
 *   K_i is the unscaled material Hessian (2μ * I for simplified version).
 */
-void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj,
-	const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& x,
-	std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& Ax)
+void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 {
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
 	const int numParticles = (int)group.size();
 	const int nFree = numParticles - (int)obj->m_nFixed;
+	auto& x = obj->m_pcg_p;
+	auto& Ax = obj->m_pcg_Ap;
 
 	const Real dt = obj->m_factorization->m_dt;
 	const Real dt2 = dt * dt;
@@ -2190,21 +2272,15 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj,
 		{
 			const unsigned int j0 = m_initialNeighbors[i0][jn];
 			const unsigned int jCurrent = m_initial_to_current_index[j0];
-			const Vector3r xj0 = m_model->getPosition0(j0);
-			const Real V_j = m_restVolumes[jCurrent];
 			const Matrix3r& dPtL_j = dPtL[jCurrent];
-
-			const Vector3r gradW = sim->gradW(xi0 - xj0);
-			force += V_j * ((dPtL_i + dPtL_j) * gradW);
+			force += (dPtL_i + dPtL_j) * m_precomp_V_gradW[m_precomputed_indices[particleIndex] + jn];
 		}
 
 		// Minus sign: gradient = -dt² V_i force, so Hessian = -dt² V_i dforce/dx
 		Ax[i] -= dt2 * V_i * force;
 	}
 }
-#endif
 
-#ifndef USE_AVX
 /** Solve A*dx = -gradient using Preconditioned Conjugate Gradient.
 *   Uses block-diagonal preconditioner (3×3 blocks).
 *   Writes result into obj->m_dx.
@@ -2261,7 +2337,7 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 	for (; iter < m_maxIterCG; iter++)
 	{
 		// Ap = A * p
-		newtonMatvec(obj, p, Ap);
+		newtonMatvec(obj);
 
 		// alpha = rz_old / (p^T Ap)
 		Real pAp = 0;
@@ -2336,7 +2412,6 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 	return iter;
 }
-#endif
 
 /** Solve the linear system A * x = b using the prefactored Cholesky decomposition.
 *
@@ -2420,7 +2495,6 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 #endif
 }
 
-#ifndef USE_AVX
 /** Newton solve: compute energy+gradient, assemble true Hessian, solve 3N×3N system.
 *   Returns dx in obj->m_dx, gradient in obj->m_gradient.
 *   Returns energy at current xk.
@@ -2465,7 +2539,6 @@ Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 
 	return energy;
 }
-#endif
 
 /** L-BFGS solve: quasi-Newton with prefactored Cholesky as H_0.
 *   Uses two-loop recursion with secant pairs in a circular queue.
@@ -2727,7 +2800,6 @@ Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 }
 #endif
 
-#ifndef USE_AVX
 /** Backtracking line search with Armijo condition.
 *   Reads search direction dx from obj->m_dx, gradient from obj->m_gradient.
 *   Returns the step size alpha (0 if line search failed).
@@ -2799,7 +2871,6 @@ Real Elasticity_Kee2023::lineSearch(ElasticObject* obj, Real energy, int& lsIter
 
 	return static_cast<Real>(0);
 }
-#endif
 
 /** Solve the optimization problem for elastic forces.
 *
@@ -2824,6 +2895,8 @@ void Elasticity_Kee2023::stepElasticitySolver()
 	const unsigned int numActiveParticles = m_model->numActiveParticles();
 	if (numActiveParticles == 0)
 		return;
+
+	precomputeValues();
 
 	if (m_solverType != 1)
 	{
@@ -2932,6 +3005,8 @@ void Elasticity_Kee2023::stepElasticitySolver()
 	const unsigned int numActiveParticles = m_model->numActiveParticles();
 	if (numActiveParticles == 0)
 		return;
+
+	precomputeValues();
 
 	size_t numObjects = m_objects.size();
 

@@ -54,15 +54,26 @@ namespace SPH
 			unsigned int m_nFixed;
 			std::shared_ptr<Factorization> m_factorization;
 
+			// Newton: per-particle 9×9 Hessian and block-diagonal preconditioner.
+			// Same type in both builds (SVD is always scalar).
+			std::vector<Eigen::Matrix<Real, 9, 9>> m_hessian9x9;
+			std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> m_pcg_precond;
+
 #ifdef USE_AVX
-			// AVX L-BFGS state. Scalarf8 with 3 active lanes (x, y, z, 0...0).
-			// All L-BFGS math stays in Scalarf8; scalar conversion only at
+			// AVX state. Scalarf8 with 3 active lanes (x, y, z, 0...0).
+			// All solver math stays in Scalarf8; scalar conversion only at
 			// stepElasticitySolver boundary (positions/velocities from/to model).
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f_avx;          // F = D·xk workspace (3*numParticles)
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xk_avx;         // current iterate
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xTilde_avx;     // inertial target
-			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx_avx;         // L-BFGS step (also LLT solve RHS/result)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx_avx;         // solver step (also LLT solve RHS/result)
 			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_gradient_avx;   // ∇E at xk
+
+			// Newton PCG workspace (Scalarf8)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_r_avx;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_p_avx;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_Ap_avx;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_pcg_z_avx;
 
 			// L-BFGS secant history
 			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_s_avx;
@@ -79,15 +90,11 @@ namespace SPH
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx;       // Newton/LBFGS step (also LLT solve RHS/result)
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_gradient; // ∇E at xk
 
-			// Newton: per-particle 9×9 Hessian (K_i = d²ψ/dvec(F)²)
-			std::vector<Eigen::Matrix<Real, 9, 9>> m_hessian9x9;
-
 			// Newton PCG workspace
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_r;
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_p;
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_Ap;
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_z;
-			std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> m_pcg_precond;
 
 			// L-BFGS secant history
 			std::vector<std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>> m_lbfgs_s;
@@ -144,6 +151,16 @@ namespace SPH
 		Real m_lambda;
 		Real m_mu;
 
+		// Precomputed V_j * gradW(xi0 - xj0) per neighbor pair.
+		// Constant for rest configuration; indexed by m_precomputed_indices[i] + j.
+#ifdef USE_AVX
+		std::vector<Vector3f8, Eigen::aligned_allocator<Vector3f8>> m_precomp_V_gradW8;
+		std::vector<unsigned int> m_precomputed_indices8;
+#else
+		std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_precomp_V_gradW;
+		std::vector<unsigned int> m_precomputed_indices;
+#endif
+
 #ifdef USE_AVX
 		typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Lower, Eigen::AMDOrdering<int>> SolverLLT;
 #else
@@ -157,6 +174,7 @@ namespace SPH
 		void initFactorization(std::shared_ptr<Factorization> factorization, std::vector<unsigned int> &particleIndices, const unsigned int nFixed, const Real dt, const Real mu);
 		void findObjects();
 		void computeMatrixL();
+		void precomputeValues();
 
 		void stepElasticitySolver();
 
@@ -165,17 +183,13 @@ namespace SPH
 		Real computeEnergy(ElasticObject* obj);
 		Real computePsi(const Matrix3r& F, const Matrix3r& R) const;
 		Real computeEnergyAndGradient(ElasticObject* obj);
-#ifndef USE_AVX
-		// Newton path — scalar-only. USE_AVX build supports L-BFGS (solverType=1) only.
 		void computeHessian(ElasticObject* obj);
 		void computeCorotatedHessian9x9(ElasticObject* obj);
 		void computeStableNeoHookeanHessian9x9(ElasticObject* obj);
 		void computeNewtonPreconditioner(ElasticObject* obj);
-		void newtonMatvec(ElasticObject* obj, const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& x,
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& Ax);
+		void newtonMatvec(ElasticObject* obj);
 		int matFreePCG(ElasticObject* obj);
 		Real newtonSolve(ElasticObject* obj, int& cgIter);
-#endif
 		void prefactorizedLLTSolve(ElasticObject* obj);
 		Real lbfgsSolve(ElasticObject* obj);
 		Real lineSearch(ElasticObject* obj, Real energy, int& lsIter);

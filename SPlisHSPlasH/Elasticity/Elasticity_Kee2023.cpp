@@ -689,12 +689,25 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
-#ifndef USE_AVX
-			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
-#endif
 			int nFree = numParticles - obj->m_nFixed;
+#ifdef USE_AVX
+			obj->m_gradient.resize(numParticles, Scalarf8(0.0f));
+			// L-BFGS buffers (Scalarf8 domain)
+			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
+			for (int w = 0; w < m_lbfgsWindowSize; w++)
+			{
+				obj->m_lbfgs_s[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_y[w].resize(nFree, Scalarf8(0.0f));
+			}
+			obj->m_lbfgs_rho.resize(m_lbfgsWindowSize, 0);
+			obj->m_lbfgs_alpha.resize(m_lbfgsWindowSize, 0);
+			obj->m_lbfgs_last_sol.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_q.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_count = 0;
+#else
+			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
-
 			// L-BFGS buffers
 			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
 			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
@@ -709,13 +722,14 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_q.resize(nFree, Vector3r::Zero());
 			obj->m_lbfgs_count = 0;
 
-			// Newton buffers
+			// Newton buffers (scalar only)
 			obj->m_hessian9x9.resize(numParticles);
 			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
+#endif
 		}
 		else    // no cache found
 		{
@@ -731,12 +745,25 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_f.resize(3 * numParticles);
 			obj->m_xk.resize(numParticles);
 			obj->m_xTilde.resize(numParticles);
-#ifndef USE_AVX
-			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
-#endif
 			int nFree = numParticles - obj->m_nFixed;
+#ifdef USE_AVX
+			obj->m_gradient.resize(numParticles, Scalarf8(0.0f));
+			// L-BFGS buffers (Scalarf8 domain)
+			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
+			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
+			for (int w = 0; w < m_lbfgsWindowSize; w++)
+			{
+				obj->m_lbfgs_s[w].resize(nFree, Scalarf8(0.0f));
+				obj->m_lbfgs_y[w].resize(nFree, Scalarf8(0.0f));
+			}
+			obj->m_lbfgs_rho.resize(m_lbfgsWindowSize, 0);
+			obj->m_lbfgs_alpha.resize(m_lbfgsWindowSize, 0);
+			obj->m_lbfgs_last_sol.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_q.resize(nFree, Scalarf8(0.0f));
+			obj->m_lbfgs_count = 0;
+#else
+			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
-
 			// L-BFGS buffers
 			obj->m_lbfgs_s.resize(m_lbfgsWindowSize);
 			obj->m_lbfgs_y.resize(m_lbfgsWindowSize);
@@ -751,13 +778,14 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_q.resize(nFree, Vector3r::Zero());
 			obj->m_lbfgs_count = 0;
 
-			// Newton buffers
+			// Newton buffers (scalar only)
 			obj->m_hessian9x9.resize(numParticles);
 			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
 			obj->m_pcg_precond.resize(nFree, Matrix3r::Identity());
+#endif
 
 			// write cache file
 			if (sim->getUseCache() && (Utilities::FileSystem::makeDir(sim->getCachePath()) == 0))
@@ -1105,17 +1133,24 @@ void Elasticity_Kee2023::computeXTilde(ElasticObject* obj)
 	{
 		const unsigned int i0 = group[i];
 		const unsigned int particleIndex = m_initial_to_current_index[i0];
-		xTilde[i] = m_model->getPosition(particleIndex) + dt * m_model->getVelocity(particleIndex);
+		const Vector3r xT = m_model->getPosition(particleIndex) + dt * m_model->getVelocity(particleIndex);
+#ifdef USE_AVX
+		xTilde[i] = Scalarf8((float)xT[0], (float)xT[1], (float)xT[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+#else
+		xTilde[i] = xT;
+#endif
 	}
 }
 
 /** Update velocities from solved positions: v = (xk - x) / dt
 */
-void Elasticity_Kee2023::updateVelocity(ElasticObject* obj, const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& xk, Real fdt)
+void Elasticity_Kee2023::updateVelocity(ElasticObject* obj, Real fdt)
 {
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
 	const int numParticles = (int)group.size();
+	const auto& xk = obj->m_xk;
 	const Real damping = static_cast<Real>(0.0);
+	const Real invFdt = (1 - damping) / fdt;
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < numParticles; i++)
 	{
@@ -1124,7 +1159,14 @@ void Elasticity_Kee2023::updateVelocity(ElasticObject* obj, const std::vector<Ve
 		if (m_model->getParticleState(particleIndex) == ParticleState::Active)
 		{
 			const Vector3r& x = m_model->getPosition(particleIndex);
-			m_model->getVelocity(particleIndex) = (1 - damping) * (xk[i] - x) / fdt;
+#ifdef USE_AVX
+			float v[8];
+			xk[i].store(v);
+			const Vector3r xk_i((Real)v[0], (Real)v[1], (Real)v[2]);
+			m_model->getVelocity(particleIndex) = invFdt * (xk_i - x);
+#else
+			m_model->getVelocity(particleIndex) = invFdt * (xk[i] - x);
+#endif
 		}
 	}
 }
@@ -1132,6 +1174,95 @@ void Elasticity_Kee2023::updateVelocity(ElasticObject* obj, const std::vector<Ve
 /** Evaluate the objective energy at the current xk (no gradient computation).
 *   Used for backtracking line search.
 */
+#ifdef USE_AVX
+Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
+{
+	const std::vector<unsigned int>& group = obj->m_particleIndices;
+	int numParticles = (int)group.size();
+
+	auto& D = obj->m_factorization->m_D;
+	auto& HT_K_H = obj->m_factorization->m_matHTH;
+	auto& f = obj->m_f;          // Scalarf8 (3*numParticles entries)
+	auto& xk = obj->m_xk;        // Scalarf8 (numParticles entries)
+	auto& xTilde = obj->m_xTilde;
+	const Real fdt = obj->m_factorization->m_dt;
+
+	Real elasticEnergy = 0;
+	Real massEnergy = 0;
+
+	// F = D * xk  (coord-packed AVX sparse matvec)
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)
+		for (int i = 0; i < 3 * numParticles; i++)
+			f[i].setZero();
+
+		#pragma omp for schedule(static)
+		for (int k = 0; k < D.outerSize(); ++k)
+		{
+			for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
+				f[it.row()] += Scalarf8((float)it.value()) * xk[it.col()];
+		}
+
+		// Elastic energy: sum V_i * Psi(F_i)
+		#pragma omp for reduction(+:elasticEnergy) schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+			float x0[8], x1[8], x2[8];
+			f[3 * i].store(x0);
+			f[3 * i + 1].store(x1);
+			f[3 * i + 2].store(x2);
+			Matrix3r Fi;
+			Fi <<	x0[0], x0[1], x0[2],
+					x1[0], x1[1], x1[2],
+					x2[0], x2[1], x2[2];
+
+			Eigen::JacobiSVD<Matrix3r> svd_i(Fi, Eigen::ComputeFullU | Eigen::ComputeFullV);
+			Matrix3r U = svd_i.matrixU();
+			if ((U * svd_i.matrixV().transpose()).determinant() < 0)
+				U.col(2) = -U.col(2);
+			Matrix3r Ri = U * svd_i.matrixV().transpose();
+
+			elasticEnergy += m_restVolumes[particleIndex] * computePsi(Fi, Ri);
+		}
+	}
+
+	// Inertial energy: (1/2) m_i ||xk_i - xTilde_i||^2
+	// Vertical accumulation: each thread keeps a Scalarf8 acc, reduces once at the end.
+	#pragma omp parallel reduction(+:massEnergy)
+	{
+		Scalarf8 acc; acc.setZero();
+		#pragma omp for schedule(static) nowait
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+			const Real mass = m_model->getMass(particleIndex);
+			const Scalarf8 diff = xk[i] - xTilde[i];
+			acc += Scalarf8(static_cast<float>(0.5 * mass)) * diff * diff;
+		}
+		massEnergy += (Real)acc.reduce();
+	}
+
+	// Zero-energy mode: (1/2) xk^T HTH xk
+	Real zeroEnergy = 0;
+	if (m_alpha != 0.0)
+	{
+		#pragma omp parallel for reduction(+:zeroEnergy) schedule(static)
+		for (int k = 0; k < HT_K_H.outerSize(); ++k)
+		{
+			for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HT_K_H, k); it; ++it)
+				zeroEnergy += it.value() * (Real)(xk[it.row()] * xk[it.col()]).reduce();
+		}
+		zeroEnergy *= static_cast<Real>(0.5);
+	}
+
+	return massEnergy + fdt * fdt * elasticEnergy + zeroEnergy;
+}
+#else
 Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 {
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
@@ -1212,6 +1343,7 @@ Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 
 	return massEnergy + fdt * fdt * elasticEnergy + zeroEnergy;
 }
+#endif
 
 /** Compute the energy and gradient of the objective function.
 *
@@ -1232,6 +1364,167 @@ Real Elasticity_Kee2023::computeEnergy(ElasticObject* obj)
 * Returns the total energy E(x).
 */
 
+#ifdef USE_AVX
+Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
+{
+	Simulation *sim = Simulation::getCurrent();
+	const std::vector<unsigned int>& group = obj->m_particleIndices;
+	int numParticles = (int)group.size();
+
+	auto& D = obj->m_factorization->m_D;
+	auto& HT_K_H = obj->m_factorization->m_matHTH;
+
+	auto& gradient = obj->m_gradient;   // Scalarf8
+	auto& f = obj->m_f;                 // Scalarf8 (3*numParticles)
+	auto& xk = obj->m_xk;               // Scalarf8
+	auto& xTilde = obj->m_xTilde;       // Scalarf8
+
+	const Real fdt = obj->m_factorization->m_dt;
+
+	Real elasticEnergy = 0;
+	Real massEnergy = 0;
+
+	//////////////////////////////////////////////////////////////////////////
+	// 1. F = D * xk  (coord-packed AVX sparse matvec, Kugelstadt Pattern A)
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)
+		for (int i = 0; i < 3 * numParticles; i++)
+			f[i].setZero();
+
+		#pragma omp for schedule(static)
+		for (int k = 0; k < D.outerSize(); ++k)
+		{
+			for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
+				f[it.row()] += Scalarf8((float)it.value()) * xk[it.col()];
+		}
+
+		#pragma omp for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+			float x0[8], x1[8], x2[8];
+			f[3 * i].store(x0);
+			f[3 * i + 1].store(x1);
+			f[3 * i + 2].store(x2);
+
+			m_F[particleIndex] <<	x0[0], x0[1], x0[2],
+									x1[0], x1[1], x1[2],
+									x2[0], x2[1], x2[2];
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// 2. Polar decomposition via SVD (scalar — no AVX SVD available).
+	//    Precompute P^T * L for each particle (stored in m_PL).
+	//    Accumulate elastic energy density Psi(F_i) * V_i.
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for reduction(+:elasticEnergy) schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+
+			Eigen::JacobiSVD<Matrix3r> svd_i(m_F[particleIndex], Eigen::ComputeFullU | Eigen::ComputeFullV);
+			Matrix3r U = svd_i.matrixU();
+			if ((U * svd_i.matrixV().transpose()).determinant() < 0)
+				U.col(2) = -U.col(2);
+			m_rotations[particleIndex] = U * svd_i.matrixV().transpose();
+
+			const Matrix3r P_i = computeP(m_F[particleIndex], m_rotations[particleIndex]);
+			m_PL[particleIndex] = P_i.transpose() * m_L[particleIndex];
+
+			elasticEnergy += m_restVolumes[particleIndex] * computePsi(m_F[particleIndex], m_rotations[particleIndex]);
+
+			gradient[i].setZero();
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// 3. Elastic gradient (scalar neighbor loop; write Scalarf8 gradient).
+	//    g_i = -dt^2 * V_i * sum_j V_j * (P_i^T L_i + P_j^T L_j) * gradW
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+			const Vector3r xi0 = m_model->getPosition0(i0);
+			const Real V_i = m_restVolumes[particleIndex];
+			const Matrix3r& PtL_i = m_PL[particleIndex];
+
+			const size_t numNeighbors = m_initialNeighbors[i0].size();
+			Vector3r force;
+			force.setZero();
+
+			for (unsigned int j = 0; j < numNeighbors; j++)
+			{
+				const unsigned int neighborIndex0 = m_initialNeighbors[i0][j];
+				const unsigned int neighborCurrent = m_initial_to_current_index[neighborIndex0];
+				const Vector3r xj0 = m_model->getPosition0(neighborIndex0);
+				const Real V_j = m_restVolumes[neighborCurrent];
+				const Matrix3r& PtL_j = m_PL[neighborCurrent];
+
+				const Vector3r gradW = sim->gradW(xi0 - xj0);
+				force += V_j * ((PtL_i + PtL_j) * gradW);
+			}
+
+			const Vector3r g = -(fdt * fdt * V_i * force);
+			gradient[i] = Scalarf8((float)g[0], (float)g[1], (float)g[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// 4. Mass term: g_i += m_i * (xk_i - xTilde_i)
+	//    Vertical accumulation for massEnergy (one .reduce() per thread).
+	//////////////////////////////////////////////////////////////////////////
+	#pragma omp parallel reduction(+:massEnergy)
+	{
+		Scalarf8 acc; acc.setZero();
+		#pragma omp for schedule(static) nowait
+		for (int i = 0; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+			const Real mass = m_model->getMass(particleIndex);
+			const Scalarf8 diff = xk[i] - xTilde[i];
+			gradient[i] += Scalarf8((float)mass) * diff;
+			acc += Scalarf8(static_cast<float>(0.5 * mass)) * diff * diff;
+		}
+		massEnergy += (Real)acc.reduce();
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// 5. Zero-energy mode: g += H^T * K2 * H * xk  (coord-packed AVX sparse matvec)
+	//////////////////////////////////////////////////////////////////////////
+	Real zeroEnergy = 0;
+	if (m_alpha != 0.0)
+	{
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for reduction(+:zeroEnergy) schedule(static)
+			for (int k = 0; k < HT_K_H.outerSize(); ++k)
+			{
+				for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HT_K_H, k); it; ++it)
+				{
+					zeroEnergy += it.value() * (Real)(xk[it.row()] * xk[it.col()]).reduce();
+					gradient[it.col()] += Scalarf8((float)it.value()) * xk[it.row()];
+				}
+			}
+		}
+		zeroEnergy *= static_cast<Real>(0.5);
+	}
+
+	return massEnergy + fdt * fdt * elasticEnergy + zeroEnergy;
+}
+#else
 Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -1250,54 +1543,9 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	Real elasticEnergy = 0;
 	Real massEnergy = 0;
 
-#ifdef USE_AVX
-	// AVX workspace: pack each xk into Scalarf8 (3 lanes active); reused by Sections 1 and 5.
-	// Pattern follows Kugelstadt2021 stepElasticitySolver: coord-packed sparse matvec.
-	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> xk_avx(numParticles);
-	#pragma omp parallel for schedule(static)
-	for (int i = 0; i < numParticles; i++)
-		xk_avx[i] = Scalarf8((float)xk[i][0], (float)xk[i][1], (float)xk[i][2], 0, 0, 0, 0, 0);
-#endif
-
 	//////////////////////////////////////////////////////////////////////////
 	// 1. Compute deformation gradient: F = D * xk  ->  m_F
 	//////////////////////////////////////////////////////////////////////////
-#ifdef USE_AVX
-	{
-		std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> f_avx(3 * numParticles);
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for schedule(static)
-			for (int i = 0; i < 3 * numParticles; i++)
-				f_avx[i].setZero();
-
-			// f_avx = D * xk_avx  (sparse matvec, coord-packed)
-			#pragma omp for schedule(static)
-			for (int k = 0; k < D.outerSize(); ++k)
-			{
-				for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, k); it; ++it)
-					f_avx[it.row()] += Scalarf8((float)it.value()) * xk_avx[it.col()];
-			}
-
-			// Extract 3x3 F from the 3 Scalarf8 rows per particle (lanes 0..2)
-			#pragma omp for schedule(static)
-			for (int i = 0; i < numParticles; i++)
-			{
-				const unsigned int i0 = group[i];
-				const unsigned int particleIndex = m_initial_to_current_index[i0];
-
-				float x0[8], x1[8], x2[8];
-				f_avx[3 * i].store(x0);
-				f_avx[3 * i + 1].store(x1);
-				f_avx[3 * i + 2].store(x2);
-
-				m_F[particleIndex] <<	x0[0], x0[1], x0[2],
-										x1[0], x1[1], x1[2],
-										x2[0], x2[1], x2[2];
-			}
-		}
-	}
-#else
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
@@ -1326,7 +1574,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 									f[3 * i + 2][0], f[3 * i + 2][1], f[3 * i + 2][2];
 		}
 	}
-#endif
 
 	//////////////////////////////////////////////////////////////////////////
 	// 2. Extract rotation R from F via polar decomposition
@@ -1390,13 +1637,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 		}
 	}
 
-	{
-		Vector3r elasticGradSum = Vector3r::Zero();
-		for (int i = 0; i < (int)numParticles; i++)
-			elasticGradSum += gradient[i];
-		LOG_DEBUG << "Elastic force sum: (" << elasticGradSum.transpose() << ")";
-	}
-
 	//////////////////////////////////////////////////////////////////////////
 	// 4. Mass term: g_i += m_i * (xk_i - xTilde_i)
 	//////////////////////////////////////////////////////////////////////////
@@ -1421,39 +1661,6 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 	std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> gradient_ze(numParticles, Vector3r::Zero());
 	if (m_alpha != 0.0)
 	{
-#ifdef USE_AVX
-		// AVX: coord-packed sparse matvec gradient_ze = HTH * xk (reuses xk_avx from Section 1).
-		std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> gradient_ze_avx(numParticles);
-		#pragma omp parallel for schedule(static)
-		for (int i = 0; i < numParticles; i++)
-			gradient_ze_avx[i].setZero();
-
-		#pragma omp parallel default(shared)
-		{
-			#pragma omp for reduction(+:zeroEnergy) schedule(static)
-			for (int k = 0; k < HT_K_H.outerSize(); ++k)
-			{
-				for (Eigen::SparseMatrix<Real, Eigen::ColMajor>::InnerIterator it(HT_K_H, k); it; ++it)
-				{
-					// energy term kept in double (accuracy matters for the scalar accumulation)
-					zeroEnergy += it.value() * xk[it.row()].dot(xk[it.col()]);
-					// gradient term: AVX coord-packed multiply
-					gradient_ze_avx[it.col()] += Scalarf8((float)it.value()) * xk_avx[it.row()];
-				}
-			}
-		}
-		zeroEnergy *= static_cast<Real>(0.5);
-
-		// Unpack AVX gradient_ze back to Vector3r for the debug print and final accumulation
-		#pragma omp parallel for schedule(static)
-		for (int i = 0; i < numParticles; i++)
-		{
-			float vals[8];
-			gradient_ze_avx[i].store(vals);
-			gradient_ze[i] = Vector3r((Real)vals[0], (Real)vals[1], (Real)vals[2]);
-			gradient[i] += gradient_ze[i];
-		}
-#else
 		#pragma omp parallel default(shared)
 		{
 			#pragma omp for reduction(+:zeroEnergy) schedule(static)
@@ -1470,19 +1677,13 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 
 		for (int i = 0; i < (int)numParticles; i++)
 			gradient[i] += gradient_ze[i];
-#endif
-	}
-
-	{
-		Vector3r zeSum = Vector3r::Zero();
-		for (int i = 0; i < (int)numParticles; i++)
-			zeSum += gradient_ze[i];
-		LOG_DEBUG << "ZE force sum: (" << zeSum.transpose() << ")";
 	}
 
 	return massEnergy + fdt * fdt * elasticEnergy + zeroEnergy;
 }
+#endif
 
+#ifndef USE_AVX
 /** Compute the Hessian of the elastic energy w.r.t. positions.
 *
 * For Newton: should be updated every iteration.
@@ -1496,7 +1697,9 @@ void Elasticity_Kee2023::computeHessian(ElasticObject* obj)
 	else  // Co-rotated
 		computeCorotatedHessian9x9(obj);
 }
+#endif
 
+#ifndef USE_AVX
 /** Compute the per-particle 9x9 Hessian d²ψ/d(vecF)² for the co-rotated model.
 *
 * Uses iARAP approach (Lin et al. 2022) for full decomposition:
@@ -1605,7 +1808,9 @@ void Elasticity_Kee2023::computeCorotatedHessian9x9(ElasticObject* obj)
 		obj->m_hessian9x9[i] = K;
 	}
 }
+#endif
 
+#ifndef USE_AVX
 /** Compute the per-particle 9x9 Hessian for Stable Neo-Hookean (Smith et al. 2018).
 *
 * Uses iARAP decomposition (Lin et al. 2022) for U, V, sigma.
@@ -1731,6 +1936,7 @@ void Elasticity_Kee2023::computeStableNeoHookeanHessian9x9(ElasticObject* obj)
 		obj->m_hessian9x9[i] = K;
 	}
 }
+#endif
 
 /** Assemble the 3N×3N Newton system matrix and Cholesky factorize.
 *
@@ -1741,6 +1947,7 @@ void Elasticity_Kee2023::computeStableNeoHookeanHessian9x9(ElasticObject* obj)
 * where H_i is the per-particle 9×9 Hessian, D is the deformation gradient operator,
 * and HTH is the zero-energy mode control matrix.
 */
+#ifndef USE_AVX
 /** Compute block-diagonal preconditioner for Newton PCG.
 *   Extracts and inverts 3×3 diagonal blocks of A = M + D^T·K·D + H^T·K_ze·H.
 *   Note: K already includes dt² * Vi (pre-multiplied in computeCorotatedHessian9x9)
@@ -1843,7 +2050,9 @@ void Elasticity_Kee2023::computeNewtonPreconditioner(ElasticObject* obj)
 	for (int j = 0; j < nFree; j++)
 		precond[j] = precond[j].inverse();
 }
+#endif
 
+#ifndef USE_AVX
 /** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG.
 *   Uses D matrix approach: Ax = M*x + HTH*x + dt² * Σᵢ Vᵢ * D^T * K_i * D * x
 *   K_i is the unscaled material Hessian (2μ * I for simplified version).
@@ -1971,7 +2180,9 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj,
 		Ax[i] -= dt2 * V_i * force;
 	}
 }
+#endif
 
+#ifndef USE_AVX
 /** Solve A*dx = -gradient using Preconditioned Conjugate Gradient.
 *   Uses block-diagonal preconditioner (3×3 blocks).
 *   Writes result into obj->m_dx.
@@ -2103,6 +2314,7 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 	return iter;
 }
+#endif
 
 /** Solve the linear system A * x = b using the prefactored Cholesky decomposition.
 *
@@ -2119,15 +2331,18 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 	const int n = (int)dx.size();
 
 #ifdef USE_AVX
+	// dx is std::vector<Scalarf8> with 3 active lanes per element (x, y, z, 0, 0, 0, 0, 0).
+	// CholeskyAVXSolver::solve takes float* with stride, so we pack/unpack at this boundary.
 	VectorXr b(3 * n), x(3 * n);
 
-	// Pack dx (n×3) into b (3n×1 interleaved)
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < n; i++)
 	{
-		b[3 * i]     = dx[i][0];
-		b[3 * i + 1] = dx[i][1];
-		b[3 * i + 2] = dx[i][2];
+		float vals[8];
+		dx[i].store(vals);
+		b[3 * i]     = vals[0];
+		b[3 * i + 1] = vals[1];
+		b[3 * i + 2] = vals[2];
 	}
 
 	// Solve 3 independent n-systems (one per coordinate, stride 3)
@@ -2135,10 +2350,9 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 	for (int c = 0; c < 3; c++)
 		obj->m_factorization->m_cholesky->solve(&x[c], &b[c], 3);
 
-	// Unpack x (3n×1) back into dx (n×3)
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < n; i++)
-		dx[i] = Vector3r(x[3 * i], x[3 * i + 1], x[3 * i + 2]);
+		dx[i] = Scalarf8(x[3 * i], x[3 * i + 1], x[3 * i + 2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 #else
 	auto& dx_perm = obj->m_dx_perm;
 	auto& permInd = obj->m_factorization->m_permInd;
@@ -2180,6 +2394,7 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 #endif
 }
 
+#ifndef USE_AVX
 /** Newton solve: compute energy+gradient, assemble true Hessian, solve 3N×3N system.
 *   Returns dx in obj->m_dx, gradient in obj->m_gradient.
 *   Returns energy at current xk.
@@ -2224,6 +2439,7 @@ Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 
 	return energy;
 }
+#endif
 
 /** L-BFGS solve: quasi-Newton with prefactored Cholesky as H_0.
 *   Uses two-loop recursion with secant pairs in a circular queue.
@@ -2234,6 +2450,141 @@ Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 *     s_{k-1} = xk - xk_prev  (includes line search alpha)
 *     y_{k-1} = gradient_current - gradient_prev  (via m_gradient)
 */
+#ifdef USE_AVX
+/** AVX L-BFGS step (full two-loop recursion).
+*   Mirrors the scalar algorithm, operating on Scalarf8 vectors with 3 active
+*   lanes (x, y, z, 0...0). Inner products use (a * b).reduce() which sums
+*   all 8 lanes — lanes 3..7 are zero, so this gives the Vector3r dot product.
+*   No line search (caller applies step size 1).
+*
+*   Sets dx = -H^-1 * gradient (descent direction), gradient in m_gradient.
+*   Returns energy at current xk.
+*/
+Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
+{
+	auto& dx = obj->m_dx;           // Scalarf8
+	const int windowSize = m_lbfgsWindowSize;
+	const int n = (int)dx.size();
+
+	int& count = obj->m_lbfgs_count;
+	auto& lbfgs_s = obj->m_lbfgs_s;     // Scalarf8 secant history
+	auto& lbfgs_y = obj->m_lbfgs_y;     // Scalarf8 secant history
+	auto& lbfgs_rho = obj->m_lbfgs_rho;         // Real
+	auto& lbfgs_alpha = obj->m_lbfgs_alpha;     // Real
+	auto& last_sol = obj->m_lbfgs_last_sol;     // Scalarf8
+	auto& gradient = obj->m_gradient;           // Scalarf8
+	auto& q = obj->m_lbfgs_q;                   // Scalarf8
+
+	// Save g_{k-1} into q before computeEnergyAndGradient overwrites gradient
+	if (count > 0)
+	{
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < n; i++)
+			q[i] = gradient[i];
+	}
+
+	Real energy = computeEnergyAndGradient(obj);  // gradient = g_k
+
+	// Compute secant pairs from actual position/gradient differences
+	if (count > 0 && windowSize > 0)
+	{
+		int slot = (count - 1) % windowSize;
+
+		// s_{k-1} = x_k - x_{k-1}
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < n; i++)
+			lbfgs_s[slot][i] = obj->m_xk[i] - last_sol[i];
+
+		// y_{k-1} = g_k - g_{k-1}
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < n; i++)
+			lbfgs_y[slot][i] = gradient[i] - q[i];
+
+		Real ys = 0;
+		#pragma omp parallel reduction(+:ys)
+		{
+			Scalarf8 acc; acc.setZero();
+			#pragma omp for schedule(static) nowait
+			for (int i = 0; i < n; i++)
+				acc += lbfgs_y[slot][i] * lbfgs_s[slot][i];
+			ys += (Real)acc.reduce();
+		}
+
+		lbfgs_rho[slot] = (std::abs(ys) > static_cast<Real>(1e-10))
+			? static_cast<Real>(1.0) / ys : 0;
+	}
+
+	// Save current xk for next iteration, set q = g_k for two-loop
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < n; i++)
+	{
+		q[i] = gradient[i];
+		last_sol[i] = obj->m_xk[i];
+	}
+
+	int nPairs = std::min(count, windowSize);
+
+	// Backward loop (newest -> oldest secant pair)
+	for (int j = 0; j < nPairs; j++)
+	{
+		int idx = ((count - 1 - j) % windowSize + windowSize) % windowSize;
+
+		Real sq = 0;
+		#pragma omp parallel reduction(+:sq)
+		{
+			Scalarf8 acc; acc.setZero();
+			#pragma omp for schedule(static) nowait
+			for (int i = 0; i < n; i++)
+				acc += lbfgs_s[idx][i] * q[i];
+			sq += (Real)acc.reduce();
+		}
+		lbfgs_alpha[j] = lbfgs_rho[idx] * sq;
+
+		const Scalarf8 alpha_avx((float)lbfgs_alpha[j]);
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < n; i++)
+			q[i] = q[i] - alpha_avx * lbfgs_y[idx][i];
+	}
+
+	// Apply initial inverse Hessian: dx = H_0^-1 * q
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < n; i++)
+		dx[i] = q[i];
+
+	prefactorizedLLTSolve(obj);
+
+	// Forward loop (oldest -> newest secant pair)
+	for (int j = nPairs - 1; j >= 0; j--)
+	{
+		int idx = ((count - 1 - j) % windowSize + windowSize) % windowSize;
+
+		Real yr = 0;
+		#pragma omp parallel reduction(+:yr)
+		{
+			Scalarf8 acc; acc.setZero();
+			#pragma omp for schedule(static) nowait
+			for (int i = 0; i < n; i++)
+				acc += lbfgs_y[idx][i] * dx[i];
+			yr += (Real)acc.reduce();
+		}
+		Real beta = lbfgs_rho[idx] * yr;
+
+		const Scalarf8 ab_avx((float)(lbfgs_alpha[j] - beta));
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < n; i++)
+			dx[i] = dx[i] + ab_avx * lbfgs_s[idx][i];
+	}
+
+	// Search direction: dx = -H*g
+	const Scalarf8 negOne(-1.0f);
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < n; i++)
+		dx[i] = negOne * dx[i];
+
+	count++;
+	return energy;
+}
+#else
 Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 {
 	auto& dx = obj->m_dx;
@@ -2348,7 +2699,9 @@ Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 	count++;
 	return energy;
 }
+#endif
 
+#ifndef USE_AVX
 /** Backtracking line search with Armijo condition.
 *   Reads search direction dx from obj->m_dx, gradient from obj->m_gradient.
 *   Returns the step size alpha (0 if line search failed).
@@ -2420,6 +2773,7 @@ Real Elasticity_Kee2023::lineSearch(ElasticObject* obj, Real energy, int& lsIter
 
 	return static_cast<Real>(0);
 }
+#endif
 
 /** Solve the optimization problem for elastic forces.
 *
@@ -2429,6 +2783,123 @@ Real Elasticity_Kee2023::lineSearch(ElasticObject* obj, Real energy, int& lsIter
 * L-BFGS: quasi-Newton with prefactored A as initial inverse Hessian H_0,
 *         secant pairs (s_k, y_k) in a circular queue of size m (window size)
 */
+#ifdef USE_AVX
+/** AVX step elasticity solver. L-BFGS only (solverType=1).
+*
+*   All state (xk, xTilde, dx, gradient, lbfgs workspace) lives in Scalarf8.
+*   We pack once from FluidModel positions at entry, iterate preconditioned
+*   gradient descent (computeEnergyAndGradient -> prefactorizedLLTSolve),
+*   and unpack to velocities at the end via updateVelocity.
+*   No line search in this path — step size fixed at 1.
+*/
+void Elasticity_Kee2023::stepElasticitySolver()
+{
+	START_TIMING("Elasticity_Kee2023")
+	const unsigned int numActiveParticles = m_model->numActiveParticles();
+	if (numActiveParticles == 0)
+		return;
+
+	if (m_solverType != 1)
+	{
+		LOG_ERR << "Elasticity_Kee2023 USE_AVX build supports L-BFGS only (solverType=1), got solverType=" << m_solverType;
+		return;
+	}
+
+	size_t numObjects = m_objects.size();
+
+	for (auto objIndex = 0; objIndex < numObjects; objIndex++)
+	{
+		START_TIMING("objSolve")
+		ElasticObject* obj = m_objects[objIndex];
+		auto& xk = obj->m_xk;         // Scalarf8
+		auto& dx = obj->m_dx;         // Scalarf8
+		const std::vector<unsigned int>& group = obj->m_particleIndices;
+		int numParticles = (int)group.size();
+		const Real fdt = obj->m_factorization->m_dt;
+
+		// xTilde = x + dt*v  (scalar read from model, packed into Scalarf8)
+		computeXTilde(obj);
+
+		// Prescribe motion of fixed particles (same as scalar path)
+		const Real t = TimeManager::getCurrent()->getTime();
+		const Real t_end = static_cast<Real>(2.0);
+		const int nFixed = (int)obj->m_nFixed;
+		const int firstFixed = numParticles - nFixed;
+
+		const Real angularSpeed = static_cast<Real>(2.8);
+		const Vector3r axis_center(0, static_cast<Real>(0.5), 0);
+		for (int i = firstFixed; i < numParticles; i++)
+		{
+			const unsigned int i0 = group[i];
+			const unsigned int particleIndex = m_initial_to_current_index[i0];
+			const int gid = m_fixedGroupId[i0];
+
+			if (t < t_end && gid > 0)
+			{
+				const Real omega = (gid == 1) ? -angularSpeed : angularSpeed;
+				const Vector3r& pos = m_model->getPosition(particleIndex);
+				const Real dy = pos[1] - axis_center[1];
+				const Real dz = pos[2] - axis_center[2];
+				const Vector3r vel(0, -omega * dz, omega * dy);
+				m_model->getPosition(particleIndex) += fdt * vel;
+				m_model->getVelocity(particleIndex) = vel;
+			}
+			else
+			{
+				m_model->getVelocity(particleIndex).setZero();
+			}
+			const Vector3r& p = m_model->getPosition(particleIndex);
+			obj->m_xTilde[i] = Scalarf8((float)p[0], (float)p[1], (float)p[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+
+		// xk = xTilde  (initial iterate)
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < numParticles; i++)
+			xk[i] = obj->m_xTilde[i];
+
+		const int maxIter = m_maxIter;
+		const int nFree = (int)dx.size();
+
+		obj->m_lbfgs_count = 0;
+
+		int iter = 0;
+		for (; iter < maxIter; iter++)
+		{
+			// lbfgsSolve (AVX simplified): sets dx = -H_0^{-1} * gradient
+			lbfgsSolve(obj);
+
+			// Convergence check on ||dx||_inf (reduce from Scalarf8: max of lanes 0..2)
+			Real dxNorm = 0;
+			#pragma omp parallel for reduction(max:dxNorm) schedule(static)
+			for (int i = 0; i < nFree; i++)
+			{
+				float v[8];
+				dx[i].store(v);
+				const Real localMax = std::max(std::max(std::abs((Real)v[0]), std::abs((Real)v[1])), std::abs((Real)v[2]));
+				if (localMax > dxNorm) dxNorm = localMax;
+			}
+
+			if (dxNorm < m_maxError)
+				break;
+
+			// xk += dx  (step size fixed at 1 — no line search in AVX path)
+			#pragma omp parallel for schedule(static)
+			for (int i = 0; i < nFree; i++)
+				xk[i] += dx[i];
+		}
+
+		if (iter == maxIter)
+			LOG_WARN << "Elasticity_Kee2023: not converged after " << maxIter << " iterations";
+
+		updateVelocity(obj, fdt);
+
+		double elapsedMs = STOP_TIMING
+		LOG_INFO << "STATS frame obj=" << objIndex << " solverIter=" << iter + 1 << " lsIter=0 elapsed_ms=" << elapsedMs;
+	}
+
+	STOP_TIMING_AVG
+}
+#else
 void Elasticity_Kee2023::stepElasticitySolver()
 {
 	START_TIMING("Elasticity_Kee2023")
@@ -2454,7 +2925,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 		// Prescribe motion of fixed particles
 		// The integrator skips Fixed particles, so we update position directly
 		const Real t = TimeManager::getCurrent()->getTime();
-		const Real t_end = static_cast<Real>(3.0);
+		const Real t_end = static_cast<Real>(2.0);
 		const int nFixed = (int)obj->m_nFixed;
 		const int firstFixed = numParticles - nFixed;
 
@@ -2583,7 +3054,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 		if (iter == maxIter)
 			LOG_WARN << "Elasticity_Kee2023: not converged after " << maxIter << " iterations";
 
-		updateVelocity(obj, xk, fdt);
+		updateVelocity(obj, fdt);
 		
 		double elapsedMs = STOP_TIMING
 		if (m_solverType == 0)  // Newton
@@ -2594,6 +3065,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 	STOP_TIMING_AVG
 }
+#endif
 
 
 /** Compute energy density Psi based on material type.

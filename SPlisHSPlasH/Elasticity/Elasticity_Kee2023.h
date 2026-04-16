@@ -54,9 +54,25 @@ namespace SPH
 			unsigned int m_nFixed;
 			std::shared_ptr<Factorization> m_factorization;
 
-			// Shared state (identical types for both AVX and non-AVX builds).
-			// AVX code uses function-local Scalarf8 / Vector3f8 / Matrix3f8 temporaries,
-			// not AVX-typed member variables.
+#ifdef USE_AVX
+			// AVX L-BFGS state. Scalarf8 with 3 active lanes (x, y, z, 0...0).
+			// All L-BFGS math stays in Scalarf8; scalar conversion only at
+			// stepElasticitySolver boundary (positions/velocities from/to model).
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_f;          // F = D·xk workspace (3*numParticles)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xk;         // current iterate
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_xTilde;     // inertial target
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_dx;         // L-BFGS step (also LLT solve RHS/result)
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_gradient;   // ∇E at xk
+
+			// L-BFGS secant history
+			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_s;
+			std::vector<std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>>> m_lbfgs_y;
+			std::vector<Real> m_lbfgs_rho;
+			std::vector<Real> m_lbfgs_alpha;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_last_sol;
+			std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> m_lbfgs_q;
+			int m_lbfgs_count = 0;
+#else
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_f;        // F = D·xk workspace
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xk;       // current iterate
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_xTilde;   // inertial target
@@ -67,24 +83,22 @@ namespace SPH
 			std::vector<Eigen::Matrix<Real, 9, 9>> m_hessian9x9;
 
 			// Newton PCG workspace
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_r;   // residual
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_p;   // search direction
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_Ap;  // A * p
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_z;   // preconditioned residual
-			std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> m_pcg_precond;  // block-diagonal preconditioner (inverted 3x3 blocks)
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_r;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_p;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_Ap;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_pcg_z;
+			std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> m_pcg_precond;
 
-			// L-BFGS secant history (circular queue)
-			std::vector<std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>> m_lbfgs_s;  // position differences s_k = x_{k+1} - x_k
-			std::vector<std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>> m_lbfgs_y;  // gradient differences y_k = g_{k+1} - g_k
-			std::vector<Real> m_lbfgs_rho;     // 1 / (y_k^T s_k)
-			std::vector<Real> m_lbfgs_alpha;   // temporary for two-loop recursion
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_last_sol;   // previous sol for s_k computation
-			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_q;          // temporary for two-loop recursion
-			int m_lbfgs_count = 0;             // number of stored secant pairs
+			// L-BFGS secant history
+			std::vector<std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>> m_lbfgs_s;
+			std::vector<std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>> m_lbfgs_y;
+			std::vector<Real> m_lbfgs_rho;
+			std::vector<Real> m_lbfgs_alpha;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_last_sol;
+			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_lbfgs_q;
+			int m_lbfgs_count = 0;
 
-#ifndef USE_AVX
-			// Permutation workspace for scalar LLT (manual forward/backward sub).
-			// AVX path uses CholeskyAVXSolver which handles permutation internally.
+			// Permutation workspace for scalar LLT (manual forward/backward sub)
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>> m_dx_perm;
 #endif
 
@@ -147,10 +161,12 @@ namespace SPH
 		void stepElasticitySolver();
 
 		void computeXTilde(ElasticObject* obj);
-		void updateVelocity(ElasticObject* obj, const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& xk, Real fdt);
+		void updateVelocity(ElasticObject* obj, Real fdt);
 		Real computeEnergy(ElasticObject* obj);
 		Real computePsi(const Matrix3r& F, const Matrix3r& R) const;
 		Real computeEnergyAndGradient(ElasticObject* obj);
+#ifndef USE_AVX
+		// Newton path — scalar-only. USE_AVX build supports L-BFGS (solverType=1) only.
 		void computeHessian(ElasticObject* obj);
 		void computeCorotatedHessian9x9(ElasticObject* obj);
 		void computeStableNeoHookeanHessian9x9(ElasticObject* obj);
@@ -158,8 +174,9 @@ namespace SPH
 		void newtonMatvec(ElasticObject* obj, const std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& x,
 			std::vector<Vector3r, Eigen::aligned_allocator<Vector3r>>& Ax);
 		int matFreePCG(ElasticObject* obj);
-		void prefactorizedLLTSolve(ElasticObject* obj);
 		Real newtonSolve(ElasticObject* obj, int& cgIter);
+#endif
+		void prefactorizedLLTSolve(ElasticObject* obj);
 		Real lbfgsSolve(ElasticObject* obj);
 		Real lineSearch(ElasticObject* obj, Real energy, int& lsIter);
 

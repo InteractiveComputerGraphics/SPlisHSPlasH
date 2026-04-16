@@ -712,14 +712,11 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
-			// Newton CG workspace (Vector3r — scalar CG reused in AVX build)
-			obj->m_f.resize(3 * numParticles);
-			obj->m_dx.resize(numParticles - obj->m_nFixed);
-			obj->m_gradient.resize(numParticles, Vector3r::Zero());
-			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
+			// Newton CG workspace (Scalarf8, coord-packed)
+			obj->m_pcg_r_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_p_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_Ap_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_z_avx.resize(nFree, Scalarf8(0.0f));
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
@@ -784,14 +781,11 @@ void Elasticity_Kee2023::initSystem()
 			obj->m_lbfgs_last_sol_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_q_avx.resize(nFree, Scalarf8(0.0f));
 			obj->m_lbfgs_count = 0;
-			// Newton CG workspace (Vector3r — scalar CG reused in AVX build)
-			obj->m_f.resize(3 * numParticles);
-			obj->m_dx.resize(numParticles - obj->m_nFixed);
-			obj->m_gradient.resize(numParticles, Vector3r::Zero());
-			obj->m_pcg_r.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_p.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_Ap.resize(nFree, Vector3r::Zero());
-			obj->m_pcg_z.resize(nFree, Vector3r::Zero());
+			// Newton CG workspace (Scalarf8, coord-packed)
+			obj->m_pcg_r_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_p_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_Ap_avx.resize(nFree, Scalarf8(0.0f));
+			obj->m_pcg_z_avx.resize(nFree, Scalarf8(0.0f));
 #else
 			obj->m_dx_perm.resize(numParticles - obj->m_nFixed);
 			obj->m_gradient.resize(numParticles, Vector3r::Zero());
@@ -2186,40 +2180,25 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
 	const int numParticles = (int)group.size();
 	const int nFree = numParticles - (int)obj->m_nFixed;
-	auto& x = obj->m_pcg_p;     // Vector3r (scalar CG)
-	auto& Ax = obj->m_pcg_Ap;   // Vector3r (scalar CG)
+	auto& p_avx = obj->m_pcg_p_avx;
+	auto& Ap_avx = obj->m_pcg_Ap_avx;
 
 	const Real dt = obj->m_factorization->m_dt;
 	const Real dt2 = dt * dt;
 	auto& D = obj->m_factorization->m_D;
 	auto& HTH = obj->m_factorization->m_matHTH;
-	auto& f_avx = obj->m_f_avx;  // Scalarf8 workspace
+	auto& f_avx = obj->m_f_avx;
 
-	// Pack p → Scalarf8 for sparse matvecs
-	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> p_avx(nFree);
-	std::vector<Scalarf8, AlignmentAllocator<Scalarf8, 32>> Ax_avx(nFree);
-	#pragma omp parallel for schedule(static)
-	for (int j = 0; j < nFree; j++)
-		p_avx[j] = Scalarf8((float)x[j][0], (float)x[j][1], (float)x[j][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-
-	// Step 1: Ax_avx = M * p_avx
+	// Step 1: Ap_avx = M * p_avx
 	#pragma omp parallel for schedule(static)
 	for (int j = 0; j < nFree; j++)
 	{
 		const unsigned int j0 = group[j];
 		const unsigned int pj = m_initial_to_current_index[j0];
-		Ax_avx[j] = Scalarf8((float)m_model->getMass(pj)) * p_avx[j];
+		Ap_avx[j] = Scalarf8((float)m_model->getMass(pj)) * p_avx[j];
 	}
 
-	// Unpack Ax_avx → Ax (Vector3r) for mass term
-	#pragma omp parallel for schedule(static)
-	for (int j = 0; j < nFree; j++)
-	{
-		float v[8]; Ax_avx[j].store(v);
-		Ax[j] = Vector3r((Real)v[0], (Real)v[1], (Real)v[2]);
-	}
-
-	// Step 2: Ax += HTH * x (SCALAR — ColMajor parallel has data race with Scalarf8)
+	// Step 2: Ap_avx += HTH * p_avx
 	if (m_alpha != static_cast<Real>(0.0))
 	{
 		#pragma omp parallel default(shared)
@@ -2232,13 +2211,13 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 					const int row = (int)it.row();
 					const int col = (int)it.col();
 					if (row < nFree && col < nFree)
-						Ax[row] += it.value() * x[col];
+						Ap_avx[col] = Ap_avx[col] + Scalarf8((float)it.value()) * p_avx[row];
 				}
 			}
 		}
 	}
 
-	// Step 3: f_avx = D * p_avx (AVX coord-packed sparse matvec)
+	// Step 3: Dx = D * p  (coord-packed AVX sparse matvec)
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
@@ -2257,7 +2236,7 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 		}
 	}
 
-	// Step 4: Extract Dx from f_avx, K*Dx → dPtL (SCALAR — same as non-AVX)
+	// Step 4: K*Dx → dPtL (scalar — 9×9 Hessian multiply)
 	const unsigned int numActiveParticles = m_model->numActiveParticles();
 	std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> dPtL(numActiveParticles, Matrix3r::Zero());
 
@@ -2285,35 +2264,38 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 		dPtL[particleIndex] = dP.transpose() * m_L[particleIndex];
 	}
 
-	// Step 5: Scalar neighbor force with precomputed V_gradW (same as non-AVX)
+	// Step 5: Force loop (AVX gather with precomputed V_gradW8), accumulate into Ap_avx
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < nFree; i++)
 	{
 		const unsigned int i0 = group[i];
 		const unsigned int particleIndex = m_initial_to_current_index[i0];
-		const Real V_i = m_restVolumes[particleIndex];
-		const Matrix3r& dPtL_i = dPtL[particleIndex];
+		const float V_i = (float)m_restVolumes[particleIndex];
 
-		const size_t numNeighbors = m_initialNeighbors[i0].size();
-		Vector3r force;
-		force.setZero();
+		const unsigned int numNeighbors = (unsigned int)m_initialNeighbors[i0].size();
+		const Matrix3f8 dPtLi_avx(dPtL[particleIndex].cast<float>());
+		Vector3f8 force_avx;
+		force_avx.setZero();
 
-		for (unsigned int jn = 0; jn < numNeighbors; jn++)
+		for (unsigned int j = 0; j < numNeighbors; j += 8)
 		{
-			const unsigned int j0 = m_initialNeighbors[i0][jn];
-			const unsigned int jCurrent = m_initial_to_current_index[j0];
-			const Matrix3r& dPtL_j = dPtL[jCurrent];
-			force += (dPtL_i + dPtL_j) * m_precomp_V_gradW[m_precomputed_indices[particleIndex] + jn];
+			const unsigned int count = std::min(numNeighbors - j, 8u);
+			unsigned int nIndices[8];
+			for (auto k = 0u; k < count; k++)
+				nIndices[k] = m_initial_to_current_index[m_initialNeighbors[i0][j + k]];
+
+			const Matrix3f8 dPtLj_avx = convertMat_zero(nIndices, &dPtL[0], count);
+			const Vector3f8& V_gradW = m_precomp_V_gradW8[m_precomputed_indices8[particleIndex] + j / 8];
+			force_avx += dPtLi_avx * V_gradW + dPtLj_avx * V_gradW;
 		}
 
-		Ax[i] -= dt2 * V_i * force;
+		const Scalarf8 fx(force_avx.x().reduce(), force_avx.y().reduce(), force_avx.z().reduce(), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		Ap_avx[i] = Ap_avx[i] - Scalarf8((float)dt2 * V_i) * fx;
 	}
+
 }
 #else
-/** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG.
-*   Uses D matrix approach: Ax = M*x + HTH*x + dt² * Σᵢ Vᵢ * D^T * K_i * D * x
-*   K_i is the unscaled material Hessian (2μ * I for simplified version).
-*/
+/** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG. */
 void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 {
 	const std::vector<unsigned int>& group = obj->m_particleIndices;
@@ -2338,6 +2320,7 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 	}
 
 	// Add H^T*K_ze*H*x (zero-energy mode control)
+	// Col-write pattern: Ax[col] += val * x[row] (HTH is symmetric, avoids data race)
 	if (m_alpha != static_cast<Real>(0.0))
 	{
 		#pragma omp parallel default(shared)
@@ -2350,29 +2333,25 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 					const int row = (int)it.row();
 					const int col = (int)it.col();
 					if (row < nFree && col < nFree)
-						Ax[row] += it.value() * x[col];
+						Ax[col] += it.value() * x[row];
 				}
 			}
 		}
 	}
 
-	// ========== Elastic term: dt² * Σᵢ Vᵢ * D^T * K_i * D * x ==========
-	// Step 1: Compute y = D * x (9*numParticles from N_free × 3)
-	// D is 3*numParticles rows × numParticles cols (RowMajor for efficient row access)
+	// D * x
 	std::vector<Eigen::Matrix<Real, 9, 1>> Dx(numParticles);
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < numParticles; i++)
 	{
 		Eigen::Matrix<Real, 9, 1> yi = Eigen::Matrix<Real, 9, 1>::Zero();
-		// D has rows 3*i, 3*i+1, 3*i+2 for particle i
 		for (int a = 0; a < 3; a++)
 		{
 			for (Eigen::SparseMatrix<Real, Eigen::RowMajor>::InnerIterator it(D, 3 * i + a); it; ++it)
 			{
-				const int j = (int)it.col();  // particle index
+				const int j = (int)it.col();
 				if (j < nFree)
 				{
-					// y[3*b + a] += D[3*i+a, j] * x[j][b] for each b
 					for (int b = 0; b < 3; b++)
 						yi(3 * b + a) += it.value() * x[j][b];
 				}
@@ -2381,8 +2360,7 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 		Dx[i] = yi;
 	}
 
-	// Step 2: Compute dP = K * Dx and dPtL = dP^T * L for all particles
-	// Index by current particle index (same as m_PL in gradient computation)
+	// K * Dx → dPtL
 	const unsigned int numActiveParticles = m_model->numActiveParticles();
 	std::vector<Matrix3r, Eigen::aligned_allocator<Matrix3r>> dPtL(numActiveParticles, Matrix3r::Zero());
 
@@ -2391,22 +2369,15 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 	{
 		const unsigned int i0 = group[i];
 		const unsigned int particleIndex = m_initial_to_current_index[i0];
-
-		// K * Dx gives 9-vector representing dP (column-major)
 		Eigen::Matrix<Real, 9, 1> KDx_vec = obj->m_hessian9x9[i] * Dx[i];
-
-		// Reshape to 3x3 (column-major layout)
 		Matrix3r dP;
 		dP.col(0) = KDx_vec.segment<3>(0);
 		dP.col(1) = KDx_vec.segment<3>(3);
 		dP.col(2) = KDx_vec.segment<3>(6);
-
 		dPtL[particleIndex] = dP.transpose() * m_L[particleIndex];
 	}
 
-	// Step 3: Symmetric force template for elastic contribution
-	// gradient = -dt² * V_i * force, so Hessian*x = -dt² * V_i * dforce
-	// where dforce_i = Σ_j V_j * (dPtL_i + dPtL_j) * gradW_ij
+	// Force loop
 	Simulation* sim = Simulation::getCurrent();
 	#pragma omp parallel for schedule(static)
 	for (int i = 0; i < nFree; i++)
@@ -2429,7 +2400,6 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 			force += (dPtL_i + dPtL_j) * m_precomp_V_gradW[m_precomputed_indices[particleIndex] + jn];
 		}
 
-		// Minus sign: gradient = -dt² V_i force, so Hessian = -dt² V_i dforce/dx
 		Ax[i] -= dt2 * V_i * force;
 	}
 }
@@ -2437,11 +2407,136 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 
 /** Solve A*dx = -gradient using Preconditioned Conjugate Gradient.
 *   Uses block-diagonal preconditioner (3×3 blocks).
-*   Writes result into obj->m_dx.
+*   Writes result into obj->m_dx_avx / obj->m_dx.
 */
+#ifdef USE_AVX
 int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 {
+	computeNewtonPreconditioner(obj);
 
+	const int nFree = (int)obj->m_dx_avx.size();
+
+	auto& gradient = obj->m_gradient_avx;
+	auto& dx = obj->m_dx_avx;
+	auto& r = obj->m_pcg_r_avx;
+	auto& p = obj->m_pcg_p_avx;
+	auto& Ap = obj->m_pcg_Ap_avx;
+	auto& z = obj->m_pcg_z_avx;
+	auto& precond = obj->m_pcg_precond;
+
+	// Initialize: x_0 = 0, r_0 = b = -gradient
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+	{
+		dx[i].setZero();
+		r[i] = Scalarf8(0.0f) - gradient[i];
+	}
+
+	// z_0 = M^{-1} r_0 (apply block-diagonal preconditioner)
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+	{
+		float rv[8]; r[i].store(rv);
+		Vector3r ri((Real)rv[0], (Real)rv[1], (Real)rv[2]);
+		Vector3r zi = precond[i] * ri;
+		z[i] = Scalarf8((float)zi[0], (float)zi[1], (float)zi[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	}
+
+	// p_0 = z_0
+	#pragma omp parallel for schedule(static)
+	for (int i = 0; i < nFree; i++)
+		p[i] = z[i];
+
+	// rz_old = r_0^T z_0  (dot product via Scalarf8: (r*z).reduce() sums x*x + y*y + z*z + 0+...)
+	Real rz_old = 0;
+	#pragma omp parallel for reduction(+:rz_old) schedule(static)
+	for (int i = 0; i < nFree; i++)
+		rz_old += (Real)(r[i] * z[i]).reduce();
+
+	// Compute initial residual norm for convergence check
+	Real r0_norm = 0;
+	#pragma omp parallel for reduction(+:r0_norm) schedule(static)
+	for (int i = 0; i < nFree; i++)
+		r0_norm += (Real)(r[i] * r[i]).reduce();
+	r0_norm = std::sqrt(r0_norm);
+
+	const Real tol = m_tolCG * r0_norm;
+
+	int iter = 0;
+	for (; iter < m_maxIterCG; iter++)
+	{
+		// Ap = A * p
+		newtonMatvec(obj);
+
+		// alpha = rz_old / (p^T Ap)
+		Real pAp = 0;
+		#pragma omp parallel for reduction(+:pAp) schedule(static)
+		for (int i = 0; i < nFree; i++)
+			pAp += (Real)(p[i] * Ap[i]).reduce();
+
+		if (pAp <= static_cast<Real>(0))
+		{
+			LOG_ERR << "PCG: pAp <= 0 at iter " << iter << ", pAp = " << pAp
+			        << " (matrix not positive definite)";
+			break;
+		}
+
+		const Scalarf8 alpha_avx((float)(rz_old / pAp));
+
+		// x_{k+1} = x_k + alpha * p_k
+		// r_{k+1} = r_k - alpha * Ap
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < nFree; i++)
+		{
+			dx[i] = dx[i] + alpha_avx * p[i];
+			r[i] = r[i] - alpha_avx * Ap[i];
+		}
+
+		// Check convergence
+		Real r_norm = 0;
+		#pragma omp parallel for reduction(+:r_norm) schedule(static)
+		for (int i = 0; i < nFree; i++)
+			r_norm += (Real)(r[i] * r[i]).reduce();
+		r_norm = std::sqrt(r_norm);
+
+		if (r_norm < tol)
+		{
+			iter++;  // count this iteration
+			break;
+		}
+
+		// z_{k+1} = M^{-1} r_{k+1} (apply block-diagonal preconditioner)
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < nFree; i++)
+		{
+			float rv[8]; r[i].store(rv);
+			Vector3r ri((Real)rv[0], (Real)rv[1], (Real)rv[2]);
+			Vector3r zi = precond[i] * ri;
+			z[i] = Scalarf8((float)zi[0], (float)zi[1], (float)zi[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+
+		// rz_new = r_{k+1}^T z_{k+1}
+		Real rz_new = 0;
+		#pragma omp parallel for reduction(+:rz_new) schedule(static)
+		for (int i = 0; i < nFree; i++)
+			rz_new += (Real)(r[i] * z[i]).reduce();
+
+		// beta = rz_new / rz_old
+		const Scalarf8 beta_avx((float)(rz_new / rz_old));
+
+		// p_{k+1} = z_{k+1} + beta * p_k
+		#pragma omp parallel for schedule(static)
+		for (int i = 0; i < nFree; i++)
+			p[i] = z[i] + beta_avx * p[i];
+
+		rz_old = rz_new;
+	}
+
+	return iter;
+}
+#else
+int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
+{
 	computeNewtonPreconditioner(obj);
 
 	const int nFree = (int)obj->m_dx.size();
@@ -2501,19 +2596,7 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 		if (pAp <= static_cast<Real>(0))
 		{
-			// Debug: compute mass and elastic contributions separately
-			const std::vector<unsigned int>& grp = obj->m_particleIndices;
-			Real pMp = 0, pKp = 0;
-			for (int i = 0; i < nFree; i++)
-			{
-				const unsigned int i0 = grp[i];
-				const unsigned int pi = m_initial_to_current_index[i0];
-				const Real mi = m_model->getMass(pi);
-				pMp += p[i].dot(mi * p[i]);
-				pKp += p[i].dot(Ap[i] - mi * p[i]);
-			}
 			LOG_ERR << "PCG: pAp <= 0 at iter " << iter << ", pAp = " << pAp
-			        << ", pMp = " << pMp << ", pKp = " << pKp
 			        << " (matrix not positive definite)";
 			break;
 		}
@@ -2566,6 +2649,7 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 	return iter;
 }
+#endif
 
 /** Solve the linear system A * x = b using the prefactored Cholesky decomposition.
 *
@@ -2650,34 +2734,18 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 }
 
 #ifdef USE_AVX
-/** AVX Newton solve: energy+gradient in AVX, then unpack to Vector3r for scalar CG.
-*   Produces identical CG results to non-AVX — only the gradient computation is AVX-accelerated.
+/** AVX Newton solve: energy+gradient+CG all in Scalarf8 domain.
 */
 Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 {
-	// Step 1: AVX energy + gradient (fills gradient_avx, m_F, m_rotations, m_PL)
+	// Energy + gradient in AVX (fills gradient_avx, m_F, m_rotations, m_PL)
 	Real energy = computeEnergyAndGradient(obj);
 
-	// Step 2: Unpack gradient_avx → m_gradient (Vector3r) for scalar CG
-	const int nFree = (int)obj->m_dx.size();
-	#pragma omp parallel for schedule(static)
-	for (int i = 0; i < nFree; i++)
-	{
-		float v[8];
-		obj->m_gradient_avx[i].store(v);
-		obj->m_gradient[i] = Vector3r((Real)v[0], (Real)v[1], (Real)v[2]);
-	}
-
-	// Step 3: Hessian (scalar, reads m_F, writes shared m_hessian9x9)
+	// Hessian (scalar, reads m_F, writes m_hessian9x9)
 	computeHessian(obj);
 
-	// Step 4: Scalar CG (uses m_gradient, m_dx, m_pcg_* — all Vector3r)
+	// CG in AVX (reads gradient_avx, writes dx_avx)
 	cgIter = matFreePCG(obj);
-
-	// Step 5: Pack m_dx (Vector3r) → dx_avx (Scalarf8)
-	#pragma omp parallel for schedule(static)
-	for (int i = 0; i < nFree; i++)
-		obj->m_dx_avx[i] = Scalarf8((float)obj->m_dx[i][0], (float)obj->m_dx[i][1], (float)obj->m_dx[i][2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
 	return energy;
 }
@@ -3107,7 +3175,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 
 		// Prescribe motion of fixed particles (same as scalar path)
 		const Real t = TimeManager::getCurrent()->getTime();
-		const Real t_end = static_cast<Real>(2.0);
+		const Real t_end = static_cast<Real>(3.0);
 		const int nFixed = (int)obj->m_nFixed;
 		const int firstFixed = numParticles - nFixed;
 
@@ -3224,7 +3292,7 @@ void Elasticity_Kee2023::stepElasticitySolver()
 		// Prescribe motion of fixed particles
 		// The integrator skips Fixed particles, so we update position directly
 		const Real t = TimeManager::getCurrent()->getTime();
-		const Real t_end = static_cast<Real>(2.0);
+		const Real t_end = static_cast<Real>(3.0);
 		const int nFixed = (int)obj->m_nFixed;
 		const int firstFixed = numParticles - nFixed;
 

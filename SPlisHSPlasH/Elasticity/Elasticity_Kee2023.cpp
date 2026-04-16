@@ -1585,7 +1585,7 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 
 				const Matrix3f8 PtLj_avx = convertMat_zero(nIndices, &m_PL[0], count);
 				const Vector3f8& V_gradW = m_precomp_V_gradW8[m_precomputed_indices8[particleIndex] + j / 8];
-				force_avx += (PtLi_avx + PtLj_avx) * V_gradW;
+				force_avx += PtLi_avx * V_gradW + PtLj_avx * V_gradW;
 			}
 
 			Vector3r force;
@@ -1594,7 +1594,7 @@ Real Elasticity_Kee2023::computeEnergyAndGradient(ElasticObject* obj)
 			force[2] = force_avx.z().reduce();
 
 			const Vector3r g = -(fdt * fdt * V_i * force);
-			gradient_avx[i] = Scalarf8((float)g[0], (float)g[1], (float)g[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+			gradient[i] = Scalarf8((float)g[0], (float)g[1], (float)g[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
 	}
 
@@ -2157,6 +2157,7 @@ void Elasticity_Kee2023::computeNewtonPreconditioner(ElasticObject* obj)
 		precond[j] = precond[j].inverse();
 }
 
+#ifndef USE_AVX
 /** Compute A*x = M*x + H^T*K_ze*H*x + dt²*D^T*K*D*x for Newton PCG.
 *   Uses D matrix approach: Ax = M*x + HTH*x + dt² * Σᵢ Vᵢ * D^T * K_i * D * x
 *   K_i is the unscaled material Hessian (2μ * I for simplified version).
@@ -2280,7 +2281,9 @@ void Elasticity_Kee2023::newtonMatvec(ElasticObject* obj)
 		Ax[i] -= dt2 * V_i * force;
 	}
 }
+#endif
 
+#ifndef USE_AVX
 /** Solve A*dx = -gradient using Preconditioned Conjugate Gradient.
 *   Uses block-diagonal preconditioner (3×3 blocks).
 *   Writes result into obj->m_dx.
@@ -2412,6 +2415,7 @@ int Elasticity_Kee2023::matFreePCG(ElasticObject* obj)
 
 	return iter;
 }
+#endif
 
 /** Solve the linear system A * x = b using the prefactored Cholesky decomposition.
 *
@@ -2495,6 +2499,7 @@ void Elasticity_Kee2023::prefactorizedLLTSolve(ElasticObject* obj)
 #endif
 }
 
+#ifndef USE_AVX
 /** Newton solve: compute energy+gradient, assemble true Hessian, solve 3N×3N system.
 *   Returns dx in obj->m_dx, gradient in obj->m_gradient.
 *   Returns energy at current xk.
@@ -2539,6 +2544,7 @@ Real Elasticity_Kee2023::newtonSolve(ElasticObject* obj, int& cgIter)
 
 	return energy;
 }
+#endif
 
 /** L-BFGS solve: quasi-Newton with prefactored Cholesky as H_0.
 *   Uses two-loop recursion with secant pairs in a circular queue.
@@ -2800,6 +2806,7 @@ Real Elasticity_Kee2023::lbfgsSolve(ElasticObject* obj)
 }
 #endif
 
+#ifndef USE_AVX
 /** Backtracking line search with Armijo condition.
 *   Reads search direction dx from obj->m_dx, gradient from obj->m_gradient.
 *   Returns the step size alpha (0 if line search failed).
@@ -2871,6 +2878,7 @@ Real Elasticity_Kee2023::lineSearch(ElasticObject* obj, Real energy, int& lsIter
 
 	return static_cast<Real>(0);
 }
+#endif
 
 /** Solve the optimization problem for elastic forces.
 *

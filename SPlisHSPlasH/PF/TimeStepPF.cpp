@@ -183,9 +183,16 @@ void TimeStepPF::initialGuessForPositions(const unsigned int fluidModelIndex)
 	for (int i = 0; i < (int)numParticles; i++)
 	{
 		m_simulationData.setOldPosition(fluidModelIndex, i, model->getPosition(i));
-		const auto newPos = (model->getPosition(i) + h * model->getVelocity(i) + (h * h) * model->getAcceleration(i)).eval();
-		model->setPosition(i, newPos);
-		m_simulationData.setS(fluidModelIndex, i, newPos);
+		if (model->getParticleState(i) == ParticleState::Active)
+		{
+			const auto newPos = (model->getPosition(i) + h * model->getVelocity(i) + (h * h) * model->getAcceleration(i)).eval();
+			model->setPosition(i, newPos);
+			m_simulationData.setS(fluidModelIndex, i, newPos);
+		}
+		else
+		{
+			m_simulationData.setS(fluidModelIndex, i, model->getPosition(i));
+		}
 	}
 }
 

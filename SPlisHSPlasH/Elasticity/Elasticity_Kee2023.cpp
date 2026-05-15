@@ -3170,39 +3170,20 @@ void Elasticity_Kee2023::stepElasticitySolver()
 		int numParticles = (int)group.size();
 		const Real fdt = obj->m_factorization->m_dt;
 
-		// xTilde = x + dt*v  (scalar read from model, packed into Scalarf8)
+		// xTilde = x + dt*v  (uses externally-set velocity, e.g. from AnimationField)
 		computeXTilde(obj);
 
-		// Prescribe motion of fixed particles (same as scalar path)
-		const Real t = TimeManager::getCurrent()->getTime();
-		const Real t_end = static_cast<Real>(3.0);
+		// Fixed particles: DFSPH integrator skips them, so write xTilde back to model position
+		// so they advance by the externally-prescribed velocity.
 		const int nFixed = (int)obj->m_nFixed;
 		const int firstFixed = numParticles - nFixed;
-
-		const Real angularSpeed = static_cast<Real>(2.8);
-		const Vector3r axis_center(0, static_cast<Real>(0.5), 0);
 		for (int i = firstFixed; i < numParticles; i++)
 		{
 			const unsigned int i0 = group[i];
 			const unsigned int particleIndex = m_initial_to_current_index[i0];
-			const int gid = m_fixedGroupId[i0];
-
-			if (t < t_end && gid > 0)
-			{
-				const Real omega = (gid == 1) ? -angularSpeed : angularSpeed;
-				const Vector3r& pos = m_model->getPosition(particleIndex);
-				const Real dy = pos[1] - axis_center[1];
-				const Real dz = pos[2] - axis_center[2];
-				const Vector3r vel(0, -omega * dz, omega * dy);
-				m_model->getPosition(particleIndex) += fdt * vel;
-				m_model->getVelocity(particleIndex) = vel;
-			}
-			else
-			{
-				m_model->getVelocity(particleIndex).setZero();
-			}
-			const Vector3r& p = m_model->getPosition(particleIndex);
-			obj->m_xTilde_avx[i] = Scalarf8((float)p[0], (float)p[1], (float)p[2], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+			float v[8];
+			obj->m_xTilde_avx[i].store(v);
+			m_model->getPosition(particleIndex) = Vector3r((Real)v[0], (Real)v[1], (Real)v[2]);
 		}
 
 		// xk = xTilde  (initial iterate)
@@ -3287,62 +3268,18 @@ void Elasticity_Kee2023::stepElasticitySolver()
 		int numParticles = (int)group.size();
 		const Real fdt = obj->m_factorization->m_dt;
 
-		// Initialize: compute x_tilde = x + dt * v, set xk = xTilde
+		// Initialize: compute x_tilde = x + dt * v  (uses externally-set velocity, e.g. from AnimationField)
 		computeXTilde(obj);
 
-		// Prescribe motion of fixed particles
-		// The integrator skips Fixed particles, so we update position directly
-		const Real t = TimeManager::getCurrent()->getTime();
-		const Real t_end = static_cast<Real>(3.0);
+		// Fixed particles: DFSPH integrator skips them, so write xTilde back to model position
+		// so they advance by the externally-prescribed velocity.
 		const int nFixed = (int)obj->m_nFixed;
 		const int firstFixed = numParticles - nFixed;
-
-		// // --- Translation: opposite directions for stretch test ---
-		// const Real speed = static_cast<Real>(5.0);
-		// for (int i = firstFixed; i < numParticles; i++)
-		// {
-		// 	const unsigned int i0 = group[i];
-		// 	const unsigned int particleIndex = m_initial_to_current_index[i0];
-		// 	const int gid = m_fixedGroupId[i0];
-		// 	if (t < t_end && gid > 0)
-		// 	{
-		// 		const Vector3r vel = (gid == 1) ? Vector3r(-speed, 0, 0) : Vector3r(speed, 0, 0);
-		// 		m_model->getPosition(particleIndex) += fdt * vel;
-		// 		m_model->getVelocity(particleIndex) = vel;
-		// 	}
-		// 	else
-		// 	{
-		// 		m_model->getVelocity(particleIndex).setZero();
-		// 	}
-		// 	obj->m_xTilde[i] = m_model->getPosition(particleIndex);
-		// }
-
-		// --- Rotation: twist around x-axis ---
-		const Real angularSpeed = static_cast<Real>(2.8);  // rad/s
-		const Vector3r axis_center(0, static_cast<Real>(0.5), 0);  // beam center (y from translation)
 		for (int i = firstFixed; i < numParticles; i++)
 		{
 			const unsigned int i0 = group[i];
 			const unsigned int particleIndex = m_initial_to_current_index[i0];
-			const int gid = m_fixedGroupId[i0];
-
-			if (t < t_end && gid > 0)
-			{
-				// box1: -omega, box2: +omega around x-axis
-				const Real omega = (gid == 1) ? -angularSpeed : angularSpeed;
-				const Vector3r& pos = m_model->getPosition(particleIndex);
-				const Real dy = pos[1] - axis_center[1];
-				const Real dz = pos[2] - axis_center[2];
-				// v = omega_x × r = (omega, 0, 0) × (0, dy, dz) = (0, -omega*dz, omega*dy)
-				const Vector3r vel(0, -omega * dz, omega * dy);
-				m_model->getPosition(particleIndex) += fdt * vel;
-				m_model->getVelocity(particleIndex) = vel;
-			}
-			else
-			{
-				m_model->getVelocity(particleIndex).setZero();
-			}
-			obj->m_xTilde[i] = m_model->getPosition(particleIndex);
+			m_model->getPosition(particleIndex) = obj->m_xTilde[i];
 		}
 
 		// x0 = x_tilde

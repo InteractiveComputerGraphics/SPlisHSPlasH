@@ -48,12 +48,12 @@
 					-10
 				],
 				"fixedBoxMax": [
-					-1.9,
+					-1.95,
 					10,
 					10
 				],
 				"fixedBox2Min": [
-					1.9,
+					1.95,
 					-10,
 					-10
 				],
@@ -85,6 +85,60 @@
 				1,
 				1
 			]
+		}
+	],
+	"AnimationFields": [
+		{
+			"particleField": "velocity",
+			"translation": [-5.975, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.05, 20, 20],
+			"shapeType": 0,
+			"startTime": 0,
+			"endTime": 3.2,
+			"expression_x": "0",
+			"expression_y": "2.0*z",
+			"expression_z": "-2.0*(y-0.5)"
+		},
+		{
+			"particleField": "velocity",
+			"translation": [5.975, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.05, 20, 20],
+			"shapeType": 0,
+			"startTime": 0,
+			"endTime": 3.2,
+			"expression_x": "0",
+			"expression_y": "-2.0*z",
+			"expression_z": "2.0*(y-0.5)"
+		},
+		{
+			"particleField": "velocity",
+			"translation": [-5.975, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.05, 20, 20],
+			"shapeType": 0,
+			"startTime": 3.2,
+			"endTime": 1000.0,
+			"expression_x": "0",
+			"expression_y": "0",
+			"expression_z": "0"
+		},
+		{
+			"particleField": "velocity",
+			"translation": [5.975, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.05, 20, 20],
+			"shapeType": 0,
+			"startTime": 3.2,
+			"endTime": 1000.0,
+			"expression_x": "0",
+			"expression_y": "0",
+			"expression_z": "0"
 		}
 	]
 }

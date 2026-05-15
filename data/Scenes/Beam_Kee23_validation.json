@@ -45,6 +45,8 @@
 				"maxNeighbors": 15,
 				"fixedBoxMin" : [-10,-10,-10],
 				"fixedBoxMax" : [-1.9,10,10],
+				"fixedBox2Min" : [1.9,-10,-10],
+				"fixedBox2Max" : [10,10,10],
 				"solverType": 0,
 				"materialType": 0,
 				"maxError": 0.0001,
@@ -60,6 +62,34 @@
 			"particleFile": "../models/beam_r_0.025.bgeo",
 			"translation": [0,0.5,0],
 			"scale": [1, 1, 1]
+		}
+	],
+	"AnimationFields": [
+		{
+			"particleField": "velocity",
+			"translation": [-5.95, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.1, 20, 20],
+			"shapeType": 0,
+			"startTime": 0,
+			"endTime": 3.2,
+			"expression_x": "0",
+			"expression_y": "5.0*z",
+			"expression_z": "-5.0*(y-0.5)"
+		},
+		{
+			"particleField": "velocity",
+			"translation": [-5.95, 0, 0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [8.1, 20, 20],
+			"shapeType": 0,
+			"startTime": 3.2,
+			"endTime": 1000.0,
+			"expression_x": "0",
+			"expression_y": "0",
+			"expression_z": "0"
 		}
 	]
 }

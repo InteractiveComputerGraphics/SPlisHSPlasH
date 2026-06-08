@@ -70,7 +70,7 @@ void PBDBoundarySimulator::initBoundaryData()
 		PBDWrapper::RBData rb;
 		rb.x = ed->x;
 		rb.R = AngleAxisr(ed->angle, ed->axis).toRotationMatrix();
-		rb.scale = Emitter::getSize(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
+        rb.scale = Emitter::getSizeExtraMargin(static_cast<Real>(ed->width), static_cast<Real>(ed->height), ed->type);
 		rb.restitution = 0.6;
 		rb.friction = 0.1;
 		if (ed->type == 0)

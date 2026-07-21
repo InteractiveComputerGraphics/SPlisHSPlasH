@@ -103,7 +103,7 @@ The following videos were generated using the SPlisHSPlasH library (if you click
     </tr>
     <tr>
       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=u8JfE7zdViw"><img src="https://img.youtube.com/vi/u8JfE7zdViw/0.jpg" alt="Video" /></a></td>
-       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=xWXTQJl4pZ0"><img src="https://img.youtube.com/vi/5qMzFYXJeTk/0.jpg" alt="Video" /></a></td>
+       <td style="text-align: center"><a href="https://www.youtube.com/watch?v=5qMzFYXJeTk"><img src="https://img.youtube.com/vi/5qMzFYXJeTk/0.jpg" alt="Video" /></a></td>
     </tr>
   </tbody>
 </table>

@@ -120,7 +120,8 @@ void Elasticity_Becker2009::determineFixedParticles()
 void Elasticity_Becker2009::initValues()
 {
 	Simulation *sim = Simulation::getCurrent();
-	sim->getNeighborhoodSearch()->find_neighbors();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->findNeighbors();
 
 	FluidModel *model = m_model;
 	const unsigned int numParticles = model->numActiveParticles();
@@ -184,9 +185,9 @@ void Elasticity_Becker2009::performNeighborhoodSearchSort()
 		return;
 
 	Simulation *sim = Simulation::getCurrent();
-	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-	d.sort_field(&m_restVolumes[0]);
-	d.sort_field(&m_current_to_initial_index[0]);
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_model->getPointSetIndex(), &m_restVolumes[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_current_to_initial_index[0]);
 
 	for (unsigned int i = 0; i < numPart; i++)
 		m_initial_to_current_index[m_current_to_initial_index[i]] = i;

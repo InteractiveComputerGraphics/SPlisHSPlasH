@@ -31,6 +31,10 @@ Simulator_GUI_imgui::Simulator_GUI_imgui(SimulatorBase *base) :
 	m_alt_camera = false;
 	m_iniFound = false;
 	m_showLogWindow = true;
+	m_context = nullptr;
+	m_dockSpaceId = 0;
+	m_logWindow = nullptr;
+	m_showLogWindow = true;
 }
 
 Simulator_GUI_imgui::~Simulator_GUI_imgui(void)
@@ -690,7 +694,8 @@ void Simulator_GUI_imgui::renderBoundary()
 
 void Simulator_GUI_imgui::reset()
 {
-	m_selectedParticles.clear();
+	m_selectedParticles.clear(); 
+	m_selectedParticleIDs.clear();
 }
 
 void Simulator_GUI_imgui::selection(const Vector2i &start, const Vector2i &end, void *clientData)
@@ -698,7 +703,9 @@ void Simulator_GUI_imgui::selection(const Vector2i &start, const Vector2i &end, 
 	Simulator_GUI_imgui *gui = (Simulator_GUI_imgui*)clientData;
 	Simulation *sim = Simulation::getCurrent();
 	std::vector<std::vector<unsigned int>> &selectedParticles = gui->getSelectedParticles();
+	std::vector<std::vector<unsigned int>>& selectedParticleIDs = gui->getSelectedParticleIDs();
 	selectedParticles.resize(sim->numberOfFluidModels());
+	selectedParticleIDs.resize(sim->numberOfFluidModels());
 	bool selected = false;
 	for (unsigned int i = 0; i < sim->numberOfFluidModels(); i++)
 	{
@@ -713,7 +720,18 @@ void Simulator_GUI_imgui::selection(const Vector2i &start, const Vector2i &end, 
 				&model->getPosition(model->numActiveParticles() - 1),
 				selectedParticles[i]);
 			if (selectedParticles[i].size() > 0)
+			{
 				selected = true;
+
+				// store the IDs of the selected particles since the index will be resorted
+				selectedParticleIDs[i].clear();
+				for (unsigned int j = 0; j < selectedParticles[i].size(); j++)
+				{
+					// get ID of particle
+					unsigned int id = model->getParticleId(selectedParticles[i][j]);
+					selectedParticleIDs[i].push_back(id);
+				}
+			}
 		}
 	}
 	if (selected)
@@ -781,4 +799,21 @@ void Simulator_GUI_imgui::switchDrawMode()
 		MiniGL::setDrawMode(GL_FILL);
 	else
 		MiniGL::setDrawMode(GL_LINE);
+}
+
+void Simulator_GUI_imgui::updateZSort()
+{
+	// update selected particles
+	Simulation* sim = Simulation::getCurrent();	
+	std::vector<std::vector<unsigned int>>& selectedParticles = getSelectedParticles();
+	std::vector<std::vector<unsigned int>>& selectedParticleIDs = getSelectedParticleIDs();
+	for (unsigned int i = 0; i < selectedParticleIDs.size(); i++)
+	{
+		FluidModel* model = sim->getFluidModel(i);
+
+		for (unsigned int j=0; j < selectedParticleIDs[i].size(); j++)
+		{
+			selectedParticles[i][j] = model->getParticleIndex(selectedParticleIDs[i][j]);
+		}
+	}
 }

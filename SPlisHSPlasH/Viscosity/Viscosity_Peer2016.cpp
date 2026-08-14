@@ -514,6 +514,6 @@ void Viscosity_Peer2016::performNeighborhoodSearchSort()
 		return;
 
 	Simulation* sim = Simulation::getCurrent();
-	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-	d.sort_field(&m_omega[0]);
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_model->getPointSetIndex(), &m_omega[0]);
 }

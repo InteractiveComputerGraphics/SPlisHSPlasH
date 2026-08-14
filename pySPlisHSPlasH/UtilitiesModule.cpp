@@ -284,7 +284,7 @@ void UtilitiesModule(py::module m) {
                 "color"_a = Vector4r(1., 0., 0., 0.),
                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                "samplingMode"_a = 0, "isAnimated"_a = false)
+                "samplingMode"_a = 1, "isAnimated"_a = false)
         .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
         .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
         .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)

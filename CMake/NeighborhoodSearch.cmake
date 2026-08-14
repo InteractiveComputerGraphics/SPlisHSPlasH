@@ -1,10 +1,14 @@
 include(ExternalProject)
 
-option(USE_GPU_NEIGHBORHOOD_SEARCH "Use GPU neighborhood search" OFF)
+set(NeighborhoodSearch "CompactNSearch" CACHE STRING "NeighborhoodSearch chosen by the user at CMake configure time")
+set_property(CACHE NeighborhoodSearch PROPERTY STRINGS CompactNSearch cuNSearch TreeNSearch)
 
-if(USE_GPU_NEIGHBORHOOD_SEARCH)
 
-	message(STATUS "Use cuNSearch for neighborhood search")
+if ("${NeighborhoodSearch}" STREQUAL "cuNSearch")
+
+	message(STATUS "Use neighborhood search: cuNSearch")
+	
+	add_definitions( -DUSE_cuNSearch)	
 
 	if(USE_DOUBLE_PRECISION)
 		message("Use cuNSearch with single precision to get a better performance.")
@@ -26,7 +30,11 @@ if(USE_GPU_NEIGHBORHOOD_SEARCH)
 	set(NEIGBORHOOD_SEARCH_LINK_DEPENDENCIES general ${CUDA_LIBRARIES})
 	add_compile_options(-DGPU_NEIGHBORHOOD_SEARCH)
 
-else(USE_GPU_NEIGHBORHOOD_SEARCH)
+elseif ("${NeighborhoodSearch}" STREQUAL "CompactNSearch")
+	
+	message(STATUS "Use neighborhood search: CompactNSearch")
+	
+	add_definitions( -DUSE_CompactNSearch)	
 
 	## CompactNSearch
 	ExternalProject_Add(
@@ -42,7 +50,24 @@ else(USE_GPU_NEIGHBORHOOD_SEARCH)
 		add_definitions( -D_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 	endif() 
 
-endif(USE_GPU_NEIGHBORHOOD_SEARCH)
+elseif ("${NeighborhoodSearch}" STREQUAL "TreeNSearch")
+	
+	message(STATUS "Use neighborhood search: TreeNSearch")
+	
+	add_definitions( -DUSE_TreeNSearch)	
+	
+	## TreeNSearch
+	ExternalProject_Add(
+	   Ext_NeighborhoodSearch
+	   PREFIX "${CMAKE_BINARY_DIR}/extern/TreeNSearch"
+	   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/TreeNSearch.git
+	   GIT_TAG "61cf111f65c01f1d71fb5023ac72ce6bb0e8d6f9"
+	   INSTALL_DIR ${ExternalInstallDir}/NeighborhoodSearch
+	   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/NeighborhoodSearch -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION} -DBUILD_DEMO:BOOL=OFF -DCMAKE_DEBUG_POSTFIX=_d -DCMAKE_RELWITHDEBINFO_POSTFIX=_rd -DCMAKE_MINSIZEREL_POSTFIX=_ms
+	)
+	set(NEIGHBORHOOD_ASSEMBLY_NAME TreeNSearch)
+	
+endif()
 
 ExternalProject_Get_Property(
 	Ext_NeighborhoodSearch

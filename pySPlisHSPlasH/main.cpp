@@ -16,6 +16,7 @@ namespace py = pybind11;
 
 void AnimationFieldModule(py::module);
 void ParameterObjectModule(py::module m);
+void NeighborhoodSearchModule(py::module);
 void BoundaryModelModule(py::module);
 void EmitterModule(py::module);
 void FluidModelModule(py::module);
@@ -48,6 +49,7 @@ PYBIND11_MODULE(pysplishsplash, m) {
     ParameterObjectModule(m);
     SPHKernelsModule(m);
     AnimationFieldModule(m);
+    NeighborhoodSearchModule(m);
     UtilitiesModule(m);
     BoundaryModelModule(m);
     EmitterModule(m);

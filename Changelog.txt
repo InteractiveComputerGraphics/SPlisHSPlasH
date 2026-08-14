@@ -1,4 +1,9 @@
-2.17.0
+2.18.0
+	- extended debug tools by output of particle indices
+	- added AVX implementation of XSPH
+	- added new neighborhood search: TreeNSearch
+	
+2.17.0	
 	- added implementation of turbulence method: Kee et al., "Turbulent Details Simulation for SPH Fluids via Vorticity Refinement", Computer Graphics Forum, 2023 (thanks to Min Hyung Kee)	
 
 2.16.1

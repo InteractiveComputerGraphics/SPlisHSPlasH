@@ -287,7 +287,7 @@ namespace SPH
 		std::vector<FluidModel*> m_fluidModels;
 		std::vector<BoundaryModel*> m_boundaryModels;
 		std::vector<FluidInfo> m_fluidInfos;
-		NeighborhoodSearch *m_neighborhoodSearch;
+		NeighborhoodSearchWrapper *m_neighborhoodSearch;
 		AnimationFieldSystem *m_animationFieldSystem;
 		int m_cflMethod;
 		Real m_cflFactor;
@@ -308,6 +308,7 @@ namespace SPH
 		unsigned int m_stepsPerZSort;
 		unsigned int m_counter;
 		std::function<void()> m_simulationMethodChanged;		
+		std::function<void()> m_zSortCB;
 		int m_boundaryHandlingMethod;
 		std::string m_cachePath;
 		bool m_useCache;
@@ -351,12 +352,12 @@ namespace SPH
 
 		void addFluidModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, unsigned int* fluidObjectIds, const unsigned int nMaxEmitterParticles);
 		FluidModel *getFluidModel(const unsigned int index) { return m_fluidModels[index]; }
-		FluidModel *getFluidModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<FluidModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
+		FluidModel *getFluidModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<FluidModel*>(m_neighborhoodSearch->getMapPointSet_UserData()[pointSetIndex]); }
 		const unsigned int numberOfFluidModels() const { return static_cast<unsigned int>(m_fluidModels.size()); }
 
 		void addBoundaryModel(BoundaryModel *bm);
 		BoundaryModel *getBoundaryModel(const unsigned int index) { return m_boundaryModels[index]; }
-		BoundaryModel *getBoundaryModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<BoundaryModel*>(m_neighborhoodSearch->point_set(pointSetIndex).get_user_data()); }
+		BoundaryModel *getBoundaryModelFromPointSet(const unsigned int pointSetIndex) { return static_cast<BoundaryModel*>(m_neighborhoodSearch->getMapPointSet_UserData()[pointSetIndex]); }
 		const unsigned int numberOfBoundaryModels() const { return static_cast<unsigned int>(m_boundaryModels.size()); }
 		void updateBoundaryVolume();
 
@@ -385,11 +386,13 @@ namespace SPH
 		void setSimulationMethod(const int val);
 
 		void setSimulationMethodChangedCallback(std::function<void()> const& callBackFct);
+		void setZSortCallback(std::function<void()> const& callBackFct);
 
 		TimeStep *getTimeStep() { return m_timeStep; }
 
-		bool is2DSimulation() { return m_sim2D; }
-		bool zSortEnabled() { return m_enableZSort; }
+		bool is2DSimulation() const { return m_sim2D; }
+		bool zSortEnabled() const { return m_enableZSort; }
+		unsigned int stepsPerZSort() const { return m_stepsPerZSort; }
 
 		unsigned int stepsPerZSort() { return m_stepsPerZSort; }
 
@@ -418,7 +421,7 @@ namespace SPH
 		void emitParticles();
 		virtual void emittedParticles(FluidModel *model, const unsigned int startIndex);
 
-		NeighborhoodSearch* getNeighborhoodSearch() { return m_neighborhoodSearch; }
+		NeighborhoodSearchWrapper* getNeighborhoodSearch() { return m_neighborhoodSearch; }
 
 		void setCachePath(const std::string& cachePath) { m_cachePath = cachePath; }
 		const std::string& getCachePath() const { return m_cachePath; }
@@ -447,29 +450,24 @@ namespace SPH
 		DebugTools* getDebugTools() { return m_debugTools; }
 		void createDebugTools() { m_debugTools = new DebugTools(); m_debugTools->init(); }
 #endif
-
 		FORCE_INLINE unsigned int numberOfPointSets() const
 		{
-			return static_cast<unsigned int>(m_neighborhoodSearch->n_point_sets());
+			return m_neighborhoodSearch->numberOfPointSets();
 		}
 
 		FORCE_INLINE unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index) const
 		{
-			return static_cast<unsigned int>(m_neighborhoodSearch->point_set(pointSetIndex).n_neighbors(neighborPointSetIndex, index));
+			return m_neighborhoodSearch->numberOfNeighbors(pointSetIndex, neighborPointSetIndex, index);
 		}
 
 		FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index, const unsigned int k) const
 		{
-			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor(neighborPointSetIndex, index, k);
+			return m_neighborhoodSearch->getNeighbor(pointSetIndex, neighborPointSetIndex, index, k);
 		}
 
-		FORCE_INLINE const unsigned int * getNeighborList(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index) const
+		FORCE_INLINE const unsigned int* getNeighborList(const unsigned int pointSetIndex, const unsigned int neighborPointSetIndex, const unsigned int index) const
 		{
-			#ifdef GPU_NEIGHBORHOOD_SEARCH
-			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index);
-			#else
-			return m_neighborhoodSearch->point_set(pointSetIndex).neighbor_list(neighborPointSetIndex, index).data();
-			#endif
+			return m_neighborhoodSearch->getNeighborList(pointSetIndex, neighborPointSetIndex, index);
 		}
 	};
 }

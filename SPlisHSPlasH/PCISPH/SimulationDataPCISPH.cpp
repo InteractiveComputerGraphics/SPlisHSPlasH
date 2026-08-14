@@ -123,6 +123,7 @@ void SimulationDataPCISPH::reset()
 void SimulationDataPCISPH::performNeighborhoodSearchSort()
 {
 	Simulation *sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	for (unsigned int i = 0; i < nModels; i++)
@@ -131,12 +132,11 @@ void SimulationDataPCISPH::performNeighborhoodSearchSort()
 		const unsigned int numPart = fm->numActiveParticles();
 		if (numPart != 0)
 		{
-			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
-			d.sort_field(&m_predX[i][0]);
-			d.sort_field(&m_predV[i][0]);
-			d.sort_field(&m_densityAdv[i][0]);
-			d.sort_field(&m_pressure[i][0]);
-			d.sort_field(&m_pressureAccel[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_predX[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_predV[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_densityAdv[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_pressure[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_pressureAccel[i][0]);
 		}
 	}
 }

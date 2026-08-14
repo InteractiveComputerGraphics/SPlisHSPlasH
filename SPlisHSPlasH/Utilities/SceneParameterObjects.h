@@ -351,7 +351,7 @@ namespace Utilities
 			dynamic = false;
 			isWall = false;
 			color = Vector4r(1.0, 0.0, 0.0, 0.0);
-			samplingMode = 0;
+			samplingMode = 1;
 			isAnimated = false;
 			// Maps
 			mapFile = "";

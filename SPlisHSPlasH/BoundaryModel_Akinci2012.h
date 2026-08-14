@@ -6,6 +6,7 @@
 
 #include "BoundaryModel.h"
 #include "SPHKernels.h"
+#include "NeighborhoodSearch.h"
 
 
 namespace SPH 
@@ -39,7 +40,7 @@ namespace SPH
 			unsigned int getPointSetIndex() const { return m_pointSetIndex; }
 			bool isSorted() const { return m_sorted; }
 
-			void computeBoundaryVolume();
+			void computeBoundaryVolume(const NeighborhoodSearchWrapper *ns, const unsigned int pointSetIndex);
 			void resize(const unsigned int numBoundaryParticles);
 
 			virtual void reset();
@@ -50,6 +51,13 @@ namespace SPH
 			virtual void loadState(BinaryFileReader &binReader);
 
 			void initModel(RigidBodyObject *rbo, const unsigned int numBoundaryParticles, Vector3r *boundaryParticles);
+
+			/** This function is called after the simulation scene is loaded and all
+			* parameters are initialized. While reading a scene file several parameters
+			* can change. The deferred init function should initialize all values which
+			* depend on these parameters.
+			*/
+			virtual void deferredInit();
 			
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{

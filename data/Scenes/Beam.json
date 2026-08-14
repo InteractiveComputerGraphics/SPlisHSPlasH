@@ -1,23 +1,23 @@
 {
-	"Configuration":
+	"Configuration": 
 	{
 		"timeStepSize": 0.002,
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 1,
 		"simulationMethod": 0,
-		"gravitation": [0,-9.81,0],
-		"cflMethod": 0,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 0, 
 		"cflFactor": 1,
 		"cflMaxTimeStepSize": 0.005,
 		"enableZSort": true,
 		"boundaryHandlingMethod": 2,
 		"enablePartioExport": false,
-		"WCSPH":
+		"WCSPH": 
 		{
 			"stiffness": 0,
 			"exponent": 1
 		},
-		"DFSPH":
+		"DFSPH": 
 		{
 			"minIterations": 2,
 			"maxIterations": 100,
@@ -30,20 +30,20 @@
 	"Materials": [
 		{
 			"id": "Fluid",
-			"density0": 1000,
+			"density0": 1000, 
 			"elasticityMethod": 3,
 			"viscosityMethod": 1,
 			"Standard viscosity":
             {
                 "viscosity": 0.01
             },
-			"Kugelstadt et al. 2021":
+			"Kugelstadt et al. 2021": 
 			{
 				"youngsModulus": 5000000.0,
-				"poissonsRatio": 0.33,
+				"poissonsRatio": 0.33, 
 				"alpha": 0.1,
 				"maxNeighbors": 15,
-				"fixedBoxMin" : [-10,-10,-10],
+				"fixedBoxMin" : [-10,-10,-10], 
 				"fixedBoxMax" : [-1.5,10,10]
 			}
 		}
@@ -56,3 +56,6 @@
 		}
 	]
 }
+
+
+

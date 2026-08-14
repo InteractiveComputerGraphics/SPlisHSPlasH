@@ -14,7 +14,7 @@ namespace SPH
 			SimulatorBase *m_simulatorBase;
 
 		public:
-			PartioViewer_GUI_Base() {};
+			PartioViewer_GUI_Base() { m_simulatorBase = nullptr; };
 			virtual ~PartioViewer_GUI_Base() {};
 
 		public:

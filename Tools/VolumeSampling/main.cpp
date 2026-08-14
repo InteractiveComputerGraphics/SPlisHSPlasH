@@ -152,6 +152,14 @@ int main(int argc, char **argv)
 		LOG_INFO << "Output = " << outputFile;
 		LOG_INFO << "Mode: " << mode;
 
+#if defined(USE_cuNSearch)
+		LOG_INFO << "Neighborhood search: cuNSearch";
+#elif defined(USE_CompactNSearch)
+		LOG_INFO << "Neighborhood search: CompactNSearch";	
+#elif defined(USE_TreeNSearch)
+		LOG_INFO << "Neighborhood search: TreeNSearch";
+#endif 
+
 #ifdef DL_OUTPUT
 		std::string modelsFilePath = FileSystem::normalizePath(outputPath + "/models");
 		FileSystem::makeDirs(modelsFilePath);

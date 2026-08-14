@@ -181,6 +181,13 @@ void StaticBoundarySimulator::initBoundaryData()
 void StaticBoundarySimulator::deferredInit()
 {
 	Simulation* sim = Simulation::getCurrent();
+
+	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+	{
+		BoundaryModel* bm = sim->getBoundaryModel(i);
+		bm->deferredInit();
+	}
+
 	sim->performNeighborhoodSearchSort();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{
@@ -192,7 +199,7 @@ void StaticBoundarySimulator::deferredInit()
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();
 
-#ifdef GPU_NEIGHBORHOOD_SEARCH
+#if defined(USE_cuNSearch)
 	// copy the particle data to the GPU
 	sim->getNeighborhoodSearch()->update_point_sets();
 #endif 

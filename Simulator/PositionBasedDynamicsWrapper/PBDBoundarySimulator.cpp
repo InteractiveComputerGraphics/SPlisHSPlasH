@@ -238,6 +238,12 @@ void PBDBoundarySimulator::initBoundaryData()
 void PBDBoundarySimulator::deferredInit()
 {
 	Simulation* sim = Simulation::getCurrent();
+	for (unsigned int i = 0; i < sim->numberOfBoundaryModels(); i++)
+	{
+		BoundaryModel* bm = sim->getBoundaryModel(i);
+		bm->deferredInit();
+	}
+
 	sim->performNeighborhoodSearchSort();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 	{

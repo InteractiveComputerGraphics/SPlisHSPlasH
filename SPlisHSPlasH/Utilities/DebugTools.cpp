@@ -6,6 +6,7 @@
 using namespace SPH;
 using namespace GenParam;
 
+int DebugTools::DETERMINE_PARTICLE_INDEX = -1;
 int DebugTools::DETERMINE_THREAD_IDS = -1;
 int DebugTools::DETERMINE_NUM_NEIGHBORS = -1;
 int DebugTools::DETERMINE_VELOCITY_CHANGES = -1;
@@ -22,6 +23,7 @@ DebugTools::DebugTools() :
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		model->addField({ "particleIndices", FieldType::UInt, [this, fluidModelIndex](const unsigned int i) -> unsigned int* { return &m_indices[fluidModelIndex][i]; } });
 		model->addField({ "threadId", FieldType::UInt, [this, fluidModelIndex](const unsigned int i) -> unsigned int* { return &m_threadIds[fluidModelIndex][i]; } });
 		model->addField({ "numNeighbors", FieldType::UInt, [this, fluidModelIndex](const unsigned int i) -> unsigned int* { return &m_numNeighbors[fluidModelIndex][i]; } });
 		model->addField({ "velocityChanges", FieldType::Vector3, [this, fluidModelIndex](const unsigned int i) -> Real* { return &m_velocityChanges[fluidModelIndex][i][0]; } });
@@ -35,6 +37,7 @@ DebugTools::~DebugTools()
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
 	{
 		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		model->removeFieldByName("particleIndices");
 		model->removeFieldByName("threadId");
 		model->removeFieldByName("numNeighbors");
 		model->removeFieldByName("velocityChanges");
@@ -48,6 +51,7 @@ void DebugTools::init()
 	Simulation* sim = Simulation::getCurrent();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
+	m_indices.resize(nModels);
 	m_threadIds.resize(nModels);
 	m_numNeighbors.resize(nModels);
 	m_vOld.resize(nModels);
@@ -55,6 +59,7 @@ void DebugTools::init()
 	for (unsigned int i = 0; i < nModels; i++)
 	{
 		FluidModel* fm = sim->getFluidModel(i);
+		m_indices[i].resize(fm->numParticles(), 0);
 		m_threadIds[i].resize(fm->numParticles(), 0);
 		m_numNeighbors[i].resize(fm->numParticles(), 0);
 		m_vOld[i].resize(fm->numParticles(), Vector3r::Zero());
@@ -69,11 +74,13 @@ void SPH::DebugTools::cleanup()
 
 	for (unsigned int i = 0; i < nModels; i++)
 	{
+		m_indices[i].clear();
 		m_threadIds[i].clear();
 		m_numNeighbors[i].clear();
 		m_vOld[i].clear();
 		m_velocityChanges[i].clear();
 	}
+	m_indices.clear();
 	m_threadIds.clear();
 	m_numNeighbors.clear();
 	m_vOld.clear();
@@ -83,6 +90,10 @@ void SPH::DebugTools::cleanup()
 void DebugTools::initParameters()
 {
 	ParameterObject::initParameters();
+
+	DETERMINE_PARTICLE_INDEX = createBoolParameter("determineParticleIndices", "Determine particle indices", &m_determineIndices);
+	setGroup(DETERMINE_PARTICLE_INDEX, "Debug Tools");
+	setDescription(DETERMINE_PARTICLE_INDEX, "Determine particle indices and add a corresponding particle field.");
 
 	DETERMINE_THREAD_IDS = createBoolParameter("determineThreadIds", "Determine Thread IDs", &m_determineThreadIds);
 	setGroup(DETERMINE_THREAD_IDS, "Debug Tools");
@@ -95,6 +106,27 @@ void DebugTools::initParameters()
 	DETERMINE_VELOCITY_CHANGES = createBoolParameter("determineVelocityChanges", "Determine velocity changes", &m_determineVelocityChanges);
 	setGroup(DETERMINE_VELOCITY_CHANGES, "Debug Tools");
 	setDescription(DETERMINE_VELOCITY_CHANGES, "Determine velocity change of each particle and add a corresponding particle field.");
+}
+
+void SPH::DebugTools::determineIndices()
+{
+	Simulation* sim = Simulation::getCurrent();
+	const unsigned int nFluids = sim->numberOfFluidModels();
+
+	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nFluids; fluidModelIndex++)
+	{
+		FluidModel* model = sim->getFluidModel(fluidModelIndex);
+		const int numParticles = (int)model->numActiveParticles();
+
+		#pragma omp parallel default(shared)
+		{
+			#pragma omp for schedule(static)  
+			for (int i = 0; i < numParticles; i++)
+			{
+				m_indices[fluidModelIndex][i] = i;
+			}
+		}
+	}
 }
 
 void SPH::DebugTools::determineThreadIds()
@@ -170,6 +202,9 @@ void SPH::DebugTools::determineVelocityChanges()
 
 void DebugTools::step()
 {
+	if (m_determineIndices)
+		determineIndices();
+
 	if (m_determineThreadIds)
 		determineThreadIds();
 
@@ -190,6 +225,7 @@ void DebugTools::reset()
 		FluidModel* fm = sim->getFluidModel(i);
 		for (unsigned int j = 0; j < fm->numParticles(); j++)
 		{
+			m_indices[i][j] = 0;
 			m_threadIds[i][j] = 0;
 			m_numNeighbors[i][j] = 0;
 			m_vOld[i][j].setZero();
@@ -201,6 +237,7 @@ void DebugTools::reset()
 void DebugTools::performNeighborhoodSearchSort()
 {
 	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	for (unsigned int i = 0; i < nModels; i++)
@@ -209,8 +246,7 @@ void DebugTools::performNeighborhoodSearchSort()
 		const unsigned int numPart = fm->numActiveParticles();
 		if (numPart != 0)
 		{
-			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
-			d.sort_field(&m_vOld[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_vOld[i][0]);
 		}
 	}
 }

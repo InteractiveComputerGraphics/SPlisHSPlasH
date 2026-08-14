@@ -33,6 +33,7 @@ FluidModel::FluidModel() :
 	m_v(),
 	m_density(),
 	m_particleId(),
+	m_particleId_to_index(),
 	m_objectId(),
 	m_objectId0(),
 	m_particleState()
@@ -100,6 +101,11 @@ void FluidModel::init()
 
 void FluidModel::deferredInit()
 {
+	// Fluids 
+	Simulation *sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	m_pointSetIndex = ns->addPointSet(&getPosition(0)[0], m_numActiveParticles0, true, true, true, this);
+
 	if (m_xsph)
 		m_xsph->deferredInit();
 	if (m_surfaceTension)
@@ -197,6 +203,7 @@ void FluidModel::reset()
 {
 	setNumActiveParticles(m_numActiveParticles0);
 	const unsigned int nPoints = numActiveParticles();
+	m_particleId_to_index.resize(numParticles());
 
 	// use numParticles since numActiveParticles is already reset
 	for (unsigned int i = 0; i < numParticles(); i++)		
@@ -208,12 +215,14 @@ void FluidModel::reset()
 		m_objectId[i] = m_objectId0[i];
 		m_density[i] = 0.0;
 		m_particleId[i] = i;
+		m_particleId_to_index[i] = i;
 		m_particleState[i] = ParticleState::Active;
 	}
 
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-	if (neighborhoodSearch->point_set(m_pointSetIndex).n_points() != nPoints)
-		neighborhoodSearch->resize_point_set(m_pointSetIndex, &getPosition(0)[0], nPoints);
+	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	if (ns->numberOfPointsInSet(m_pointSetIndex) != nPoints)
+		ns->resizeSet(m_pointSetIndex, &getPosition(0)[0], nPoints);
 
 	if (m_surfaceTension)
 		m_surfaceTension->reset();
@@ -265,6 +274,7 @@ void FluidModel::resizeFluidParticles(const unsigned int newSize)
 	m_objectId.resize(newSize);
 	m_objectId0.resize(newSize);
 	m_particleState.resize(newSize, ParticleState::Active);
+	m_particleId_to_index.resize(newSize);
 }
 
 void FluidModel::releaseFluidParticles()
@@ -280,6 +290,7 @@ void FluidModel::releaseFluidParticles()
 	m_objectId.clear();
 	m_objectId0.clear();
 	m_particleState.clear();
+	m_particleId_to_index.clear();
 }
 
 void FluidModel::initModel(const std::string &id, const unsigned int nFluidParticles, Vector3r* fluidParticles, Vector3r* fluidVelocities, unsigned int* fluidObjectIds, const unsigned int nMaxEmitterParticles)
@@ -302,6 +313,7 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 			getAcceleration(i).setZero();
 			m_density[i] = 0.0;
 			m_particleId[i] = i;
+			m_particleId_to_index[i] = i;
 			m_objectId[i] = fluidObjectIds[i];
 			m_objectId0[i] = fluidObjectIds[i];
 			if (m_particleState[i] != ParticleState::Fixed)
@@ -318,10 +330,6 @@ void FluidModel::initModel(const std::string &id, const unsigned int nFluidParti
 	// initialize masses
 	initMasses();
 
-	// Fluids 
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-	m_pointSetIndex = neighborhoodSearch->add_point_set(&getPosition(0)[0], nFluidParticles, true, true, true, this);
-
 	m_numActiveParticles0 = nFluidParticles;
 	m_numActiveParticles = m_numActiveParticles0;
 }
@@ -333,17 +341,19 @@ void FluidModel::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
+	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_pointSetIndex, &m_x[0]);
+	ns->applyZSort(m_pointSetIndex, &m_v[0]);
+	ns->applyZSort(m_pointSetIndex, &m_a[0]);
+	ns->applyZSort(m_pointSetIndex, &m_masses[0]);
+	ns->applyZSort(m_pointSetIndex, &m_density[0]);
+	ns->applyZSort(m_pointSetIndex, &m_particleId[0]);
+	ns->applyZSort(m_pointSetIndex, &m_objectId[0]);
+	ns->applyZSort(m_pointSetIndex, &m_particleState[0]);
 
-	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);
-	d.sort_field(&m_x[0]);
-	d.sort_field(&m_v[0]);
-	d.sort_field(&m_a[0]);
-	d.sort_field(&m_masses[0]);
-	d.sort_field(&m_density[0]);
-	d.sort_field(&m_particleId[0]);
-	d.sort_field(&m_objectId[0]);
-	d.sort_field(&m_particleState[0]);
+	for (unsigned int i = 0; i < numPart; i++)
+		m_particleId_to_index[m_particleId[i]] = i;
 
 	if (m_viscosity)
 		m_viscosity->performNeighborhoodSearchSort();
@@ -732,9 +742,10 @@ void SPH::FluidModel::saveState(BinaryFileWriter &binWriter)
 void SPH::FluidModel::loadState(BinaryFileReader &binReader)
 {
 	binReader.read(m_numActiveParticles);
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-	neighborhoodSearch->update_point_sets();
-	neighborhoodSearch->resize_point_set(m_pointSetIndex, &getPosition(0)[0], m_numActiveParticles);
+	Simulation *sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->updatePointSets();
+	ns->resizeSet(m_pointSetIndex, &getPosition(0)[0], m_numActiveParticles);
 
 	binReader.readBuffer((char*)m_particleState.data(), m_numActiveParticles * sizeof(ParticleState));
 

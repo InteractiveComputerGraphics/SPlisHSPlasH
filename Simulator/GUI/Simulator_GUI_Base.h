@@ -27,6 +27,7 @@ namespace SPH
 			virtual void run() {}
 			virtual void stop() {}
 			virtual void addKeyFunc(int key, int modifiers, std::function<void()> const& func) {}
+			virtual void updateZSort() {}
 
 			SPH::SimulatorBase * getSimulatorBase() const { return m_simulatorBase; }
 	};

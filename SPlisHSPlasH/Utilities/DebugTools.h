@@ -12,6 +12,8 @@ namespace SPH
 	protected:
 		bool m_determineThreadIds;
 		std::vector<std::vector<unsigned int>> m_threadIds;
+		bool m_determineIndices;
+		std::vector<std::vector<unsigned int>> m_indices;
 		bool m_determineNumNeighbors;
 		std::vector<std::vector<unsigned int>> m_numNeighbors;
 		bool m_determineVelocityChanges;
@@ -20,11 +22,13 @@ namespace SPH
 
 		virtual void initParameters();
 
+		void determineIndices();
 		void determineThreadIds();
 		void determineNumNeighbors();
 		void determineVelocityChanges();
 
 	public:
+		static int DETERMINE_PARTICLE_INDEX;
 		static int DETERMINE_THREAD_IDS;
 		static int DETERMINE_NUM_NEIGHBORS;
 		static int DETERMINE_VELOCITY_CHANGES;

@@ -76,7 +76,8 @@ Simulation::Simulation ()
 	m_neighborhoodSearch = nullptr;
 	m_timeStep = nullptr;
 	m_simulationMethod = SimulationMethods::NumSimulationMethods;
-	m_simulationMethodChanged = NULL;
+	m_simulationMethodChanged = nullptr;
+	m_zSortCB = nullptr;	
 
 	m_simulationIsInitialized = false;
 	m_sim2D = false;
@@ -86,6 +87,15 @@ Simulation::Simulation ()
 
 	m_animationFieldSystem = new AnimationFieldSystem();
 	m_boundaryHandlingMethod = static_cast<int>(BoundaryHandlingMethods::Bender2019);
+
+#if defined(USE_TreeNSearch)
+	m_stepsPerZSort = 10;
+#else 
+	m_stepsPerZSort = 500;
+#endif
+#ifdef USE_DEBUG_TOOLS
+	m_debugTools = nullptr;
+#endif
 }
 
 Simulation::~Simulation () 
@@ -143,16 +153,12 @@ void Simulation::init(const Real particleRadius, const bool sim2D)
 
 	// Initialize neighborhood search
 	if (m_neighborhoodSearch == NULL)
-#ifdef GPU_NEIGHBORHOOD_SEARCH
-		m_neighborhoodSearch = new NeighborhoodSearch(m_supportRadius);
-#else
-		m_neighborhoodSearch = new NeighborhoodSearch(m_supportRadius, false);
-#endif
-	m_neighborhoodSearch->set_radius(m_supportRadius);
+		m_neighborhoodSearch = new NeighborhoodSearchWrapper(m_supportRadius);
 }
 
 void Simulation::deferredInit()
 {
+	m_neighborhoodSearch->setSearchRadius(m_supportRadius);
 	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
 	{
 		FluidModel* fm = getFluidModel(i);
@@ -614,7 +620,7 @@ void Simulation::performNeighborhoodSearch()
 		m_counter++;
 	}
 	START_TIMING("neighborhood_search");
-	m_neighborhoodSearch->find_neighbors();
+	m_neighborhoodSearch->findNeighbors();
 	STOP_TIMING_AVG;
 }
 
@@ -623,7 +629,7 @@ void Simulation::performNeighborhoodSearchSort()
 	if (!zSortEnabled())
 		return;
 
-	m_neighborhoodSearch->z_sort();
+	m_neighborhoodSearch->zSort();
 
 	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
 	{
@@ -639,12 +645,20 @@ void Simulation::performNeighborhoodSearchSort()
 #ifdef USE_DEBUG_TOOLS
 	m_debugTools->performNeighborhoodSearchSort();
 #endif
+
+	if (m_zSortCB != nullptr)
+		m_zSortCB();
 }
 
 void Simulation::setSimulationMethodChangedCallback(std::function<void()> const& callBackFct)
 {
 	m_simulationMethodChanged = callBackFct;
 }
+
+void Simulation::setZSortCallback(std::function<void()> const& callBackFct)
+{
+	m_zSortCB = callBackFct;
+}	
 
 void Simulation::setSimulationInitialized(int val) 
 { 
@@ -698,60 +712,57 @@ void Simulation::updateBoundaryVolume()
 	if (m_neighborhoodSearch == nullptr)
 		return;
 
+	if (getBoundaryHandlingMethod() != BoundaryHandlingMethods::Akinci2012)
+		return;
+
 	Simulation *sim = Simulation::getCurrent();
 	const unsigned int nFluids = sim->numberOfFluidModels();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Compute value psi for boundary particles (boundary handling)
-	// (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012
+	// (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012)
 	//////////////////////////////////////////////////////////////////////////
 
-	// Search boundary neighborhood
+	// Search boundary neighborhood only for static boundaries
+
+	// create a local neighborhood search 
+	NeighborhoodSearchWrapper* ns = new NeighborhoodSearchWrapper(m_supportRadius);
 
 	// Activate only static boundaries
 	LOG_INFO << "Initialize boundary volume";
-	m_neighborhoodSearch->set_active(false);
 	for (unsigned int i = 0; i < numberOfBoundaryModels(); i++)
 	{
-		if (!getBoundaryModel(i)->getRigidBodyObject()->isDynamic() && !getBoundaryModel(i)->getRigidBodyObject()->isAnimated())
-			m_neighborhoodSearch->set_active(i + nFluids, true, true);
+		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(i));
+		if (!bm->getRigidBodyObject()->isDynamic() && !bm->getRigidBodyObject()->isAnimated())
+			ns->addPointSet(&bm->getPosition(0)[0], bm->numberOfParticles(), true, true, true, bm);
 	}
 
-	//performNeighborhoodSearchSort();
-	m_neighborhoodSearch->find_neighbors();
+	ns->findNeighbors();
 
 	// Boundary objects
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
-		if (!getBoundaryModel(body)->getRigidBodyObject()->isDynamic() && !getBoundaryModel(body)->getRigidBodyObject()->isAnimated())
-			static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body))->computeBoundaryVolume();
+		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body));
+		if (!bm->getRigidBodyObject()->isDynamic() && !bm->getRigidBodyObject()->isAnimated())
+			bm->computeBoundaryVolume(ns, body);
 	}
+	delete ns;
 
 	////////////////////////////////////////////////////////////////////////// 
 	// Compute boundary psi for all dynamic bodies
 	//////////////////////////////////////////////////////////////////////////
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
-		// Deactivate all
-		m_neighborhoodSearch->set_active(false);
-
 		// Only activate next dynamic body
-		if (getBoundaryModel(body)->getRigidBodyObject()->isDynamic() || getBoundaryModel(body)->getRigidBodyObject()->isAnimated())
+		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body));
+		if (bm->getRigidBodyObject()->isDynamic() || bm->getRigidBodyObject()->isAnimated())
 		{
-			m_neighborhoodSearch->set_active(body + nFluids, true, true);
-			m_neighborhoodSearch->find_neighbors();
-			static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body))->computeBoundaryVolume();
+			NeighborhoodSearchWrapper* ns = new NeighborhoodSearchWrapper(m_supportRadius);
+			ns->addPointSet(&bm->getPosition(0)[0], bm->numberOfParticles(), true, true, true, bm);
+			ns->findNeighbors();
+			bm->computeBoundaryVolume(ns, 0);
+			delete ns;
 		}
-	}
-
-	// Activate only fluids 
-	m_neighborhoodSearch->set_active(false);
-	for (unsigned int i = 0; i < numberOfFluidModels(); i++)
-	{
-		for (unsigned int j = 0; j < numberOfFluidModels(); j++)
-			m_neighborhoodSearch->set_active(i, j, true);
-		for (unsigned int j = numberOfFluidModels(); j < m_neighborhoodSearch->point_sets().size(); j++)
-			m_neighborhoodSearch->set_active(i, j, true);
 	}
 }
 

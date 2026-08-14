@@ -303,8 +303,8 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 
 	TimeManager::getCurrent()->setTimeStepSize(static_cast<Real>(0.01));
 
-	// perform simulation for 10 steps and save state
-	base->getBoundarySimulator()->initBoundaryData();
+	// perform simulation for 5 steps and save state
+	base->deferredInit();
 	for (unsigned int i = 0; i < 5; i++)
 		base->timeStepNoGUI();
 
@@ -368,9 +368,9 @@ TEST_CASE("Read/Write state file tests", "[read_write_state]")
 	sim->setValue<bool>(Simulation::ENABLE_Z_SORT, false);
 	sim->setValue<unsigned int>(Simulation::STEPS_PER_Z_SORT, 123);
 
-	base->getBoundarySimulator()->initBoundaryData();
+	base->deferredInit();
 	base->loadState(stateFile);
-	sim->getNeighborhoodSearch()->set_radius(sim->getSupportRadius());
+	sim->getNeighborhoodSearch()->setSearchRadius(sim->getSupportRadius());
 	
 	sim->performNeighborhoodSearch();
 	sim->getTimeStep()->computeDensities(0);

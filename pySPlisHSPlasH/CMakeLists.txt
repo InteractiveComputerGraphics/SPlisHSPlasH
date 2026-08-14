@@ -1,6 +1,7 @@
 pybind11_add_module(pysplishsplash
   main.cpp
   AnimationFieldModule.cpp
+  NeighborhoodSearchModule.cpp
   BoundaryModelModule.cpp
   ParameterObjectModule.cpp
   UtilitiesModule.cpp
@@ -53,6 +54,7 @@ if (USE_EMBEDDED_PYTHON)
 		Embedded.h
 		
 		AnimationFieldModule.cpp
+		NeighborhoodSearchModule.cpp
 		BoundaryModelModule.cpp
 		ParameterObjectModule.cpp
 		UtilitiesModule.cpp

@@ -45,11 +45,14 @@ void BoundaryModel_Akinci2012::reset()
 	}
 }
 
-void BoundaryModel_Akinci2012::computeBoundaryVolume()
+/** Compute value pseudo volume for boundary particles
+* (see Akinci et al. "Versatile rigid - fluid coupling for incompressible SPH", Siggraph 2012).\n
+* Note that since typically a local neighborhood search is used, the pointSetIndex is not 
+* equal to the global m_pointSetIndex.
+*/
+void BoundaryModel_Akinci2012::computeBoundaryVolume(const NeighborhoodSearchWrapper* ns, const unsigned int pointSetIndex)
 {
 	Simulation *sim = Simulation::getCurrent();
-	const unsigned int nFluids = sim->numberOfFluidModels();
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
 
 	const unsigned int numBoundaryParticles = numberOfParticles();
 
@@ -59,12 +62,12 @@ void BoundaryModel_Akinci2012::computeBoundaryVolume()
 		for (int i = 0; i < (int)numBoundaryParticles; i++)
 		{
 			Real delta = sim->W_zero();
-			for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
+			for (unsigned int pid = 0; pid < ns->numberOfPointSets(); pid++)
 			{
-				BoundaryModel_Akinci2012 *bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(sim->getBoundaryModelFromPointSet(pid));
-				for (unsigned int j = 0; j < neighborhoodSearch->point_set(m_pointSetIndex).n_neighbors(pid, i); j++)
+				BoundaryModel_Akinci2012 *bm_neighbor = static_cast<BoundaryModel_Akinci2012*>(static_cast<BoundaryModel*>(ns->getMapPointSet_UserData()[pid]));
+				for (unsigned int j = 0; j < ns->numberOfNeighbors(pointSetIndex, pid, i); j++)
 				{
-					const unsigned int neighborIndex = neighborhoodSearch->point_set(m_pointSetIndex).neighbor(pid, i, j);
+					const unsigned int neighborIndex = ns->getNeighbor(pointSetIndex, pid, i, j);
 					delta += sim->W(getPosition(i) - bm_neighbor->getPosition(neighborIndex));
 				}
 			}
@@ -104,9 +107,6 @@ void BoundaryModel_Akinci2012::initModel(RigidBodyObject *rbo, const unsigned in
 		}
 	}
 	m_rigidBody = rbo;
-
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-	m_pointSetIndex = neighborhoodSearch->add_point_set(&m_x[0][0], m_x.size(), m_rigidBody->isDynamic() || m_rigidBody->isAnimated(), false, true, this);
 }
 
 void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
@@ -117,13 +117,11 @@ void BoundaryModel_Akinci2012::performNeighborhoodSearchSort()
 	if ((numPart == 0) || (!m_rigidBody->isDynamic() && !m_rigidBody->isAnimated() && m_sorted))
 		return;
 
-	NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-
-	auto const& d = neighborhoodSearch->point_set(m_pointSetIndex);  
-	d.sort_field(&m_x0[0]);
-	d.sort_field(&m_x[0]);
-	d.sort_field(&m_v[0]);
-	d.sort_field(&m_V[0]);
+	NeighborhoodSearchWrapper *ns = Simulation::getCurrent()->getNeighborhoodSearch();
+	ns->applyZSort(m_pointSetIndex, &m_x0[0]);
+	ns->applyZSort(m_pointSetIndex, &m_x[0]);
+	ns->applyZSort(m_pointSetIndex, &m_v[0]);
+	ns->applyZSort(m_pointSetIndex, &m_V[0]);
 	m_sorted = true;
 }
 
@@ -145,4 +143,11 @@ void SPH::BoundaryModel_Akinci2012::resize(const unsigned int numBoundaryParticl
 	m_x.resize(numBoundaryParticles);
 	m_v.resize(numBoundaryParticles);
 	m_V.resize(numBoundaryParticles);
+}
+
+void BoundaryModel_Akinci2012::deferredInit()
+{
+	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	m_pointSetIndex = ns->addPointSet(&m_x[0][0], m_x.size(), m_rigidBody->isDynamic() || m_rigidBody->isAnimated(), false, true, this);
 }

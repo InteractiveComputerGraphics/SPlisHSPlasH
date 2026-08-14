@@ -4,7 +4,7 @@
 #include "Utilities/Timing.h"
 #include "Utilities/FileSystem.h"
 #include "extern/cxxopts/cxxopts.hpp"
-#include "CompactNSearch.h"
+#include "SPlisHSPlasH/NeighborhoodSearch.h"
 #include "Utilities/StringTools.h"
 #include "SPlisHSPlasH/SPHKernels.h"
 #include "FoamKernel.h"
@@ -87,7 +87,7 @@ Vector3r bbMin(Vector3r::Constant(-std::numeric_limits<Real>::max()));
 Vector3r bbMax(Vector3r::Constant(std::numeric_limits<Real>::max()));
 enum class BbType { Kill, Lifesteal, Clamp };
 BbType bbType = BbType::Lifesteal;
-CompactNSearch::NeighborhoodSearch *neighborhoodSearch;
+NeighborhoodSearchWrapper *neighborhoodSearch;
 std::vector<Vector3r> x0, v0, normals;
 std::vector<Real> densities;
 std::vector<Vector3r> fx, fv;
@@ -126,29 +126,15 @@ std::vector<std::vector<Real>> flifetimePerThread;
 std::vector<std::vector<unsigned char>> particleTypePerThread;
 std::vector<std::array<unsigned int, maxNumTypes>> numParticlesOfTypePerThread;
 
-inline unsigned int numberOfPointSets() 
+
+inline unsigned int numberOfNeighbors(const unsigned int neighborPointSetIndex, const unsigned int index)
 {
-	return static_cast<unsigned int>(neighborhoodSearch->n_point_sets());
+	return neighborhoodSearch->numberOfNeighbors(0, neighborPointSetIndex, index);
 }
 
-inline unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index)
+inline unsigned int getNeighbor(const unsigned int neighborPointSetIndex, const unsigned int index, const unsigned int k)
 {
-	return static_cast<unsigned int>(neighborhoodSearch->point_set(0).n_neighbors(pointSetIndex, index));
-}
-
-inline unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int k)
-{
-	return neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
-}
-
-inline unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index, const unsigned int neighborPointSetIndex)
-{
-	return static_cast<unsigned int>(neighborhoodSearch->point_set(pointSetIndex).n_neighbors(neighborPointSetIndex, index)); 
-} 			
-
-inline unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int neighborPointSetIndex, const unsigned int k)
-{ 
-	return neighborhoodSearch->point_set(pointSetIndex).neighbor(neighborPointSetIndex, index, k); 
+	return neighborhoodSearch->getNeighbor(0, neighborPointSetIndex, index, k);
 }
 
 
@@ -496,16 +482,15 @@ void queryValues(Real &vDiffAvgMax, Real & omegaDiffAvgMax, Real &curvatureAvgMa
 		START_TIMING("iteration");
 		if (neighborhoodSearch == nullptr)
 		{
-			neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(supportRadius, false);
-			neighborhoodSearch->set_radius(supportRadius);
+			neighborhoodSearch = new NeighborhoodSearchWrapper(supportRadius);
 			// Fluids 
-			neighborhoodSearch->add_point_set(&x0[0][0], x0.size(), true, true);
+			neighborhoodSearch->addPointSet(&x0[0][0], x0.size(), true, true, true);
 		}
 		else
-			neighborhoodSearch->resize_point_set(0, &x0[0][0], x0.size());
+			neighborhoodSearch->resizeSet(0, &x0[0][0], x0.size());
 
 		START_TIMING("neighborhoodSearch");
-		neighborhoodSearch->find_neighbors();
+		neighborhoodSearch->findNeighbors();
 		STOP_TIMING_AVG
 
 		START_TIMING("determineValues");
@@ -748,19 +733,29 @@ void generateFoamFiles()
 		// init neighborhood search
 		if (neighborhoodSearch == NULL)
 		{
-			neighborhoodSearch = new CompactNSearch::NeighborhoodSearch(supportRadius, false);
-			neighborhoodSearch->set_radius(supportRadius);
+			neighborhoodSearch = new NeighborhoodSearchWrapper(supportRadius);
 			// Fluid 
-			neighborhoodSearch->add_point_set(&x0[0][0], x0.size(), true, true);
-			neighborhoodSearch->set_active(0u, 0u, true);
+			neighborhoodSearch->addPointSet(&x0[0][0], x0.size(), true, true, true);
+
+#if defined(USE_TreeNSearch) || defined (USE_cuNSearch)
+			// add foam particle set to neighborhood search 
+			// for CompactNSearch this is not required
+			neighborhoodSearch->addPointSet(&fx[0][0], fx.size(), true, true, false);
+			neighborhoodSearch->setNeighborhoodSearchActive(1u, 1u, false);
+#endif
 			pointSetAdded = true;
 		}
 		else
-			neighborhoodSearch->resize_point_set(0, &x0[0][0], x0.size());
+		{
+			neighborhoodSearch->resizeSet(0, &x0[0][0], x0.size());
+#if defined(USE_TreeNSearch) || defined (USE_cuNSearch)
+			neighborhoodSearch->resizeSet(1, &fx[0][0], fx.size());
+#endif
+		}
 
 		// find the fluid neighbors of each fluid particle
 		START_TIMING("neighborhoodSearch - advection");
-		neighborhoodSearch->find_neighbors();
+		neighborhoodSearch->findNeighbors();
 		STOP_TIMING_AVG
 
 		// remove foam particles which exceeded their lifetime
@@ -1438,20 +1433,30 @@ void advectFoamParticles()
 		numParticlesOfType[ParticleType::Bubbles] = 0;
 	}
 
+#if defined(USE_CompactNSearch)
 	std::vector<std::vector<unsigned int>> neighbors;
 	neighbors.reserve(100);
-
 	#pragma omp parallel default(shared), private(neighbors)
+#else 
+	#pragma omp parallel default(shared)
+#endif
 	{
 		#pragma omp for schedule(static)  
 		for (int i = 0; i < (int) fx.size(); i++)
 		{
 			const Vector3r &xi = fx[i];
 
-			// determine particle type
+#if defined(USE_CompactNSearch)
+			// determine all fluid particle neighbors for a foam particle
 			neighborhoodSearch->find_neighbors(xi.data(), neighbors);
 			const unsigned int numFluidNeighbors = (unsigned int) neighbors[0].size();
+#endif
+#if defined(USE_TreeNSearch) || defined (USE_cuNSearch)
+			const unsigned int numFluidNeighbors = neighborhoodSearch->numberOfNeighbors(1, 0, i);
+			const unsigned int *neighbors = neighborhoodSearch->getNeighborList(1, 0, i);
+#endif
 
+			// determine particle type
 			unsigned char ftype = ParticleType::Foam;
 			if (numFluidNeighbors < 6)
 				ftype = ParticleType::Spray;
@@ -1536,7 +1541,14 @@ void advectFoamParticles()
 				Real sumK = 0.0;
 				for (unsigned int j = 0; j < numFluidNeighbors; j++)
 				{
+
+#if defined(USE_CompactNSearch)
 					const unsigned int neighborIndex = neighbors[0][j];
+#endif
+#if defined(USE_TreeNSearch) || defined (USE_cuNSearch)
+					const unsigned int neighborIndex = neighbors[j];
+#endif
+
 					const Vector3r &xj = x0[neighborIndex];
 					const Real K = CubicKernel::W(xi - xj);
 					const Vector3r v = v0[neighborIndex]; 

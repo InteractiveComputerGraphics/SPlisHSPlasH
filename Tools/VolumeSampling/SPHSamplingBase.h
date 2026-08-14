@@ -14,7 +14,7 @@ namespace SPH
 		Real m_adhesion;
 		Real m_cflFactor;
 		unsigned int m_steps;
-		NeighborhoodSearch* m_neighborhoodSearch;
+		NeighborhoodSearchWrapper* m_neighborhoodSearch;
 
 		std::vector<Real> m_densities;
 		std::vector<Real> m_factors;
@@ -43,12 +43,12 @@ namespace SPH
 
 		FORCE_INLINE unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index)
 		{
-			return static_cast<unsigned int>(m_neighborhoodSearch->point_set(0).n_neighbors(pointSetIndex, index));
+			return static_cast<unsigned int>(m_neighborhoodSearch->numberOfNeighbors(0, pointSetIndex, index));
 		}
 
 		FORCE_INLINE unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int k)
 		{
-			return m_neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
+			return m_neighborhoodSearch->getNeighbor(0, pointSetIndex, index, k);
 		}
 
 	public:

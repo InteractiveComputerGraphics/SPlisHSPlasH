@@ -48,6 +48,7 @@ PBDWrapper::PBDWrapper()
 PBDWrapper::~PBDWrapper()
 {
 	delete PBD::Simulation::getCurrent();
+	delete PBD::Simulation::getCurrent();
 }
 
  void PBDWrapper::reset()

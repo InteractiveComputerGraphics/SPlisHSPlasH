@@ -38,7 +38,8 @@ namespace SPH
 			unsigned int m_currentFluidModel;
 			Vector3r m_oldMousePos;
 			std::vector<std::string> m_colorFieldNames;
-			std::vector<std::vector<unsigned int>> m_selectedParticles;			
+			std::vector<std::vector<unsigned int>> m_selectedParticles;	
+			std::vector<std::vector<unsigned int>> m_selectedParticleIDs;
 			std::vector<ImFont*> m_fonts;
 			std::vector<ImFont*> m_fonts2;
 			std::vector<float> m_scales;
@@ -54,6 +55,7 @@ namespace SPH
 			const float m_baseSize = 15.0f;
 
 			std::vector<std::vector<unsigned int>>& getSelectedParticles() { return m_selectedParticles; }
+			std::vector<std::vector<unsigned int>>& getSelectedParticleIDs() { return m_selectedParticleIDs; }
 			void initImgui();
 			void initStyle();
 			void initImguiParameters();
@@ -87,6 +89,7 @@ namespace SPH
 			virtual void run();
 			virtual void stop();
 			virtual void addKeyFunc(int key, int modifiers, std::function<void()> const& func);
+			virtual void updateZSort();
 
 			void createSimulationParameterGUI();
 	};

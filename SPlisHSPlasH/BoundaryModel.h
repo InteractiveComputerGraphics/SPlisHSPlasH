@@ -20,6 +20,13 @@ namespace SPH
 			BoundaryModel();
 			virtual ~BoundaryModel();
 
+			/** This function is called after the simulation scene is loaded and all
+			* parameters are initialized. While reading a scene file several parameters
+			* can change. The deferred init function should initialize all values which
+			* depend on these parameters.
+			*/
+			virtual void deferredInit() {};
+
 		protected:
 			RigidBodyObject *m_rigidBody;
 			std::vector<Vector3r> m_forcePerThread;

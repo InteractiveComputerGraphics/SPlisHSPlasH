@@ -193,7 +193,8 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 		{
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
+			NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+			ns->resizeSet(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 	else
@@ -218,7 +219,8 @@ void Emitter::emitParticles(std::vector <unsigned int> &reusedParticles, unsigne
 			}
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
+			NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+			ns->resizeSet(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 
@@ -344,7 +346,8 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 		{
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
+			NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+			ns->resizeSet(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 	else
@@ -371,7 +374,8 @@ void Emitter::emitParticlesCircle(std::vector <unsigned int> &reusedParticles, u
 			}
 			m_model->setNumActiveParticles(m_model->numActiveParticles() + numEmittedParticles);
 			sim->emittedParticles(m_model, m_model->numActiveParticles() - numEmittedParticles);
-			sim->getNeighborhoodSearch()->resize_point_set(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
+			NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+			ns->resizeSet(m_model->getPointSetIndex(), &m_model->getPosition(0)[0], m_model->numActiveParticles());
 		}
 	}
 

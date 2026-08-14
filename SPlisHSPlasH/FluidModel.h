@@ -118,6 +118,7 @@ namespace SPH
 			std::vector<Vector3r> m_v;
 			std::vector<Real> m_density;
 			std::vector<unsigned int> m_particleId;
+			std::vector<unsigned int> m_particleId_to_index;
 			std::vector<unsigned int> m_objectId;
 			std::vector<unsigned int> m_objectId0;
 			std::vector<ParticleState> m_particleState;
@@ -243,6 +244,10 @@ namespace SPH
 			inline std::vector<unsigned int>& get_precomputed_indices() { return m_precompIndices; }
 			inline std::vector<unsigned int>& get_precomputed_indices_same_phase() { return m_precompIndicesSamePhase; }
 #endif
+			FORCE_INLINE unsigned int getParticleIndex(unsigned int particleId)
+			{
+				return m_particleId_to_index[particleId];
+			}
 
 			FORCE_INLINE Vector3r &getPosition0(const unsigned int i)
 			{

@@ -94,9 +94,8 @@ void SPHVolumeSampling_Jiang2015::initSPHOptimization()
 
 	// Init neighborhood search
 	const Real supportRadius = static_cast<Real>(4.0) * m_radius;
-	m_neighborhoodSearch = new NeighborhoodSearch(supportRadius, false);
-	m_neighborhoodSearch->set_radius(supportRadius);
-	m_neighborhoodSearch->add_point_set(&m_x[0][0], m_x.size(), true, true);
+	m_neighborhoodSearch = new NeighborhoodSearchWrapper(supportRadius);
+	m_neighborhoodSearch->addPointSet(&m_x[0][0], m_x.size(), true, true, true);
 
 	Poly6Kernel::setRadius(supportRadius);
 	SpikyKernel::setRadius(supportRadius);
@@ -133,7 +132,7 @@ void SPHVolumeSampling_Jiang2015::step(Real& avg_density_err)
 	const Real supportRadius = m_radius* static_cast<Real>(4.0);
 
 	START_TIMING("neighborhoodSearch");
-	m_neighborhoodSearch->find_neighbors();
+	m_neighborhoodSearch->findNeighbors();
 	STOP_TIMING_AVG;
 
 	#pragma omp parallel default(shared)

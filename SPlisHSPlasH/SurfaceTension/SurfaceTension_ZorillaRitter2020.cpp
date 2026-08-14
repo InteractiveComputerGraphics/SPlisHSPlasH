@@ -277,34 +277,32 @@ bool SurfaceTension_ZorillaRitter2020::classifyParticleConfigurable( double com,
 void SurfaceTension_ZorillaRitter2020::performNeighborhoodSearchSort()
 {
 	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	const unsigned int fluidModelIndex = m_model->getPointSetIndex();
 
-	auto const& d = sim->getNeighborhoodSearch()->point_set(fluidModelIndex);
-
 	// Both version state fields
-	d.sort_field(&m_mc_normals[0]);
-	d.sort_field(&m_final_curvatures[0]);
+	ns->applyZSort(fluidModelIndex, &m_mc_normals[0]);
+	ns->applyZSort(fluidModelIndex, &m_final_curvatures[0]);
 
 	// Both version 2020 state fields
 	if (m_step_version == StepVersion::V2020)
 	{
-		d.sort_field(&m_pca_curv[0]);
-		d.sort_field(&m_pca_curv_smooth[0]);
-		d.sort_field(&m_mc_curv[0]);
-		d.sort_field(&m_mc_curv_smooth[0]);
+		ns->applyZSort(fluidModelIndex, &m_pca_curv[0]);
+		ns->applyZSort(fluidModelIndex, &m_pca_curv_smooth[0]);
+		ns->applyZSort(fluidModelIndex, &m_mc_curv[0]);
+		ns->applyZSort(fluidModelIndex, &m_mc_curv_smooth[0]);
 
-		d.sort_field(&m_mc_normals_smooth[0]);
-		d.sort_field(&m_pca_normals[0]);
+		ns->applyZSort(fluidModelIndex, &m_mc_normals_smooth[0]);
+		ns->applyZSort(fluidModelIndex, &m_pca_normals[0]);
 
-		d.sort_field(&m_final_curvatures_old[0]);
+		ns->applyZSort(fluidModelIndex, &m_final_curvatures_old[0]);
 
-		d.sort_field(&m_classifier_input[0]);
+		ns->applyZSort(fluidModelIndex, &m_classifier_input[0]);
 
-		d.sort_field(&m_classifier_output[0]);
+		ns->applyZSort(fluidModelIndex, &m_classifier_output[0]);
 	}
-	
 }
 
 void SurfaceTension_ZorillaRitter2020::step()

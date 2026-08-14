@@ -1336,11 +1336,11 @@ void SurfaceTension_Jeske2023::reset() {
 }
 
 void SurfaceTension_Jeske2023::performNeighborhoodSearchSort() {
-     const unsigned int numPart = m_model->numActiveParticles();
-     if (numPart == 0)
-         return;
+    const unsigned int numPart = m_model->numActiveParticles();
+    if (numPart == 0)
+        return;
 
-     Simulation *sim = Simulation::getCurrent();
-     auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-     d.sort_field(&m_vDiff[0]);
+    Simulation* sim = Simulation::getCurrent();
+    NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+    ns->applyZSort(m_model->getPointSetIndex(), &m_vDiff[0]);
 }

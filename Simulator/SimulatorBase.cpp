@@ -383,6 +383,14 @@ void SimulatorBase::init(int argc, char **argv, const std::string &windowName)
 	LOG_DEBUG << "Git status:           " << GIT_LOCAL_STATUS;
 	LOG_DEBUG << "Host name:            " << SystemInfo::getHostName();
 
+#if defined(USE_cuNSearch)
+	LOG_INFO << "Neighborhood search: cuNSearch";
+#elif defined(USE_CompactNSearch)
+	LOG_INFO << "Neighborhood search: CompactNSearch";
+#elif defined(USE_TreeNSearch)
+	LOG_INFO << "Neighborhood search: TreeNSearch";
+#endif 
+
 	if (!getUseParticleCaching())
 		LOG_INFO << "Boundary cache disabled.";
 	LOG_INFO << "Output directory: " << m_outputPath;
@@ -526,6 +534,8 @@ void SimulatorBase::initSimulation()
 			});
 	}
 	updateScalarField();
+
+	sim->setZSortCallback([this]() { if (m_gui) m_gui->updateZSort(); });	
 }
 
 void SimulatorBase::deferredInit()
@@ -847,7 +857,8 @@ void SimulatorBase::reset()
 #endif
 
 	m_boundarySimulator->reset();
-	Simulation::getCurrent()->getNeighborhoodSearch()->reset();
+	NeighborhoodSearchWrapper* ns = Simulation::getCurrent()->getNeighborhoodSearch();
+	ns->reset();
 	if (m_gui)
 		m_gui->reset();
 
@@ -1638,7 +1649,7 @@ void SimulatorBase::updateBoundaryParticles(const bool forceUpdate = false)
 						bm->getVelocity(j).setZero();
 				}
 			}
-			#ifdef GPU_NEIGHBORHOOD_SEARCH
+			#if defined(USE_cuNSearch)
 			// copy the particle data to the GPU
 			if (forceUpdate)
 				sim->getNeighborhoodSearch()->update_point_sets();
@@ -2312,9 +2323,10 @@ void SimulatorBase::readBoundaryState(const std::string &fileName, BoundaryModel
 
 		data->release();
 
-		NeighborhoodSearch *neighborhoodSearch = Simulation::getCurrent()->getNeighborhoodSearch();
-		neighborhoodSearch->update_point_sets();
-		neighborhoodSearch->resize_point_set(model->getPointSetIndex(), &model->getPosition(0)[0], model->numberOfParticles());
+		Simulation *sim = Simulation::getCurrent();
+		NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+		ns->updatePointSets();
+		ns->resizeSet(model->getPointSetIndex(), &model->getPosition(0)[0], model->numberOfParticles());
 	}
 }
 

@@ -399,9 +399,9 @@ void Viscosity_Bender2017::performNeighborhoodSearchSort()
 		return;
 
 	Simulation *sim = Simulation::getCurrent();
-	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-	d.sort_field(&m_targetStrainRate[0]);
-	d.sort_field(&m_viscosityFactor[0]);
-	d.sort_field(&m_viscosityLambda[0]);
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_model->getPointSetIndex(), &m_targetStrainRate[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_viscosityFactor[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_viscosityLambda[0]);
 }
 

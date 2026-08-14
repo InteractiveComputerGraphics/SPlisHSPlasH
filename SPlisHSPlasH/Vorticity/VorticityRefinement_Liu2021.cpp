@@ -219,8 +219,8 @@ void SPH::VorticityRefinement_Liu2021::performNeighborhoodSearchSort()
 	if (numPart == 0)
 		return;
 
-	Simulation *sim = Simulation::getCurrent();
-	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-	d.sort_field(&m_vorticity[0]);
+	Simulation* sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_model->getPointSetIndex(), &m_vorticity[0]);
 }
 

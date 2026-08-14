@@ -236,7 +236,8 @@ std::string Elasticity_Kugelstadt2021::computeMD5(const unsigned int objIndex)
 void Elasticity_Kugelstadt2021::initValues()
 {
 	Simulation *sim = Simulation::getCurrent();
-	sim->getNeighborhoodSearch()->find_neighbors();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->findNeighbors();
 
 	FluidModel *model = m_model;
 	const unsigned int numParticles = model->numActiveParticles();
@@ -858,12 +859,12 @@ void Elasticity_Kugelstadt2021::performNeighborhoodSearchSort()
 		return;
 
 	Simulation *sim = Simulation::getCurrent();
-	auto const& d = sim->getNeighborhoodSearch()->point_set(m_model->getPointSetIndex());
-	d.sort_field(&m_rotations[0]);
-	d.sort_field(&m_current_to_initial_index[0]);
-	d.sort_field(&m_L[0]);
-	d.sort_field(&m_restVolumes[0]);
-	d.sort_field(&m_vDiff[0]);
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
+	ns->applyZSort(m_model->getPointSetIndex(), &m_rotations[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_current_to_initial_index[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_L[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_restVolumes[0]);
+	ns->applyZSort(m_model->getPointSetIndex(), &m_vDiff[0]);
 
 	for (unsigned int i = 0; i < numPart; i++)
 		m_initial_to_current_index[m_current_to_initial_index[i]] = i;
@@ -2264,7 +2265,11 @@ void Elasticity_Kugelstadt2021::precomputeValues()
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)
 		{
+#ifdef USE_AVX			
 			m_RL[i] = m_rotations[i].transpose() * m_L[i];
+#else
+			m_RL[i] = m_rotations[i] * m_L[i];			
+#endif			
 		}
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int)numParticles; i++)

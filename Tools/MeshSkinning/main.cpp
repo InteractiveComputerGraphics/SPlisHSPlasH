@@ -88,7 +88,7 @@ unsigned int maxNeighbors = 30;
 Real W_zero;
 Real(*kernelFct)(const Vector3r&);
 Vector3r(*gradKernelFct)(const Vector3r& r);
-NeighborhoodSearch* neighborhoodSearch;
+NeighborhoodSearchWrapper* neighborhoodSearch;
 std::vector<unsigned int> activeParticles;
 std::vector<std::vector<unsigned int>> initialNeighbors;
 std::vector<std::vector<unsigned int>> initialMeshNeighbors;
@@ -103,12 +103,12 @@ std::vector<unsigned int> precomputed_indices;
 
 unsigned int numberOfNeighbors(const unsigned int pointSetIndex, const unsigned int index)
 {
-	return static_cast<unsigned int>(neighborhoodSearch->point_set(0).n_neighbors(pointSetIndex, index));
+	return static_cast<unsigned int>(neighborhoodSearch->numberOfNeighbors(0, pointSetIndex, index));
 }
 
 unsigned int getNeighbor(const unsigned int pointSetIndex, const unsigned int index, const unsigned int k)
 {
-	return neighborhoodSearch->point_set(0).neighbor(pointSetIndex, index, k);
+	return neighborhoodSearch->getNeighbor(0, pointSetIndex, index, k);
 }
 
 namespace std {
@@ -295,13 +295,12 @@ void init()
 	gradKernelFct = CubicKernel::gradW;
 
 	// Init neighborhood search
-	neighborhoodSearch = new NeighborhoodSearch(supportRadius, false);
-	neighborhoodSearch->set_radius(supportRadius);
-	neighborhoodSearch->add_point_set(&x0[0][0], x0.size(), true, true);
+	neighborhoodSearch = new NeighborhoodSearchWrapper(supportRadius);
+	neighborhoodSearch->addPointSet(&x0[0][0], x0.size(), true, true, true);
 
 	// find initial neighbors
 	START_TIMING("neighborhoodSearch");
-	neighborhoodSearch->find_neighbors();
+	neighborhoodSearch->findNeighbors();
 	STOP_TIMING_AVG;
 
 	// store initial neighbors and init rest volumes
@@ -341,10 +340,13 @@ void init()
 	initialMeshNeighbors.resize(numVertices);
 	Vector3r* v = mesh.getVertices().data();
 
-	std::vector<std::vector<unsigned int>> neighbors;
-	neighbors.reserve(200);
+	neighborhoodSearch->addPointSet(&v[0][0], numVertices, true, true, false);
+	neighborhoodSearch->setNeighborhoodSearchActive(0u, 0u, false);
+	neighborhoodSearch->setNeighborhoodSearchActive(1u, 1u, false);
+	neighborhoodSearch->findNeighbors();
+
 	meshX.resize(numVertices);
-	#pragma omp parallel default(shared), private(neighbors)
+	#pragma omp parallel default(shared)//, private(neighbors)
 	{
 		#pragma omp for schedule(static) 
 		for (int i = 0; i < (int) numVertices; i++)
@@ -353,14 +355,14 @@ void init()
 			// copy mesh x
 			meshX[i] = xi;
 
-			// determine particle type
-			neighborhoodSearch->find_neighbors(xi.data(), neighbors);
+			// get x0 neighbors of mesh vertices 
+			const unsigned int *neighbors = neighborhoodSearch->getNeighborList(1, 0, i);
 
 			// only neighbors in same phase will influence elasticity
-			const unsigned int numNeighbors = (unsigned int) neighbors[0].size();
+			const unsigned int numNeighbors = neighborhoodSearch->numberOfNeighbors(1, 0, i);
 			initialMeshNeighbors[i].resize(numNeighbors);
 			for (unsigned int j = 0; j < numNeighbors; j++)
-				initialMeshNeighbors[i][j] = neighbors[0][j];
+				initialMeshNeighbors[i][j] = neighbors[j];
 
 			std::sort(initialMeshNeighbors[i].begin(), initialMeshNeighbors[i].end(), Comparator(meshX[i], &x0));
 

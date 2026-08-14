@@ -76,6 +76,7 @@ void SimulationDataPBF::reset()
 void SimulationDataPBF::performNeighborhoodSearchSort()
 {
 	Simulation *sim = Simulation::getCurrent();
+	NeighborhoodSearchWrapper* ns = sim->getNeighborhoodSearch();
 	const unsigned int nModels = sim->numberOfFluidModels();
 
 	for (unsigned int i = 0; i < nModels; i++)
@@ -84,11 +85,10 @@ void SimulationDataPBF::performNeighborhoodSearchSort()
 		const unsigned int numPart = fm->numActiveParticles();
 		if (numPart != 0)
 		{
-			auto const& d = sim->getNeighborhoodSearch()->point_set(fm->getPointSetIndex());
-			d.sort_field(&m_lambda[i][0]);
-			d.sort_field(&m_deltaX[i][0]);
-			d.sort_field(&m_oldX[i][0]);
-			d.sort_field(&m_lastX[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_lastX[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_lambda[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_deltaX[i][0]);
+			ns->applyZSort(fm->getPointSetIndex(), &m_oldX[i][0]);
 		}
 	}
 }

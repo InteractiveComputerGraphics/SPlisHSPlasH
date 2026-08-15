@@ -4,11 +4,13 @@
 #include "common.h"
 
 #include <SPlisHSPlasH/FluidModel.h>
+#include <SPlisHSPlasH/XSPH.h>
 #include <SPlisHSPlasH/EmitterSystem.h>
 #include <SPlisHSPlasH/NonPressureForceBase.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/numpy.h>
 
@@ -154,6 +156,7 @@ void FluidModelModule(py::module m_sub){
 		.def("getVorticityBase", &SPH::FluidModel::getVorticityBase, py::return_value_policy::reference_internal)
 		.def("getDragBase", &SPH::FluidModel::getDragBase, py::return_value_policy::reference_internal)
 		.def("getElasticityBase", &SPH::FluidModel::getElasticityBase, py::return_value_policy::reference_internal)
+		.def("getXSPH", &SPH::FluidModel::getXSPH, py::return_value_policy::reference_internal)
 
 		.def("setDragMethodChangedCallback", &SPH::FluidModel::setDragMethodChangedCallback)
 		.def("setSurfaceMethodChangedCallback", &SPH::FluidModel::setSurfaceMethodChangedCallback)

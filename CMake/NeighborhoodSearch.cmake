@@ -41,7 +41,7 @@ elseif ("${NeighborhoodSearch}" STREQUAL "CompactNSearch")
 	   Ext_NeighborhoodSearch
 	   PREFIX "${CMAKE_BINARY_DIR}/extern/CompactNSearch"
 	   GIT_REPOSITORY https://github.com/InteractiveComputerGraphics/CompactNSearch.git
-	   GIT_TAG "a9ab7c71ce264487660ecbaf81b5060bda462722"
+	   GIT_TAG "b40afcf47fe1963b363eba2371f04b42720fcb1d"
 	   INSTALL_DIR ${ExternalInstallDir}/NeighborhoodSearch
 	   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${EXT_CMAKE_BUILD_TYPE} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE} -DCMAKE_INSTALL_PREFIX:PATH=${ExternalInstallDir}/NeighborhoodSearch -DUSE_DOUBLE_PRECISION:BOOL=${USE_DOUBLE_PRECISION} -DBUILD_DEMO:BOOL=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.10 -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
 	)

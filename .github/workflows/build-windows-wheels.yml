@@ -16,7 +16,7 @@ jobs:
 
     steps:
     # Checkout repo
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # Checkout repo
     - name: Set up Python (runner)
@@ -29,9 +29,9 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --upgrade cibuildwheel twine
 
-    - name: Build manylinux wheels with cibuildwheel
+    - name: Build windows wheels with cibuildwheel
       env:
-        EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On"
+        EXTRA_CMAKE_DEFINES: "-DUSE_AVX=On -DCI_BUILD=On"
         # Verbosity
         CIBW_BUILD_VERBOSITY: "1"
         CIBW_BUILD: ${{matrix.python-version}}

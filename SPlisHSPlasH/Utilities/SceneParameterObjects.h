@@ -260,6 +260,54 @@ namespace Utilities
 		virtual void initParameters();
 	};
 
+	/** \brief class to store a dynamic parameter object
+	 */
+	class DynamicParameterObject : public GenParam::ParameterObject
+	{
+	public:
+		std::string fluidId;
+		std::string parameterName;
+		std::string expression;
+		Real defaultValue;
+		bool stepFunction;
+		std::string timelineTimes;
+		std::string timelineValues;
+
+		DynamicParameterObject()
+		{
+			// Default values
+			fluidId = "";
+			parameterName = "";
+			expression = "";
+			defaultValue = 1.0;
+			stepFunction = false;
+			timelineTimes = "";
+			timelineValues = "";
+		}
+
+		DynamicParameterObject(std::string fluidId_, std::string parameterName_, std::string expression_, Real defaultValue_, bool stepFunction_,
+			std::string timelineTimes_, std::string timelineValues_)
+		{
+			fluidId = fluidId_;
+			parameterName = parameterName_;
+			expression = expression_;
+			defaultValue = defaultValue_;
+			stepFunction = stepFunction_;
+			timelineTimes = timelineTimes_;
+			timelineValues = timelineValues_;
+		}
+
+		static int DYNPARAM_FLUID;
+		static int DYNPARAM_NAME;
+		static int DYNPARAM_EXPRESSION;
+		static int DYNPARAM_DEFAULT_VALUE;
+		static int DYNPARAM_STEP_FUNCTION;
+		static int DYNPARAM_TIMELINE_TIMES;
+		static int DYNPARAM_TIMELINE_VALUES;
+
+		virtual void initParameters();
+	};
+
 	/** \brief Class to store particle coloring information */
 	class MaterialParameterObject : public GenParam::ParameterObject
 	{

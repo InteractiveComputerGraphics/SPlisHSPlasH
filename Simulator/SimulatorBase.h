@@ -101,6 +101,8 @@ namespace SPH
 		void createFluidBlocks(std::map<std::string, unsigned int> &fluidIDs, std::vector<std::vector<Vector3r>> &fluidParticles, std::vector<std::vector<Vector3r>> &fluidVelocities, std::vector<std::vector<unsigned int>> &fluidObjectIds);
 		void createEmitters();
 		void createAnimationFields();
+		void createDynamicParameters();
+		std::vector<Real> parseCommaSeparatedString(const std::string& str); // To parse the dynamicParameters timelines
 		void buildModel();
 		void setCommandLineParameter();
 		void setCommandLineParameter(GenParam::ParameterObject *paramObj);

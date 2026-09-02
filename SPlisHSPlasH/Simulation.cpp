@@ -86,6 +86,7 @@ Simulation::Simulation ()
 	m_counter = 0;
 
 	m_animationFieldSystem = new AnimationFieldSystem();
+	m_dynamicParameterSystem = nullptr;
 	m_boundaryHandlingMethod = static_cast<int>(BoundaryHandlingMethods::Bender2019);
 
 #if defined(USE_TreeNSearch)
@@ -104,6 +105,7 @@ Simulation::~Simulation ()
 	delete m_debugTools;
 #endif
 	delete m_animationFieldSystem;
+	delete m_dynamicParameterSystem;
 	delete m_timeStep;
 	delete m_neighborhoodSearch;
 	delete TimeManager::getCurrent();
@@ -692,6 +694,12 @@ void Simulation::animateParticles()
 	START_TIMING("animateParticles");
 	m_animationFieldSystem->step();
 	STOP_TIMING_AVG
+}
+
+void Simulation::updateDynamicParameters()
+{
+	if (m_dynamicParameterSystem != nullptr)
+		m_dynamicParameterSystem->step();
 }
 
 void Simulation::addBoundaryModel(BoundaryModel *bm)

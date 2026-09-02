@@ -29,6 +29,7 @@ namespace Utilities
 			std::vector<FluidBlockParameterObject*> fluidBlocks;
 			std::vector<EmitterParameterObject*> emitters;
 			std::vector<AnimationFieldParameterObject*> animatedFields;
+			std::vector<DynamicParameterObject*> dynamicParameters;
 			std::vector<MaterialParameterObject*> materials;
 			Real particleRadius;
 			bool sim2D;

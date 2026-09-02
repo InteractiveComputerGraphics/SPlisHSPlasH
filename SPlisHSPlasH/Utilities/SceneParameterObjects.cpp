@@ -247,6 +247,48 @@ void AnimationFieldParameterObject::initParameters()
 }
 
 //////////////////////////////////////////////////////////////////////////
+// DynamicParameterObject
+//////////////////////////////////////////////////////////////////////////
+int DynamicParameterObject::DYNPARAM_FLUID = -1;
+int DynamicParameterObject::DYNPARAM_NAME = -1;
+int DynamicParameterObject::DYNPARAM_EXPRESSION = -1;
+int DynamicParameterObject::DYNPARAM_DEFAULT_VALUE = -1;
+int DynamicParameterObject::DYNPARAM_STEP_FUNCTION = -1;
+int DynamicParameterObject::DYNPARAM_TIMELINE_TIMES = -1;
+int DynamicParameterObject::DYNPARAM_TIMELINE_VALUES = -1;
+
+void DynamicParameterObject::initParameters()
+{
+	DYNPARAM_FLUID = createStringParameter("fluidId", "Fluid ID", &fluidId);
+	setGroup(DYNPARAM_FLUID, "Dynamic Parameter");
+	setDescription(DYNPARAM_FLUID, "Fluid on which to apply the parameter change.");
+
+	DYNPARAM_NAME = createStringParameter("parameterName", "Parameter name", &parameterName);
+	setGroup(DYNPARAM_NAME, "Dynamic Parameter");
+	setDescription(DYNPARAM_NAME, "Name of the parameter to control (e.g., stiffness, viscosity, density0).");
+
+	DYNPARAM_EXPRESSION = createStringParameter("expression", "Expression", &expression);
+	setGroup(DYNPARAM_EXPRESSION, "Dynamic Parameter");
+	setDescription(DYNPARAM_EXPRESSION, "Mathematical expression for parameter control (using t for time, dt for timestep).");
+
+	DYNPARAM_DEFAULT_VALUE = createNumericParameter<Real>("defaultValue", "Default value", &defaultValue);
+	setGroup(DYNPARAM_DEFAULT_VALUE, "Dynamic Parameter");
+	setDescription(DYNPARAM_DEFAULT_VALUE, "Default value of the parameter.");
+
+	DYNPARAM_STEP_FUNCTION = createBoolParameter("stepFunction", "Step function", &stepFunction);
+	setGroup(DYNPARAM_STEP_FUNCTION, "Dynamic Parameter");
+	setDescription(DYNPARAM_STEP_FUNCTION, "Use step function instead of linear interpolation for timeline.");
+
+	DYNPARAM_TIMELINE_TIMES = createStringParameter("timelineTimes", "Timeline times", &timelineTimes);
+	setGroup(DYNPARAM_TIMELINE_TIMES, "Dynamic Parameter");
+	setDescription(DYNPARAM_TIMELINE_TIMES, "Time points for timeline-based parameter changes.");
+
+	DYNPARAM_TIMELINE_VALUES = createStringParameter("timelineValues", "Timeline values", &timelineValues);
+	setGroup(DYNPARAM_TIMELINE_VALUES, "Dynamic Parameter");
+	setDescription(DYNPARAM_TIMELINE_VALUES, "Values corresponding to timeline times.");
+}
+
+//////////////////////////////////////////////////////////////////////////
 // MaterialParameterObject
 //////////////////////////////////////////////////////////////////////////
 

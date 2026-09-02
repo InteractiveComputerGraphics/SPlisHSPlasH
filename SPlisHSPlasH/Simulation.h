@@ -8,6 +8,7 @@
 #include "NeighborhoodSearch.h"
 #include "BoundaryModel.h"
 #include "AnimationFieldSystem.h"
+#include "DynamicParameterSystem.h"
 #include "Utilities/FileSystem.h"
 #ifdef USE_DEBUG_TOOLS
 #include "SPlisHSPlasH/Utilities/DebugTools.h"
@@ -289,6 +290,7 @@ namespace SPH
 		std::vector<FluidInfo> m_fluidInfos;
 		NeighborhoodSearchWrapper *m_neighborhoodSearch;
 		AnimationFieldSystem *m_animationFieldSystem;
+		DynamicParameterSystem *m_dynamicParameterSystem;
 		int m_cflMethod;
 		Real m_cflFactor;
 		Real m_cflMinTimeStepSize;
@@ -366,6 +368,10 @@ namespace SPH
 		FluidInfo& getFluidInfo(const unsigned int i) { return m_fluidInfos[i]; }
 
 		AnimationFieldSystem* getAnimationFieldSystem() { return m_animationFieldSystem; }
+
+		DynamicParameterSystem* getDynamicParameterSystem() { return m_dynamicParameterSystem; }
+		void setDynamicParameterSystem(DynamicParameterSystem* dps) { m_dynamicParameterSystem = dps; }
+		void updateDynamicParameters();
 		
 		BoundaryHandlingMethods getBoundaryHandlingMethod() const { return (BoundaryHandlingMethods) m_boundaryHandlingMethod; }
 		void setBoundaryHandlingMethod(BoundaryHandlingMethods val) { m_boundaryHandlingMethod = (int) val; }

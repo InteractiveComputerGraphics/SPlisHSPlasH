@@ -181,6 +181,7 @@ void TimeStepPBF::step()
 
 	sim->emitParticles();
 	sim->animateParticles();
+	sim->updateDynamicParameters();
 
 	// Compute new time	
 	tm->setTime (tm->getTime () + h);

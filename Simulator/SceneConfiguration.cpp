@@ -36,6 +36,10 @@ SceneConfiguration::~SceneConfiguration ()
 		delete m_scene.animatedFields[i];
 	m_scene.animatedFields.clear();
 
+	for (unsigned int i = 0; i < m_scene.dynamicParameters.size(); i++)
+		delete m_scene.dynamicParameters[i];
+	m_scene.dynamicParameters.clear();
+
 	m_current = nullptr;
 }
 

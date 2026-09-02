@@ -160,6 +160,7 @@ void TimeStepPF::step()
 	// update emitters
 	sim->emitParticles();
 	sim->animateParticles();
+	sim->updateDynamicParameters();
 	// Compute new time	
 	sim->updateTimeStepSize();
 	tm->setTime(tm->getTime () + tm->getTimeStepSize());

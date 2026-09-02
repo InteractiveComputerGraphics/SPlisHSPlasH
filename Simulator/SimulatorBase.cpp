@@ -7,6 +7,7 @@
 #include "Utilities/PartioReaderWriter.h"
 #include "SPlisHSPlasH/Emitter.h"
 #include "SPlisHSPlasH/EmitterSystem.h"
+#include "SPlisHSPlasH/DynamicParameterSystem.h"
 #include "SPlisHSPlasH/Simulation.h"
 #include "SPlisHSPlasH/NonPressureForceBase.h"
 #include "NumericParameter.h"
@@ -821,6 +822,7 @@ void SimulatorBase::buildModel()
 
 	createEmitters();
 	createAnimationFields();
+	createDynamicParameters();
 
 	Simulation *sim = Simulation::getCurrent();
 
@@ -1423,6 +1425,89 @@ void SimulatorBase::createAnimationFields()
 		field->setStartTime(data->startTime);
 		field->setEndTime(data->endTime);
 	}
+}
+
+void SimulatorBase::createDynamicParameters()
+{
+	Simulation* sim = Simulation::getCurrent();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+
+	//////////////////////////////////////////////////////////////////////////
+	// Dynamic parameters
+	//////////////////////////////////////////////////////////////////////////
+
+	if (scene.dynamicParameters.empty())
+		return;
+
+	if (sim->getDynamicParameterSystem() == nullptr)
+	{
+		DynamicParameterSystem* dps = new DynamicParameterSystem();
+		sim->setDynamicParameterSystem(dps);
+	}
+
+	DynamicParameterSystem* dps = sim->getDynamicParameterSystem();
+	for (unsigned int i = 0; i < scene.dynamicParameters.size(); i++)
+	{
+		DynamicParameterObject* data = scene.dynamicParameters[i];
+
+		const std::string& fluidId = data->fluidId;
+		const std::string& paramName = data->parameterName;
+		Real defaultValue = data->defaultValue;
+
+		if (!data->expression.empty())
+		{
+			dps->addExpressionSchedule(fluidId, paramName, data->expression, defaultValue);
+		}
+		else if (!data->timelineTimes.empty() && !data->timelineValues.empty())
+		{
+			std::vector<Real> times = parseCommaSeparatedString(data->timelineTimes);
+			std::vector<Real> values = parseCommaSeparatedString(data->timelineValues);
+
+			if (times.size() != values.size()) {
+				LOG_WARN << "Timeline times and values have different sizes for parameter: " << paramName;
+				continue;
+			}
+
+			std::vector<std::pair<Real, Real>> timeline;
+			for (size_t i = 0; i < times.size(); ++i) {
+				timeline.push_back({ times[i], values[i] });
+			}
+
+			dps->addTimelineSchedule(fluidId, paramName, timeline, defaultValue, data->stepFunction);
+		}
+	}
+
+}
+
+std::vector<Real> SimulatorBase::parseCommaSeparatedString(const std::string& str)
+{
+	std::vector<Real> result;
+	if (str.empty()) return result;
+
+	std::stringstream ss(str);
+	std::string item;
+
+	while (std::getline(ss, item, ',')) {
+		// Remove spaces
+		item.erase(item.begin(), std::find_if(item.begin(), item.end(), [](unsigned char ch) {
+			return !std::isspace(ch);
+			}));
+		item.erase(std::find_if(item.rbegin(), item.rend(), [](unsigned char ch) {
+			return !std::isspace(ch);
+			}).base(), item.end());
+
+		if (!item.empty()) {
+			try {
+				Real value = std::stod(item);
+				result.push_back(value);
+			}
+			catch (const std::exception& e) {
+				LOG_WARN << "Could not parse value: " << item;
+			}
+		}
+	}
+
+	return result;
 }
 
 

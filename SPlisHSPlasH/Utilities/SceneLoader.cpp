@@ -134,6 +134,21 @@ void SceneLoader::readScene(const char *fileName, Scene &scene)
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// read dynamic parameters
+	//////////////////////////////////////////////////////////////////////////
+	if (m_jsonData.find("DynamicParameters") != m_jsonData.end())
+	{
+		nlohmann::json dynParams = m_jsonData["DynamicParameters"];
+		for (auto& param : dynParams)
+		{
+			DynamicParameterObject* data = new DynamicParameterObject();
+			data->initParameters();
+			readParameterObject(param, data);
+			scene.dynamicParameters.push_back(data);
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	// read materials
 	//////////////////////////////////////////////////////////////////////////
 	if (m_jsonData.find("Materials") != m_jsonData.end())

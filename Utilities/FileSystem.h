@@ -12,6 +12,7 @@
 #else
 #include <unistd.h>
 #include <dirent.h>
+#include <dlfcn.h>
 #endif
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -217,21 +218,77 @@ namespace Utilities
 
 		static std::string getProgramPath()
 		{
-			char buffer[1000];
-#ifdef WIN32	
-			GetModuleFileName(NULL, buffer, 1000);
-#elif defined(__APPLE__)
-			uint32_t bufferSize = sizeof(buffer);
-			_NSGetExecutablePath(buffer, &bufferSize);
-#else
-			char szTmp[32];
-			sprintf(szTmp, "/proc/%d/exe", getpid());
-			int bytes = std::min((int)readlink(szTmp, buffer, 1000), 999);
-			buffer[bytes] = '\0';
-#endif
-			std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-			return std::string(buffer).substr(0, pos);
+			std::string executablePath;
+			std::string dynamicModulePath;
 
+#ifdef WIN32
+			char exeBuffer[MAX_PATH] = { 0 };
+			if (GetModuleFileNameA(NULL, exeBuffer, MAX_PATH))
+				executablePath = exeBuffer;
+
+			HMODULE moduleHandle = nullptr;
+			if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+				reinterpret_cast<LPCSTR>(&getProgramPath), &moduleHandle) && moduleHandle)
+			{
+				char moduleBuffer[MAX_PATH] = { 0 };
+				if (GetModuleFileNameA(moduleHandle, moduleBuffer, MAX_PATH))
+					dynamicModulePath = moduleBuffer;
+			}
+#elif defined(__APPLE__)
+			char exeBuffer[1024] = { 0 };
+			uint32_t bufferSize = sizeof(exeBuffer);
+			if (_NSGetExecutablePath(exeBuffer, &bufferSize) == 0)
+				executablePath = exeBuffer;
+
+			Dl_info moduleInfo{};
+			if (dladdr(reinterpret_cast<void*>(&getProgramPath), &moduleInfo) && moduleInfo.dli_fname)
+				dynamicModulePath = moduleInfo.dli_fname;
+#else
+			char exeBuffer[1024] = { 0 };
+			char procPath[32];
+			sprintf(procPath, "/proc/%d/exe", getpid());
+			int exePathLength = std::min((int)readlink(procPath, exeBuffer, sizeof(exeBuffer) - 1), (int)(sizeof(exeBuffer) - 1));
+			if (exePathLength > 0)
+			{
+				exeBuffer[exePathLength] = '\0';
+				executablePath = exeBuffer;
+			}
+
+			Dl_info moduleInfo{};
+			if (dladdr(reinterpret_cast<void*>(&getProgramPath), &moduleInfo) && moduleInfo.dli_fname)
+				dynamicModulePath = moduleInfo.dli_fname;
+#endif
+
+			auto getParentDirectory = [](const std::string &path) -> std::string
+			{
+				size_t lastSeparator = path.find_last_of("\\/");
+				return (lastSeparator != std::string::npos) ? path.substr(0, lastSeparator) : "";
+			};
+
+			// If running as a dynamic module / Python extension (module differs from executable)
+			if (!dynamicModulePath.empty() && dynamicModulePath != executablePath)
+			{
+				std::string searchDirectory = getParentDirectory(dynamicModulePath);
+
+				// Walk up the directory tree (up to 6 levels) to locate resources/data
+				for (int level = 0; level < 6 && !searchDirectory.empty(); ++level)
+				{
+					if (isDirectory(searchDirectory + "/resources") || isDirectory(searchDirectory + "/data"))
+						return searchDirectory;
+
+					if (isDirectory(searchDirectory + "/bin/resources") || isDirectory(searchDirectory + "/bin/data"))
+						return searchDirectory + "/bin";
+
+					searchDirectory = getParentDirectory(searchDirectory);
+				}
+
+				return getParentDirectory(dynamicModulePath);
+			}
+			else
+			{
+				// Standalone executable fallback
+				return getParentDirectory(executablePath);
+			}
 		}
 
 		static bool copyFile(const std::string &source, const std::string &dest)

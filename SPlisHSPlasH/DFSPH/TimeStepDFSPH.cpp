@@ -959,6 +959,7 @@ void TimeStepDFSPH::computePressureAccel(const unsigned int fluidModelIndex, con
 	const unsigned int nBoundaries = sim->numberOfBoundaryModels();
 
 	Vector3r& ai = m_simulationData.getPressureAccel(fluidModelIndex, i);
+	ai.setZero();
 
 	if (model->getParticleState(i) != ParticleState::Active)
 		return;

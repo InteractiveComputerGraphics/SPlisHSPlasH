@@ -105,7 +105,7 @@ void Viscosity_Peer2015::computeDensities()
 					density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					density += rho;

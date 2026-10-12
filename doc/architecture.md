@@ -52,11 +52,12 @@ The emitters are only stored inside the FluidModels since they are assigned to a
 
 ## The BoundaryModel class
 
-The BoundaryModel class provides a useful base class for any boundary handling methods. It stores a `RigidBodyObject` reference representing the object of the boundary. This can be a stationary or dynamic rigid body, whose coupling effects are handled uniformly. Note that `RigidBodyObject` is an abstract class providing an interface for the two derived classes `StaticRigidBody` and `PBDRigidBody`. The first is handled internally and represent stationary objects. The latter describes a moving rigid body which is simulated externally by the [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) library. SPlisHSPlasH implements three different boundary models:
+The BoundaryModel class provides a useful base class for any boundary handling methods. It stores a `RigidBodyObject` reference representing the object of the boundary. This can be a stationary or dynamic rigid body, whose coupling effects are handled uniformly. Note that `RigidBodyObject` is an abstract class providing an interface for the two derived classes `StaticRigidBody` and `PBDRigidBody`. The first is handled internally and represent stationary objects. The latter describes a moving rigid body which is simulated externally by the [PositionBasedDynamics](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) library. SPlisHSPlasH implements four different boundary models:
 
 - Particle-based rigid-fluid coupling [Akinci et al. 2012]
 - Density maps [Koschier and Bender 2017]
 - Volume maps [Bender et al. 2019]
+- Tube maps [Nogina and Sellán 2026]
 
 Finally, SPlisHSPlasH defines a boundary as a list of rigid bodies in conjunction with a rigid-fluid coupling algorithm.
 

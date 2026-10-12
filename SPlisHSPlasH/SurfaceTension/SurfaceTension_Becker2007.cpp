@@ -96,7 +96,7 @@ void SurfaceTension_Becker2007::step()
 						bm_neighbor->addForce(xj, -model->getMass(i) * a);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					const Vector3r xixj = xi - xj;

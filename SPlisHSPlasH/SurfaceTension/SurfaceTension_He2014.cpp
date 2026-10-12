@@ -94,7 +94,7 @@ void SurfaceTension_He2014::step()
 					ci += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					ci += rho;
@@ -165,7 +165,7 @@ void SurfaceTension_He2014::step()
 					bm_neighbor->addForce(xj, -model->getMass(i) * a);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					const Vector3r a = -factorb* gradC2_i * gradRho;

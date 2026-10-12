@@ -154,6 +154,7 @@ set(UTILS_HEADER_FILES
 	Utilities/VolumeSampling.h
 	Utilities/SDFFunctions.h
 	Utilities/SimpleQuadrature.h
+	Utilities/TubeMapDensity.h
 	Utilities/WindingNumbers.h
 	)
 	
@@ -172,6 +173,7 @@ set(UTILS_SOURCE_FILES
 	Utilities/VolumeSampling.cpp
 	Utilities/SDFFunctions.cpp
 	Utilities/SimpleQuadrature.cpp
+	Utilities/TubeMapDensity.cpp
 	Utilities/WindingNumbers.cpp
 	)	
 	
@@ -211,6 +213,7 @@ add_library(SPlisHSPlasH
 	BoundaryModel_Bender2019.h
 	BoundaryModel_Koschier2017.cpp
 	BoundaryModel_Koschier2017.h
+	BoundaryModel_NoginaSellan2026.h
 	Emitter.cpp
 	Emitter.h
 	EmitterSystem.cpp

@@ -26,6 +26,8 @@
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
 #include "SPlisHSPlasH/Utilities/MeshImport.h"
+#include "SPlisHSPlasH/Utilities/TubeMapDensity.h"
+#include "MeshCurvatureQuery.h"
 #if USE_NFD_FILE_DIALOG
 #include "extern/nfd/include/nfd.h"
 #endif 
@@ -1871,7 +1873,7 @@ void SPH::SimulatorBase::loadState(const std::string &stateFile)
 	{
 		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 			updateBoundaryParticles(true);
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 			updateDMVelocity();
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 			updateVMVelocity();
@@ -2518,6 +2520,175 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 			LOG_INFO << "Save density map: " << densityMapFileName;
 			densityMap->save(densityMapFileName);
 		}
+	}
+}
+
+void SimulatorBase::initTubeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_NoginaSellan2026 *boundaryModel)
+{
+	Simulation *sim = Simulation::getCurrent();
+	const std::string& sceneFile = SceneConfiguration::getCurrent()->getSceneFile();
+	const Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+	const Real supportRadius = sim->getSupportRadius();
+	std::string scene_path = FileSystem::getFilePath(sceneFile);
+	const bool useCache = getUseParticleCaching();
+	const unsigned int order = std::min(boundaryData->tubeMapOrder, 2u);
+	Discregrid::CubicLagrangeDiscreteGrid *tubeMap;
+
+	// The closed-form boundary density is derived for the cubic spline kernel.
+	if ((sim->getKernel() != Simulation::ENUM_KERNEL_CUBIC) && (sim->getKernel() != Simulation::ENUM_KERNEL_PRECOMPUTED_CUBIC))
+		LOG_WARN << "Tube maps are derived for the cubic spline kernel. Use the (precomputed) cubic spline kernel to get a consistent boundary density.";
+
+	// if a map file is given, use this one
+	if (boundaryData->mapFile != "")
+	{
+		std::string mapFileName = boundaryData->mapFile;
+		if (FileSystem::isRelativePath(mapFileName))
+			mapFileName = FileSystem::normalizePath(scene_path + "/" + mapFileName);
+		tubeMap = new Discregrid::CubicLagrangeDiscreteGrid(mapFileName);
+		boundaryModel->setMap(tubeMap);
+		LOG_INFO << "Loaded tube map: " << mapFileName;
+		return;
+	}
+
+	string cachePath = scene_path + "/Cache";
+
+	// Cache map
+	std::string mesh_file_name = FileSystem::getFileName(boundaryData->meshFile);
+	Eigen::Matrix<unsigned int, 3, 1> resolutionSDF = boundaryData->mapResolution;
+	const string scaleStr = "s" + StringTools::real2String(boundaryData->scale[0]) + "_" + StringTools::real2String(boundaryData->scale[1]) + "_" + StringTools::real2String(boundaryData->scale[2]);
+	const string resStr = "r" + to_string(resolutionSDF[0]) + "_" + to_string(resolutionSDF[1]) + "_" + to_string(resolutionSDF[2]);
+	const string invertStr = "i" + to_string((int)boundaryData->mapInvert);
+	const string thicknessStr = "t" + StringTools::real2String(boundaryData->mapThickness);
+	const string orderStr = "o" + to_string(order);
+	const string typeStr = isDynamic ? "_db_tm_" : "_sb_tm_";
+	const string tubeMapFileName = FileSystem::normalizePath(cachePath + "/" + mesh_file_name + typeStr + StringTools::real2String(scene.particleRadius) + "_" + scaleStr + "_" + resStr + "_" + invertStr + "_" + thicknessStr + "_" + orderStr + ".cdm");
+
+	// check MD5 if cache file is available
+	bool foundCacheFile = false;
+	if (useCache)
+		foundCacheFile = FileSystem::fileExists(tubeMapFileName);
+
+	if (useCache && foundCacheFile && md5)
+	{
+		tubeMap = new Discregrid::CubicLagrangeDiscreteGrid(tubeMapFileName);
+		boundaryModel->setMap(tubeMap);
+		LOG_INFO << "Loaded cached tube map: " << tubeMapFileName;
+		return;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Generate distance field of object
+	//////////////////////////////////////////////////////////////////////////
+#ifdef USE_DOUBLE
+	Discregrid::TriangleMesh sdfMesh(&x[0][0], faces.data(), x.size(), faces.size() / 3);
+#else
+	// if type is float, copy vector to double vector
+	std::vector<double> doubleVec;
+	doubleVec.resize(3 * x.size());
+	for (unsigned int i = 0; i < x.size(); i++)
+		for (unsigned int j = 0; j < 3; j++)
+			doubleVec[3 * i + j] = x[i][j];
+	Discregrid::TriangleMesh sdfMesh(&doubleVec[0], faces.data(), x.size(), faces.size() / 3);
+#endif
+	const MeshCurvatureQuery mcq(sdfMesh);
+
+	Eigen::AlignedBox3d domain;
+	for (auto const& x_ : x)
+	{
+		domain.extend(x_.cast<double>());
+	}
+	const Real tolerance = boundaryData->mapThickness;
+	domain.max() += (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+	domain.min() -= (8.0*supportRadius + tolerance) * Eigen::Vector3d::Ones();
+
+	LOG_INFO << "Domain - min: " << domain.min()[0] << ", " << domain.min()[1] << ", " << domain.min()[2];
+	LOG_INFO << "Domain - max: " << domain.max()[0] << ", " << domain.max()[1] << ", " << domain.max()[2];
+
+	LOG_INFO << "Set SDF resolution: " << resolutionSDF[0] << ", " << resolutionSDF[1] << ", " << resolutionSDF[2];
+	tubeMap = new Discregrid::CubicLagrangeDiscreteGrid(domain, std::array<unsigned int, 3>({ resolutionSDF[0], resolutionSDF[1], resolutionSDF[2] }));
+
+	Real sign = 1.0;
+	if (boundaryData->mapInvert)
+		sign = -1.0;
+
+	// The boundary density decays linearly and vanishes at distance supportRadius / factor.
+	Real factor = 5.0;
+	if (sim->is2DSimulation())
+		factor = 1.75;
+	if (tolerance > 0.0)
+		factor = factor * supportRadius / tolerance;
+
+	// The distance field is only required in the support of the tube map. Hence,
+	// we only search for triangles in this range which accelerates the construction.
+	const double maxDistance = (1 + 1/factor) * supportRadius + std::abs(tolerance);
+
+	// Determine signed distance of a point and the mean and Gaussian curvature at the closest surface point
+	auto distanceAndCurvature = [&](Eigen::Vector3d const& xi, double &dist, double &H, double &K)
+	{
+		int triangleIndex = -1;
+		Eigen::Vector3d cp;
+		double sd;
+		mcq.signedDistance(xi, maxDistance, triangleIndex, cp, sd);
+		dist = sign * (sd - tolerance);
+		H = 0.0;
+		K = 0.0;
+		if ((triangleIndex >= 0) && (std::abs(dist) <= 0.99*maxDistance))
+		{
+			double w0, w1, w2;
+			mcq.barycentricCoordinates(triangleIndex, cp, w0, w1, w2);
+			// An inverted map swaps inside and outside, i.e., convex and concave.
+			// The Gaussian curvature does not depend on the orientation.
+			H = sign * mcq.meanCurvature(triangleIndex, w0, w1, w2);
+			K = mcq.gaussianCurvature(triangleIndex, w0, w1, w2);
+		}
+	};
+
+	auto distance_func = [&](Eigen::Vector3d const& xi)
+	{
+		double dist, H, K;
+		distanceAndCurvature(xi, dist, H, K);
+		return dist;
+	};
+
+	LOG_INFO << "Generate SDF";
+	START_TIMING("SDF Construction");
+	tubeMap->addFunction(distance_func, false);
+	STOP_TIMING_AVG
+
+	//////////////////////////////////////////////////////////////////////////
+	// Generate tube map of object
+	//////////////////////////////////////////////////////////////////////////
+	auto density_func = [&](Eigen::Vector3d const& xi)
+	{
+		const double d = tubeMap->interpolate(0u, xi);
+		if (d > (1.0 + 1.0 / factor) * supportRadius)
+			return 0.0;
+
+		// The tube map of order 0 assumes a planar boundary.
+		double H = 0.0;
+		double K = 0.0;
+		if (order > 0)
+		{
+			double dist;
+			distanceAndCurvature(xi, dist, H, K);
+		}
+
+		// 0.8 is the normalization of the boundary density as in [KB17]
+		return TubeMapDensity::boundaryDensity(d, H, K, supportRadius, factor, order) * 0.8;
+	};
+
+	LOG_INFO << "Generate tube map...";
+	START_TIMING("Tube Map Construction");
+	tubeMap->addFunction(density_func, false);
+	STOP_TIMING_PRINT;
+
+	boundaryModel->setMap(tubeMap);
+
+	// Store cache file
+	if (useCache && (FileSystem::makeDir(cachePath) == 0))
+	{
+		LOG_INFO << "Save tube map: " << tubeMapFileName;
+		tubeMap->save(tubeMapFileName);
 	}
 }
 

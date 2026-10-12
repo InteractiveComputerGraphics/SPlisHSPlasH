@@ -140,7 +140,7 @@ void TimeStepDFSPH::step()
 	//////////////////////////////////////////////////////////////////////////
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		computeDensityAndGradient();
 
 	//////////////////////////////////////////////////////////////////////////
@@ -796,7 +796,7 @@ void TimeStepDFSPH::computeDFSPHFactor(const unsigned int fluidModelIndex)
 			grad_p_i[1] = grad_p_i_avx.y().reduce();
 			grad_p_i[2] = grad_p_i_avx.z().reduce();
 
-			if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					grad_p_i -= gradRho;
@@ -868,7 +868,7 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const 
 
 	delta = delta_avx.reduce();
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			Vector3r vj;
@@ -931,7 +931,7 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 	Real &densityAdv = m_simulationData.getDensityAdv(fluidModelIndex, i);
 	densityAdv = densityAdv_avx.reduce();
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			Vector3r vj;
@@ -1015,7 +1015,7 @@ void TimeStepDFSPH::computePressureAccel(const unsigned int fluidModelIndex, con
 
 	if (fabs(p_rho2_i) > m_eps)
 	{
-		if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				const Vector3r a = (Real) 1.0 * p_rho2_i * gradRho;			
@@ -1085,7 +1085,7 @@ Real TimeStepDFSPH::compute_aij_pj(const unsigned int fluidModelIndex, const uns
 
 	Real aij_pj = aij_pj_avx.reduce();
 
-	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			aij_pj -= ai.dot(gradRho);
@@ -1156,7 +1156,7 @@ void TimeStepDFSPH::computeDFSPHFactor(const unsigned int fluidModelIndex)
 				);
 			}
 
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					grad_p_i -= gradRho;
@@ -1222,7 +1222,7 @@ void TimeStepDFSPH::computeDensityAdv(const unsigned int fluidModelIndex, const 
 			delta += bm_neighbor->getVolume(neighborIndex) * (vi - vj).dot(sim->gradW(xi - xj));
 		);
 	}
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			Vector3r vj;
@@ -1277,7 +1277,7 @@ void TimeStepDFSPH::computeDensityChange(const unsigned int fluidModelIndex, con
 			densityAdv += bm_neighbor->getVolume(neighborIndex) * (vi - vj).dot(sim->gradW(xi - xj));
 		);
 	}
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			Vector3r vj;
@@ -1344,7 +1344,7 @@ void TimeStepDFSPH::computePressureAccel(const unsigned int fluidModelIndex, con
 					bm_neighbor->addForce(xj, -model->getMass(i) * a);
 			);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				const Vector3r a = (Real) 1.0 * p_rho2_i * gradRho;			
@@ -1405,7 +1405,7 @@ Real TimeStepDFSPH::compute_aij_pj(const unsigned int fluidModelIndex, const uns
 			aij_pj += bm_neighbor->getVolume(neighborIndex) * ai.dot(sim->gradW(xi - xj));
 		);
 	}
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 	{
 		forall_density_maps(
 			aij_pj -= ai.dot(gradRho);

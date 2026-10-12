@@ -147,7 +147,7 @@ void SurfaceTension_Akinci2013::step()
 					}
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					Vector3r xixj = xi - xj;

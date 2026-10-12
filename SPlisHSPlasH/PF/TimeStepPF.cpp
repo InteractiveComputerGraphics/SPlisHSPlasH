@@ -140,7 +140,7 @@ void TimeStepPF::step()
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		computeDensityAndGradient();
 
 	START_TIMING("solvePDConstraints");
@@ -149,7 +149,7 @@ void TimeStepPF::step()
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		computeDensityAndGradient();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -405,7 +405,7 @@ void SPH::TimeStepPF::matrixFreeRHS(const VectorXr & x, VectorXr & result)
 				density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 			);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				density += rho;
@@ -450,7 +450,7 @@ void SPH::TimeStepPF::matrixFreeRHS(const VectorXr & x, VectorXr & result)
 				nablaC[0] += bm_neighbor->getVolume(neighborIndex) * sim->gradW(xi - xj);
 			)
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				nablaC[0] -= gradRho;
@@ -539,7 +539,7 @@ void SPH::TimeStepPF::matrixFreeRHS(const VectorXr & x, VectorXr & result)
 
 					if (it + 1 < max_steps)
 					{
-						if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+						if (sim->usesDensityMaps())
  							computeDensityAndGradient(fluidModelIndex, i, p[0]);
 
 						C = calculateC(fluidModelIndex, i, p);

@@ -49,7 +49,7 @@ void PBDBoundarySimulator::timeStep()
 	Simulation *sim = Simulation::getCurrent();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(false);
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();
@@ -200,9 +200,10 @@ void PBDBoundarySimulator::initBoundaryData()
 			bm->initModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 			sim->addBoundaryModel(bm);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
-			BoundaryModel_Koschier2017 *bm = new BoundaryModel_Koschier2017();
+			const bool tubeMap = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
+			BoundaryModel_Koschier2017 *bm = tubeMap ? new BoundaryModel_NoginaSellan2026() : new BoundaryModel_Koschier2017();
 			bm->initModel(rb);
 			sim->addBoundaryModel(bm);
 
@@ -215,7 +216,10 @@ void PBDBoundarySimulator::initBoundaryData()
 			for (unsigned int j = 0; j < vd.size(); j++)
 				xLocal[j] = rigidBodies[i]->getRotationMatrix().transpose() * (vd.getPosition(j) - rigidBodies[i]->getPosition());
 
-			m_base->initDensityMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
+			if (tubeMap)
+				m_base->initTubeMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, static_cast<BoundaryModel_NoginaSellan2026*>(bm));
+			else
+				m_base->initDensityMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
 		}
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		{
@@ -250,7 +254,7 @@ void PBDBoundarySimulator::deferredInit()
 		m_base->updateBoundaryParticles(true);
 		Simulation::getCurrent()->updateBoundaryVolume();
 	}
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();
@@ -268,7 +272,7 @@ void PBDBoundarySimulator::reset()
 	Simulation *sim = Simulation::getCurrent();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(true);
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();

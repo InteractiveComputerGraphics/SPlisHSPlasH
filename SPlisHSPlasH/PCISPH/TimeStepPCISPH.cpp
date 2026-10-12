@@ -96,7 +96,7 @@ void TimeStepPCISPH::step()
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		computeDensityAndGradient();
 
 	for (unsigned int fluidModelIndex = 0; fluidModelIndex < nModels; fluidModelIndex++)
@@ -217,7 +217,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 				predX = x + h * predV;
 				if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
  					computeVolumeAndBoundaryX(fluidModelIndex, i, predX);
- 				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+ 				else if (sim->usesDensityMaps())
  					computeDensityAndGradient(fluidModelIndex, i, predX);
 			}
 		}
@@ -251,7 +251,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 					densityAdv += bm_neighbor->getVolume(neighborIndex) * sim->W(pred_xi - xj);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					densityAdv += rho;
@@ -311,7 +311,7 @@ void TimeStepPCISPH::pressureSolveIteration(const unsigned int fluidModelIndex, 
 					bm_neighbor->addForce(xj, model->getMass(i) * a);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					const Vector3r a = -dpi * gradRho;

@@ -28,6 +28,7 @@ void ExtrasModule(py::module m){
     m_sub_sub.attr("CompressibleSPH_WCSPH") = "data/Scenes/CompressibleSPH_WCSPH.json";
     m_sub_sub.attr("DamBreakModel") = "data/Scenes/DamBreakModel.json";
     m_sub_sub.attr("DamBreakModelDragons") = "data/Scenes/DamBreakModelDragons.json";
+    m_sub_sub.attr("DamBreakModelDragons_NoginaSellan2026") = "data/Scenes/DamBreakModelDragons_NoginaSellan2026.json";
     m_sub_sub.attr("DamBreakModel_2D") = "data/Scenes/DamBreakModel_2D.json";
     m_sub_sub.attr("DamBreakWithObjects") = "data/Scenes/DamBreakWithObjects.json";
     m_sub_sub.attr("DeformableBunnies") = "data/Scenes/DeformableBunnies.json";
@@ -42,6 +43,7 @@ void ExtrasModule(py::module m){
     m_sub_sub.attr("GridModel_Akinci2012") = "data/Scenes/GridModel_Akinci2012.json";
     m_sub_sub.attr("GridModel_Bender2019") = "data/Scenes/GridModel_Bender2019.json";
     m_sub_sub.attr("GridModel_Koschier2017") = "data/Scenes/GridModel_Koschier2017.json";
+    m_sub_sub.attr("GridModel_NoginaSellan2026") = "data/Scenes/GridModel_NoginaSellan2026.json";
     m_sub_sub.attr("MotorScene") = "data/Scenes/MotorScene.json";
     m_sub_sub.attr("MotorScene2") = "data/Scenes/MotorScene2.json";
     m_sub_sub.attr("MultiPhaseColoring") = "data/Scenes/MultiPhaseColoring.json";

@@ -2,7 +2,7 @@ include(${PROJECT_SOURCE_DIR}/GUI/OpenGL/CMakeLists.txt)
 
 include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
 set(SIMULATION_LINK_LIBRARIES imgui ${NFD_LIB} SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
-set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
+set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD Ext_libigl CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
 	
 set(GUI_SOURCE_FILES 
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
@@ -87,6 +87,7 @@ add_library(SimulatorBase
 	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.h
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.h
+	${PROJECT_SOURCE_DIR}/Simulator/MeshCurvatureQuery.h
 	
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h
@@ -118,6 +119,7 @@ set_target_properties(SimulatorBase PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RE
 set_target_properties(SimulatorBase PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
 add_dependencies(SimulatorBase ${SIMULATION_DEPENDENCIES})
 target_link_libraries(SimulatorBase PUBLIC ${SIMULATION_LINK_LIBRARIES})
+target_include_directories(SimulatorBase PRIVATE ${LIBIGL_INCLUDE_DIR})
 VIS_SOURCE_GROUPS()
 GUI_SOURCE_GROUPS()
 

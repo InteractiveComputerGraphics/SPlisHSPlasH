@@ -127,7 +127,7 @@ void DragForce_Gissler2017::step()
 				for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++)
 					numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
 			}
-			//if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			//if (sim->usesDensityMaps())
 			//{
 			//	forall_density_maps(
 			//		// ToDo
@@ -280,7 +280,7 @@ void DragForce_Gissler2017::step()
 				for (unsigned int pid = nFluids; pid < sim->numberOfPointSets(); pid++) 
 					numNeighbors += sim->numberOfNeighbors(fluidModelIndex, pid, i);
 			}
-			//if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			//if (sim->usesDensityMaps())
 			//{
 			//	forall_density_maps(
 			//		// ToDo

@@ -277,14 +277,14 @@ void UtilitiesModule(py::module m) {
         .def(py::init<>())
         .def(py::init<std::string, std::string, Vector3r, Vector3r, Real, Vector3r, bool, bool,
                         Vector4r, std::string, bool, Real,
-                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool>(),
+                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool, unsigned int>(),
                 "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
                 "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(),
                 "isDynamic"_a = false, "isWall"_a = false,
                 "color"_a = Vector4r(1., 0., 0., 0.),
                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                "samplingMode"_a = 1, "isAnimated"_a = false)
+                "samplingMode"_a = 1, "isAnimated"_a = false, "tubeMapOrder"_a = 2)
         .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
         .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
         .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)
@@ -299,7 +299,8 @@ void UtilitiesModule(py::module m) {
         .def_readwrite("mapThickness", &Utilities::BoundaryParameterObject::mapThickness)
         .def_readwrite("mapResolution", &Utilities::BoundaryParameterObject::mapResolution)
         .def_readwrite("samplingMode", &Utilities::BoundaryParameterObject::samplingMode)
-        .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated);
+        .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated)
+        .def_readwrite("tubeMapOrder", &Utilities::BoundaryParameterObject::tubeMapOrder);
 
     py::class_<Utilities::FluidModelParameterObject, GenParam::ParameterObject>(m_sub_sub, "FluidData")
         .def(py::init<>())

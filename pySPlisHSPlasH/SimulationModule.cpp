@@ -81,6 +81,7 @@ void SimulationModule(py::module m_sub){
             .value("Akinci2012", SPH::BoundaryHandlingMethods::Akinci2012)
             .value("Koschier2017", SPH::BoundaryHandlingMethods::Koschier2017)
             .value("Bender2019", SPH::BoundaryHandlingMethods::Bender2019)
+            .value("NoginaSellan2026", SPH::BoundaryHandlingMethods::NoginaSellan2026)
             .value("NumSimulationMethods", SPH::BoundaryHandlingMethods::NumSimulationMethods);
 
     // ---------------------------------------
@@ -130,6 +131,7 @@ void SimulationModule(py::module m_sub){
             .def_readwrite_static("ENUM_AKINCI2012", &SPH::Simulation::ENUM_AKINCI2012)
             .def_readwrite_static("ENUM_KOSCHIER2017", &SPH::Simulation::ENUM_KOSCHIER2017)
             .def_readwrite_static("ENUM_BENDER2019", &SPH::Simulation::ENUM_BENDER2019)
+            .def_readwrite_static("ENUM_NOGINASELLAN2026", &SPH::Simulation::ENUM_NOGINASELLAN2026)
 
             .def(py::init<>())
             .def("init", &SPH::Simulation::init)
@@ -159,6 +161,7 @@ void SimulationModule(py::module m_sub){
 
             .def("getBoundaryHandlingMethod", &SPH::Simulation::getBoundaryHandlingMethod)
             .def("setBoundaryHandlingMethod", &SPH::Simulation::setBoundaryHandlingMethod)
+            .def("usesDensityMaps", &SPH::Simulation::usesDensityMaps)
 
             .def("getKernel", &SPH::Simulation::getKernel)
             .def("setKernel", &SPH::Simulation::setKernel)

@@ -114,7 +114,7 @@ void Viscosity_Standard::step()
  						bm_neighbor->addForce(xj_avx, -delta_a * mi_avx, count);
  					);
  				}
- 				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+ 				else if (sim->usesDensityMaps())
  				{
  					forall_density_maps(
 						const Vector3r xixj = xi - xj;
@@ -292,7 +292,7 @@ void Viscosity_Standard::step()
  						bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
  					);
  				}
- 				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+ 				else if (sim->usesDensityMaps())
  				{
  					forall_density_maps(
 						const Vector3r xixj = xi - xj;

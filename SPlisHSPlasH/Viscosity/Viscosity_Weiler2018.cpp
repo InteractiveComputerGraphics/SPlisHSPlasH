@@ -151,7 +151,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 						delta_ai_avx += a;
 					);
 				}
-				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+				else if (sim->usesDensityMaps())
 				{
 					forall_density_maps(
 						const Vector3r xixj = xi - xj;
@@ -329,7 +329,7 @@ void Viscosity_Weiler2018::matrixVecProd(const Real* vec, Real *result, void *us
 						ai += a;
 					);
 				}
-				else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+				else if (sim->usesDensityMaps())
 				{
 					forall_density_maps(
 						const Vector3r xixj = xi - xj;
@@ -512,7 +512,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 				res_avx += gradW_xij * (d_mub * (density0_avx * Vj_avx / density_i_avx) / (xixj.squaredNorm() + h2_001));
 			);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				const Vector3r xixj = xi - xj;
@@ -653,7 +653,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Matrix3r 
 				result += d * mub * (density0 * bm_neighbor->getVolume(neighborIndex) / density_i) / (xixj.squaredNorm() + 0.01*h2) * (gradW * xixj.transpose());
 			);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				const Vector3r xixj = xi - xj;
@@ -797,7 +797,7 @@ void Viscosity_Weiler2018::diagonalMatrixElement(const unsigned int i, Vector3r 
 				result += r.diagonal();
 			);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
 			forall_density_maps(
 				const Vector3r xixj = xi - xj;
@@ -973,7 +973,7 @@ void Viscosity_Weiler2018::applyForces(const VectorXr &x)
                             bm_neighbor->addForce(xj, -m_model->getMass(i) / density_i * a);
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;
@@ -1137,7 +1137,7 @@ void Viscosity_Weiler2018::computeRHS(VectorXr &b, VectorXr &g)
                             bi += a;
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;

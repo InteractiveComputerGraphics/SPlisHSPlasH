@@ -80,7 +80,7 @@ void TimeStepWCSPH::step()
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		computeVolumeAndBoundaryX();
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		computeDensityAndGradient();
 
 	// Compute accelerations: a(t)
@@ -191,7 +191,7 @@ void TimeStepWCSPH::computePressureAccels(const unsigned int fluidModelIndex)
 					bm_neighbor->addForce(xj, model->getMass(i) * a);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					const Vector3r a = -density0 * (dpi + dpj)* gradRho;

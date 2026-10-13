@@ -262,7 +262,7 @@ void SurfaceTension_Jeske2023::matrixVecProd(const Real *vec, Real *result, void
                 // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                 );
             }
-            else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+            else if (sim->usesDensityMaps())
             {
                 forall_density_maps(
                         const Vector3r xixj = xi - xj;
@@ -315,7 +315,7 @@ void SurfaceTension_Jeske2023::matrixVecProd(const Real *vec, Real *result, void
                     // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;
@@ -567,7 +567,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                 // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                 );
             }
-            else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+            else if (sim->usesDensityMaps())
             {
                 forall_density_maps(
                         const Vector3r xixj = xi - xj;
@@ -616,7 +616,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                             bi += a;
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;
@@ -823,7 +823,7 @@ void SurfaceTension_Jeske2023::matrixVecProd(const Real *vec, Real *result, void
                 // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                 );
             }
-            else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+            else if (sim->usesDensityMaps())
             {
                 forall_density_maps(
                         const Vector3r xixj = xi - xj;
@@ -869,7 +869,7 @@ void SurfaceTension_Jeske2023::matrixVecProd(const Real *vec, Real *result, void
                     // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;
@@ -1144,7 +1144,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                 // bm_neighbor->addForce(xj, -model->getMass(i) / density_i * a);
                 );
             }
-            else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+            else if (sim->usesDensityMaps())
             {
                 forall_density_maps(
                         const Vector3r xixj = xi - xj;
@@ -1192,7 +1192,7 @@ void SurfaceTension_Jeske2023::computeRHS(VectorXr &b, VectorXr &g) {
                             bi += a;
                     );
                 }
-                else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+                else if (sim->usesDensityMaps())
                 {
                     forall_density_maps(
                             const Vector3r xixj = xi - xj;

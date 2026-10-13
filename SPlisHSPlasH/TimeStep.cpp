@@ -95,7 +95,7 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 				);
 				density += density_avx.reduce();
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				density += density_avx.reduce();
 				forall_density_maps(
@@ -154,7 +154,7 @@ void TimeStep::computeDensities(const unsigned int fluidModelIndex)
 					density += bm_neighbor->getVolume(neighborIndex) * sim->W(xi - xj);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					density += rho;
@@ -383,6 +383,13 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 	const Real particleRadius = sim->getParticleRadius();
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 
+	// Density maps [KB17] store the boundary density for 0.1*particleRadius < dist < supportRadius.
+	// Tube maps [NS26] also store it for small and negative distances and their support is enlarged
+	// to (1 + 1/5) * supportRadius.
+	const bool tubeMaps = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
+	const double minDist = tubeMaps ? -numeric_limits<double>::max() : 0.1*particleRadius;
+	const double maxDist = tubeMaps ? (1.0 + 1.0 / 5.0) * supportRadius : supportRadius;
+
 	for (unsigned int pid = 0; pid < nBoundaries; pid++)
 	{
 		BoundaryModel_Koschier2017 *bm = static_cast<BoundaryModel_Koschier2017*>(sim->getBoundaryModel(pid));
@@ -410,7 +417,7 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 			dist = static_cast<Real>(bm->getMap()->interpolate(0, localXi, cell, c0, N, &normal, &dN));
 #endif
 
-		if ((dist > 0.1*particleRadius) && (dist < sim->getSupportRadius()))
+		if ((dist > minDist) && (dist < maxDist))
 		{
 			Eigen::Vector3d gradD;
 			const Real d = static_cast<Real>(bm->getMap()->interpolate(1, localXi, cell, c0, N, &gradD, &dN));

@@ -8,6 +8,7 @@
 #include "ParameterObject.h"
 #include "SPlisHSPlasH/BoundaryModel_Akinci2012.h"
 #include "SPlisHSPlasH/BoundaryModel_Koschier2017.h"
+#include "SPlisHSPlasH/BoundaryModel_NoginaSellan2026.h"
 #include "SPlisHSPlasH/BoundaryModel_Bender2019.h"
 #include "SPlisHSPlasH/TriangleMesh.h"
 #include "BoundarySimulator.h"
@@ -163,6 +164,7 @@ namespace SPH
 		static void particleInfo(std::vector<std::vector<unsigned int>> &particles);
 
 		void initDensityMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Koschier2017 *boundaryModel);
+		void initTubeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_NoginaSellan2026 *boundaryModel);
 		void initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel);
 
 		void readParameters();

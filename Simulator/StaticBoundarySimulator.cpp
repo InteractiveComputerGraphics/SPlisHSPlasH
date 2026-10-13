@@ -156,13 +156,17 @@ void StaticBoundarySimulator::initBoundaryData()
 			bm->initModel(rb, static_cast<unsigned int>(boundaryParticles.size()), &boundaryParticles[0]);
 			sim->addBoundaryModel(bm);
 		}
-		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+		else if (sim->usesDensityMaps())
 		{
-			BoundaryModel_Koschier2017 *bm = new BoundaryModel_Koschier2017();
+			const bool tubeMap = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
+			BoundaryModel_Koschier2017 *bm = tubeMap ? new BoundaryModel_NoginaSellan2026() : new BoundaryModel_Koschier2017();
 			bm->initModel(rb);
 			sim->addBoundaryModel(bm);
 			SPH::TriangleMesh &mesh = rb->getGeometry();
-			m_base->initDensityMap(mesh.getVertices(), mesh.getFaces(), scene.boundaryModels[i], md5, false, bm);
+			if (tubeMap)
+				m_base->initTubeMap(mesh.getVertices(), mesh.getFaces(), scene.boundaryModels[i], md5, false, static_cast<BoundaryModel_NoginaSellan2026*>(bm));
+			else
+				m_base->initDensityMap(mesh.getVertices(), mesh.getFaces(), scene.boundaryModels[i], md5, false, bm);
 		}
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		{
@@ -194,7 +198,7 @@ void StaticBoundarySimulator::deferredInit()
 		m_base->updateBoundaryParticles(true);
 		Simulation::getCurrent()->updateBoundaryVolume();
 	}
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();
@@ -210,7 +214,7 @@ void StaticBoundarySimulator::timeStep()
 	Simulation* sim = Simulation::getCurrent();
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(false);
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();
@@ -230,7 +234,7 @@ void StaticBoundarySimulator::reset()
 
 	if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Akinci2012)
 		m_base->updateBoundaryParticles(true);
-	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+	else if (sim->usesDensityMaps())
 		m_base->updateDMVelocity();
 	else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)
 		m_base->updateVMVelocity();

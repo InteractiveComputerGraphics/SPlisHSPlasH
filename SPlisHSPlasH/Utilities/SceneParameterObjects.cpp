@@ -323,6 +323,7 @@ int BoundaryParameterObject::BOUNDARY_MAP_THICKNESS = -1;
 int BoundaryParameterObject::BOUNDARY_MAP_RESOLUTION = -1;
 int BoundaryParameterObject::BOUNDARY_SAMPLING_MODE = -1;
 int BoundaryParameterObject::BOUNDARY_IS_ANIMATED = -1;
+int BoundaryParameterObject::BOUNDARY_TUBE_MAP_ORDER = -1;
 
 void BoundaryParameterObject::initParameters()
 {
@@ -385,4 +386,9 @@ void BoundaryParameterObject::initParameters()
 	BOUNDARY_IS_ANIMATED = createBoolParameter("isAnimated", "Animated", &isAnimated);
 	setGroup(BOUNDARY_IS_ANIMATED, "Boundary");
 	setDescription(BOUNDARY_IS_ANIMATED, "Defines if the body is animated (e.g. by a script).");	
+
+	BOUNDARY_TUBE_MAP_ORDER = createNumericParameter<unsigned int>("tubeMapOrder", "Tube map order", &tubeMapOrder);
+	setGroup(BOUNDARY_TUBE_MAP_ORDER, "Boundary");
+	setDescription(BOUNDARY_TUBE_MAP_ORDER, "Order of the tube map (only used by the boundary handling method of Nogina and Sell\xC3\xA1n 2026). 0: planar boundary, 1: mean curvature, 2: mean and Gaussian curvature.");
+	static_cast<NumericParameter<unsigned int>*>(getParameter(BOUNDARY_TUBE_MAP_ORDER))->setMaxValue(2);
 }

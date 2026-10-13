@@ -1,0 +1,90 @@
+{
+	"Configuration": 
+	{
+		"particleRadius": 0.025,
+		"numberOfStepsPerRenderUpdate": 2,		
+		"simulationMethod": 4,
+		"gravitation": [0,-9.81,0], 
+		"cflMethod": 1, 
+		"cflFactor": 1,
+		"cflMaxTimeStepSize": 0.005,
+		"boundaryHandlingMethod": 3,
+		"DFSPH": 
+		{
+			"minIterations": 2,
+			"maxIterations": 100,
+			"maxError": 0.05,
+			"maxIterationsV": 100,
+			"maxErrorV": 0.1,
+			"enableDivergenceSolver": true
+		}
+	},
+	"Materials": [
+		{
+			"id": "Fluid",
+			"density0": 1000, 
+			"viscosityMethod": 1, 
+			"colorMapType": 1,
+			"Standard viscosity":
+            {
+                "viscosity": 0.01
+            }
+		}
+	],
+	"RigidBodies": [
+		{
+			"geometryFile": "../models/UnitBox.obj",
+			"translation": [0,2,0],
+			"rotationAxis": [1, 0, 0],
+			"rotationAngle": 0,
+			"scale": [6, 4, 3],
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": true,
+			"mapInvert": true, 
+			"mapThickness": 0.0,
+			"mapResolution": [100,100,100],
+			"tubeMapOrder": 0
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0,-0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [150,150,150],
+			"tubeMapOrder": 2
+		},
+		{
+			"geometryFile": "../models/Dragon_50k.obj",
+			"translation": [1.5,0.0,0.75],
+			"rotationAxis": [0, 1, 0],
+			"rotationAngle": 0,
+			"scale": [1, 1, 1], 
+			"color": [0.1, 0.4, 0.6, 1.0], 
+			"isDynamic": false,
+			"isWall": false,
+			"mapInvert": false, 
+			"mapThickness": 0.0,
+			"mapResolution": [150,150,150],
+			"tubeMapOrder": 2
+		}
+	],
+	"FluidBlocks": [
+		{
+			"denseMode": 0,
+			"start": [-0.5, 0.0, -0.5],
+			"end": [0.5, 1.0, 0.5],
+			"translation": [-2.45, 0.0, 0.0],
+			"scale": [1, 2, 1]
+		}
+	]
+}
+
+
+

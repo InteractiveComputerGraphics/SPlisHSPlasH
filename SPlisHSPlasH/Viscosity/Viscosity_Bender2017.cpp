@@ -219,7 +219,7 @@ void Viscosity_Bender2017::step()
 					bm_neighbor->addForce(xj, -m_model->getMass(i) * a);
 				);
 			}
-			else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017)
+			else if (sim->usesDensityMaps())
 			{
 				forall_density_maps(
 					Vector3r vj;

@@ -92,6 +92,7 @@ Example code:
     - 0: particle-based boundaries (Akinci et al. 2012)
     - 1: density maps (Koschier et al. 2017)
     - 2: volume maps (Bender et al. 2019)
+    - 3: tube maps (Nogina and Sellán 2026)
 * simulationMethod (int): The pressure solver method used in the simulation (default: 4, DFSPH):
     - 0: Weakly compressible SPH for free surface flows (WCSPH)
     - 1: Predictive-corrective incompressible SPH (PCISPH)
@@ -325,6 +326,10 @@ Example code:
 * mapThickness (float): Additional thickness of a volume or density map (default: 0.0)
 * mapResolution (vec3): Resolution of a volume or density map (defaut: [20,20,20])
 * samplingMode (int): Surface sampling mode. 0 Poisson disk sampling, 1 Regular triangle sampling (default: 0).
+* tubeMapOrder (int): Order of the tube map, only used by the tube maps boundary handling (default: 2):
+    - 0: planar boundary
+    - 1: correction using the mean curvature of the boundary surface
+    - 2: correction using the mean and Gaussian curvature of the boundary surface
 
 
 ## Materials

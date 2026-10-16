@@ -378,7 +378,7 @@ namespace SPH
 		void setBoundaryHandlingMethod(BoundaryHandlingMethods val) { m_boundaryHandlingMethod = (int) val; }
 
 		/** Returns true if the boundary handling uses density maps, i.e., the method of
-		* Koschier and Bender 2017 or the tube maps of Nogina and Sell·n 2026. Both methods
+		* Koschier and Bender 2017 or the tube maps of Nogina and Sell√°n 2026. Both methods
 		* use the same boundary model interface (BoundaryModel_Koschier2017) and only differ
 		* in the construction and evaluation of the map.
 		*/

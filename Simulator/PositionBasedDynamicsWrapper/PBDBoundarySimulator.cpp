@@ -202,8 +202,12 @@ void PBDBoundarySimulator::initBoundaryData()
 		}
 		else if (sim->usesDensityMaps())
 		{
+#ifdef USE_THIRD_PARTY_METHODS
 			const bool tubeMap = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
 			BoundaryModel_Koschier2017 *bm = tubeMap ? new BoundaryModel_NoginaSellan2026() : new BoundaryModel_Koschier2017();
+#else
+			BoundaryModel_Koschier2017* bm = new BoundaryModel_Koschier2017();
+#endif
 			bm->initModel(rb);
 			sim->addBoundaryModel(bm);
 
@@ -216,9 +220,11 @@ void PBDBoundarySimulator::initBoundaryData()
 			for (unsigned int j = 0; j < vd.size(); j++)
 				xLocal[j] = rigidBodies[i]->getRotationMatrix().transpose() * (vd.getPosition(j) - rigidBodies[i]->getPosition());
 
+#ifdef USE_THIRD_PARTY_METHODS
 			if (tubeMap)
 				m_base->initTubeMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, static_cast<BoundaryModel_NoginaSellan2026*>(bm));
 			else
+#endif
 				m_base->initDensityMap(xLocal, mesh.getFaces(), scene.boundaryModels[i], md5, true, bm);
 		}
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)

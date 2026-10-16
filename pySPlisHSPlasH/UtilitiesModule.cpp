@@ -277,14 +277,22 @@ void UtilitiesModule(py::module m) {
         .def(py::init<>())
         .def(py::init<std::string, std::string, Vector3r, Vector3r, Real, Vector3r, bool, bool,
                         Vector4r, std::string, bool, Real,
-                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool, unsigned int>(),
+                        Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign>, unsigned int, bool
+#ifdef USE_THIRD_PARTY_METHODS  // tube maps
+                        , unsigned int
+#endif
+                        >(),
                 "samplesFile"_a = "", "meshFile"_a = "", "translation"_a = Vector3r::Zero(),
                 "axis"_a = Vector3r(1,0,0), "angle"_a = 0.0, "scale"_a = Vector3r::Ones(),
                 "isDynamic"_a = false, "isWall"_a = false,
                 "color"_a = Vector4r(1., 0., 0., 0.),
                 "mapFile"_a = "", "mapInvert"_a = false, "mapThickness"_a = 0.0,
                 "mapResolution"_a = Eigen::Matrix<unsigned int, 3, 1>(20, 20, 20),
-                "samplingMode"_a = 1, "isAnimated"_a = false, "tubeMapOrder"_a = 2)
+                "samplingMode"_a = 1, "isAnimated"_a = false
+#ifdef USE_THIRD_PARTY_METHODS  // tube maps
+                , "tubeMapOrder"_a = 2
+#endif
+            )
         .def_readwrite("samplesFile", &Utilities::BoundaryParameterObject::samplesFile)
         .def_readwrite("meshFile", &Utilities::BoundaryParameterObject::meshFile)
         .def_readwrite("translation", &Utilities::BoundaryParameterObject::translation)
@@ -300,7 +308,10 @@ void UtilitiesModule(py::module m) {
         .def_readwrite("mapResolution", &Utilities::BoundaryParameterObject::mapResolution)
         .def_readwrite("samplingMode", &Utilities::BoundaryParameterObject::samplingMode)
         .def_readwrite("isAnimated", &Utilities::BoundaryParameterObject::isAnimated)
-        .def_readwrite("tubeMapOrder", &Utilities::BoundaryParameterObject::tubeMapOrder);
+#ifdef USE_THIRD_PARTY_METHODS  // tube maps
+        .def_readwrite("tubeMapOrder", &Utilities::BoundaryParameterObject::tubeMapOrder)
+#endif
+        ;
 
     py::class_<Utilities::FluidModelParameterObject, GenParam::ParameterObject>(m_sub_sub, "FluidData")
         .def(py::init<>())
@@ -310,6 +321,7 @@ void UtilitiesModule(py::module m) {
                 "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "scale"_a=Vector3r::Ones(),
                 "initialVelocity"_a=Vector3r::Zero(), "initialAngularVelocity"_a = Vector3r::Zero(), "mode"_a=0, "invert"_a=false,
                 "resolutionSDF"_a=std::array<unsigned int, 3>({20, 20, 20}))
+        .def("initParameters", &Utilities::FluidModelParameterObject::initParameters)
         .def_readwrite("id", &Utilities::FluidModelParameterObject::id)
         .def_readwrite("visMeshFile", &Utilities::FluidModelParameterObject::visMeshFile)
         .def_readwrite("samplesFile", &Utilities::FluidModelParameterObject::samplesFile)
@@ -328,6 +340,7 @@ void UtilitiesModule(py::module m) {
         .def(py::init<std::string, std::string, Vector3r, Vector3r, unsigned char, Vector3r, Vector3r, Vector3r, Vector3r>(),
                 "id"_a="Fluid", "visMeshFile"_a="", "boxMin"_a=Vector3r::Zero(), "boxMax"_a = Vector3r::Ones(),
                 "mode"_a=0, "translation"_a = Vector3r::Zero(), "scale"_a = Vector3r::Ones(), "initialVelocity"_a=Vector3r::Zero(), "initialVelocity"_a = Vector3r::Zero())
+        .def("initParameters", &Utilities::FluidBlockParameterObject::initParameters)
         .def_readwrite("id", &Utilities::FluidBlockParameterObject::id)
         .def_readwrite("visMeshFile", &Utilities::FluidBlockParameterObject::visMeshFile)
         .def_readwrite("boxMin", &Utilities::FluidBlockParameterObject::boxMin)
@@ -344,6 +357,7 @@ void UtilitiesModule(py::module m) {
                 "id"_a="Fluid", "width"_a=5, "height"_a=5, "x"_a=Vector3r::Zero(),
                 "velocity"_a=1, "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "emitStartTime"_a=0,
                 "emitEndTime"_a=std::numeric_limits<Real>::max(), "type"_a=0)
+        .def("initParameters", &Utilities::EmitterParameterObject::initParameters)
         .def_readwrite("id", &Utilities::EmitterParameterObject::id)
         .def_readwrite("width", &Utilities::EmitterParameterObject::width)
         .def_readwrite("height", &Utilities::EmitterParameterObject::height)
@@ -362,6 +376,7 @@ void UtilitiesModule(py::module m) {
                 "expressionZ"_a="", "shapeType"_a=0, "translation"_a=Vector3r::Zero(),
                 "axis"_a = Vector3r(1, 0, 0), "angle"_a = 0.0, "scale"_a=Vector3r::Ones(), "startTime"_a=0,
                 "endTime"_a=std::numeric_limits<Real>::max())
+        .def("initParameters", &Utilities::AnimationFieldParameterObject::initParameters)
         .def_readwrite("particleFieldName", &Utilities::AnimationFieldParameterObject::particleFieldName)
                 // .def_readwrite("expression", &Utilities::AnimationFieldParameterObject::expression) // TODO: bind this type manually
         .def_readwrite("shapeType", &Utilities::AnimationFieldParameterObject::shapeType)
@@ -378,6 +393,7 @@ void UtilitiesModule(py::module m) {
                 "id"_a, "colorField"_a="velocity", "colorMapType"_a=1, "minVal"_a=0.0, "maxVal"_a=10.0, "visible"_a=true, //TODO: an id has to be provided
                 "maxEmitterParticles"_a=10000, "emitterReuseParticles"_a=false, "emitterBoxMin"_a=Vector3r(-1.0, -1.0, -1.0),
                 "emitterBoxMax"_a=Vector3r(1.0, 1.0, 1.0))
+        .def("initParameters", &Utilities::MaterialParameterObject::initParameters)
         .def_readwrite("id", &Utilities::MaterialParameterObject::id)
         .def_readwrite("colorField", &Utilities::MaterialParameterObject::colorField)
         .def_readwrite("colorMapType", &Utilities::MaterialParameterObject::colorMapType)

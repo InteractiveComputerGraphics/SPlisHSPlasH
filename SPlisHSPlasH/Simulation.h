@@ -168,7 +168,11 @@ for (unsigned int pid = 0; pid < nBoundaries; pid++) \
 namespace SPH
 {
 	enum class SimulationMethods { WCSPH = 0, PCISPH, PBF, IISPH, DFSPH, PF, ICSPH, NumSimulationMethods };
-	enum class BoundaryHandlingMethods { Akinci2012 = 0, Koschier2017, Bender2019, NoginaSellan2026, NumSimulationMethods };
+	enum class BoundaryHandlingMethods { Akinci2012 = 0, Koschier2017, Bender2019, 
+#ifdef USE_THIRD_PARTY_METHODS
+		NoginaSellan2026, 
+#endif
+		NumSimulationMethods };
 
 	/** \brief Class to manage the current simulation time and the time step size. 
 	* This class is a singleton.
@@ -221,7 +225,9 @@ namespace SPH
 		static int ENUM_AKINCI2012;
 		static int ENUM_KOSCHIER2017;
 		static int ENUM_BENDER2019;
+#ifdef USE_THIRD_PARTY_METHODS
 		static int ENUM_NOGINASELLAN2026;
+#endif
 
 		typedef PrecomputedKernel<CubicKernel, 10000> PrecomputedCubicKernel;
 
@@ -372,14 +378,18 @@ namespace SPH
 		void setBoundaryHandlingMethod(BoundaryHandlingMethods val) { m_boundaryHandlingMethod = (int) val; }
 
 		/** Returns true if the boundary handling uses density maps, i.e., the method of
-		* Koschier and Bender 2017 or the tube maps of Nogina and Sell√°n 2026. Both methods
+		* Koschier and Bender 2017 or the tube maps of Nogina and Sell·n 2026. Both methods
 		* use the same boundary model interface (BoundaryModel_Koschier2017) and only differ
 		* in the construction and evaluation of the map.
 		*/
 		bool usesDensityMaps() const
 		{
+#ifdef USE_THIRD_PARTY_METHODS
 			return (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017) ||
 				(getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
+#else
+			return (getBoundaryHandlingMethod() == BoundaryHandlingMethods::Koschier2017);
+#endif			
 		}
 
 		int getKernel() const { return m_kernelMethod; }

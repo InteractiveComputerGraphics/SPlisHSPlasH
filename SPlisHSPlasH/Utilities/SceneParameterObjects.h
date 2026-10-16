@@ -338,8 +338,10 @@ namespace Utilities
 		Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution;
 		unsigned int samplingMode;
 		bool isAnimated;
+#ifdef USE_THIRD_PARTY_METHODS
 		// Tube maps
 		unsigned int tubeMapOrder;
+#endif
 
 		BoundaryParameterObject()
 		{
@@ -355,7 +357,9 @@ namespace Utilities
 			color = Vector4r(1.0, 0.0, 0.0, 0.0);
 			samplingMode = 1;
 			isAnimated = false;
+#ifdef USE_THIRD_PARTY_METHODS
 			tubeMapOrder = 2;
+#endif
 			// Maps
 			mapFile = "";
 			mapInvert = false;
@@ -365,7 +369,11 @@ namespace Utilities
 
 		BoundaryParameterObject(std::string samplesFile_, std::string meshFile_, Vector3r translation_, Vector3r axis_, Real angle_, Vector3r scale_,
 								bool dynamic_, bool isWall_, Vector4r color_, std::string mapFile_, bool mapInvert_,
-								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_, unsigned int tubeMapOrder_)
+								Real mapThickness_, Eigen::Matrix<unsigned int, 3, 1, Eigen::DontAlign> mapResolution_, unsigned int samplingMode_, bool isAnimated_
+#ifdef USE_THIRD_PARTY_METHODS
+								, unsigned int tubeMapOrder_
+#endif
+				)
 		{
 			samplesFile = samplesFile_;
 			meshFile = meshFile_;
@@ -378,7 +386,9 @@ namespace Utilities
 			color = color_;
 			samplingMode = samplingMode_;
 			isAnimated = isAnimated_;
+#ifdef USE_THIRD_PARTY_METHODS
 			tubeMapOrder = tubeMapOrder_;
+#endif
 			// Maps
 			mapFile = mapFile_;
 			mapInvert = mapInvert_;
@@ -401,7 +411,9 @@ namespace Utilities
 		static int BOUNDARY_MAP_RESOLUTION;
 		static int BOUNDARY_SAMPLING_MODE;
 		static int BOUNDARY_IS_ANIMATED;
+#ifdef USE_THIRD_PARTY_METHODS
 		static int BOUNDARY_TUBE_MAP_ORDER;
+#endif
 
 		virtual void initParameters();
 	};

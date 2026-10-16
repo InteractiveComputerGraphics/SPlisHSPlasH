@@ -60,7 +60,9 @@ int Simulation::BOUNDARY_HANDLING_METHOD = -1;
 int Simulation::ENUM_AKINCI2012 = -1;
 int Simulation::ENUM_KOSCHIER2017 = -1;
 int Simulation::ENUM_BENDER2019 = -1;
+#ifdef USE_THIRD_PARTY_METHODS
 int Simulation::ENUM_NOGINASELLAN2026 = -1;
+#endif
 
 
 Simulation::Simulation () 
@@ -280,7 +282,9 @@ void Simulation::initParameters()
 	enumParam->addEnumValue("Akinci et al. 2012", ENUM_AKINCI2012);
 	enumParam->addEnumValue("Koschier and Bender 2017", ENUM_KOSCHIER2017);
 	enumParam->addEnumValue("Bender et al. 2019", ENUM_BENDER2019);
+#ifdef USE_THIRD_PARTY_METHODS
 	enumParam->addEnumValue("Nogina and Sell\xC3\xA1n 2026", ENUM_NOGINASELLAN2026);
+#endif
 	enumParam->setReadOnly(true);
 }
 

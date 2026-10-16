@@ -28,21 +28,23 @@ set(DISCREGRID_LIBRARIES
 )
 unset(INSTALL_DIR)
 
-## libigl (header-only, used for the generation of tube maps)
-ExternalProject_Add(
-	Ext_libigl
-	PREFIX "${CMAKE_BINARY_DIR}/extern/libigl"
-	GIT_REPOSITORY https://github.com/libigl/libigl.git
-	GIT_TAG "v2.5.0"
-	GIT_SHALLOW TRUE
-	INSTALL_DIR ${ExternalInstallDir}/libigl
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND ""
-	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/include ${ExternalInstallDir}/libigl/include
-)
-ExternalProject_Get_Property(Ext_libigl INSTALL_DIR)
-set(LIBIGL_INCLUDE_DIR ${INSTALL_DIR}/include)
-unset(INSTALL_DIR)
+if (USE_THIRD_PARTY_METHODS)
+	## libigl (header-only, used for the generation of tube maps)
+	ExternalProject_Add(
+		Ext_libigl
+		PREFIX "${CMAKE_BINARY_DIR}/extern/libigl"
+		GIT_REPOSITORY https://github.com/libigl/libigl.git
+		GIT_TAG "v2.5.0"
+		GIT_SHALLOW TRUE
+		INSTALL_DIR ${ExternalInstallDir}/libigl
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND ""
+		INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/include ${ExternalInstallDir}/libigl/include
+	)
+	ExternalProject_Get_Property(Ext_libigl INSTALL_DIR)
+	set(LIBIGL_INCLUDE_DIR ${INSTALL_DIR}/include)
+	unset(INSTALL_DIR)
+endif()
 
 ## GenericParameters
 ExternalProject_Add(

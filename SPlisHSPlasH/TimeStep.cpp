@@ -383,12 +383,17 @@ void TimeStep::computeDensityAndGradient(const unsigned int fluidModelIndex, con
 	const Real particleRadius = sim->getParticleRadius();
 	const Real dt = TimeManager::getCurrent()->getTimeStepSize();
 
+#ifdef USE_THIRD_PARTY_METHODS
 	// Density maps [KB17] store the boundary density for 0.1*particleRadius < dist < supportRadius.
 	// Tube maps [NS26] also store it for small and negative distances and their support is enlarged
 	// to (1 + 1/5) * supportRadius.
 	const bool tubeMaps = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
 	const double minDist = tubeMaps ? -numeric_limits<double>::max() : 0.1*particleRadius;
 	const double maxDist = tubeMaps ? (1.0 + 1.0 / 5.0) * supportRadius : supportRadius;
+#else
+	const double minDist = 0.1 * particleRadius;
+	const double maxDist = supportRadius;
+#endif
 
 	for (unsigned int pid = 0; pid < nBoundaries; pid++)
 	{

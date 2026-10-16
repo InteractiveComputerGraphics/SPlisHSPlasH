@@ -397,7 +397,7 @@ int main( int argc, char **argv )
 
 	// init particle mass
 	const Real diam = static_cast<Real>(2.0) * particleRadius;
-	mass = static_cast<Real>(0.8) * diam*diam*diam * density0;
+	mass = diam*diam*diam * density0;
 
 	// if in query mode, determine the max values per frame 
 	Real vDiffAvgMax, omegaDiffAvgMax, curvatureAvgMax, energyAvgMax;

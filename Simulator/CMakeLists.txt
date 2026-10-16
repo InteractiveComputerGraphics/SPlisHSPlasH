@@ -2,7 +2,7 @@ include(${PROJECT_SOURCE_DIR}/GUI/OpenGL/CMakeLists.txt)
 
 include(${PROJECT_SOURCE_DIR}/GUI/imgui/CMakeLists.txt)
 set(SIMULATION_LINK_LIBRARIES imgui ${NFD_LIB} SPlisHSPlasH ${PBD_LIBRARIES} PBD_includes)
-set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD Ext_libigl CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
+set(SIMULATION_DEPENDENCIES imgui ${NFD_LIB} SPlisHSPlasH Ext_PBD CopySPlisHSPlasHShaders CopyPBDShaders CopyEmitterModels CopyImguiFonts)
 	
 set(GUI_SOURCE_FILES 
 	${PROJECT_SOURCE_DIR}/Simulator/GUI/imgui/Simulator_GUI_imgui.cpp
@@ -68,6 +68,32 @@ set(EXPORTER_HEADER_FILES
 	${PROJECT_SOURCE_DIR}/Simulator/Exporter/RigidBodyExporter_VTK.h
 )
 
+set(SIMULATORBASE_HEADER_FILES
+	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.h
+	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.h
+	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.h
+	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.h
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/Simulator_GUI_Base.h
+)
+
+set(SIMULATORBASE_SOURCE_FILES
+	${PROJECT_SOURCE_DIR}/Simulator/ExporterRegistration.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.cpp
+	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.cpp	
+	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp
+)
+
+if (USE_THIRD_PARTY_METHODS)
+	list(APPEND SIMULATORBASE_HEADER_FILES 
+		${PROJECT_SOURCE_DIR}/Simulator/MeshCurvatureQuery.h
+	)
+
+	set(SIMULATION_DEPENDENCIES Ext_libigl ${SIMULATION_DEPENDENCIES})	
+endif()
+
 if (USE_EMBEDDED_PYTHON)
 	set(EMBEDDED_PYTHON_SOURCE_FILES
 		${PROJECT_SOURCE_DIR}/Simulator/ScriptObject.cpp
@@ -78,21 +104,9 @@ if (USE_EMBEDDED_PYTHON)
 endif(USE_EMBEDDED_PYTHON)
 
 add_library(SimulatorBase
-	${PROJECT_SOURCE_DIR}/Simulator/ExporterRegistration.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/SceneConfiguration.h
-	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/SimulatorBase.h
-	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/BoundarySimulator.h
-	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/StaticBoundarySimulator.h
-	${PROJECT_SOURCE_DIR}/Simulator/MeshCurvatureQuery.h
-	
-	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.cpp
-	${PROJECT_SOURCE_DIR}/Simulator/GUI/OpenGL/Simulator_OpenGL.h
+	${SIMULATORBASE_SOURCE_FILES}
+	${SIMULATORBASE_HEADER_FILES}
 
-	${PROJECT_SOURCE_DIR}/Simulator/GUI/Simulator_GUI_Base.h
 	${GUI_SOURCE_FILES}
 	${GUI_HEADER_FILES}
 

@@ -158,14 +158,20 @@ void StaticBoundarySimulator::initBoundaryData()
 		}
 		else if (sim->usesDensityMaps())
 		{
+#ifdef USE_THIRD_PARTY_METHODS
 			const bool tubeMap = (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::NoginaSellan2026);
-			BoundaryModel_Koschier2017 *bm = tubeMap ? new BoundaryModel_NoginaSellan2026() : new BoundaryModel_Koschier2017();
+			BoundaryModel_Koschier2017* bm = tubeMap ? new BoundaryModel_NoginaSellan2026() : new BoundaryModel_Koschier2017();
+#else
+			BoundaryModel_Koschier2017* bm = new BoundaryModel_Koschier2017();
+#endif
 			bm->initModel(rb);
 			sim->addBoundaryModel(bm);
 			SPH::TriangleMesh &mesh = rb->getGeometry();
+#ifdef USE_THIRD_PARTY_METHODS
 			if (tubeMap)
 				m_base->initTubeMap(mesh.getVertices(), mesh.getFaces(), scene.boundaryModels[i], md5, false, static_cast<BoundaryModel_NoginaSellan2026*>(bm));
 			else
+#endif
 				m_base->initDensityMap(mesh.getVertices(), mesh.getFaces(), scene.boundaryModels[i], md5, false, bm);
 		}
 		else if (sim->getBoundaryHandlingMethod() == BoundaryHandlingMethods::Bender2019)

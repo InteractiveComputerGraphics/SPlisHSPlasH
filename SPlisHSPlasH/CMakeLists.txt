@@ -154,7 +154,6 @@ set(UTILS_HEADER_FILES
 	Utilities/VolumeSampling.h
 	Utilities/SDFFunctions.h
 	Utilities/SimpleQuadrature.h
-	Utilities/TubeMapDensity.h
 	Utilities/WindingNumbers.h
 	)
 	
@@ -173,8 +172,50 @@ set(UTILS_SOURCE_FILES
 	Utilities/VolumeSampling.cpp
 	Utilities/SDFFunctions.cpp
 	Utilities/SimpleQuadrature.cpp
-	Utilities/TubeMapDensity.cpp
 	Utilities/WindingNumbers.cpp
+	)	
+	
+set(SPLISHSPLASH_HEADER_FILES
+	Common.h
+	NeighborhoodSearch.h
+	AnimationField.h
+	AnimationFieldSystem.h
+	BoundaryModel.h
+	BoundaryModel_Akinci2012.h
+	BoundaryModel_Bender2019.h
+	BoundaryModel_Koschier2017.h
+	Emitter.h
+	EmitterSystem.h
+	FluidModel.h
+	RigidBodyObject.h
+	SPHKernels.h
+	StaticRigidBody.h
+	Simulation.h
+	TimeManager.h	
+	TimeStep.h
+	TriangleMesh.h
+	NonPressureForceBase.h
+	XSPH.h
+	)	
+	
+set(SPLISHSPLASH_SOURCE_FILES
+	AnimationField.cpp
+	AnimationFieldSystem.cpp
+	BoundaryModel.cpp
+	BoundaryModel_Akinci2012.cpp
+	BoundaryModel_Bender2019.cpp
+	BoundaryModel_Koschier2017.cpp
+	Emitter.cpp
+	EmitterSystem.cpp
+	FluidModel.cpp
+	NonPressureForceRegistration.cpp
+	SPHKernels.cpp
+	Simulation.cpp
+	TimeManager.cpp
+	TimeStep.cpp
+	TriangleMesh.cpp
+	NonPressureForceBase.cpp
+	XSPH.cpp
 	)	
 	
 if (USE_THIRD_PARTY_METHODS)
@@ -194,50 +235,24 @@ if (USE_THIRD_PARTY_METHODS)
 	list(APPEND ELASTICITY_SOURCE_FILES 
 		Elasticity/Elasticity_Kee2023.cpp
 	)
+
+	list(APPEND UTILS_HEADER_FILES 
+		Utilities/TubeMapDensity.h
+	)
+
+	list(APPEND UTILS_SOURCE_FILES 
+		Utilities/TubeMapDensity.cpp
+	)
+	
+	list(APPEND SPLISHSPLASH_HEADER_FILES
+		BoundaryModel_NoginaSellan2026.h
+	)
+	
 endif()
 	
 add_library(SPlisHSPlasH
-	Common.h
-	
-	NeighborhoodSearch.h
-
-	AnimationField.cpp
-	AnimationField.h
-	AnimationFieldSystem.h
-	AnimationFieldSystem.cpp
-	BoundaryModel.cpp
-	BoundaryModel.h
-	BoundaryModel_Akinci2012.cpp
-	BoundaryModel_Akinci2012.h
-	BoundaryModel_Bender2019.cpp
-	BoundaryModel_Bender2019.h
-	BoundaryModel_Koschier2017.cpp
-	BoundaryModel_Koschier2017.h
-	BoundaryModel_NoginaSellan2026.h
-	Emitter.cpp
-	Emitter.h
-	EmitterSystem.cpp
-	EmitterSystem.h
-	FluidModel.cpp
-	FluidModel.h
-	RigidBodyObject.h
-	NonPressureForceRegistration.cpp
-	SPHKernels.cpp
-	SPHKernels.h
-	StaticRigidBody.h
-	Simulation.cpp
-	Simulation.h
-	TimeManager.cpp
-	TimeManager.h	
-	TimeStep.cpp
-	TimeStep.h
-	TriangleMesh.cpp
-	TriangleMesh.h
-	NonPressureForceBase.cpp
-	NonPressureForceBase.h
-	XSPH.cpp
-	XSPH.h
-
+	${SPLISHSPLASH_HEADER_FILES}
+	${SPLISHSPLASH_SOURCE_FILES}
 	
 	${WCSPH_HEADER_FILES}
 	${WCSPH_SOURCE_FILES}

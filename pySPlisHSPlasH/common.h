@@ -10,6 +10,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
+#include <SPlisHSPlasH/Simulation.h>
 #include <SPlisHSPlasH/Emitter.h>
 #include <SPlisHSPlasH/AnimationField.h>
 #include <Utilities/OBJLoader.h>
@@ -29,6 +30,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<Utilities::FluidBlockParameterObject*>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::EmitterParameterObject *>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::AnimationFieldParameterObject *>)
 PYBIND11_MAKE_OPAQUE(std::vector<Utilities::MaterialParameterObject*>)
+// PYBIND11_MAKE_OPAQUE(std::vector<SPH::Simulation::NonPressureForceMethod>)
 PYBIND11_MAKE_OPAQUE(std::vector<PBDWrapper::RBData>)
 
 #endif //SPLISHSPLASH_COMMON_H

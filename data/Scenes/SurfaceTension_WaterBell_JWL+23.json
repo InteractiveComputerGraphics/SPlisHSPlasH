@@ -37,7 +37,7 @@
 		{
 			"minIterations": 2,
 			"maxIterations": 100,
-			"maxError": 0.01,
+			"maxError": 0.05,
 			"maxIterationsV": 100,
 			"maxErrorV": 0.1,
 			"enableDivergenceSolver": true
@@ -50,7 +50,7 @@
     {
       "id": "Fluid_0",
       "type": 1,
-      "velocity": 8.0,
+      "velocity": 5.0,
       "emitStartTime": 0.0,
       "emitEndTime": 100.0,
       "tag": "",
@@ -80,7 +80,7 @@
     {
       "id": "Fluid_0",
       "type": 1,
-      "velocity": 8.0,
+      "velocity": 5.0,
       "emitStartTime": 0.0,
       "emitEndTime": 100.0,
       "tag": "",
@@ -133,7 +133,7 @@
       "surfaceTensionMethod": 4,
       "Jeske et al. 2023": 
       {
-        "surfaceTension": 10799.999275803582,
+        "surfaceTension": 8799.999275803582,
         "surfaceTensionBoundary": 0.0,
         "surfaceTensionViscosity": 0.05,
         "surfaceTensionViscosityBoundary": 0.0,

@@ -1,3 +1,8 @@
+2.19.0
+	- added implementation of boundary handling method: Nogina and Sellan, "Tube Maps: Fast SPH Boundary Handling with Tubular Coordinates", SIGGRAPH Conference Papers, 2026 (thanks to Daria Nogina)
+	- removed volume factor
+	- bugfixes
+
 2.18.1
 	- bugfixes
 

@@ -22,6 +22,7 @@ void TimeModule(py::module m_sub) {
             .def_static("setCurrent", &SPH::TimeManager::setCurrent)
             .def_static("hasCurrent", &SPH::TimeManager::hasCurrent)
 
+            .def("initParameters", &SPH::TimeManager::initParameters)
             .def("getTime", &SPH::TimeManager::getTime)
             .def("setTime", &SPH::TimeManager::setTime)
             .def("getTimeStepSize", &SPH::TimeManager::getTimeStepSize)

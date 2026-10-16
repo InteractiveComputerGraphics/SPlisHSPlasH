@@ -25,7 +25,7 @@ SPHVolumeSampling::~SPHVolumeSampling()
 
 void SPHVolumeSampling::generateSamples()
 {
-	m_volume = static_cast<Real>(1.0) * m_diameter * m_diameter * m_diameter;
+	m_volume = static_cast<Real>(1.1) * m_diameter * m_diameter * m_diameter;
 	m_mass = m_volume * m_density0;
 
 	const Real oldRadius = m_radius;

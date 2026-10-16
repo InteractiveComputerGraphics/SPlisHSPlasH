@@ -45,7 +45,7 @@
 		{
 			"minIterations": 2,
 			"maxIterations": 100,
-			"maxError": 0.01,
+			"maxError": 0.05,
 			"maxIterationsV": 100,
 			"maxErrorV": 0.01,
 			"enableDivergenceSolver": true
@@ -68,7 +68,7 @@
         0.0
       ],
       "type": 1,
-      "velocity": 5,
+      "velocity": 4,
       "width": 17
     },
     {
@@ -87,7 +87,7 @@
         0.0
       ],
       "type": 1,
-      "velocity": 5,
+      "velocity": 4,
       "width": 17
     }
   ],
@@ -116,13 +116,13 @@
       "emitterReuseParticles": true,
       "id": "Fluid",
       "maxEmitterParticles": 10000000,
-      "renderMaxValue": 5.0,
+      "renderMaxValue": 15.0,
       "renderMinValue": 0.0,
       "viscosityMethod": 0,
       "surfaceTensionMethod": 4,
       "Jeske et al. 2023": 
       {
-        "surfaceTension": 12000.000000000004,
+        "surfaceTension": 9000.000000000004,
         "surfaceTensionBoundary": 0.0,
         "surfaceTensionViscosity": 0.0075,
         "surfaceTensionViscosityBoundary": 0.0,

@@ -2,7 +2,7 @@
 	"Configuration": 
 	{
 		"timeStepSize": 0.002,
-		"particleRadius": 0.025,
+		"particleRadius": 0.023,
 		"numberOfStepsPerRenderUpdate": 2,
 		"simulationMethod": 4,
 		"gravitation": [0,-9.81,0], 
@@ -36,7 +36,7 @@
 				"youngsModulus": 1000000.0,
 				"poissonsRatio": 0.33, 
 				"alpha": 0.1, 
-				"maxNeighbors": 15	
+				"maxNeighbors_": 15	
 			}
 		}
 	],

@@ -6,7 +6,9 @@
 #include <SPlisHSPlasH/Elasticity/Elasticity_Becker2009.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Peer2018.h>
 #include <SPlisHSPlasH/Elasticity/Elasticity_Kugelstadt2021.h>
+#ifdef USE_THIRD_PARTY_METHODS 
 #include <SPlisHSPlasH/Elasticity/Elasticity_Kee2023.h>
+#endif
 
 #include <pybind11/pybind11.h>
 
@@ -64,6 +66,7 @@ void ElasticityModule(py::module m_sub) {
             .def("getMethodName", &SPH::Elasticity_Kugelstadt2021::getMethodName)
             .def(py::init<SPH::FluidModel*>());
 
+#ifdef USE_THIRD_PARTY_METHODS 
     // ---------------------------------------
     // Class Elasticity Kee 2023
     // ---------------------------------------
@@ -87,4 +90,5 @@ void ElasticityModule(py::module m_sub) {
 
             .def("getMethodName", &SPH::Elasticity_Kee2023::getMethodName)
             .def(py::init<SPH::FluidModel*>());
+#endif
 }

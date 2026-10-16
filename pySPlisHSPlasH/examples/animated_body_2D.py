@@ -7,7 +7,8 @@ from scipy.spatial.transform import Rotation as R
 
 def time_step_callback():  
     sim = sph.Simulation.getCurrent()
-    boundary = sim.getBoundaryModel(1)
+    # Get the boundary model for the animated body, animated bodies are always sorted to the end of the boundary model list.
+    boundary = sim.getBoundaryModel(2)
     animatedBody = boundary.getRigidBodyObject()
 
     tm = sph.TimeManager.getCurrent()

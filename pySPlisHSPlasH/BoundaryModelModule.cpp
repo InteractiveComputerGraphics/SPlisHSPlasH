@@ -7,7 +7,9 @@
 #include <SPlisHSPlasH/BoundaryModel_Akinci2012.h>
 #include <SPlisHSPlasH/BoundaryModel_Bender2019.h>
 #include <SPlisHSPlasH/BoundaryModel_Koschier2017.h>
+#ifdef USE_THIRD_PARTY_METHODS
 #include <SPlisHSPlasH/BoundaryModel_NoginaSellan2026.h>
+#endif
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -106,9 +108,11 @@ void BoundaryModelModule(py::module m_sub){
             // .def("getBoundaryXj", (Vector3r& (SPH::BoundaryModel_Koschier2017::*)(const unsigned int, const unsigned int))(&SPH::BoundaryModel_Koschier2017::getBoundaryXj)) // TODO: wont work by reference
             .def("setBoundaryXj", &SPH::BoundaryModel_Koschier2017::setBoundaryXj);
 
+#ifdef USE_THIRD_PARTY_METHODS
     // ---------------------------------------
     // Boundary Model Tubular 2025
     // ---------------------------------------
     py::class_<SPH::BoundaryModel_NoginaSellan2026, SPH::BoundaryModel_Koschier2017>(m_sub, "BoundaryModelNoginaSellan2026")
             .def(py::init<>());
+#endif
 }

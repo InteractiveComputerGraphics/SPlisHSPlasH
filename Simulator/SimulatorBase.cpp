@@ -26,8 +26,10 @@
 #include "StaticBoundarySimulator.h"
 #include "Exporter/ExporterBase.h"
 #include "SPlisHSPlasH/Utilities/MeshImport.h"
+#ifdef USE_THIRD_PARTY_METHODS
 #include "SPlisHSPlasH/Utilities/TubeMapDensity.h"
 #include "MeshCurvatureQuery.h"
+#endif
 #if USE_NFD_FILE_DIALOG
 #include "extern/nfd/include/nfd.h"
 #endif 
@@ -493,7 +495,7 @@ void SimulatorBase::initSimulation()
 	FileSystem::copyFile(m_argv[0], progFilePath + "/" + FileSystem::getFileNameWithExt(m_argv[0]));
 	std::string diffFilePath = FileSystem::normalizePath(m_exePath + "/git_diff.txt");
 	FileSystem::copyFile(diffFilePath, progFilePath + "/git_diff.txt");
-	#endif
+#endif
 
 	Simulation *sim = Simulation::getCurrent();
 	sim->init(scene.particleRadius, scene.sim2D);
@@ -823,6 +825,10 @@ void SimulatorBase::buildModel()
 
 	createEmitters();
 	createAnimationFields();
+
+	// sort boundary models so that animated models are at the end of the list
+	Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+	std::sort(scene.boundaryModels.begin(), scene.boundaryModels.end(), [](const Utilities::BoundaryParameterObject* a, const Utilities::BoundaryParameterObject* b) { return a->isAnimated < b->isAnimated; });
 
 	Simulation *sim = Simulation::getCurrent();
 
@@ -1438,13 +1444,37 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 
 		Real xshift = diam;
 		Real yshift = diam;
-		const Real eps = static_cast<Real>(1.0e-9);
+		Real zshift = diam;
+		Real packRadius = scene.particleRadius;
+
 		if (scene.fluidBlocks[i]->mode == 1)
-			yshift = sqrt(static_cast<Real>(3.0)) * scene.particleRadius + eps;
+		{
+			// Mode 1 is a 2D hexagonal/triangular packing in the xy-plane, stacked
+			// with unscaled (cubic) spacing in z. Its density ratio vs. the cubic
+			// lattice (which the particle mass is based on) is 2/sqrt(3), so only
+			// the in-plane (x/y) spacing must be enlarged by sqrt(2/sqrt(3)) to
+			// compensate; z is left untouched.
+			const Real packingFactor = sqrt(static_cast<Real>(2.0) / sqrt(static_cast<Real>(3.0)));
+			const Real packDiam = diam * packingFactor;
+			packRadius = static_cast<Real>(0.5) * packDiam;
+
+			xshift = packDiam;
+			yshift = sqrt(static_cast<Real>(3.0)) * packRadius;
+		}
 		else if (scene.fluidBlocks[i]->mode == 2)
 		{
-			xshift = sqrt(static_cast<Real>(6.0)) * diam / static_cast<Real>(3.0) + eps;
-			yshift = sqrt(static_cast<Real>(3.0)) * scene.particleRadius + eps;
+			// Mode 2 is a true hexagonal close packing (HCP) in all 3 directions.
+			// Its density ratio vs. the cubic lattice is sqrt(2), so the spacing in
+			// all directions must be enlarged uniformly by the well-known factor
+			// 2^(1/6), which is the optimal spacing factor for close-packed SPH
+			// samplings.
+			const Real packingFactor = pow(static_cast<Real>(2.0), static_cast<Real>(1.0) / static_cast<Real>(6.0));
+			const Real packDiam = diam * packingFactor;
+			packRadius = static_cast<Real>(0.5) * packDiam;
+
+			xshift = packDiam;
+			yshift = sqrt(static_cast<Real>(3.0)) * packRadius;
+			zshift = sqrt(static_cast<Real>(6.0)) * packDiam / static_cast<Real>(3.0);
 		}
 
 		// apply transformation
@@ -1453,18 +1483,18 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 		Vector3r diff = maxX - minX;
 		if (scene.fluidBlocks[i]->mode == 1)
 		{
-			diff[0] -= diam;
-			diff[2] -= diam;
+			diff[0] -= xshift;
+			diff[2] -= xshift;
 		}
 		else if (scene.fluidBlocks[i]->mode == 2)
 		{
 			diff[0] -= xshift;
-			diff[2] -= diam;
+			diff[2] -= zshift;
 		}
 
 		const int stepsX = (int)round(diff[0] / xshift) - 1;
 		const int stepsY = (int)round(diff[1] / yshift) - 1;
-		int stepsZ = (int)round(diff[2] / diam) - 1;
+		int stepsZ = (int)round(diff[2] / zshift) - 1;
 
 		Vector3r start = minX + static_cast<Real>(2.0)*scene.particleRadius*Vector3r::Ones();
 		const unsigned int startIndex = (unsigned int)fluidParticles[fluidIndex].size();
@@ -1493,27 +1523,27 @@ void SimulatorBase::createFluidBlocks(std::map<std::string, unsigned int> &fluid
 			{
 				for (int l = 0; l < stepsZ; l++)
 				{
-					Vector3r currPos = Vector3r(j*xshift, k*yshift, l*diam) + start;
+					Vector3r currPos = Vector3r(j*xshift, k*yshift, l*zshift) + start;
 					if (scene.fluidBlocks[i]->mode == 1)
 					{
 						if (k % 2 == 0)
-							currPos += Vector3r(0, 0, scene.particleRadius);
+							currPos += Vector3r(0, 0, packRadius);
 						else
-							currPos += Vector3r(scene.particleRadius, 0, 0);
+							currPos += Vector3r(packRadius, 0, 0);
 					}
 					else if (scene.fluidBlocks[i]->mode == 2)
 					{
-						currPos += Vector3r(0, 0, scene.particleRadius);
-
+						// Hexagonal close packing (HCP):
+						// shift alternating x-columns by one particle radius (within a layer and
+						// between layers) and additionally shift alternating z-layers by
+						// sqrt(3)/3 * radius in y-direction, so that each layer sits in the
+						// pockets of the layer below. The spacing itself is already enlarged by
+						// 2^(1/6) above to compensate for the higher packing fraction of HCP.
 						Vector3r shift_vec(0, 0, 0);
-						if ((j % 2) && !Simulation::getCurrent()->is2DSimulation())
-						{
-							shift_vec[2] += diam / (static_cast<Real>(2.0) * (k % 2 ? -1 : 1));
-						}
-						if (k % 2 == 0)
-						{
-							shift_vec[0] += xshift / static_cast<Real>(2.0);
-						}
+						if (((k + l) % 2) != 0)
+							shift_vec[0] += packRadius;
+						if ((l % 2) != 0)
+							shift_vec[1] += sqrt(static_cast<Real>(3.0)) / static_cast<Real>(3.0) * packRadius;
 						currPos += shift_vec;
 					}
 					fluidParticles[fluidIndex].push_back(currPos);
@@ -2468,9 +2498,9 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 
 			double res = 0.0;
 			if (sim2D)
-				res = 0.8 * SimpleQuadrature::integrate(integrand);
+				res = SimpleQuadrature::integrate(integrand);
 			else
-				res = 0.8 * GaussQuadrature::integrate(integrand, int_domain, 50);
+				res = GaussQuadrature::integrate(integrand, int_domain, 50);
 			
 			return res;
 		};
@@ -2523,6 +2553,7 @@ void SimulatorBase::initDensityMap(std::vector<Vector3r> &x, std::vector<unsigne
 	}
 }
 
+#ifdef USE_THIRD_PARTY_METHODS
 void SimulatorBase::initTubeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_NoginaSellan2026 *boundaryModel)
 {
 	Simulation *sim = Simulation::getCurrent();
@@ -2673,8 +2704,7 @@ void SimulatorBase::initTubeMap(std::vector<Vector3r> &x, std::vector<unsigned i
 			distanceAndCurvature(xi, dist, H, K);
 		}
 
-		// 0.8 is the normalization of the boundary density as in [KB17]
-		return TubeMapDensity::boundaryDensity(d, H, K, supportRadius, factor, order) * 0.8;
+		return TubeMapDensity::boundaryDensity(d, H, K, supportRadius, factor, order);
 	};
 
 	LOG_INFO << "Generate tube map...";
@@ -2691,6 +2721,7 @@ void SimulatorBase::initTubeMap(std::vector<Vector3r> &x, std::vector<unsigned i
 		tubeMap->save(tubeMapFileName);
 	}
 }
+#endif
 
 void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned int> &faces, const Utilities::BoundaryParameterObject *boundaryData, const bool md5, const bool isDynamic, BoundaryModel_Bender2019 *boundaryModel)
 {
@@ -2832,9 +2863,9 @@ void SimulatorBase::initVolumeMap(std::vector<Vector3r> &x, std::vector<unsigned
 
 			double res = 0.0;
 			if (sim2D)
-				res = 0.8 * SimpleQuadrature::integrate(integrand);
+				res = SimpleQuadrature::integrate(integrand);
 			else
-				res = 0.8 * GaussQuadrature::integrate(integrand, int_domain, 30);
+				res = GaussQuadrature::integrate(integrand, int_domain, 30);
 
 			return res;
 		};

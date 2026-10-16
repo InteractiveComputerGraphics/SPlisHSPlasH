@@ -196,17 +196,34 @@ void SamplingBase::sampleObject(const int mode)
 	Real currentPercent = 0.01;
 	int counter_x = 0;
 	int counter_y = 0;
+	int counter_z = 0;
 	Real xshift = m_diameter;
 	Real yshift = m_diameter;
+	Real zshift = m_diameter;
+	Real packRadius = m_radius;
+	const Real eps = static_cast<Real>(1.0e-9);
+
+	// Hexagonal close packing (HCP) has a higher packing fraction (~74%) than
+	// the simple cubic lattice (~52%) that the particle mass is based on. To
+	// still reach rest density, the lattice spacing must be enlarged by the
+	// well-known factor 2^(1/6), which is the optimal spacing factor for
+	// close-packed SPH samplings.
+	const Real packingFactor = pow(static_cast<Real>(2.0), static_cast<Real>(1.0) / static_cast<Real>(6.0));
+	const Real packDiameter = m_diameter * packingFactor;
+	packRadius = static_cast<Real>(0.5) * packDiameter;
 
 	if (mode == 1)
-		yshift = sqrt(static_cast<Real>(3.0)) * m_radius;
+	{
+		xshift = packDiameter;
+		yshift = sqrt(static_cast<Real>(3.0)) * packRadius + eps;
+	}
 	else if (mode == 2)
 	{
-		xshift = sqrt(static_cast<Real>(3.0)) * m_radius;
-		yshift = sqrt(static_cast<Real>(6.0)) * m_diameter / static_cast<Real>(3.0);
+		xshift = packDiameter;
+		yshift = sqrt(static_cast<Real>(3.0)) * packRadius + eps;
+		zshift = sqrt(static_cast<Real>(6.0)) * packDiameter / static_cast<Real>(3.0) + eps;
 	}
-	for (Real z = m_bbmin[2]; z <= m_bbmax[2]; z += m_diameter)
+	for (Real z = m_bbmin[2]; z <= m_bbmax[2]; z += zshift)
 	{
 		for (Real y = m_bbmin[1]; y <= m_bbmax[1]; y += yshift)
 		{
@@ -216,24 +233,25 @@ void SamplingBase::sampleObject(const int mode)
 				if (mode == 1)
 				{
 					if (counter_y % 2 == 0)
-						particlePosition = Vector3r(x, y + m_radius, z + m_radius);
+						particlePosition = Vector3r(x, y + packRadius, z + packRadius);
 					else
-						particlePosition = Vector3r(x + m_radius, y + m_radius, z);
+						particlePosition = Vector3r(x + packRadius, y + packRadius, z);
 				}
 				else if (mode == 2)
 				{
-					particlePosition = Vector3r(x, y + m_radius, z + m_radius);
+					particlePosition = Vector3r(x, y + packRadius, z + packRadius);
 
+					// Hexagonal close packing (HCP):
+					// shift alternating x-columns by one particle radius (within a layer and
+					// between layers) and additionally shift alternating z-layers by
+					// sqrt(3)/3 * radius in y-direction, so that each layer sits in the
+					// pockets of the layer below. The spacing itself is already enlarged by
+					// 2^(1/6) above to compensate for the higher packing fraction of HCP.
 					Vector3r shift_vec(0, 0, 0);
-					if (counter_x % 2)
-					{
-						shift_vec[2] += m_diameter / (static_cast<Real>(2.0) * (counter_y % 2 ? -1 : 1));
-					}
-					if (counter_y % 2)
-					{
-						shift_vec[0] += xshift / static_cast<Real>(2.0);
-						shift_vec[2] += m_diameter / static_cast<Real>(2.0);
-					}
+					if (((counter_y + counter_z) % 2) != 0)
+						shift_vec[0] += packRadius;
+					if ((counter_z % 2) != 0)
+						shift_vec[1] += sqrt(static_cast<Real>(3.0)) / static_cast<Real>(3.0) * packRadius;
 					particlePosition += shift_vec;
 				}
 				else
@@ -260,6 +278,7 @@ void SamplingBase::sampleObject(const int mode)
 			counter_y++;
 		}
 		counter_y = 0;
+		counter_z++;
 	}
 	std::cout << "\r" << "Generating samples " << std::setw(14) << 100.0 << "%\n";
 }

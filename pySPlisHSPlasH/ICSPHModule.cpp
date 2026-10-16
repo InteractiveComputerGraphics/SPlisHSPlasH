@@ -45,6 +45,7 @@ void ICSPHModule(py::module m_sub) {
     // Class Simulation Data ICSPH
     // ---------------------------------------
     py::class_<SPH::TimeStepICSPH, SPH::TimeStep>(m_sub, "TimeStepICSPH")
+            .def(py::init<>())
             .def_readwrite_static("SOLVER_ITERATIONS", &SPH::TimeStepICSPH::SOLVER_ITERATIONS)
             .def_readwrite_static("MIN_ITERATIONS", &SPH::TimeStepICSPH::MIN_ITERATIONS)
             .def_readwrite_static("MAX_ITERATIONS", &SPH::TimeStepICSPH::MAX_ITERATIONS)
@@ -53,7 +54,6 @@ void ICSPHModule(py::module m_sub) {
             .def_readwrite_static("PRESSURE_CLAMPING", &SPH::TimeStepICSPH::PRESSURE_CLAMPING)
             .def("getSimulationData", &SPH::TimeStepICSPH::getSimulationData)
             .def("getMethodName", &SPH::TimeStepICSPH::getMethodName)
-            .def("getNumIterations", &SPH::TimeStepICSPH::getNumIterations)
-            .def(py::init<>());
+            .def("getNumIterations", &SPH::TimeStepICSPH::getNumIterations);
 }
 

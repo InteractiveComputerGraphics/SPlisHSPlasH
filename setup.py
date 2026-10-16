@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import sysconfig
 import platform
 import subprocess
 import multiprocessing as mp
@@ -50,11 +51,21 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         bin_dir_windows = os.path.join(os.path.abspath(self.build_temp), "bin")
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                    #   '-DPYBIND11_PYTHON_VERSION=' + f"{sys.version_info.major}.{sys.version_info.minor}"
-                      '-DPYBIND11_FINDPYTHON=On',
-                      '-DPython_EXECUTABLE=' + sys.executable,
-                      ]
+        cmake_args = [
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+            "-DPYBIND11_FINDPYTHON=On",
+            "-DPython_EXECUTABLE=" + sys.executable,
+            "-DPython_INCLUDE_DIR=" + sysconfig.get_path("include"),
+        ]
+        if platform.system() == "Windows":
+            cmake_args.append(
+                "-DPython_LIBRARY="
+                + os.path.join(
+                    sys.base_prefix,
+                    "libs",
+                    f"python{sys.version_info.major}{sys.version_info.minor}.lib",
+                )
+            )
 
         print(f"Using cmake args {cmake_args}")
         print(f"Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")

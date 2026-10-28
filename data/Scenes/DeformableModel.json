@@ -1,7 +1,7 @@
 {
 	"Configuration": 
 	{
-		"imteStepSize": 0.001,
+		"timeStepSize": 0.001,
 		"particleRadius": 0.025,
 		"numberOfStepsPerRenderUpdate": 2,
 		"simulationMethod": 4,

@@ -203,25 +203,34 @@ void SamplingBase::sampleObject(const int mode)
 	Real packRadius = m_radius;
 	const Real eps = static_cast<Real>(1.0e-9);
 
-	// Hexagonal close packing (HCP) has a higher packing fraction (~74%) than
-	// the simple cubic lattice (~52%) that the particle mass is based on. To
-	// still reach rest density, the lattice spacing must be enlarged by the
-	// well-known factor 2^(1/6), which is the optimal spacing factor for
-	// close-packed SPH samplings.
-	const Real packingFactor = pow(static_cast<Real>(2.0), static_cast<Real>(1.0) / static_cast<Real>(6.0));
-	const Real packDiameter = m_diameter * packingFactor;
-	packRadius = static_cast<Real>(0.5) * packDiameter;
-
 	if (mode == 1)
 	{
-		xshift = packDiameter;
-		yshift = sqrt(static_cast<Real>(3.0)) * packRadius + eps;
+		// Mode 1 is a 2D hexagonal/triangular packing in the xy-plane, stacked
+		// with unscaled (cubic) spacing in z. Its density ratio vs. the cubic
+		// lattice (which the particle mass is based on) is 2/sqrt(3), so only
+		// the in-plane (x/y) spacing must be enlarged by sqrt(2/sqrt(3)) to
+		// compensate; z is left untouched.
+		const Real packingFactor = sqrt(static_cast<Real>(2.0) / sqrt(static_cast<Real>(3.0)));
+		const Real packDiam = m_diameter * packingFactor;
+		packRadius = static_cast<Real>(0.5) * packDiam;
+
+		xshift = packDiam;
+		yshift = sqrt(static_cast<Real>(3.0)) * packRadius;
 	}
 	else if (mode == 2)
 	{
-		xshift = packDiameter;
-		yshift = sqrt(static_cast<Real>(3.0)) * packRadius + eps;
-		zshift = sqrt(static_cast<Real>(6.0)) * packDiameter / static_cast<Real>(3.0) + eps;
+		// Mode 2 is a true hexagonal close packing (HCP) in all 3 directions.
+		// Its density ratio vs. the cubic lattice is sqrt(2), so the spacing in
+		// all directions must be enlarged uniformly by the well-known factor
+		// 2^(1/6), which is the optimal spacing factor for close-packed SPH
+		// samplings.
+		const Real packingFactor = pow(static_cast<Real>(2.0), static_cast<Real>(1.0) / static_cast<Real>(6.0));
+		const Real packDiam = m_diameter * packingFactor;
+		packRadius = static_cast<Real>(0.5) * packDiam;
+
+		xshift = packDiam;
+		yshift = sqrt(static_cast<Real>(3.0)) * packRadius;
+		zshift = sqrt(static_cast<Real>(6.0)) * packDiam / static_cast<Real>(3.0);
 	}
 	for (Real z = m_bbmin[2]; z <= m_bbmax[2]; z += zshift)
 	{

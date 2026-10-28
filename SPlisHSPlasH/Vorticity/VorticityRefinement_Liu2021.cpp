@@ -51,7 +51,7 @@ void VorticityRefinement_Liu2021::initParameters()
 	RealParameter* rparam = static_cast<RealParameter*>(getParameter(VORTICITY_COEFFICIENT));
 	rparam->setMinValue(0.0);
 
-	KINEMATIC_VISCOSITY = createNumericParameter("kinetmaticViscosity", "Viscosity coefficient", &m_viscosityCoefficient);
+	KINEMATIC_VISCOSITY = createNumericParameter("kinematicViscosity", "Viscosity coefficient", &m_viscosityCoefficient);
 	setGroup(KINEMATIC_VISCOSITY, "Fluid Model|Vorticity");
 	setDescription(KINEMATIC_VISCOSITY, "Coefficient for the viscosity force computation");
 	rparam = static_cast<RealParameter*>(getParameter(KINEMATIC_VISCOSITY));

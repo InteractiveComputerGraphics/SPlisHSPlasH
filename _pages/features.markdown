@@ -66,6 +66,7 @@ The SPlisHSPlasH library implements the following boundary handling methods:
 * Dan Koschier and Jan Bender, "Density Maps for Improved SPH Boundary Handling", In Proceedings of ACM SIGGRAPH / EUROGRAPHICS Symposium on Computer Animation (SCA), 2017. [https://doi.org/10.1145/3099564.3099565](https://doi.org/10.1145/3099564.3099565)
 * Jan Bender, Tassilo Kugelstadt, Marcel Weiler, Dan Koschier, "Volume Maps: An Implicit Boundary Representation for SPH", ACM SIGGRAPH Conference on Motion, Interaction and Games, 2019. [https://doi.org/10.1145/3359566.3360077](https://doi.org/10.1145/3359566.3360077)
 * Jan Bender, Lukas Westhofen, Stefan Rhys Jeske, "Consistent SPH Rigid-Fluid Coupling", Vision, Modeling and Visualization, 2023. [https://doi.org/10.2312/vmv.20231244](https://doi.org/10.2312/vmv.20231244)
+* Daria Nogina, Silvia Sellán. Tube Maps: Fast SPH Boundary Handling in Tubular Coordinates. SIGGRAPH 2026 Conference Papers, 2026<br>[https://gatc.cs.columbia.edu/projects/tubemaps.html](https://gatc.cs.columbia.edu/projects/tubemaps.html)
 
 ## Viscosity
 

@@ -56,6 +56,7 @@ SPlisHSPlasH implements the methods of the following publications:
 * Jeske, Stefan Rhys, Lukas Westhofen, Fabian Löschner, José Antonio Fernández-Fernández, and Jan Bender. Implicit Surface Tension for SPH Fluid Simulation. ACM Transactions on Graphics, 2023. [https://doi.org/10.1145/3631936](https://doi.org/10.1145/3631936)
 * Jan Bender, Lukas Westhofen, Stefan Rhys Jeske, "Consistent SPH Rigid-Fluid Coupling", Vision, Modeling and Visualization, 2023. [https://doi.org/10.2312/vmv.20231244](https://doi.org/10.2312/vmv.20231244)
 * Min Hyung Kee, Kiwon Um, HyunMo Kang, JungHyun Han, "An Optimization-based SPH Solver for Simulation of Hyperelastic Solids", Computer Graphics Forum, 42: 225-233, 2023. [https://doi.org/10.1111/cgf.14756](https://doi.org/10.1111/cgf.14756)
+* Daria Nogina, Silvia Sellán. Tube Maps: Fast SPH Boundary Handling in Tubular Coordinates. SIGGRAPH 2026 Conference Papers, 2026<br>[https://gatc.cs.columbia.edu/projects/tubemaps.html](https://gatc.cs.columbia.edu/projects/tubemaps.html)
 
 ## Other research projects using SPlisHSPlasH
 
@@ -96,3 +97,5 @@ SPlisHSPlasH implements the methods of the following publications:
 * Zhehao Li, Qingyu Xu, Xiaohan Ye, Bo Ren, Ligang Liu. DiffFR: Differentiable SPH-Based Fluid-Rigid Coupling for Rigid Body Control. ACM Transactions on Graphics 42, 6, 2023<br>[https://doi.org/10.1145/3618318](https://doi.org/10.1145/3618318)
 * Daria Nogina, Silvia Sellán. Tube Maps: Fast SPH Boundary Handling in Tubular Coordinates. SIGGRAPH 2026 Conference Papers, 2026<br>[https://gatc.cs.columbia.edu/projects/tubemaps.html](https://gatc.cs.columbia.edu/projects/tubemaps.html)
 * Xiongheng Bian, Ma Feng, Xinlong Zhang, Xiaoyan Shen. Multi-phase boundary models based on wetting model for SPH simulation. Computer Methods in Applied Mechanics and Engineering 461, 2026<br>[https://doi.org/10.1016/j.cma.2026.119203](https://doi.org/10.1016/j.cma.2026.119203)
+*Yong Tang, Shipeng Chen, Minghui Zhang, Xin Zheng, Jing Zhao, Jiayan Wang. Implicit Surface Tension for Incompressible SPH Fluids with Interface Classification. Computer Graphics Forum, 2026<br>[https://doi.org/10.1111/cgf.70658](https://doi.org/10.1111/cgf.70658)
+

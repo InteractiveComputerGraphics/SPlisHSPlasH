@@ -827,8 +827,12 @@ void SimulatorBase::buildModel()
 	createAnimationFields();
 
 	// sort boundary models so that animated models are at the end of the list
-	Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
-	std::sort(scene.boundaryModels.begin(), scene.boundaryModels.end(), [](const Utilities::BoundaryParameterObject* a, const Utilities::BoundaryParameterObject* b) { return a->isAnimated < b->isAnimated; });
+	// (in a dynamic scene they must keep the order of the PBD rigid bodies, see PBDBoundarySimulator::initBoundaryData())
+	if (m_isStaticScene)
+	{
+		Utilities::SceneLoader::Scene& scene = SceneConfiguration::getCurrent()->getScene();
+		std::stable_sort(scene.boundaryModels.begin(), scene.boundaryModels.end(), [](const Utilities::BoundaryParameterObject* a, const Utilities::BoundaryParameterObject* b) { return a->isAnimated < b->isAnimated; });
+	}
 
 	Simulation *sim = Simulation::getCurrent();
 

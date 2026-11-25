@@ -1,5 +1,6 @@
 add_subdirectory(Kernel)
 add_subdirectory(ReadWriteState)
+add_subdirectory(RigidBodies)
 if (FOUND_SIMD)
 	add_subdirectory(AVX)
 endif()

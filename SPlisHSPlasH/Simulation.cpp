@@ -745,12 +745,16 @@ void Simulation::updateBoundaryVolume()
 
 	ns->findNeighbors();
 
-	// Boundary objects
+	// Boundary objects (the neighborhood search contains only the static ones)
+	unsigned int pointSetIndex = 0;
 	for (unsigned int body = 0; body < numberOfBoundaryModels(); body++)
 	{
 		BoundaryModel_Akinci2012* bm = static_cast<BoundaryModel_Akinci2012*>(getBoundaryModel(body));
 		if (!bm->getRigidBodyObject()->isDynamic() && !bm->getRigidBodyObject()->isAnimated())
-			bm->computeBoundaryVolume(ns, body);
+		{
+			bm->computeBoundaryVolume(ns, pointSetIndex);
+			pointSetIndex++;
+		}
 	}
 	delete ns;
 
